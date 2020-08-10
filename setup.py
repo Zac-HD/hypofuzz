@@ -30,7 +30,7 @@ setuptools.setup(
     license="MPL 2.0",
     description="Adaptive fuzzing for property-based tests",
     zip_safe=False,
-    install_requires=["hypothesis[cli]>=5.23.0"],
+    install_requires=["hypothesis >= 5.23.0", "coverage >= 5.2.1"],
     python_requires=">=3.6",
     classifiers=[
         "Development Status :: 3 - Alpha",
