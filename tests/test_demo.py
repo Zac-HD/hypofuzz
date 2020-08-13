@@ -3,12 +3,11 @@
 import json
 from itertools import islice
 
-from hypothesis import assume
 import hypothesis.strategies as st
+from hypothesis import assume
 from hypothesis.internal.conjecture.data import Status
 
 import hypofuzz
-
 
 JSON_STRATEGY = st.recursive(
     st.none() | st.booleans() | st.integers() | st.floats(),
@@ -22,8 +21,14 @@ def encode_decode(x):
 
 
 def test_fuzz_demo():
-    gen = hypofuzz.coverage_fuzzer(test=encode_decode, x=JSON_STRATEGY)
-    results = {r.status for r in islice(gen, 100)}
+    fuzzer = hypofuzz.FuzzProcess(
+        encode_decode, JSON_STRATEGY.map(lambda x: ((), {"x": x}))
+    )
+    fuzzer.startup()
+    for _ in range(100):
+        fuzzer.run_one()
+
+    results = {r.status for r in fuzzer.pool}
     assert Status.INTERESTING in results
     assert Status.VALID in results
 
@@ -41,7 +46,3 @@ def test_fuzz_status_demo():
     # the all-zero example fails the filter, VALID for most examples, and
     # INTERESTING when `nan` is in the list.
     assert results == set(Status)
-
-
-if __name__ == "__main__":
-    test_fuzz_demo()
