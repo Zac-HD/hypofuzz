@@ -5,24 +5,31 @@
 #    pip-compile --output-file=deps/test.txt deps/test.in setup.py
 #
 apipkg==1.5               # via execnet
+appdirs==1.4.4            # via black
 atomicwrites==1.4.0       # via pytest
-attrs==19.3.0             # via hypothesis, pytest
+attrs==19.3.0             # via black, hypothesis, pytest
+black==19.10b0            # via hypothesis
+click==7.1.2              # via black, hypothesis
 colorama==0.4.3           # via pytest
-coverage==5.2.1           # via pytest-cov
+coverage==5.2.1           # via hypofuzz (setup.py), pytest-cov
 execnet==1.7.1            # via pytest-xdist
-hypothesis[cli]==5.23.8   # via hypofuzz (setup.py)
+hypothesis[cli]==5.27.0   # via hypofuzz (setup.py)
 importlib-metadata==1.7.0  # via pluggy, pytest
 iniconfig==1.0.1          # via pytest
 more-itertools==8.4.0     # via pytest
 packaging==20.4           # via pytest
+pathspec==0.8.0           # via black
 pluggy==0.13.1            # via pytest
+psutil==5.7.2             # via hypofuzz (setup.py), pytest-xdist
 py==1.9.0                 # via pytest, pytest-forked
 pyparsing==2.4.7          # via packaging
-pytest-cov==2.10.0        # via -r deps/test.in
+pytest-cov==2.10.1        # via -r deps/test.in
 pytest-forked==1.3.0      # via pytest-xdist
-pytest-xdist==1.34.0      # via -r deps/test.in
+pytest-xdist==2.0.0       # via -r deps/test.in
 pytest==6.0.1             # via -r deps/test.in, pytest-cov, pytest-forked, pytest-xdist
-six==1.15.0               # via packaging, pytest-xdist
+regex==2020.7.14          # via black
+six==1.15.0               # via packaging
 sortedcontainers==2.2.2   # via hypothesis
-toml==0.10.1              # via pytest
+toml==0.10.1              # via black, pytest
+typed-ast==1.4.1          # via black
 zipp==3.1.0               # via importlib-metadata

@@ -3,6 +3,7 @@
 import contextlib
 import sys
 import traceback
+from operator import attrgetter
 from random import Random
 from typing import (
     Any,
@@ -92,6 +93,8 @@ def fuzz_in_generator(
         data = ConjectureData(max_length=BUFFER_SIZE, prefix=buf, random=random)
         try:
             with deterministic_PRNG(), BuildContext(data), constant_stack_depth():
+                # Note that the data generation and test execution happen in the same
+                # coverage context.  We may later split this, or tag each separately.
                 with collector:
                     args, kwargs = data.draw(strategy)
                     test(*args, **kwargs)
@@ -290,3 +293,33 @@ class FuzzProcess:
     def has_found_failure(self) -> bool:
         """If we've already found a failing example we might reprioritize."""
         return bool(self._interesting_examples)
+
+
+def fuzz_several(
+    *targets_: FuzzProcess, numprocesses: int = 1, random_seed: int = None
+) -> NoReturn:
+    """Take N fuzz targets and run them all."""
+    rand = Random(random_seed)
+    targets = SortedKeyList(targets_, attrgetter("estimated_value_of_next_run"))
+
+    # Start by running each for an even 100 inputs - roughly equivalent to a
+    # "normal" Hypothesis run, though the engine is different.
+    for t in targets:
+        for _ in range(100):
+            t.run_one()
+
+    # After that, we loop forever.  At each timestep, we choose a target using
+    # an epsilon-greedy strategy for simplicity (TODO: improve this later) and
+    # run it once.
+    # TODO: make this aware of test runtime, so it adapts for arcs-per-second
+    #       rather than arcs-per-input.
+    while True:
+        if rand.random() < 0.05:
+            t = targets.pop(rand.randrange(len(targets)))
+            t.run_one()
+            targets.add(t)
+        else:
+            targets[0].run_one()
+            if targets.key(targets[0]) > targets.key(targets[1]):
+                # pay our log-n cost to keep the list sorted
+                targets.add(targets.pop(0))

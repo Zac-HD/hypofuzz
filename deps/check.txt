@@ -9,7 +9,7 @@ attrs==19.3.0             # via black, flake8-bugbear
 autoflake==1.3.1          # via shed
 bandit==1.6.2             # via flake8-bandit
 black==19.10b0            # via shed
-click==7.1.2              # via black
+click==7.1.2              # via black, pybetter, pyemojify
 colorama==0.4.3           # via bandit
 flake8-bandit==2.1.2      # via -r deps/check.in
 flake8-bugbear==20.1.4    # via -r deps/check.in
@@ -22,20 +22,24 @@ flake8==3.8.3             # via -r deps/check.in, flake8-bandit, flake8-bugbear,
 gitdb==4.0.5              # via gitpython
 gitpython==3.1.7          # via bandit
 importlib-metadata==1.7.0  # via flake8, flake8-comprehensions, stevedore
-isort==5.2.2              # via shed
+isort==5.4.2              # via shed
+libcst==0.3.10            # via pybetter
 mccabe==0.6.1             # via flake8
-mypy-extensions==0.4.3    # via mypy
+mypy-extensions==0.4.3    # via mypy, typing-inspect
 mypy==0.782               # via -r deps/check.in
 pathspec==0.8.0           # via black
 pbr==5.4.5                # via stevedore
 pep8-naming==0.11.1       # via -r deps/check.in
+pybetter==0.3.5           # via shed
 pycodestyle==2.6.0        # via flake8, flake8-bandit, flake8-print
 pydocstyle==5.0.2         # via flake8-docstrings
+pyemojify==0.2.0          # via pybetter
 pyflakes==2.2.0           # via autoflake, flake8
+pygments==2.6.1           # via pybetter
 pyupgrade==2.7.2          # via shed
-pyyaml==5.3.1             # via bandit
+pyyaml==5.3.1             # via bandit, libcst
 regex==2020.7.14          # via black
-shed==0.1.1               # via -r deps/check.in
+shed==0.2.3               # via -r deps/check.in
 six==1.15.0               # via bandit, flake8-print
 smmap==3.0.4              # via gitdb
 snowballstemmer==2.0.0    # via pydocstyle
@@ -43,5 +47,6 @@ stevedore==3.2.0          # via bandit
 tokenize-rt==4.0.0        # via pyupgrade
 toml==0.10.1              # via black
 typed-ast==1.4.1          # via black, mypy
-typing-extensions==3.7.4.2  # via mypy
+typing-extensions==3.7.4.2  # via libcst, mypy, typing-inspect
+typing-inspect==0.6.0     # via libcst
 zipp==3.1.0               # via importlib-metadata

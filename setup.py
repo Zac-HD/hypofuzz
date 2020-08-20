@@ -30,7 +30,11 @@ setuptools.setup(
     license="MPL 2.0",
     description="Adaptive fuzzing for property-based tests",
     zip_safe=False,
-    install_requires=["hypothesis >= 5.23.0", "coverage >= 5.2.1"],
+    install_requires=[
+        "coverage >= 5.2.1",
+        "hypothesis[cli] >= 5.27.0",
+        "psutil>=3.0.0",
+    ],
     python_requires=">=3.6",
     classifiers=[
         "Development Status :: 3 - Alpha",
@@ -46,6 +50,7 @@ setuptools.setup(
         "Topic :: Software Development :: Testing",
         "Typing :: Typed",
     ],
+    entry_points={"hypothesis": ["_ = hypofuzz.interface"]},
     long_description=open(README).read(),
     long_description_content_type="text/markdown",
     keywords="python testing fuzzing property-based-testing",
