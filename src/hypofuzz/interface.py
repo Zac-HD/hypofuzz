@@ -7,7 +7,8 @@ from hypothesis.extra.cli import main as hypothesis_cli_root
 import builtins
 import importlib
 from difflib import get_close_matches
-from typing import NoReturn, Callable, Tuple
+from typing import NoReturn, Tuple
+import subprocess
 
 from .hy import FuzzProcess, fuzz_several
 
@@ -47,8 +48,33 @@ def obj_name(s: str) -> object:
         )
 
 
+def _get_hypothesis_tests_with_pytest(args):
+    """Find the hypothesis-only test functions run by pytest.
+
+    This basically uses `pytest --collect-only -m hypothesis $args`.
+    """
+    import pytest
+    from _pytest.config import _prepareconfig
+
+    # TODO: suppress pytest output here for quietness
+    args = ["--collect-only", "--quiet", "-m=hypothesis", *args]
+    config = _prepareconfig(args=args, plugins=None)
+    try:
+        session = pytest.Session.from_config(config)
+        config._do_configure()
+        config.hook.pytest_sessionstart(session=session)
+        config.hook.pytest_collection(session=session)
+        # TODO: can support mark.parametrize via partial + inner_test and helpers from
+        # https://github.com/pytest-dev/pytest/blob/master/src/_pytest/mark/structures.py
+        # Note that we might (??) need to set db key like Hypothesis too.
+        return [item.obj for item in session.items]
+    finally:
+        config.hook.pytest_sessionfinish(session=session, exitstatus=session.exitstatus)
+        config._ensure_unconfigure()
+        print()  # noqa
+
+
 @hypothesis_cli_root.command()
-@click.argument("test", required=True, type=obj_name, nargs=-1)
 @click.option(
     "-n",
     "--numprocesses",
@@ -57,15 +83,32 @@ def obj_name(s: str) -> object:
     default=psutil.cpu_count(logical=False) or psutil.cpu_count() or 1,
     show_default="all available cores",
 )
-def fuzz(test: Tuple[Callable[..., None], ...], numprocesses: int) -> NoReturn:
+@click.argument("pytest_args", nargs=-1)
+def fuzz(numprocesses: int, pytest_args: Tuple[str, ...]) -> NoReturn:
     """[hypofuzz] runs tests with an adaptive coverage-guided fuzzer.
 
-    lorem ipsum, etc.
+    Aside from -n, all arguments are passed through to `pytest` to select the
+    tests to run.
+
+    This process will run forever unless stopped with e.g. ctrl-C.
     """
     if numprocesses < 1:
         raise click.UsageError(f"Minimum --numprocesses is one, but got {numprocesses}")
-    print(f"not fuzzing {test} with {numprocesses} processes yet, but soon!")  # noqa
+
+    for arg in ("-n", "--numprocesses"):  # can we automate this somehow?
+        if arg in (pytest_args):
+            raise click.UsageError(
+                f"{arg} must come before the arguments passed through to pytest"
+            )
+
+    tests = list(_get_hypothesis_tests_with_pytest(pytest_args))
+    if not tests:
+        raise click.UsageError("No property-based tests were collected")
+    numprocesses = max(numprocesses, len(tests))
+
+    testnames = ", ".join(t.__name__ for t in tests)
+    print(f"fuzzing {testnames} with up to {numprocesses} processes!\n")  # noqa
     fuzz_several(
-        *map(FuzzProcess.from_hypothesis_test, test), numprocesses=numprocesses,
+        *map(FuzzProcess.from_hypothesis_test, tests), numprocesses=numprocesses,
     )
     raise NotImplementedError("unreachable")

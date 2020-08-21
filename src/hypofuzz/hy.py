@@ -1,6 +1,7 @@
 """Adaptive fuzzing for property-based tests using Hypothesis."""
 
 import contextlib
+import itertools
 import sys
 import traceback
 from operator import attrgetter
@@ -166,6 +167,7 @@ class FuzzProcess:
             collector=CollectionContext(),
             random=Random(random_seed),
         )
+        self._test_fn_name = test_fn.__qualname__
 
         # Database pointers and keys, so that we can resume fuzzing runs without
         # losing all our progress, and to insert failing examples into the
@@ -287,7 +289,7 @@ class FuzzProcess:
         # TODO: improve this method.  It should draw on (at least!) MBoehme's
         #       papers, and runtime information so that tests get roughly even
         #       runtime rather than number of runs.
-        return 1 / (self.ninputs - self.last_new_cov_at)
+        return 1 / (1 + self.ninputs - self.last_new_cov_at)
 
     @property
     def has_found_failure(self) -> bool:
@@ -300,26 +302,36 @@ def fuzz_several(
 ) -> NoReturn:
     """Take N fuzz targets and run them all."""
     rand = Random(random_seed)
-    targets = SortedKeyList(targets_, attrgetter("estimated_value_of_next_run"))
+    targets = SortedKeyList(targets_, lambda t: -t.estimated_value_of_next_run)
 
     # Start by running each for an even 100 inputs - roughly equivalent to a
     # "normal" Hypothesis run, though the engine is different.
     for t in targets:
-        for _ in range(100):
+        for i in range(100):
             t.run_one()
+            msg = f"iteration {i}, seen {len(t.seen_arcs)} arcs for {t._test_fn_name}"
+            if not i % 20:
+                print(msg, flush=True)
 
     # After that, we loop forever.  At each timestep, we choose a target using
     # an epsilon-greedy strategy for simplicity (TODO: improve this later) and
     # run it once.
     # TODO: make this aware of test runtime, so it adapts for arcs-per-second
     #       rather than arcs-per-input.
-    while True:
-        if rand.random() < 0.05:
+    for i in itertools.count(100):
+        if i % 20 == 0:
             t = targets.pop(rand.randrange(len(targets)))
             t.run_one()
             targets.add(t)
+            msg = f"iteration {i}\n    " + "\n    ".join(
+                f"{t._test_fn_name:<20} - est {t.estimated_value_of_next_run:.6f}"
+                f" - seen {len(t.seen_arcs)} arcs"
+                for t in targets
+            )
+            if not i % 100:
+                print(msg, flush=True)
         else:
             targets[0].run_one()
-            if targets.key(targets[0]) > targets.key(targets[1]):
+            if len(targets) > 1 and targets.key(targets[0]) > targets.key(targets[1]):
                 # pay our log-n cost to keep the list sorted
                 targets.add(targets.pop(0))
