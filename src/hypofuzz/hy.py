@@ -4,7 +4,6 @@ import contextlib
 import itertools
 import sys
 import traceback
-from operator import attrgetter
 from random import Random
 from typing import (
     Any,
@@ -301,6 +300,7 @@ def fuzz_several(
     *targets_: FuzzProcess, numprocesses: int = 1, random_seed: int = None
 ) -> NoReturn:
     """Take N fuzz targets and run them all."""
+    # TODO: this isn't actually multi-process yet, and that's bad.
     rand = Random(random_seed)
     targets = SortedKeyList(targets_, lambda t: -t.estimated_value_of_next_run)
 
@@ -311,7 +311,7 @@ def fuzz_several(
             t.run_one()
             msg = f"iteration {i}, seen {len(t.seen_arcs)} arcs for {t._test_fn_name}"
             if not i % 20:
-                print(msg, flush=True)
+                print(msg, flush=True)  # noqa
 
     # After that, we loop forever.  At each timestep, we choose a target using
     # an epsilon-greedy strategy for simplicity (TODO: improve this later) and
@@ -329,9 +329,10 @@ def fuzz_several(
                 for t in targets
             )
             if not i % 100:
-                print(msg, flush=True)
+                print(msg, flush=True)  # noqa
         else:
             targets[0].run_one()
             if len(targets) > 1 and targets.key(targets[0]) > targets.key(targets[1]):
                 # pay our log-n cost to keep the list sorted
                 targets.add(targets.pop(0))
+    raise NotImplementedError("unreachable")

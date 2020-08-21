@@ -3,9 +3,7 @@
 import json
 
 import pytest
-
-import hypothesis.strategies as st
-from hypothesis import given
+from hypothesis import given, strategies as st
 
 
 def test_non_property():
@@ -16,7 +14,6 @@ def test_non_property():
 @given(h=st.booleans())
 def est_hypothesis_and_parametrize(h, p):
     # mixing them doesn't work at the moment, but it could; see interface.py
-    print(h, p)
     pass
 
 
