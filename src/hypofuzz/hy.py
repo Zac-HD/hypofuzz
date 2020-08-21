@@ -143,7 +143,7 @@ class FuzzProcess:
         """Return a FuzzProcess for an @given-decorated test function."""
         return cls(
             test_fn=wrapped_test.hypothesis.inner_test,
-            strategy=wrapped_test.hypothesis.strategy,
+            strategy=wrapped_test.hypothesis.get_strategy(),
             database_key=function_digest(wrapped_test),
             hypothesis_database=wrapped_test._hypothesis_internal_use_settings.database,
         )
