@@ -138,11 +138,14 @@ class FuzzProcess:
     """
 
     @classmethod
-    def from_hypothesis_test(cls, wrapped_test: Any) -> "FuzzProcess":
+    def from_hypothesis_test(
+        cls, wrapped_test: Any, *, test_id: str = None
+    ) -> "FuzzProcess":
         """Return a FuzzProcess for an @given-decorated test function."""
         return cls(
             test_fn=wrapped_test.hypothesis.inner_test,
             strategy=wrapped_test.hypothesis.get_strategy(),
+            test_id=test_id,
             database_key=function_digest(wrapped_test),
             hypothesis_database=wrapped_test._hypothesis_internal_use_settings.database,
         )
@@ -153,6 +156,7 @@ class FuzzProcess:
         strategy: st.SearchStrategy,
         *,
         random_seed: int = None,
+        test_id: str = None,
         database_key: int = None,
         fuzz_database: ExampleDatabase = None,
         hypothesis_database: ExampleDatabase = None,
@@ -166,7 +170,7 @@ class FuzzProcess:
             collector=CollectionContext(),
             random=Random(random_seed),
         )
-        self._test_fn_name = test_fn.__qualname__
+        self._test_fn_name = test_id or test_fn.__qualname__
 
         # Database pointers and keys, so that we can resume fuzzing runs without
         # losing all our progress, and to insert failing examples into the

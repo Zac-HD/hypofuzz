@@ -1,7 +1,7 @@
 """CLI and Python API for the fuzzer."""
 import io
 from contextlib import redirect_stdout
-from typing import Callable, Iterable, NoReturn, Tuple
+from typing import Iterable, NoReturn, Tuple
 
 import click
 import psutil
@@ -10,7 +10,7 @@ from hypothesis.extra.cli import main as hypothesis_cli_root
 from .hy import FuzzProcess, fuzz_several
 
 
-def _get_hypothesis_tests_with_pytest(args: Iterable[str]) -> Iterable[Callable]:
+def _get_hypothesis_tests_with_pytest(args: Iterable[str]) -> Iterable[FuzzProcess]:
     """Find the hypothesis-only test functions run by pytest.
 
     This basically uses `pytest --collect-only -m hypothesis $args`.
@@ -20,10 +20,23 @@ def _get_hypothesis_tests_with_pytest(args: Iterable[str]) -> Iterable[Callable]
 
     class ItemsCollector:
         def pytest_collection_finish(self, session: pytest.Session) -> None:
-            # TODO: support pytest.parametrize by reassigning the inner_test with
-            # functools.partial and inspection of the MarkSet object.
-            # TODO: skip test functions which require fixtures; not worth the trouble.
-            items[:] = [x.obj for x in session.items]
+            for item in session.items:
+                # If the test takes a fixture, we skip it - the fuzzer doesn't have
+                # pytest scopes, so we just can't support them.  TODO: note skips.
+                if item._request._fixturemanager.getfixtureinfo(
+                    node=item, func=item.function, cls=None
+                ).name2fixturedefs:
+                    continue
+                # For parametrized tests, we have to pass the parametrized args into
+                # wrapped_test.hypothesis.get_strategy() to avoid trivial TypeErrors
+                # from missing required arguments.
+                mark = item.get_closest_marker("parametrize")
+                if mark:
+                    continue  # TODO: actually handle this instead of skipping it.
+
+                items.append(
+                    FuzzProcess.from_hypothesis_test(item.obj, test_id=item.nodeid)
+                )
 
     items: list = []
     with redirect_stdout(io.StringIO()):
@@ -46,8 +59,9 @@ def _get_hypothesis_tests_with_pytest(args: Iterable[str]) -> Iterable[Callable]
 def fuzz(numprocesses: int, pytest_args: Tuple[str, ...]) -> NoReturn:
     """[hypofuzz] runs tests with an adaptive coverage-guided fuzzer.
 
-    Aside from -n, all arguments are passed through to `pytest` to select the
-    tests to run.
+    Unrecognised arguments are passed through to `pytest` to select the tests
+    to run, with the additional constraint that only tests using Hypothesis
+    but not any pytest fixtures can be fuzzed.
 
     This process will run forever unless stopped with e.g. ctrl-C.
     """
@@ -64,10 +78,8 @@ def fuzz(numprocesses: int, pytest_args: Tuple[str, ...]) -> NoReturn:
         raise click.UsageError("No property-based tests were collected")
     numprocesses = max(numprocesses, len(tests))
 
-    testnames = ", ".join(t.__name__ for t in tests)
+    testnames = ", ".join(t._test_fn_name for t in tests)
     print(f"fuzzing {testnames} with up to {numprocesses} processes!\n")  # noqa
-    fuzz_several(
-        *map(FuzzProcess.from_hypothesis_test, tests), numprocesses=numprocesses,
-    )
+    fuzz_several(*tests, numprocesses=numprocesses)
 
     raise NotImplementedError("unreachable")

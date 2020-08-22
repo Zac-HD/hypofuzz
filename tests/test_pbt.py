@@ -12,8 +12,10 @@ def test_non_property():
 
 @pytest.mark.parametrize("p", [1, 2, 3])
 @given(h=st.booleans())
-def est_hypothesis_and_parametrize(h, p):
+def test_hypothesis_and_parametrize(h, p):
     # mixing them doesn't work at the moment, but it could; see interface.py
+    # TODO: add tests with fixtures, with multiple parametrize decorators,
+    # and with "arg1,arg2" multi-arg parametrize decorators.
     pass
 
 
