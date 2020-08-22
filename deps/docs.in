@@ -1,0 +1,3 @@
+# Top-level dependencies for `tox -e docs`
+sphinx
+sphinx-rtd-theme
