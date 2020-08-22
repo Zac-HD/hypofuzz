@@ -139,12 +139,16 @@ class FuzzProcess:
 
     @classmethod
     def from_hypothesis_test(
-        cls, wrapped_test: Any, *, test_id: str = None
+        cls,
+        wrapped_test: Any,
+        *,
+        test_id: str = None,
+        extra_kw: Dict[str, object] = None,
     ) -> "FuzzProcess":
         """Return a FuzzProcess for an @given-decorated test function."""
         return cls(
             test_fn=wrapped_test.hypothesis.inner_test,
-            strategy=wrapped_test.hypothesis.get_strategy(),
+            strategy=wrapped_test.hypothesis.get_strategy(**extra_kw or {}),
             test_id=test_id,
             database_key=function_digest(wrapped_test),
             hypothesis_database=wrapped_test._hypothesis_internal_use_settings.database,
@@ -328,8 +332,8 @@ def fuzz_several(
             t.run_one()
             targets.add(t)
             msg = f"iteration {i}\n    " + "\n    ".join(
-                f"{t._test_fn_name:<20} - est {t.estimated_value_of_next_run:.6f}"
-                f" - seen {len(t.seen_arcs)} arcs"
+                f"est {t.estimated_value_of_next_run:.6f} - seen {len(t.seen_arcs):4d} "
+                f"arcs - {t._test_fn_name}"
                 for t in targets
             )
             if not i % 100:
