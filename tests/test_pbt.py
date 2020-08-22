@@ -53,4 +53,3 @@ def test_hypothesis_and_parametrize_two_args(h, x, y):
 @given(h=st.booleans())
 def test_hypothesis_and_parametrize_two_decorators(h, x, y):
     pass
-

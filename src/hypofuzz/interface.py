@@ -1,7 +1,7 @@
 """CLI and Python API for the fuzzer."""
 import io
 from contextlib import redirect_stdout
-from typing import Iterable, NoReturn, Tuple
+from typing import Iterable, List, NoReturn, Tuple
 
 import click
 import psutil
@@ -14,8 +14,8 @@ from .hy import FuzzProcess, fuzz_several
 class _ItemsCollector:
     """A pytest plugin which grabs all the fuzzable tests at the end of collection."""
 
-    def __init__(self):
-        self.fuzz_targets = []
+    def __init__(self) -> None:
+        self.fuzz_targets: List[FuzzProcess] = []
 
     def pytest_collection_finish(self, session: pytest.Session) -> None:
         for item in session.items:
@@ -71,7 +71,7 @@ def fuzz(numprocesses: int, pytest_args: Tuple[str, ...]) -> NoReturn:
     if numprocesses < 1:
         raise click.UsageError(f"Minimum --numprocesses is one, but got {numprocesses}")
     for arg in ("-n", "--numprocesses"):  # can we get this list automatically?
-        if arg in (pytest_args):
+        if arg in pytest_args:
             raise click.UsageError(
                 f"{arg} must come before the arguments passed through to pytest"
             )
