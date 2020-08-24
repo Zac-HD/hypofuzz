@@ -216,16 +216,18 @@ class FuzzProcess:
         # The first thing we need to do is get the covered arcs for the minimal
         # example.  Missing any of these later is taken to be new behaviour.
         next(self.fuzz_generator)
-        result = self.fuzz_generator.send(b"")
-        self.pool.add(result)
-        self.minimal_example_arcs = result.extra_information.arcs
+        firstresult = self.fuzz_generator.send(b"\x00" * BUFFER_SIZE)
+        self.pool.add(firstresult)
+        self.minimal_example_arcs = firstresult.extra_information.arcs
 
         # Next, restore progress made in previous runs by replaying our saved examples.
         # This is meant to be the minimal set of inputs that exhibits all distinct
         # behaviours we've observed to date.  Replaying takes longer than restoring
         # our data structures directly, but copes much better with changed behaviour.
-
-        # TODO: load and replay the minimal branch-covering inputs for this target
+        for buf in self._hypothesis_database.fetch(self._database_key):
+            result = self.fuzz_generator.send(buf)
+            if result.status > Status.OVERRUN:
+                self._update(result)
 
         # TODO: investigate restoring of predictive / timing information - replaying
         #       a covering corpus discards useful info about how hard it was to find
@@ -267,20 +269,26 @@ class FuzzProcess:
 
     def run_one(self) -> None:
         """Run a single input through the fuzz target."""
+        assert self.pool, "not started yet"
         self.ninputs += 1
-        # TODO: mutation-based input generation
 
         # Run the input
         next(self.fuzz_generator)
-        result = self.fuzz_generator.send(b"")
+        prefix = self.generate_prefix()
+        result = self.fuzz_generator.send(prefix)
         assert result  # a ConjectureResult
+        if result.status > Status.OVERRUN:
+            self._update(result)
 
+    def _update(self, result):
+        assert isinstance(result, ConjectureResult) and result.status > Status.OVERRUN
         # Save and use the coverage information we just collected.
         arcs = self.minimal_example_arcs.symmetric_difference(
             result.extra_information.arcs
         )
         if arcs.difference(self.seen_arcs):
             self.last_new_cov_at = self.ninputs
+            self.pool.add(result)
         self.seen_arcs.update(arcs)
 
         # If the last example was "interesting" - i.e. raised an exception which
@@ -288,7 +296,9 @@ class FuzzProcess:
         # example into the Hypothesis database to be replayed in standard tests.
         if result.status == Status.INTERESTING:
             x = self._interesting_examples.get(result.interesting_origin, result.buffer)
-            if self._hypothesis_database and sort_key(result) <= sort_key(x):
+            if self._hypothesis_database and sort_key(result) < sort_key(x):
+                # To avoid over-filling the hypothesis database, we only add a failure
+                # if it is a smaller example than the best such failure to date.
                 self._hypothesis_database.save(self._database_key, result.buffer)
 
     @property
@@ -337,4 +347,9 @@ def fuzz_several(
             if len(targets) > 1 and targets.key(targets[0]) > targets.key(targets[1]):
                 # pay our log-n cost to keep the list sorted
                 targets.add(targets.pop(0))
+            elif targets[0]._interesting_examples:
+                print(f"found failing example for {targets[0].nodeid}")
+                targets.pop(0)
+            if not targets:
+                raise Exception("Found failures for all tests!")
     raise NotImplementedError("unreachable")
