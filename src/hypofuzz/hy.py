@@ -4,6 +4,7 @@ import contextlib
 import itertools
 import sys
 import traceback
+from os.path import commonprefix
 from random import Random
 from typing import (
     Any,
@@ -142,14 +143,14 @@ class FuzzProcess:
         cls,
         wrapped_test: Any,
         *,
-        test_id: str = None,
+        nodeid: str = None,
         extra_kw: Dict[str, object] = None,
     ) -> "FuzzProcess":
         """Return a FuzzProcess for an @given-decorated test function."""
         return cls(
             test_fn=wrapped_test.hypothesis.inner_test,
             strategy=wrapped_test.hypothesis.get_strategy(**extra_kw or {}),
-            test_id=test_id,
+            nodeid=nodeid,
             database_key=function_digest(wrapped_test),
             hypothesis_database=wrapped_test._hypothesis_internal_use_settings.database,
         )
@@ -160,7 +161,7 @@ class FuzzProcess:
         strategy: st.SearchStrategy,
         *,
         random_seed: int = None,
-        test_id: str = None,
+        nodeid: str = None,
         database_key: int = None,
         fuzz_database: ExampleDatabase = None,
         hypothesis_database: ExampleDatabase = None,
@@ -174,7 +175,7 @@ class FuzzProcess:
             collector=CollectionContext(),
             random=Random(random_seed),
         )
-        self._test_fn_name = test_id or test_fn.__qualname__
+        self.nodeid = nodeid or test_fn.__qualname__
 
         # Database pointers and keys, so that we can resume fuzzing runs without
         # losing all our progress, and to insert failing examples into the
@@ -312,28 +313,21 @@ def fuzz_several(
     rand = Random(random_seed)
     targets = SortedKeyList(targets_, lambda t: -t.estimated_value_of_next_run)
 
-    # Start by running each for an even 100 inputs - roughly equivalent to a
-    # "normal" Hypothesis run, though the engine is different.
-    for t in targets:
-        for i in range(100):
-            t.run_one()
-            msg = f"iteration {i}, seen {len(t.seen_arcs)} arcs for {t._test_fn_name}"
-            if not i % 20:
-                print(msg, flush=True)  # noqa
-
-    # After that, we loop forever.  At each timestep, we choose a target using
-    # an epsilon-greedy strategy for simplicity (TODO: improve this later) and
-    # run it once.
+    # Loop forever: at each timestep, we choose a target using an epsilon-greedy
+    # strategy for simplicity (TODO: improve this later) and run it once.
     # TODO: make this aware of test runtime, so it adapts for arcs-per-second
     #       rather than arcs-per-input.
+    for t in targets:
+        t.startup()
+    prefix_len = len(commonprefix([t.nodeid for t in targets]))
     for i in itertools.count(100):
         if i % 20 == 0:
             t = targets.pop(rand.randrange(len(targets)))
             t.run_one()
             targets.add(t)
-            msg = f"iteration {i}\n    " + "\n    ".join(
-                f"est {t.estimated_value_of_next_run:.6f} - seen {len(t.seen_arcs):4d} "
-                f"arcs - {t._test_fn_name}"
+            msg = f"iteration {i:4d}\n    " + "\n    ".join(
+                f"est {t.estimated_value_of_next_run:.6f} - run {t.ninputs:5d} - "
+                f"seen {len(t.seen_arcs):4d} arcs - {t.nodeid[prefix_len:]}"
                 for t in targets
             )
             if not i % 100:

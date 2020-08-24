@@ -31,7 +31,7 @@ class _ItemsCollector:
             extra_kw = item.callspec.params if hasattr(item, "callspec") else {}
             # Wrap it up in a FuzzTarget and we're done!
             fuzz = FuzzProcess.from_hypothesis_test(
-                item.obj, test_id=item.nodeid, extra_kw=extra_kw
+                item.obj, nodeid=item.nodeid, extra_kw=extra_kw
             )
             self.fuzz_targets.append(fuzz)
 
@@ -81,7 +81,7 @@ def fuzz(numprocesses: int, pytest_args: Tuple[str, ...]) -> NoReturn:
         raise click.UsageError("No property-based tests were collected")
     numprocesses = max(numprocesses, len(tests))
 
-    testnames = "\n    ".join(t._test_fn_name for t in tests)
+    testnames = "\n    ".join(t.nodeid for t in tests)
     print(f"using up to {numprocesses} processes to fuzz:\n    {testnames}\n")  # noqa
     fuzz_several(*tests, numprocesses=numprocesses)
 
