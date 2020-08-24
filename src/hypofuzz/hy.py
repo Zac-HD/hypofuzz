@@ -217,8 +217,10 @@ class FuzzProcess:
         # example.  Missing any of these later is taken to be new behaviour.
         next(self.fuzz_generator)
         firstresult = self.fuzz_generator.send(b"\x00" * BUFFER_SIZE)
-        self.pool.add(firstresult)
         self.minimal_example_arcs = firstresult.extra_information.arcs
+        self.pool.add(firstresult)
+        if firstresult.status > Status.OVERRUN:
+            self._update(firstresult)
 
         # Next, restore progress made in previous runs by replaying our saved examples.
         # This is meant to be the minimal set of inputs that exhibits all distinct
@@ -249,7 +251,7 @@ class FuzzProcess:
         # This is a dead-simple implemenation, with no validation of the approach
         # beyond "plausibly works".  The first thousand examples we generate are
         # truly random, and 1% of them after that.
-        if self.ninputs < 1000 or self.random.random() <= 0.01:
+        if self.ninputs < 100 or self.random.random() <= 0.01:
             return b""
 
         # Choose two previously-seen buffers to form a prefix and postfix,
@@ -259,7 +261,7 @@ class FuzzProcess:
         buffer = (
             prefix.buffer[: self.random.randint(0, len(prefix.buffer))]
             + self._gen_bytes(self.random.randint(0, 9))
-            + postfix.buffer[: self.random.randint(0, len(prefix.postfix))]
+            + postfix.buffer[: self.random.randint(0, len(postfix.buffer))]
         )
         assert isinstance(buffer, bytes)
         return buffer
