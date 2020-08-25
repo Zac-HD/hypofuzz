@@ -15,14 +15,13 @@ def test_addition(x, y):
     x + y
 
 
-JSON = st.recursive(
-    st.none() | st.booleans() | st.integers() | st.floats(),
-    extend=lambda x: st.lists(x, max_size=3)
-    | st.dictionaries(st.text(), x, max_size=3),
+@given(
+    st.recursive(
+        st.none() | st.booleans() | st.integers() | st.floats() | st.text(),
+        extend=lambda x: st.lists(x, max_size=3)
+        | st.dictionaries(st.text(), x, max_size=3),
+    )
 )
-
-
-@given(JSON)
 def test_encode_decode(x):
     assert x == json.loads(json.dumps(x))
 
