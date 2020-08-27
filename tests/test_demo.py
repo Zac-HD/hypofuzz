@@ -5,6 +5,7 @@ from itertools import islice
 
 import hypothesis.strategies as st
 from hypothesis import assume
+from hypothesis.database import InMemoryExampleDatabase
 from hypothesis.internal.conjecture.data import Status
 
 import hypofuzz
@@ -40,6 +41,8 @@ def test_fuzz_status_demo():
             st.lists(st.floats()).map(lambda x: assume(x) and x)
             | st.binary(min_size=10_000, max_size=10_000)
         ).map(lambda x: ((), {"x": x})),
+        database=InMemoryExampleDatabase(),
+        database_key=b"",
     )
     results = {r.status for r in islice(gen, 100)}
     # Sees all statuses: OVERRUN when asked for too many bytes, INVALID when

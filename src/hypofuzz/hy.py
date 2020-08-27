@@ -4,6 +4,7 @@ import contextlib
 import itertools
 import sys
 import traceback
+from inspect import getfullargspec
 from os.path import commonprefix
 from random import Random
 from typing import (
@@ -18,12 +19,13 @@ from typing import (
     Union,
 )
 
-from hypothesis import strategies as st
+from hypothesis import settings, strategies as st
 from hypothesis.core import (
     BuildContext,
     deterministic_PRNG,
     failure_exceptions_to_catch,
     get_trimmed_traceback,
+    process_arguments_to_given,
     skip_exceptions_to_reraise,
 )
 from hypothesis.database import ExampleDatabase
@@ -147,9 +149,16 @@ class FuzzProcess:
         extra_kw: Dict[str, object] = None,
     ) -> "FuzzProcess":
         """Return a FuzzProcess for an @given-decorated test function."""
+        _, _, _, search_strategy = process_arguments_to_given(
+            wrapped_test,
+            arguments=(),
+            kwargs=extra_kw,
+            given_kwargs=wrapped_test.hypothesis._given_kwargs,
+            argspec=getfullargspec(wrapped_test),
+        )
         return cls(
             test_fn=wrapped_test.hypothesis.inner_test,
-            strategy=wrapped_test.hypothesis.get_strategy(**extra_kw or {}),
+            strategy=search_strategy,
             nodeid=nodeid,
             database_key=function_digest(wrapped_test),
             hypothesis_database=wrapped_test._hypothesis_internal_use_settings.database,
@@ -160,11 +169,10 @@ class FuzzProcess:
         test_fn: Callable,
         strategy: st.SearchStrategy,
         *,
-        random_seed: int = None,
+        random_seed: int = 0,
         nodeid: str = None,
-        database_key: int = None,
-        fuzz_database: ExampleDatabase = None,
-        hypothesis_database: ExampleDatabase = None,
+        database_key: bytes,
+        hypothesis_database: ExampleDatabase,
     ):
         """Construct a FuzzProcess from specific arguments."""
         # The actual fuzzer implementation
@@ -180,20 +188,24 @@ class FuzzProcess:
         # Database pointers and keys, so that we can resume fuzzing runs without
         # losing all our progress, and to insert failing examples into the
         # *hypothesis* database so they'll be replayed when running e.g. pytest.
-        self._database_key: int = database_key or function_digest(test_fn)
+        #
+        # Only smallest-known failing examples go into the database under the
+        # main key to be replayed by running the tests; everything else goes under
+        # a specialised fuzz key - this is at minimum enough to replay coverage
+        # for every discovered arc or other source of interesting behaviour.
+        self._hy_database_key: bytes = database_key or function_digest(test_fn)
+        self._fuzz_database_key = b"fuzz_" + self._hy_database_key
 
         # Each time we find a failing example (result.status is Status.INTERESTING)
         # we insert it into the Hypothesis database *if* it's smaller than our
         # previously minimal example of that interesting_origin, to avoid overfilling
         # the database with mostly-redundant examples.
-        assert hypothesis_database is None or fuzz_database is not hypothesis_database
-        self._hypothesis_database: ExampleDatabase = hypothesis_database
+        #
+        # If the test has database=None but there is a non-None default database,
+        # use that - otherwise we have no way to report or replay any failures we
+        # discover at all!
+        self._database = hypothesis_database or settings.default.database
         self._interesting_examples: Dict[Any, bytes] = {}
-
-        # TODO: work out what we need to store, and how to store it.  I'm leaning
-        # towards using a literal ExampleDatabase instance, because it's an easier
-        # API for users to interact with if they only need to implement one thing.
-        self._fuzz_database: ExampleDatabase = fuzz_database
 
         # Set up the basic data that we'll track while fuzzing
         self.seen_arcs: Counter[Arc] = Counter()
@@ -227,8 +239,11 @@ class FuzzProcess:
         # This is meant to be the minimal set of inputs that exhibits all distinct
         # behaviours we've observed to date.  Replaying takes longer than restoring
         # our data structures directly, but copes much better with changed behaviour.
-        if self._hypothesis_database is not None:
-            for buf in self._hypothesis_database.fetch(self._database_key):
+        if self._database is not None:
+            for buf in itertools.chain(
+                self._database.fetch(self._hy_database_key),
+                self._database.fetch(self._fuzz_database_key),
+            ):
                 self.ninputs += 1
                 result = self.fuzz_generator.send(buf)
                 if result.status > Status.OVERRUN:
@@ -256,6 +271,13 @@ class FuzzProcess:
         # truly random, and 1% of them after that.
         if self.ninputs < 100 or self.random.random() <= 0.01:
             return b""
+
+        # TODO: weight choice of buffers from the pool inversely to the hit-count
+        #       of the arcs they cover.  (least-covered arc they cover?)
+
+        # This ensures that we exploit newly-discovered behaviour ASAP, and that
+        # after reloading in a fresh session we converge back to the same roughly
+        # even distribution of effort by inverting the stationary distribution.
 
         # Choose two previously-seen buffers to form a prefix and postfix,
         # plus some random bytes in the middle to pad it out a bit.
@@ -292,6 +314,7 @@ class FuzzProcess:
             result.extra_information.arcs
         )
         if arcs.difference(self.seen_arcs):
+            self._database.save(self._fuzz_database_key, result.buffer)
             self.last_new_cov_at = self.ninputs
             self.pool.add(result)
         self.seen_arcs.update(arcs)
@@ -301,10 +324,10 @@ class FuzzProcess:
         # example into the Hypothesis database to be replayed in standard tests.
         if result.status == Status.INTERESTING:
             x = self._interesting_examples.get(result.interesting_origin, result.buffer)
-            if self._hypothesis_database and sort_key(result) < sort_key(x):
+            if self._database and sort_key(result) < sort_key(x):
                 # To avoid over-filling the hypothesis database, we only add a failure
                 # if it is a smaller example than the best such failure to date.
-                self._hypothesis_database.save(self._database_key, result.buffer)
+                self._database.save(self._hy_database_key, result.buffer)
 
     @property
     def estimated_value_of_next_run(self) -> float:
