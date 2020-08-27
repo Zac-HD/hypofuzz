@@ -216,6 +216,7 @@ class FuzzProcess:
         # The first thing we need to do is get the covered arcs for the minimal
         # example.  Missing any of these later is taken to be new behaviour.
         next(self.fuzz_generator)
+        self.ninputs += 1
         firstresult = self.fuzz_generator.send(b"\x00" * BUFFER_SIZE)
         self.minimal_example_arcs = firstresult.extra_information.arcs
         self.pool.add(firstresult)
@@ -226,10 +227,12 @@ class FuzzProcess:
         # This is meant to be the minimal set of inputs that exhibits all distinct
         # behaviours we've observed to date.  Replaying takes longer than restoring
         # our data structures directly, but copes much better with changed behaviour.
-        for buf in self._hypothesis_database.fetch(self._database_key):
-            result = self.fuzz_generator.send(buf)
-            if result.status > Status.OVERRUN:
-                self._update(result)
+        if self._hypothesis_database is not None:
+            for buf in self._hypothesis_database.fetch(self._database_key):
+                self.ninputs += 1
+                result = self.fuzz_generator.send(buf)
+                if result.status > Status.OVERRUN:
+                    self._update(result)
 
         # TODO: investigate restoring of predictive / timing information - replaying
         #       a covering corpus discards useful info about how hard it was to find
@@ -332,7 +335,7 @@ def fuzz_several(
     for t in targets:
         t.startup()
     prefix_len = len(commonprefix([t.nodeid for t in targets]))
-    for i in itertools.count(100):
+    for i in itertools.count():
         if i % 20 == 0:
             t = targets.pop(rand.randrange(len(targets)))
             t.run_one()
