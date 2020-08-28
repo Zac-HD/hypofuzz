@@ -16,19 +16,19 @@ or just allow pytest to discover all your tests for you.
 Running :command:`hypothesis fuzz`
 ----------------------------------
 
-Minimally configurable beyond test collection.
-Number of processes to use (defaults to all cores).
-Runs indefinitely until interrupted.
-
-A web interface to monitor ongoing runs is planned.
-
 The core idea is that while you run :command:`pytest ...` on each change,
-you leave :command:`hypothesis fuzz ...` running constantly and *restart it*
-on each change.  The hypofuzz engine will keep running tests and
+you run :command:`hypothesis fuzz ...` on a server - and it'll keep searching
+for interesting new inputs until shut down from outside.
+
+.. command-output:: hypothesis fuzz --help
+
+By design, this is minimally configurable: test selection and collection is
+handled by ``pytest``, using exactly the same syntax as usual, and the
+remaining options are out of scope for the fuzzer itself to determine.
 
 
-Now what?  Reproducing and fixing bugs
---------------------------------------
+Reproducing and fixing bugs
+---------------------------
 
 HypoFuzz saves any failures it finds into Hypothesis' standard example
 database, so the workflow for deduplicating and reproducing any failures

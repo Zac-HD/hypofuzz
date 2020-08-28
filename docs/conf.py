@@ -1,13 +1,16 @@
-import sphinx_rtd_theme
+from pathlib import Path
 
-import hypofuzz
+import sphinx_rtd_theme
 
 # See https://www.sphinx-doc.org/en/master/usage/configuration.html
 # -- Project information -----------------------------------------------------
 project = "HypoFuzz"
 copyright = "2020, Zac Hatfield-Dodds"  # noqa: A001  # shadows a builtin
 author = "Zac Hatfield-Dodds"
-version = release = hypofuzz.__version__
+init_file = Path(__file__).parent.parent / "src/hypofuzz/__init__.py"
+for line in init_file.read_text().splitlines():
+    if line.startswith("__version__ = "):
+        _, version, _ = line.split('"')
 
 
 # -- General configuration ---------------------------------------------------
@@ -19,6 +22,7 @@ extensions = [
     "sphinx.ext.extlinks",
     "sphinx.ext.viewcode",
     "sphinx.ext.intersphinx",
+    "sphinxcontrib.programoutput",
 ]
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3/", None),

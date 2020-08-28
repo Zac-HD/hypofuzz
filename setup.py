@@ -32,8 +32,9 @@ setuptools.setup(
     zip_safe=False,
     install_requires=[
         "coverage >= 5.2.1",
-        "hypothesis[cli] >= 5.27.0",
-        "psutil>=3.0.0",
+        "hypothesis[cli] >= 5.29.4",
+        "psutil >= 3.0.0",
+        "pytest >= 6.0.1",
     ],
     python_requires=">=3.6",
     classifiers=[

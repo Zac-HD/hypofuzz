@@ -6,25 +6,33 @@
 #
 alabaster==0.7.12         # via sphinx
 appdirs==1.4.4            # via black
-attrs==20.1.0             # via black, hypothesis
+atomicwrites==1.4.0       # via pytest
+attrs==20.1.0             # via hypothesis, pytest
 babel==2.8.0              # via sphinx
-black==19.10b0            # via hypothesis
+black==20.8b1             # via hypothesis
 certifi==2020.6.20        # via requests
 chardet==3.0.4            # via requests
 click==7.1.2              # via black, hypothesis
-colorama==0.4.3           # via sphinx
+colorama==0.4.3           # via pytest, sphinx
 coverage==5.2.1           # via hypofuzz (setup.py)
 docutils==0.16            # via sphinx
-hypothesis[cli]==5.27.0   # via hypofuzz (setup.py)
+hypothesis[cli]==5.29.4   # via hypofuzz (setup.py)
 idna==2.10                # via requests
 imagesize==1.2.0          # via sphinx
+importlib-metadata==1.7.0  # via pluggy, pytest
+iniconfig==1.0.1          # via pytest
 jinja2==2.11.2            # via sphinx
 markupsafe==1.1.1         # via jinja2
-packaging==20.4           # via sphinx
+more-itertools==8.4.0     # via pytest
+mypy-extensions==0.4.3    # via black
+packaging==20.4           # via pytest, sphinx
 pathspec==0.8.0           # via black
+pluggy==0.13.1            # via pytest
 psutil==5.7.2             # via hypofuzz (setup.py)
+py==1.9.0                 # via pytest
 pygments==2.6.1           # via sphinx
 pyparsing==2.4.7          # via packaging
+pytest==6.0.1             # via hypofuzz (setup.py)
 pytz==2020.1              # via babel
 regex==2020.7.14          # via black
 requests==2.24.0          # via sphinx
@@ -32,16 +40,19 @@ six==1.15.0               # via packaging
 snowballstemmer==2.0.0    # via sphinx
 sortedcontainers==2.2.2   # via hypothesis
 sphinx-rtd-theme==0.5.0   # via -r deps/docs.in
-sphinx==3.2.1             # via -r deps/docs.in, sphinx-rtd-theme
+sphinx==3.2.1             # via -r deps/docs.in, sphinx-rtd-theme, sphinxcontrib-programoutput
 sphinxcontrib-applehelp==1.0.2  # via sphinx
 sphinxcontrib-devhelp==1.0.2  # via sphinx
 sphinxcontrib-htmlhelp==1.0.3  # via sphinx
 sphinxcontrib-jsmath==1.0.1  # via sphinx
+sphinxcontrib-programoutput==0.16  # via -r deps/docs.in
 sphinxcontrib-qthelp==1.0.3  # via sphinx
 sphinxcontrib-serializinghtml==1.1.4  # via sphinx
-toml==0.10.1              # via black
+toml==0.10.1              # via black, pytest
 typed-ast==1.4.1          # via black
+typing-extensions==3.7.4.3  # via black
 urllib3==1.25.10          # via requests
+zipp==3.1.0               # via importlib-metadata
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools
