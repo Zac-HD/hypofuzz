@@ -1,14 +1,20 @@
 """CLI and Python API for the fuzzer."""
 import io
 from contextlib import redirect_stdout
+from multiprocessing import Process
 from typing import TYPE_CHECKING, Iterable, List, NoReturn, Tuple
 
 import click
 import psutil
 import pytest
+import requests
 from hypothesis.extra.cli import main as hypothesis_cli_root
 
+from hypofuzz.dashboard import start_dashboard_process
+
 if TYPE_CHECKING:
+    # We have to defer imports to within functions here, because this module
+    # is a Hypothesis entry point and is thus imported earlier than the others.
     from .hy import FuzzProcess
 
 
@@ -123,12 +129,6 @@ def fuzz(
     print(f"using up to {numprocesses} processes to fuzz:\n    {testnames}\n")  # noqa
 
     if dashboard:
-        from multiprocessing import Process
-
-        import requests
-
-        from hypofuzz.dashboard import start_dashboard_process
-
         Process(target=start_dashboard_process, kwargs={"port": port}).start()
         for t in tests:
             t._report_change = lambda data: requests.post(

@@ -9,6 +9,7 @@ from dash.dependencies import Input, Output
 DATA_TO_PLOT = [{"nodeid": "", "ninputs": 0, "arcs": 0}]
 LAST_UPDATE = {}
 
+headings = ["nodeid", "ninputs", "last-new-cov", "arcs", "estimated-value", "note"]
 app = flask.Flask(__name__)
 
 
@@ -21,18 +22,16 @@ def add_data():
 
 external_stylesheets = ["https://codepen.io/chriddyp/pen/bWLwgP.css"]
 board = dash.Dash(__name__, server=app, external_stylesheets=external_stylesheets)
-table_headings = ["nodeid", "ninputs", "last-new-cov", "arcs", "estimated-value"]
 board.layout = html.Div(
     children=[
         html.H1(children="HypoFuzz Live Dashboard"),
-        html.Div(children="Covered arcs discovered for each target"),
+        html.Div(
+            "Covered arcs discovered for each target.  "
+            "Data updates every 100th input, or immediately for new arcs."
+        ),
         dcc.Graph(id="live-update-graph"),
         html.Div(html.Table(id="summary-table-rows")),
-        dcc.Interval(
-            id="interval-component",
-            interval=1000 * 5,
-            n_intervals=0,  # in milliseconds
-        ),
+        dcc.Interval(id="interval-component", interval=5000),  # time in millis
     ]
 )
 
@@ -53,8 +52,8 @@ def update_graph_live(n):
     [Input("interval-component", "n_intervals")],
 )
 def update_table_live(n):
-    return [html.Tr([html.Th(h) for h in table_headings])] + [
-        html.Tr([html.Td(data[k]) for k in table_headings])
+    return [html.Tr([html.Th(h) for h in headings])] + [
+        html.Tr([html.Td(data.get(k, "")) for k in headings])
         for name, data in sorted(LAST_UPDATE.items())
     ]
 

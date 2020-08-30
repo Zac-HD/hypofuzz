@@ -227,6 +227,7 @@ class FuzzProcess:
         assert not self.pool, "already started this FuzzProcess"
         # The first thing we need to do is get the covered arcs for the minimal
         # example.  Missing any of these later is taken to be new behaviour.
+        self._report_change(self._json_description)
         next(self.fuzz_generator)
         self.ninputs += 1
         firstresult = self.fuzz_generator.send(b"\x00" * BUFFER_SIZE)
@@ -323,32 +324,42 @@ class FuzzProcess:
             self._database.save(self._fuzz_database_key, result.buffer)
             self.last_new_cov_at = self.ninputs
             self.pool.add(result)
-        # Update the live chart immediately on new progress, and regularly even
-        # if we haven't discovered anything (to extend the line horizontally)
-        if self.ninputs % 100 == 0 or not arcs.issubset(self.seen_arcs):
-            self._report_change(self._json_description)
-        # Note: seen_arcs is a Counter, not a set
-        self.seen_arcs.update(arcs)
 
         # If the last example was "interesting" - i.e. raised an exception which
         # indicates test failure, make sure we know about it and insert the failing
         # example into the Hypothesis database to be replayed in standard tests.
         if result.status == Status.INTERESTING:
-            x = self._interesting_examples.get(result.interesting_origin, result.buffer)
-            if self._database and sort_key(result) < sort_key(x):
+            x = self._interesting_examples.setdefault(
+                result.interesting_origin, result.buffer
+            )
+            if self._database and sort_key(result) <= sort_key(x):
                 # To avoid over-filling the hypothesis database, we only add a failure
                 # if it is a smaller example than the best such failure to date.
                 self._database.save(self._hy_database_key, result.buffer)
 
+        # Update the live chart immediately on new progress, and regularly even
+        # if we haven't discovered anything (to extend the line horizontally)
+        if self.ninputs % 100 == 0 or not arcs.issubset(self.seen_arcs):
+            self._report_change(self._json_description)
+
+        # Note: seen_arcs is a Counter, not a set
+        self.seen_arcs.update(arcs)
+
     @property
     def _json_description(self) -> Dict[str, Union[str, int]]:
         """Summarise current state to send to dashboard."""
+        note = ""
+        if self._replay_buffer:
+            note = "replaying saved examples"
+        elif self.has_found_failure:
+            note = "found failing example"
         return {
             "nodeid": self.nodeid,
             "ninputs": self.ninputs,
             "arcs": len(self.seen_arcs),
             "estimated-value": self.estimated_value_of_next_run,
             "last-new-cov": self.last_new_cov_at,
+            "note": note,
         }
 
     @property
@@ -390,7 +401,7 @@ def fuzz_several(
                 # pay our log-n cost to keep the list sorted
                 targets.add(targets.pop(0))
             elif targets[0]._interesting_examples:
-                print(f"found failing example for {targets[0].nodeid}")
+                print(f"found failing example for {targets[0].nodeid}")  # noqa
                 targets.pop(0)
             if not targets:
                 raise Exception("Found failures for all tests!")
