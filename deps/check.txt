@@ -32,7 +32,7 @@ pbr==5.4.5                # via stevedore
 pep8-naming==0.11.1       # via -r deps/check.in
 pybetter==0.3.5           # via shed
 pycodestyle==2.6.0        # via flake8, flake8-bandit, flake8-print
-pydocstyle==5.1.0         # via flake8-docstrings
+pydocstyle==5.1.1         # via flake8-docstrings
 pyemojify==0.2.0          # via pybetter
 pyflakes==2.2.0           # via autoflake, flake8
 pygments==2.6.1           # via pybetter
