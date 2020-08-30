@@ -13,6 +13,7 @@ from typing import (
     Dict,
     FrozenSet,
     Generator,
+    List,
     NoReturn,
     Tuple,
     Union,
@@ -220,7 +221,7 @@ class FuzzProcess:
         # of calculating everything I need directly from the set data.
         # We track a SortedList instead of a set of stability of random sampling.
         self.pool: SortedKeyList[ConjectureResult] = SortedKeyList(key=sort_key)
-        self._replay_buffer = []
+        self._replay_buffer: List[bytes] = []
 
     def startup(self) -> None:
         """Set up initial state and replay the saved behaviour."""
@@ -308,10 +309,10 @@ class FuzzProcess:
         if result.status > Status.OVERRUN:
             self._update(result)
 
-    def _report_change(self, data):
+    def _report_change(self, data: dict) -> object:
         """Replace this method to send data to the dashboard."""
 
-    def _update(self, result):
+    def _update(self, result: ConjectureResult) -> None:
         assert isinstance(result, ConjectureResult)
         if result.status == Status.OVERRUN:
             return
@@ -346,7 +347,7 @@ class FuzzProcess:
         self.seen_arcs.update(arcs)
 
     @property
-    def _json_description(self) -> Dict[str, Union[str, int]]:
+    def _json_description(self) -> Dict[str, Union[str, int, float]]:
         """Summarise current state to send to dashboard."""
         note = ""
         if self._replay_buffer:

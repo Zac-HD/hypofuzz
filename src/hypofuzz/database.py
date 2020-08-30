@@ -1,6 +1,6 @@
 """Hypothesis database tools for fuzzing use-cases."""
 
-from typing import Iterable
+from typing import Callable, Iterable
 
 from hypothesis.database import (
     DirectoryBasedExampleDatabase,
@@ -119,7 +119,7 @@ class DatabaseComparison(RuleBasedStateMachine):
 
     """
 
-    def __init__(self, *db_factories):
+    def __init__(self, *db_factories: Callable[[], RuleBasedStateMachine]) -> None:
         super().__init__()
         self.databases = (InMemoryExampleDatabase(),) + tuple(f() for f in db_factories)
         assert db_factories
@@ -128,31 +128,31 @@ class DatabaseComparison(RuleBasedStateMachine):
     keys = Bundle("keys")
     values = Bundle("values")
 
-    @rule(target=keys, k=binary())
-    def k(self, k):
+    @rule(target=keys, k=binary())  # type: ignore
+    def k(self, k: bytes) -> bytes:
         return k
 
-    @rule(target=values, v=binary())
-    def v(self, v):
+    @rule(target=values, v=binary())  # type: ignore
+    def v(self, v: bytes) -> bytes:
         return v
 
-    @rule(k=keys, v=values)
-    def save(self, k, v):
+    @rule(k=keys, v=values)  # type: ignore
+    def save(self, k: bytes, v: bytes) -> None:
         for db in self.databases:
             db.save(k, v)
 
-    @rule(k=keys, v=values)
-    def delete(self, k, v):
+    @rule(k=keys, v=values)  # type: ignore
+    def delete(self, k: bytes, v: bytes) -> None:
         for db in self.databases:
             db.delete(k, v)
 
-    @rule(k1=keys, k2=keys, v=values)
-    def move(self, k1, k2, v):
+    @rule(k1=keys, k2=keys, v=values)  # type: ignore
+    def move(self, k1: bytes, k2: bytes, v: bytes) -> None:
         for db in self.databases:
             db.move(k1, k2, v)
 
-    @rule(k=keys)
-    def values_agree(self, k):
+    @rule(k=keys)  # type: ignore
+    def values_agree(self, k: bytes) -> None:
         good = set(self.databases[0].fetch(k))
         for db in self.databases[1:]:
             assert set(db.fetch(k)) == good, (self.databases[0], db)

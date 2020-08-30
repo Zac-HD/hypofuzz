@@ -1,4 +1,6 @@
 """Live web dashboard for a fuzzing run."""
+from typing import Tuple
+
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
@@ -14,7 +16,7 @@ app = flask.Flask(__name__)
 
 
 @app.route("/", methods=["POST"])
-def add_data():
+def add_data() -> Tuple[str, int]:
     DATA_TO_PLOT.append(flask.request.json)
     LAST_UPDATE[flask.request.json["nodeid"]] = flask.request.json
     return "", 200
@@ -36,31 +38,31 @@ board.layout = html.Div(
 )
 
 
-@board.callback(
+@board.callback(  # type: ignore
     Output("live-update-graph", "figure"),
     [Input("interval-component", "n_intervals")],
 )
-def update_graph_live(n):
+def update_graph_live(n: int) -> object:
     fig = px.line(DATA_TO_PLOT, x="ninputs", y="arcs", color="nodeid", line_shape="hv")
     # Setting this to a constant prevents data updates clobbering zoom / selections
     fig.layout.uirevision = "this key never changes"
     return fig
 
 
-@board.callback(
+@board.callback(  # type: ignore
     Output("summary-table-rows", "children"),
     [Input("interval-component", "n_intervals")],
 )
-def update_table_live(n):
+def update_table_live(n: int) -> object:
     return [html.Tr([html.Th(h) for h in headings])] + [
         html.Tr([html.Td(data.get(k, "")) for k in headings])
         for name, data in sorted(LAST_UPDATE.items())
     ]
 
 
-def start_dashboard_process(port: int, **kwargs: object) -> None:
-    print(f"\n\tNow serving dashboard at  http://localhost:{port}/\n")  # noqa
-    app.run(host="localhost", port=port, **kwargs)
+def start_dashboard_process(port: int, *, host: str = "localhost") -> None:
+    print(f"\n\tNow serving dashboard at  http://{host}:{port}/\n")  # noqa
+    app.run(host=host, port=port)
 
 
 if __name__ == "__main__":

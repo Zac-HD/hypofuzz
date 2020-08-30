@@ -45,7 +45,7 @@ class _ItemsCollector:
             self.fuzz_targets.append(fuzz)
 
 
-def _get_hypothesis_tests_with_pytest(args: Iterable[str]) -> Iterable["FuzzProcess"]:
+def _get_hypothesis_tests_with_pytest(args: Iterable[str]) -> List["FuzzProcess"]:
     """Find the hypothesis-only test functions run by pytest.
 
     This basically uses `pytest --collect-only -m hypothesis $args`.
@@ -108,7 +108,7 @@ def fuzz(
     """
     # Before doing anything with our arguments, we'll check that none
     # of HypoFuzz's arguments will be passed on to pytest instead.
-    misplaced = set().union(*(p.opts for p in fuzz.params)).intersection(pytest_args)
+    misplaced: set = set(pytest_args) & set().union(*(p.opts for p in fuzz.params))
     if misplaced:
         plural = "s" * (len(misplaced) > 1)
         names = ", ".join(map(repr, misplaced))
@@ -131,7 +131,7 @@ def fuzz(
     if dashboard:
         Process(target=start_dashboard_process, kwargs={"port": port}).start()
         for t in tests:
-            t._report_change = lambda data: requests.post(
+            t._report_change = lambda data: requests.post(  # type: ignore
                 f"http://localhost:{port}/", json=data
             )
 
