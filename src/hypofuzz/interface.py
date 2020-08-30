@@ -70,8 +70,8 @@ def _get_hypothesis_tests_with_pytest(args: Iterable[str]) -> Iterable["FuzzProc
 )
 @click.option(
     "--port",
-    type=click.IntRange(0, 65535),
-    default=0,
+    type=click.IntRange(1, 65535),
+    default=9999,
     metavar="PORT",
     help="Optional port for the dashboard (if any)",
 )
@@ -119,12 +119,21 @@ def fuzz(
     if numprocesses > len(tests) and not unsafe:
         numprocesses = len(tests)
 
-    if dashboard:
-        # TODO: start serving a live html dashboard on `port`
-        # (and stop printing stats!)
-        print(f"\n\tNow serving dashboard at  http://localhost:{port}\n")  # noqa
     testnames = "\n    ".join(t.nodeid for t in tests)
     print(f"using up to {numprocesses} processes to fuzz:\n    {testnames}\n")  # noqa
+
+    if dashboard:
+        from multiprocessing import Process
+
+        import requests
+
+        from hypofuzz.dashboard import start_dashboard_process
+
+        Process(target=start_dashboard_process, kwargs={"port": port}).start()
+        for t in tests:
+            t._report_change = lambda data: requests.post(
+                f"http://localhost:{port}/", json=data
+            )
 
     fuzz_several(*tests, numprocesses=numprocesses)
     raise NotImplementedError("unreachable")

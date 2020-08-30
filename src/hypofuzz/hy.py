@@ -5,7 +5,6 @@ import itertools
 import sys
 import traceback
 from inspect import getfullargspec
-from os.path import commonprefix
 from random import Random
 from typing import (
     Any,
@@ -221,6 +220,7 @@ class FuzzProcess:
         # of calculating everything I need directly from the set data.
         # We track a SortedList instead of a set of stability of random sampling.
         self.pool: SortedKeyList[ConjectureResult] = SortedKeyList(key=sort_key)
+        self._replay_buffer = []
 
     def startup(self) -> None:
         """Set up initial state and replay the saved behaviour."""
@@ -232,27 +232,21 @@ class FuzzProcess:
         firstresult = self.fuzz_generator.send(b"\x00" * BUFFER_SIZE)
         self.minimal_example_arcs = firstresult.extra_information.arcs
         self.pool.add(firstresult)
-        if firstresult.status > Status.OVERRUN:
-            self._update(firstresult)
+        self._update(firstresult)
 
         # Next, restore progress made in previous runs by replaying our saved examples.
         # This is meant to be the minimal set of inputs that exhibits all distinct
         # behaviours we've observed to date.  Replaying takes longer than restoring
         # our data structures directly, but copes much better with changed behaviour.
         if self._database is not None:
-            for buf in itertools.chain(
-                self._database.fetch(self._hy_database_key),
-                self._database.fetch(self._fuzz_database_key),
-            ):
-                self.ninputs += 1
-                result = self.fuzz_generator.send(buf)
-                if result.status > Status.OVERRUN:
-                    self._update(result)
-
-        # TODO: investigate restoring of predictive / timing information - replaying
-        #       a covering corpus discards useful info about how hard it was to find
-        #       each input.  Maybe talk to Marcel about this?  Analysis results like
-        #       path length from entry point might be a partial substitute?
+            self._replay_buffer = sorted(
+                {
+                    *self._database.fetch(self._hy_database_key),
+                    *self._database.fetch(self._fuzz_database_key),
+                },
+                key=sort_key,
+                reverse=True,
+            )
 
     def generate_prefix(self) -> bytes:
         """Generate a test prefix by mutating previous examples.
@@ -266,6 +260,12 @@ class FuzzProcess:
 
         This version is terrible, but any coverage guidance at all is enough to help...
         """
+        # Start by replaying any previous failures which we've retrieved from the
+        # database.  This is useful to recover state at startup, or to share
+        # progress made in other processes.
+        if self._replay_buffer:
+            return self._replay_buffer.pop()
+
         # This is a dead-simple implemenation, with no validation of the approach
         # beyond "plausibly works".  The first thousand examples we generate are
         # truly random, and 1% of them after that.
@@ -307,8 +307,14 @@ class FuzzProcess:
         if result.status > Status.OVERRUN:
             self._update(result)
 
+    def _report_change(self, data):
+        """Replace this method to send data to the dashboard."""
+
     def _update(self, result):
-        assert isinstance(result, ConjectureResult) and result.status > Status.OVERRUN
+        assert isinstance(result, ConjectureResult)
+        if result.status == Status.OVERRUN:
+            return
+
         # Save and use the coverage information we just collected.
         arcs = self.minimal_example_arcs.symmetric_difference(
             result.extra_information.arcs
@@ -317,6 +323,11 @@ class FuzzProcess:
             self._database.save(self._fuzz_database_key, result.buffer)
             self.last_new_cov_at = self.ninputs
             self.pool.add(result)
+        # Update the live chart immediately on new progress, and regularly even
+        # if we haven't discovered anything (to extend the line horizontally)
+        if self.ninputs % 100 == 0 or not arcs.issubset(self.seen_arcs):
+            self._report_change(self._json_description)
+        # Note: seen_arcs is a Counter, not a set
         self.seen_arcs.update(arcs)
 
         # If the last example was "interesting" - i.e. raised an exception which
@@ -328,6 +339,17 @@ class FuzzProcess:
                 # To avoid over-filling the hypothesis database, we only add a failure
                 # if it is a smaller example than the best such failure to date.
                 self._database.save(self._hy_database_key, result.buffer)
+
+    @property
+    def _json_description(self) -> Dict[str, Union[str, int]]:
+        """Summarise current state to send to dashboard."""
+        return {
+            "nodeid": self.nodeid,
+            "ninputs": self.ninputs,
+            "arcs": len(self.seen_arcs),
+            "estimated-value": self.estimated_value_of_next_run,
+            "last-new-cov": self.last_new_cov_at,
+        }
 
     @property
     def estimated_value_of_next_run(self) -> float:
@@ -357,19 +379,11 @@ def fuzz_several(
     #       rather than arcs-per-input.
     for t in targets:
         t.startup()
-    prefix_len = len(commonprefix([t.nodeid for t in targets]))
     for i in itertools.count():
         if i % 20 == 0:
             t = targets.pop(rand.randrange(len(targets)))
             t.run_one()
             targets.add(t)
-            msg = f"iteration {i:4d}\n    " + "\n    ".join(
-                f"est {t.estimated_value_of_next_run:.6f} - run {t.ninputs:5d} - "
-                f"seen {len(t.seen_arcs):4d} arcs - {t.nodeid[prefix_len:]}"
-                for t in targets
-            )
-            if not i % 100:
-                print(msg, flush=True)  # noqa
         else:
             targets[0].run_one()
             if len(targets) > 1 and targets.key(targets[0]) > targets.key(targets[1]):

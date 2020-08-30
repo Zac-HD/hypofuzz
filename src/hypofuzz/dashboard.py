@@ -1,0 +1,69 @@
+"""Live web dashboard for a fuzzing run."""
+import dash
+import dash_core_components as dcc
+import dash_html_components as html
+import flask
+import plotly.express as px
+from dash.dependencies import Input, Output
+
+DATA_TO_PLOT = [{"nodeid": "", "ninputs": 0, "arcs": 0}]
+LAST_UPDATE = {}
+
+app = flask.Flask(__name__)
+
+
+@app.route("/", methods=["POST"])
+def add_data():
+    DATA_TO_PLOT.append(flask.request.json)
+    LAST_UPDATE[flask.request.json["nodeid"]] = flask.request.json
+    return "", 200
+
+
+external_stylesheets = ["https://codepen.io/chriddyp/pen/bWLwgP.css"]
+board = dash.Dash(__name__, server=app, external_stylesheets=external_stylesheets)
+table_headings = ["nodeid", "ninputs", "last-new-cov", "arcs", "estimated-value"]
+board.layout = html.Div(
+    children=[
+        html.H1(children="HypoFuzz Live Dashboard"),
+        html.Div(children="Covered arcs discovered for each target"),
+        dcc.Graph(id="live-update-graph"),
+        html.Div(html.Table(id="summary-table-rows")),
+        dcc.Interval(
+            id="interval-component",
+            interval=1000 * 5,
+            n_intervals=0,  # in milliseconds
+        ),
+    ]
+)
+
+
+@board.callback(
+    Output("live-update-graph", "figure"),
+    [Input("interval-component", "n_intervals")],
+)
+def update_graph_live(n):
+    fig = px.line(DATA_TO_PLOT, x="ninputs", y="arcs", color="nodeid", line_shape="hv")
+    # Setting this to a constant prevents data updates clobbering zoom / selections
+    fig.layout.uirevision = "this key never changes"
+    return fig
+
+
+@board.callback(
+    Output("summary-table-rows", "children"),
+    [Input("interval-component", "n_intervals")],
+)
+def update_table_live(n):
+    return [html.Tr([html.Th(h) for h in table_headings])] + [
+        html.Tr([html.Td(data[k]) for k in table_headings])
+        for name, data in sorted(LAST_UPDATE.items())
+    ]
+
+
+def start_dashboard_process(port: int, **kwargs: object) -> None:
+    print(f"\n\tNow serving dashboard at  http://localhost:{port}/\n")  # noqa
+    app.run(host="localhost", port=port, **kwargs)
+
+
+if __name__ == "__main__":
+    # for debugging
+    start_dashboard_process(port=9999)
