@@ -1,5 +1,5 @@
-Feature Roadmap
-===============
+Development Roadmap
+===================
 
 Hypofuzz is both an active research project and a production-ready tool.
 
@@ -10,19 +10,66 @@ there which never makes the translation to practice - and I don't intend to
 add to it.
 
 
+Compatibility Policy
+--------------------
+
+Hypofuzz uses `calendar-based versioning <https://calver.org/>`__, with a
+``YY-MM-patch`` format.
+
+Because Hypofuzz is closely tied to Hypothesis internals, we recommend pinning
+your transitive dependencies using a tool like :pypi:`pip-compile <pip-tools>`,
+:pypi:`poetry`, or :pypi:`pipenv`.  This makes it possible to reproduce old
+environments based only on your VCS history, and ensures that any compatibility
+problems in new releases can be handled when it suits you.
+
+
+Direct Dependencies
+~~~~~~~~~~~~~~~~~~~
+
+Hypofuzz's direct dependencies are:
+
+.. literalinclude:: ../setup.py
+   :prepend: install_requires = [
+   :start-after: install_requires=[
+   :end-before: ],
+   :append: ]
+
+
+API Deprecation Policy
+~~~~~~~~~~~~~~~~~~~~~~
+
+Hypofuzz does not provide a Python API.
+
+The command-line interface will not make incompatible changes without at least
+three months notice, during which passing deprecated options will emit runtime
+warnings (e.g. via the terminal, displayed on the dashboard, etc.).
+
+Integration points with Hypothesis, such as the
+:class:`~hypothesis:hypothesis.database.ExampleDatabase` API, are considered
+stable upstream and are very unlikely to change.
+
+If it is impractical to continue to support old versions of Hypothesis (or other
+dependencies) after a major update, the minimum supported version will be updated.
+If you would like to use new versions of Hypofuzz with old versions of its
+dependencies, please get in touch to discuss your specific needs.
+
+
+Planned Features
+----------------
+
+See :doc:`literature` for notes on where some these ideas come from.
+
 .. note::
 
     This page is more a personal TODO note than a plan.
     Don't try to hold research outcomes to best intentions.
 
-See :doc:`literature` for notes on where some these ideas come from.
-
 
 For each fuzz target
 ~~~~~~~~~~~~~~~~~~~~
 
-- insert failing examples into standard Hypothesis database
-- drop (or just deprioritze?) targets where we've seen a failure
+- report failing examples in the dashboard - at least nodeid, ideally mimicing
+  the whole output from Hypothesis with traceback + minimal example.
 
 
 Better mutation logic
@@ -89,14 +136,16 @@ Adaptive fuzzing of many targets
 User experience, workflow integration, monitoring
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+- publish a bare-bones ``hypofuzz`` package on PyPI - goal is to have a public
+  no-op implementation of any helpers, so that test suites can be run (not fuzzed)
+  with only freely available libraries.
+  Move logic to Hypothesis itself where that makes sense.
+
 - user-facing documentation, examples, tips
 
 - live dashboard for the overall campaign, and subpage for each target
 
 - (maybe?) support non-pytest test suites
-
-- improve database docs + tooling upstream in Hypothesis,
-  e.g. a "union" wrapper, "readonly" wrapper, etc. to share among a team
 
 - exploit VCS metadata, i.e. target recently-changed parts of the SUT and
   new / recently changed tests (c.f. :pypi:`pypi-testmon`)
@@ -113,30 +162,3 @@ User experience, workflow integration, monitoring
 - a "scaling hint" would be cool - get automatic estimates of current
   value per minute, and balance that against cost of compute and current
   change frequency to recommend number of cores to use.  (much later)
-
-
-Commercialisation
-~~~~~~~~~~~~~~~~~
-
-Hypothesis is free and open-source software, and always will be.  It's useful
-for businesses, community projects, and Python novices too.
-
-Hypofuzz builds on this, but is disproportionately valuable for businesses
-and probably out of scope for novice pythonistas.  I therefore intend to sell
-commercial licences rather than open-sourcing it - though nonprofit open source
-projects will be offered unlimited use for no charge.
-
-Things to do here:
-
-- website, email, docs, etc.  promotional materials, basically.
-- work out pricing and business model
-
-    - SAAS would be the classic option, but I really don't want to do ops.
-    - can I just put it on PyPI and let people pay for legal right to use?
-
-- set up through e.g. Stripe Atlas?
-
-
-
-
-

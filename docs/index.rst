@@ -11,5 +11,7 @@ looking for bugs.
     :maxdepth: 2
 
     quickstart
+    pricing
+    configuration
     roadmap
     literature

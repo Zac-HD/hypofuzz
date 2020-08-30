@@ -39,6 +39,7 @@ extlinks = {
     "pull": (f"{_repo}/pull/%s", "pull request #"),
     "pypi": ("https://pypi.org/project/%s", ""),
     "bpo": ("https://bugs.python.org/issue%s", "bpo-"),
+    "hydocs": ("https://hypothesis.readthedocs.io/en/latest/%s", ""),
 }
 
 
