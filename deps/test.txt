@@ -33,7 +33,9 @@ jinja2==2.11.2            # via flask
 markupsafe==1.1.1         # via jinja2
 more-itertools==8.5.0     # via pytest
 mypy-extensions==0.4.3    # via black
+numpy==1.19.1             # via pandas
 packaging==20.4           # via pytest
+pandas==1.1.1             # via hypofuzz (setup.py)
 pathspec==0.8.0           # via black
 plotly==4.9.0             # via dash
 pluggy==0.13.1            # via pytest
@@ -44,10 +46,12 @@ pytest-cov==2.10.1        # via -r deps/test.in
 pytest-forked==1.3.0      # via pytest-xdist
 pytest-xdist==2.1.0       # via -r deps/test.in
 pytest==6.0.1             # via -r deps/test.in, hypofuzz (setup.py), pytest-cov, pytest-forked, pytest-xdist
+python-dateutil==2.8.1    # via pandas
+pytz==2020.1              # via pandas
 regex==2020.7.14          # via black
 requests==2.24.0          # via hypofuzz (setup.py)
 retrying==1.3.3           # via plotly
-six==1.15.0               # via packaging, plotly, retrying
+six==1.15.0               # via packaging, plotly, python-dateutil, retrying
 sortedcontainers==2.2.2   # via hypothesis
 toml==0.10.1              # via black, pytest
 typed-ast==1.4.1          # via black
