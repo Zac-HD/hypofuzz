@@ -49,5 +49,5 @@ html_theme = "sphinx_rtd_theme"
 html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 # html_favicon = "favicon.ico"
 # html_logo = ""  # path to the project logo, for the top of the sidebar, ~200px
-# html_baseurl = ""
+html_baseurl = "https://hypofuzz.com/docs/"
 html_show_sphinx = False

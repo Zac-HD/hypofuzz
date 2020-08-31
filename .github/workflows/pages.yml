@@ -19,12 +19,8 @@ jobs:
         python -m tox --recreate -e docs
     - name: Upload docs
       run: |
-        mv ./build/ ../docs/
-        rm -r *
-        mv ../docs .
-        touch .nojekyll
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
-        git add .
+        git add --force docs/docs/
         git commit -m "build docs"
         git push --force origin HEAD:gh-pages
