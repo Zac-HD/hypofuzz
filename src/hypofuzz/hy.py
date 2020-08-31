@@ -350,10 +350,10 @@ class FuzzProcess:
     def _json_description(self) -> Dict[str, Union[str, int, float]]:
         """Summarise current state to send to dashboard."""
         note = ""
-        if self._replay_buffer:
-            note = "replaying saved examples"
-        elif self.has_found_failure:
+        if self.has_found_failure:
             note = "found failing example"
+        elif self._replay_buffer:
+            note = "replaying saved examples"
         elif self.ninputs == 0:
             note = "starting up..."
         return {
