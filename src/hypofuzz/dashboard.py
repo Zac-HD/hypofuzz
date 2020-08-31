@@ -11,7 +11,7 @@ from dash.dependencies import Input, Output
 DATA_TO_PLOT = [{"nodeid": "", "ninputs": 0, "arcs": 0}]
 LAST_UPDATE = {}
 
-headings = ["nodeid", "ninputs", "last-new-cov", "arcs", "estimated-value", "note"]
+headings = ["nodeid", "ninputs", "since new cov", "arcs", "estimated value", "note"]
 app = flask.Flask(__name__)
 
 
