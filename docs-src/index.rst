@@ -15,3 +15,4 @@ looking for bugs.
     configuration
     roadmap
     literature
+    changelog

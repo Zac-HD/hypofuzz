@@ -18,6 +18,7 @@ needs_sphinx = "3.2"
 nitpicky = True
 
 extensions = [
+    "myst_parser",
     "sphinx.ext.autodoc",
     "sphinx.ext.extlinks",
     "sphinx.ext.viewcode",
