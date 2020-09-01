@@ -349,20 +349,22 @@ class FuzzProcess:
     @property
     def _json_description(self) -> Dict[str, Union[str, int, float]]:
         """Summarise current state to send to dashboard."""
-        note = ""
         if self.has_found_failure:
-            note = "found failing example"
-        elif self._replay_buffer:
-            note = "replaying saved examples"
+            return {
+                "nodeid": self.nodeid,
+                "ninputs": self.ninputs,
+                "arcs": len(self.seen_arcs),
+                "note": "found failing example",
+            }
         elif self.ninputs == 0:
-            note = "starting up..."
+            return {"nodeid": self.nodeid, "note": "starting up..."}
         return {
             "nodeid": self.nodeid,
             "ninputs": self.ninputs,
             "arcs": len(self.seen_arcs),
             "estimated value": self.estimated_value_of_next_run,
             "since new cov": self.ninputs - self.last_new_cov_at,
-            "note": note,
+            "note": "replaying saved examples" if self._replay_buffer else "",
         }
 
     @property
