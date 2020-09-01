@@ -5,94 +5,60 @@ Hypofuzz is built on, and inspired by, a wide range of research and practice
 in software testing and verification.  This page summarises selected parts
 of that literature, with opinionated comments.
 
-.. warning::
-
-    This page is incomplete and disorganised.
-
-
-TODO: add citations with https://sphinxcontrib-bibtex.readthedocs.io/en/latest/quickstart.html
-
-
 
 Hypothesis & Property-based Testing
 -----------------------------------
 
-JOSS paper, David's ECOOP paper
-
-
-
-Hypothesis is implemented around a bytestring representation for all
+Hypothesis :cite:`MacIver2019` is implemented around a bytestring representation for all
 test cases.  All "strategies" (data generators) can transparently
 generate random instances via a PRNG, or replay past test-cases by
 substituting a recorded bytestring for the PRNG stream.
 
-In short, we implement property-based testing as a structured fuzzer,
-using a hybrid of every technique that seemed useful - thanks again
-to our clean IR layer.
+:cite:`MacIver2020` goes into more depth about the design of this IR layer,
+and in particular how it enables efficient test-case reduction and normalisation.
+This is the key to reporting minimal and de-duplicated failing examples, and
+makes using a fuzzer much more productive (and less frustrating).
 
-Our users are therefore used to writing fuzz harnesses which exercise
-their code and check meaningful semantic properties, and indeed already
-have hundreds or even thousands of such harnesses already written.
+The IR layer has also proven invaluable as a clean and universal interface
+to support other techniques such as targeted property-based testing
+:cite:`TargetedPBT` - we get to automate (:cite:`AutomatingTargetedPBT`)
+the setup for free, and support multi-dimensional optimisation into the
+bargain.  See :func:`hypothesis:hypothesis.target` for details.
 
 
+PBT is Structured Fuzzing
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
-common to observe that PBT is fuzzing; also common to wish that PBT would
-steal features from fuzzing engines.  Less common to wish that fuzzing
-integrated into workflows as well as PBT does!
+It's common to observe that property-based testing (PBT) is conceptually
+related to fuzzing - see for example Dan Luu's `AFL + QuickCheck = ?
+<https://danluu.com/testing/>`__ or Nelson Elhage's `Property-Based Testing Is Fuzzing
+<https://blog.nelhage.com/post/property-testing-is-fuzzing/>`__ and
+`Property Testing Like AFL <https://blog.nelhage.com/post/property-testing-like-afl/>`__.
+For an essay on the *differences*, see David MacIver's `What is Property-Based Testing
+<https://hypothesis.works/articles/what-is-property-based-testing/>`__.
 
-axes along which they typically differ
+The core of Hypothesis in in fact a blackbox structure-aware fuzzer,
+and of course HypoFuzz itself is a more traditional greybox fuzzer built
+on our shared IR layer.  Three things make HypoFuzz different from tradional fuzzers.
 
-- PBT executes far fewer example inputs
-- PBT expects to generate mostly valid inputs
-- PBT is mostly used by developers; fuzzing mostly by later bug hunters
+1. HypoFuzz is designed to work with many more targets than most fuzzers -
+   we operate on *test suites*, not single binaries.
+2. Because we're fuzzing property-based tests, HypoFuzz looks for semantics
+   errors - not just crashes - and can check properties that are only expected
+   to hold for a subset of valid inputs.
+3. It's designed to fit into your development cycle, and be used by developers -
+   so that the bugs get caught *before* the code ships.
 
 
 
 We solve 'fuzzer taming' with canonical minimal test inputs
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Incidentally, this same IR layer enables better shrinking capabilities than
-any other tool I know of, effectively solving the "fuzzer taming" problem.
-In the production version of Hypothesis we distinguish errors by the type and
-location of the exception, but the 'interesting origin' could trivially be
-augumented or replaced with other metrics such as stack hashes if desired.
-
-Key points include auto-pruning and automatic partial canonicalisation,
-tracking the parse tree to enable an adaptive variant of heirarchal
-delta-debugging, and sophisticated 'normalisation' which simplifies
-as well as minimising the size of examples.  The result is a shortlex
-K-minimal bytestring with respect to all our reduction operators.
-
-Shrinking is properly the subject of David's research though, so for this
-paper we will simply treat finding the canonical minimal input which causes
-any distinct error as a solved problem.
-
-
-We use a fast, blackbox backend to support testing workflows
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Hypothesis' primary use-case is as a library for writing property-based tests.
-A typical run will execute a total of one hundred input test cases, including
-replay of previous failures, and take a few hundred milliseconds.
-
-This is, obviously, very different from a typical fuzzing campaign.
-
-Our backend is therefore quite different from a coverage-guided fuzzer, as it
-is adapted for minimal feedback and short, fast 'campaigns'.  Indeed, we
-shipped experimental coverage guidance in 2018: the overhead was ~5x in a typical
-case, or ~70x on PyPy (tracing logic is not good for the JIT compiler), and did
-not typically pay off until several thousand test cases in.  We therefore removed
-the feature as conceptually nice, but not worth the cost of maintainence for us
-or the burden of extra documentation and config options for our users.
-
-We use a combination of pure random generational fuzzing, with lightweight
-mutation of previous examples - mostly by splicing them into a generated
-stream in place of random bytes.  This boosts the probability of e.g. duplicate
-list elements which would otherwise be incredibly rare, and helps us generate
-data subject to difficult filters far more often than chance would suggest.
-
-TODO mention targeted PBT here, contrasting PropEr with simulated annealing?
-Or should we save that for later and point out that it has FuzzFactory built in?
+Because Hypothesis presents a single `reduced
+<https://blog.trailofbits.com/2019/11/11/test-case-reduction/>`__ and normalised
+:cite:`OneTestToRuleThemAll` failing input for each unique exception type and location,
+HypoFuzz largely avoids the `fuzzer taming problem <https://blog.regehr.org/archives/925>`__
+:cite:`TamingCompilerFuzzers`.
 
 
 'Strategies' are parser-combinators designed for structured fuzzing
@@ -100,54 +66,45 @@ Or should we save that for later and point out that it has FuzzFactory built in?
 
 Hypothesis users specify the allowed inputs to their test function by composing
 "strategies", which are internally used to parse PRNG or replayed bytestrings
-into valid data.
-
-Users may compose strategies with arbitrary code, including code under test,
-and they therefore comprise an unrestricted grammar which permits arbitrary
-backwards dependencies.  In principle forward constraints are also possible,
-but this works so poorly in practice that we can ignore the pathological case.
-
-We nonetheless keep the grammar fairly local, to better support our splicing
-and shrinking logic - for example, to generate a list we draw a 'should continue'
-boolean before each element, rather than drawing a number of elements up-front.
-Other such design tricks are documented in our implementers guide to 'strategies
-which shrink' [ ref ].  This property also means that small changes in the
-bytestring tend to correspond to small changes in the example.
+into valid data.  Users may compose strategies with arbitrary code, including code
+under test, but while in principle this leads to an unrestricted grammar the
+structure is usually tractable (`see here for some details
+<https://github.com/HypothesisWorks/hypothesis/blob/master/guides/strategies-that-shrink.rst>`__).
 
 Strategies are also designed such that, in the absence of user-defined filters,
-most random bytestrings can be parsed into valid examples.  It's still a partial
-function, but the builtin strategies work pretty well in practice.
+most random bytestrings can be parsed into valid examples - which makes it easy
+to support a hybrid generational/mutational fuzzer.
 
-They _also_ act as approximately idempotent transducers, such that parsing random
-bytes will also output a partially canonicalised (shortlex leq) bytestring which
-will reproduce the same example.  This only throws away 'obviously unused' parts
-corresponding to e.g. rejection sampling, but is a nice boost to shrinking and
-also to avoid calling user code with redundant inputs.
-
-Our default backend, above, tracks a trie of known buffers.  Thanks to autopruning,
-we can discard any proposed buffer which is known or has a known prefix as being
-redundant.  Conversely if a proposal is a prefix of a known buffer it must not be
-parseable, which can boost performance substantially during shrinking.
-
-
-
-TODO: swarm testing, why it works, how we use it
-
-
-
+Some also use `swarm testing <https://blog.regehr.org/archives/591>`__
+:cite:`SwarmTesting`, which improves the diversity of "weird" examples generated
+without any user interaction at all.  Increasing our usage of this and
+`other techniques <https://blog.regehr.org/archives/1700>`__ is an ongoing
+project for Hypothesis.
 
 
 
 Fuzzing
 -------
 
+*The Fuzzing Book* :cite:`fuzzingbook2019` is a fantastic introduction to
+and overview of the field.  While many of the papers cited below may not be
+relevant unless you're *implementing* a fuzzer like HypoFuzz, the book is
+a great resource for anyone involved in software testing.
+
+.. warning::
+
+    The following sections are incomplete, disorganised, and unreferenced.
+
 
 Fuzz / Fuzz Revisited / Fuzz 2020
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-From the age of dinosaurs... proved that unguided random generational fuzzing
-works.  "most of the bugs we found still there later" rings true, as does
-"we gave away awesome tools and few people used them".
+`Bart Miller's pioneering work on fuzzing <http://pages.cs.wisc.edu/~bart/fuzz/>`__
+defined the field, and proved that unguided random fuzzing works scarily well.
+From 1990 :cite:`Fuzz1990` to 1995 :cite:`FuzzRevisited`, and again in 2020 :cite:`Fuzz2020`,
+the persistence of bugs which can be caught by such simple tools seems timeless.
+As, frustratingly, does the very slow adoption of such tools - to have read this
+far betrays your excellent taste, dear reader.
 
 
 AFL (classic)
@@ -317,3 +274,12 @@ Downside, we can't convert an external corpus into our own format.
 
 (this would be a really really nice tool to have, though - it can't work universally,
 but might be worth the engineering work for the core strategies at least)
+
+
+
+References
+----------
+
+.. bibliography:: literature.bib
+
+

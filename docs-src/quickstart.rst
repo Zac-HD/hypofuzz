@@ -13,6 +13,19 @@ so you can select specific tests in the usual way by file, ``-k`` selectors,
 or just allow pytest to discover all your tests for you.
 
 
+Installation
+------------
+
+HypoFuzz is a pure-Python package, and can be installed with
+
+.. code-block:: shell
+
+    pip install --extra-index-url=https://<YOUR_TOKEN>:@packages.hypofuzz.com/pypi/ hypofuzz
+
+
+
+
+
 Running :command:`hypothesis fuzz`
 ----------------------------------
 
