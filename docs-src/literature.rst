@@ -1,7 +1,7 @@
 Summary of related research
 ===========================
 
-Hypofuzz is built on, and inspired by, a wide range of research and practice
+HypoFuzz is built on, and inspired by, a wide range of research and practice
 in software testing and verification.  This page summarises selected parts
 of that literature, with opinionated comments.
 

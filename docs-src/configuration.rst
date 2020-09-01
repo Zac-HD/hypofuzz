@@ -5,7 +5,7 @@ Configuration
 It's all automatic
 ------------------
 
-Wherever possible, Hypofuzz is designed to do the right thing without configuration.
+Wherever possible, HypoFuzz is designed to do the right thing without configuration.
 
 :command:`hypothesis fuzz` accepts arguments to determine parameters like the
 number of processes to use, and the port on which to serve the dashboard -
@@ -24,7 +24,7 @@ heuristics and feeback mechanisms - and benefit everyone, automatically.
 The Hypothesis Database
 -----------------------
 
-The hypothesis database forms the basis of Hypofuzz workflows: failing examples
+The hypothesis database forms the basis of HypoFuzz workflows: failing examples
 can be reproduced automatically just by running the tests - because those inputs
 are added to the database and replayed by hypothesis itself.
 

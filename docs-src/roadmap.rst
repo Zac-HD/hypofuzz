@@ -1,7 +1,7 @@
 Development Roadmap
 ===================
 
-Hypofuzz is both an active research project and a production-ready tool.
+HypoFuzz is both an active research project and a production-ready tool.
 
 I believe that this dual nature is a strength for both: users get to leverage
 a tool based on cutting-edge research, but also ensure that the problems it
@@ -13,10 +13,10 @@ add to it.
 Compatibility Policy
 --------------------
 
-Hypofuzz uses `calendar-based versioning <https://calver.org/>`__, with a
+HypoFuzz uses `calendar-based versioning <https://calver.org/>`__, with a
 ``YY-MM-patch`` format.
 
-Because Hypofuzz is closely tied to Hypothesis internals, we recommend pinning
+Because HypoFuzz is closely tied to Hypothesis internals, we recommend pinning
 your transitive dependencies using a tool like :pypi:`pip-compile <pip-tools>`,
 :pypi:`poetry`, or :pypi:`pipenv`.  This makes it possible to reproduce old
 environments based only on your VCS history, and ensures that any compatibility
@@ -26,7 +26,7 @@ problems in new releases can be handled when it suits you.
 Direct Dependencies
 ~~~~~~~~~~~~~~~~~~~
 
-Hypofuzz's direct dependencies are:
+HypoFuzz's direct dependencies are:
 
 .. literalinclude:: ../setup.py
    :prepend: install_requires = [
@@ -38,7 +38,7 @@ Hypofuzz's direct dependencies are:
 API Deprecation Policy
 ~~~~~~~~~~~~~~~~~~~~~~
 
-Hypofuzz does not provide a Python API.
+HypoFuzz does not provide a Python API.
 
 The command-line interface will not make incompatible changes without at least
 three months notice, during which passing deprecated options will emit runtime
@@ -50,7 +50,7 @@ stable upstream and are very unlikely to change.
 
 If it is impractical to continue to support old versions of Hypothesis (or other
 dependencies) after a major update, the minimum supported version will be updated.
-If you would like to use new versions of Hypofuzz with old versions of its
+If you would like to use new versions of HypoFuzz with old versions of its
 dependencies, please get in touch to discuss your specific needs.
 
 

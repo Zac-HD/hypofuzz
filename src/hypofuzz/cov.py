@@ -6,7 +6,7 @@ import coverage
 from hypothesis.internal.escalation import is_hypothesis_file
 
 # The upstream notion of an arc is (int, int) with an implicit filename,
-# but Hypofuzz uses an explicit filename as part of the arc.
+# but HypoFuzz uses an explicit filename as part of the arc.
 Arc = Tuple[str, int, int]
 _POSSIBLE_ARCS: Dict[str, FrozenSet[Arc]] = {}
 
