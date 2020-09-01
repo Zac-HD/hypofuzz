@@ -63,7 +63,7 @@ def _get_hypothesis_tests_with_pytest(args: Iterable[str]) -> List["FuzzProcess"
 @click.option(
     "-n",
     "--numprocesses",
-    type=click.IntRange(0, None),
+    type=click.IntRange(1, None),
     metavar="NUM",
     # we match the -n auto behaviour of pytest-xdist by default
     default=psutil.cpu_count(logical=False) or psutil.cpu_count() or 1,
