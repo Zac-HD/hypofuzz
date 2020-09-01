@@ -36,9 +36,8 @@ Consulting
 As a core developer of Hypothesis and sole author of Hypofuzz, Zac is
 well-placed to consult on property-based testing or fuzzing - whether you're
 implementing it for the first time or want expert review of a mature test suite.
-
-I am also `a regular speaker at Python conferences <https://zhd.dev/talks/>`__,
+He is also `a regular speaker at Python conferences <https://zhd.dev/talks/>`__,
 and can deliver customised training sessions or talks for your team.
 
-Sounds valuable? `Send me an email today
+Sounds valuable? `Send an email today
 <mailto:hypofuzz@zhd.dev?subject=Hypofuzz%20consulting%20enquiry>`__!

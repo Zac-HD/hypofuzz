@@ -51,7 +51,15 @@ The second is to implement a custom :class:`~hypothesis:hypothesis.database.Exam
 on top of your preferred key-value store - just ``save``, ``delete``, and ``fetch``
 bytestrings - and use that instead.
 
-TODO: write a ``RedisExampleDatabase``; plus others by client request.
+.. TODO: write a ``RedisExampleDatabase``; plus others by client request.
+
+Testing your custom ExampleDatabase
++++++++++++++++++++++++++++++++++++
+
+HypoFuzz ships with a :hydocs:`Hypothesis state machine <stateful.html>` designed
+to test that custom databases implement the same semantics as the builtin classes.
+
+.. autoclass:: hypofuzz.database.DatabaseComparison
 
 
 Multiplexed and Read-Only Databases

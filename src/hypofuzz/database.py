@@ -24,7 +24,7 @@ class ReadOnlyDatabase(ExampleDatabase):
 
     .. note::
 
-        This wrapper intentionally breaks Hypothesis' automatic discarding of
+        This wrapper intentionally disables Hypothesis' automatic discarding of
         stale examples.  It is designed to allow local machines to access a
         shared database (e.g. from CI servers), without propogating changes
         back from a local or in-development branch.
