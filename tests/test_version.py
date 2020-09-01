@@ -10,8 +10,8 @@ import hypofuzz
 
 
 class Version(NamedTuple):
-    major: int
-    minor: int
+    year: int
+    month: int
     patch: int
 
     @classmethod
@@ -24,32 +24,30 @@ def get_releases():
     pattern = re.compile(r"^## (\d\d\.\d\d\.\d+)$")
     with open(Path(__file__).parent.parent / "docs-src/changelog.md") as f:
         return tuple(
-            (Version.from_string(match.group(1)), match.group(2))
+            Version.from_string(match.group(1))
             for match in map(pattern.match, f)
             if match is not None
         )
 
 
 def test_last_release_against_changelog():
-    last_version, last_date = get_releases()[0]
+    last_version = get_releases()[0]
     assert last_version == Version.from_string(hypofuzz.__version__)
-    assert last_date <= date.today().isoformat()
+    assert (last_version.year, last_version.month) <= date.today().timetuple()[:2]
 
 
 def test_changelog_is_ordered():
-    versions, dates = zip(*get_releases())
+    versions = get_releases()
     assert versions == tuple(sorted(versions, reverse=True))
-    assert dates == tuple(sorted(dates, reverse=True))
 
 
 def test_version_increments_are_correct():
-    # We either increment the patch version by one, increment the minor version
-    # and reset the patch, or increment major and reset both minor and patch.
-    versions, _ = zip(*get_releases())
+    # We either increment the patch version by one, or increment the calendar parts
+    # and reset the patch version to one.
+    versions = get_releases()
     for prev, current in zip(versions[1:], versions):
         assert prev < current  # remember that `versions` is newest-first
-        assert current in (
-            prev._replace(patch=prev.patch + 1),
-            prev._replace(minor=prev.minor + 1, patch=0),
-            prev._replace(major=prev.major + 1, minor=0, patch=0),
-        ), f"{current} does not follow {prev}"
+        if prev.year == current.year and prev.month == current.month:
+            assert current.patch == prev.patch + 1, f"{current} does not follow {prev}"
+        else:
+            assert current.patch == 1, f"{current} does not follow {prev}"
