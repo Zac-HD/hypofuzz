@@ -16,13 +16,25 @@ or just allow pytest to discover all your tests for you.
 Installation
 ------------
 
-HypoFuzz is a pure-Python package, and can be installed with
+HypoFuzz is a pure-Python package, and can be installed from your shell with
 
 .. code-block:: shell
 
     pip install --extra-index-url=https://<YOUR_TOKEN>:@packages.hypofuzz.com/pypi/ hypofuzz
 
+or from a ``requirements.txt`` file like
 
+.. code-block:: text
+
+    # -*- coding: utf-8 -*-
+    # Requirements for our test environment
+    --extra-index-url=https://<YOUR_TOKEN>:@packages.hypofuzz.com/pypi/
+
+    ...
+    hypofuzz >= 20.08.1
+    ...
+
+with ``<YOUR_TOKEN>`` being the access token issued to you (see :doc:`pricing`).
 
 
 
