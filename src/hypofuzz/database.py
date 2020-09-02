@@ -34,6 +34,9 @@ class ReadOnlyDatabase(ExampleDatabase):
         assert isinstance(db, ExampleDatabase)
         self._wrapped = db
 
+    def __repr__(self) -> str:
+        return f"ReadOnlyDatabase({self._wrapped!r})"
+
     def fetch(self, key: bytes) -> Iterable[bytes]:
         yield from self._wrapped.fetch(key)
 
@@ -79,6 +82,9 @@ class MultiplexedDatabase(ExampleDatabase):
     def __init__(self, *dbs: ExampleDatabase) -> None:
         assert all(isinstance(db, ExampleDatabase) for db in dbs)
         self._wrapped = dbs
+
+    def __repr__(self) -> str:
+        return "MultiplexedDatabase({})".format(", ".join(map(repr, self._wrapped)))
 
     def fetch(self, key: bytes) -> Iterable[bytes]:
         seen = set()
