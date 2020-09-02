@@ -84,7 +84,7 @@ def _get_hypothesis_tests_with_pytest(args: Iterable[str]) -> List["FuzzProcess"
 @click.option(
     "--unsafe",
     is_flag=True,
-    help="Allow concurrent execution of each test",
+    help="Allow concurrent execution of each test (dashboard may report wrong results)",
 )
 @click.argument(
     "pytest_args",
@@ -117,8 +117,6 @@ def fuzz(
         )
 
     # With our arguments validated, it's time to actually do the work.
-    from .hy import fuzz_several
-
     tests = _get_hypothesis_tests_with_pytest(pytest_args)
     if not tests:
         raise click.UsageError("No property-based tests were collected")
@@ -135,5 +133,36 @@ def fuzz(
                 f"http://localhost:{port}/", json=data
             )
 
-    fuzz_several(*tests, numprocesses=numprocesses)
+    for i in range(numprocesses):
+        nodes = {t.nodeid for t in (tests if unsafe else tests[i::numprocesses])}
+        p = Process(
+            target=_fuzz_several,
+            kwargs={"pytest_args": pytest_args, "nodeids": nodes, "port": port},
+        )
+        p.start()
+    p.join()
+    raise NotImplementedError("unreachable")
+
+
+def _fuzz_several(
+    pytest_args: Tuple[str, ...], nodeids: List[str], port: int = None
+) -> NoReturn:
+    """Collect and fuzz tests.
+
+    Designed to be used inside a multiprocessing.Process started with the spawn()
+    method - requires picklable arguments but works on Windows too.
+    """
+    # Import within the function to break an import cycle when used as an entry point.
+    from .hy import fuzz_several
+
+    tests = [
+        t for t in _get_hypothesis_tests_with_pytest(pytest_args) if t.nodeid in nodeids
+    ]
+    if port is not None:
+        for t in tests:
+            t._report_change = lambda data: requests.post(  # type: ignore
+                f"http://localhost:{port}/", json=data
+            )
+
+    fuzz_several(*tests)
     raise NotImplementedError("unreachable")

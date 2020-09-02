@@ -15,6 +15,7 @@ from typing import (
     Generator,
     List,
     NoReturn,
+    Set,
     Tuple,
     Union,
 )
@@ -222,6 +223,7 @@ class FuzzProcess:
         # We track a SortedList instead of a set of stability of random sampling.
         self.pool: SortedKeyList[ConjectureResult] = SortedKeyList(key=sort_key)
         self._replay_buffer: List[bytes] = []
+        self._loaded_buffers: Set[bytes] = set()
 
     def startup(self) -> None:
         """Set up initial state and replay the saved behaviour."""
@@ -235,20 +237,28 @@ class FuzzProcess:
         self.minimal_example_arcs = firstresult.extra_information.arcs
         self.pool.add(firstresult)
         self._update(firstresult)
+        self._loaded_buffers.add(firstresult.buffer)
 
         # Next, restore progress made in previous runs by replaying our saved examples.
         # This is meant to be the minimal set of inputs that exhibits all distinct
         # behaviours we've observed to date.  Replaying takes longer than restoring
         # our data structures directly, but copes much better with changed behaviour.
+        self._fill_replay_buffer()
+
+    def _fill_replay_buffer(self) -> None:
+        """Load inputs from the database into our replay buffer, skipping known inputs.
+
+        Tracking inputs we have already loaded from the database makes it suitable
+        as a mechanism for sharing progress between processes (ensemble fuzzing),
+        accepting some memory overhead to avoid redundant example replay.
+        """
         if self._database is not None:
-            self._replay_buffer = sorted(
-                {
-                    *self._database.fetch(self._hy_database_key),
-                    *self._database.fetch(self._fuzz_database_key),
-                },
-                key=sort_key,
-                reverse=True,
-            )
+            loaded = {
+                *self._database.fetch(self._hy_database_key),
+                *self._database.fetch(self._fuzz_database_key),
+            } - self._loaded_buffers
+            self._replay_buffer.extend(sorted(loaded, key=sort_key, reverse=True))
+            self._loaded_buffers.update(loaded)
 
     def generate_prefix(self) -> bytes:
         """Generate a test prefix by mutating previous examples.
@@ -300,6 +310,13 @@ class FuzzProcess:
         """Run a single input through the fuzz target."""
         assert self.pool, "not started yet"
         self.ninputs += 1
+
+        # If we've been stable for a little while, try loading new examples from the
+        # database.  We do this unconditionally because even if this fuzzer doesn't
+        # know of other concurrent runs, there may be e.g. a test process sharing the
+        # database.  We do make it infrequent to manage the overhead though.
+        if self.ninputs % 1000 == 0 and self.ninputs - self.last_new_cov_at > 1000:
+            self._fill_replay_buffer()
 
         # Run the input
         next(self.fuzz_generator)
@@ -381,9 +398,7 @@ class FuzzProcess:
         return bool(self._interesting_examples)
 
 
-def fuzz_several(
-    *targets_: FuzzProcess, numprocesses: int = 1, random_seed: int = None
-) -> NoReturn:
+def fuzz_several(*targets_: FuzzProcess, random_seed: int = None) -> NoReturn:
     """Take N fuzz targets and run them all."""
     # TODO: this isn't actually multi-process yet, and that's bad.
     rand = Random(random_seed)
