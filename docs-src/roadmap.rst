@@ -145,20 +145,17 @@ User experience, workflow integration, monitoring
 
 - live dashboard for the overall campaign, and subpage for each target
 
-- (maybe?) support non-pytest test suites
+- better reporting of tests skipped due to use of fixtures
+
+- warn about tests where found examples can't be replayed because of settings
+  decorator with derandomize=True or database=None; recommend profiles instead
+
+- support collecting tests with ``unittest`` as well as pytest
 
 - exploit VCS metadata, i.e. target recently-changed parts of the SUT and
   new / recently changed tests (c.f. :pypi:`pypi-testmon`)
 
 - sharing state / adaptive params across runs, for 'live at head' fuzzing
 
-    - track corpus to go from cold start to adapted ASAP
-    - (maybe later) ``git pull`` mode; regularly fetch a branch and
-      crash+restart if there have been changes.
-
 - must be zero configuration.  ask users to suggest heuristics/conventions
   instead of configure their instance.  You can select the targets; that's it.
-
-- a "scaling hint" would be cool - get automatic estimates of current
-  value per minute, and balance that against cost of compute and current
-  change frequency to recommend number of cores to use.  (much later)
