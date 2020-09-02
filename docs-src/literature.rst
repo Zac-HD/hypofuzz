@@ -91,10 +91,6 @@ and overview of the field.  While many of the papers cited below may not be
 relevant unless you're *implementing* a fuzzer like HypoFuzz, the book is
 a great resource for anyone involved in software testing.
 
-.. warning::
-
-    The following sections are incomplete, disorganised, and unreferenced.
-
 
 Fuzz / Fuzz Revisited / Fuzz 2020
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -103,46 +99,94 @@ Fuzz / Fuzz Revisited / Fuzz 2020
 defined the field, and proved that unguided random fuzzing works scarily well.
 From 1990 :cite:`Fuzz1990` to 1995 :cite:`FuzzRevisited`, and again in 2020 :cite:`Fuzz2020`,
 the persistence of bugs which can be caught by such simple tools seems timeless.
-As, frustratingly, does the very slow adoption of such tools - to have read this
-far betrays your excellent taste, dear reader.
+Unfortunately, so does the very slow adoption of such tools - if you're reading
+this sentence, have an unusual (and excellent!) taste in testing technologies.
 
 
 AFL (classic)
 ~~~~~~~~~~~~~
 
-Pulls JPEGs out of thin air.  Shockingly effective; easier to use than previous
-tooling, worked very well at the time.  Somewhat out of date now; has maintained
-fork "AFL++" aflplus.plus
+`Pulling JPEGs out of thin air
+<https://lcamtuf.blogspot.com/2014/11/pulling-jpegs-out-of-thin-air.html>`__ made
+a splash: `ALF <https://lcamtuf.coredump.cx/afl/>`__ was the first fuzzer tool
+to reach mainstream awareness, and its success - measured in important bugs rather
+than citations or benchmarks - revitalised the field.
 
-Blindly 'ratchets' through the path-space of the program, selecting inputs and
-mutations uniformly at random (after an initial determistic phase).
+The key insights were that lightweight instrumentation for coverage guided fuzzing
+would often outperform fancier but slower techniques, and that usability counts -
+with almost no configuration and a robust design applicable to any project,
+AFL saw much wider adoption and therefore impact than previous tools.
+
+Since 2017, `AFL++ has been maintained by the community <https://aflplus.plus/>`__
+with a variety of bugfixes, patches, and additional features many of which are
+covered below.
 
 
 LibFuzzer
 ~~~~~~~~~
 
-Is much more similar to Hypothesis - typically runs in-process, part of dev
-worlflows, etc.  Also I think it exits on first crash?  Hypothesis' fuzz_one_input
-fuzzer integration point directly imitates libfuzzer / LLVMFuzzOneInput.
+`LibFuzzer <https://llvm.org/docs/LibFuzzer.html>`__ targets functions, rather than
+whole binaries, and typically runs in-process.
+:hydocs:`Hypothesis' .fuzz_one_input <details.html#use-with-external-fuzzers>`
+function is directly inspired by the ``LLVMFuzzOneInput`` entry point, though
+Hypothesis tests have much more sophisticated support for `structured fuzzing
+<https://github.com/google/fuzzing/blob/master/docs/structure-aware-fuzzing.md>`__.
 
 
-AFL-fast, fair-fuzz, ???
-~~~~~~~~~~~~~~~~~~~~~~~~
+AFLFast & FairFuzz
+~~~~~~~~~~~~~~~~~~
 
-Prioritize inputs which are under-explored.  Basic concept is similar to a multi-arm
-bandit problem, though interestingly more difficult due to shifting and exhaustible
-distributions.
+AFLFast :cite:`AFLFast` and FairFuzz :cite:`FairFuzz` observe that some branches
+are covered by a higher proportion of inputs than others - for example, code which
+rejects invalid inputs is usually overrepresented.
 
-There are some cases - no free lunch theorem of optimisation - where this under-performs
-classic mode, but in expectation it's flat several times more effective; especially
-in short runs.
+When AFL-Fast selects an input to mutate, it biases the choice towards inputs which
+execute rare branches - and finds both an order-of-magnitude performance improvement
+and more bugs than previous approaches.  Technically, the trick is to represent
+the probability of covering each branch from a random mutation of each input as a
+Markov chain, and then using the inverse of the stationary distribution as our
+choice weights.
 
-Related ideas: see Zest / input diversity / JQF-fuzz (sp?); 'helping generative fuzzers
-avoid looking where the light is good'
+FairFuzz shares the goal of increasing coverage of rare branches, but does so by
+detecting regions of the input which may be required to do so and disabling
+mutations of those regions.  Their evaluation finds that this noticeably improves
+coverage on code with deeply nested conditionals, against a baseline which includes
+an early version of AFL-Fast (``-explore`` schedule added in 2.33, evaulation uses
+2.40, ``-fast`` schedule seems to be best).
+
+
+.. warning::
+
+    The following sections are incomplete, disorganised, and unreferenced.
+
+Zest, RLcheck, and property-based testing as semantic fuzzing
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+`'Helping Generative Fuzzers Avoid Looking Only Where the Light is Good
+<https://blog.regehr.org/archives/1700>`__ is motivated by similar input-diversity
+concerns as AFLFast and FairFuzz, with an application to unguided generative fuzzers.
+
+https://github.com/rohanpadhye/JQF is more similar to Hypothesis + HypoFuzz than
+I first thought.
+
+
+Related ideas: see Zest / input diversity / JQF-fuzz (sp?)
+
+Lots of interesting stuff out of the team at UC Berkely here.  Basically proposed the
+PBT-as-structured-fuzzing approach two years after Hypothesis shipped it (albeit without
+coverage guidance).
+
+They use it to make 'predicative' generators work; while Hypothesis prefers to be valid
+by construction we could totally steal this trick and it would probably work a lot better
+for us - see the section on strategies above.
+https://hillelwayne.com/post/constructive/
+https://hillelwayne.com/post/property-testing-complex-inputs/
 
 
 Guiding towards target branches
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+https://github.com/aflgo/aflgo
 
 AFL-go (Marcel Bohme again!) and ToFU demonstrate that preferentially scheduling
 things which cover 'closer' to branches we want to hit works pretty well.
@@ -151,8 +195,12 @@ Potentially useful to seek out uncovered branches once we've been fuzzing for a 
 as distinct from exploiting recently discovered branches?  Conceptually fair-fuzz
 is about hammering under-executed bits whereas this is about finding new bits.
 
+https://arxiv.org/abs/2004.14375
 TOFU (Target-Oriented FUzzer) also exploits input structure and claims that this is
 substantially responsible for it's ~40% improvement over afl-go.
+
+We could get the control-flow graph from coverage.py, since that's how it reports
+missed branches.
 
 
 When should I stop fuzzing?  Pythia and the scaling conjecture.
@@ -172,7 +220,8 @@ to ease adoption, and user guidance can be wrong anyway)
 Marcel Bohme has demonstrated pretty solidly that discovering bugs with fuzzing
 takes exponential time, which is about as principled as it gets for deciding to
 stop because costs exceed expected benefits.
-(side note: I should totally get in touch with Marcel and talk about this stuff)
+
+In fact, just go read all his papers: https://mboehme.github.io/
 
 
 Structure-aware mutation with AFL-smart
@@ -183,18 +232,18 @@ for this anyway, we have a very detailed parse tree even if it's not strictly pa
 of the IR.  Implementation is pretty tied to our current internals though, that will
 be a pain to fix and might wait for a later version.
 
-For that matter Hypothesis mutation (splicing) is I think already structure-aware?
-
 
 MOpt-AFL: adapt probability distribution over mutation operators for each target
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Apparently, and plausibly, this works well.  Might as well build it in.
+https://github.com/puppet-meteor/MOpt-AFL
 
 
 FuzzFactory: adding domain-specific targets to AFL's goals.  See also PerfFuzz
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+https://github.com/rohanpadhye/FuzzFactory
 i.e. expanding the set of things that trigger you to keep a seed beyond covering a new branch.
 
 Hypothesis already does this with our target() functionality, and even keeps a pareto
@@ -202,18 +251,6 @@ front for multi-objective optimisation.  Why not build it into the fuzzer too?
 
 PerfFuzz also seems useful here, as a particular case of FuzzFactory which tends to
 find e.g. accidentally quadratic algorithms.  Maybe only if a deadline is set?
-
-
-Zest, RLcheck, and property-based testing as semantic fuzzing
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Lots of interesting stuff out of the team at UC Berkely here.  Basically proposed the
-PBT-as-structured-fuzzing approach two years after Hypothesis shipped it (albeit without
-coverage guidance).
-
-They use it to make 'predicative' generators work; while Hypothesis prefers to be valid
-by construction we could totally steal this trick and it would probably work a lot better
-for us - see the section on strategies above.
 
 
 Nezha - efficient differential testing
@@ -228,10 +265,34 @@ calls.  It would _also_ be nice to provide Nezha-style differential testing betw
 Python versions and implementations, which raises some questions about the execution
 model - i.e. it's probably not just "run N copies (and maybe sync corpus)" anymore.
 
+https://github.com/nezha-dt/nezha
+
+The original AFL docs observed that a distilled corpus from one e.g. jpeg library
+would often trigger bugs in another, as branches to handle edge cases select for
+those exact weird inputs.  Nice to see it fully automated and scaled.
+
+
+Corpus Distillation
+~~~~~~~~~~~~~~~~~~~
+
+Refers to computing the minimal set of inputs to cover the same total set of branches.
+See https://security.googleblog.com/2011/08/fuzzing-at-scale.html
+
+Interestingly this almost never includes Hypothesis-style reduction+normalisation
+of the inputs, so there's an open question of how that would affect performance.
+
+I intend to have the fuzzer maintain a distilled pool of the minimal normalised
+input which triggers each distinct branch, plus the minimal *valid* covering
+example if that's distinct.  Seems very useful, with appropriately smart mutation...
+
+The extensions to Nezha-style differential coverage etc. are obvious; it's just
+'minimal with respect to whatever predicate would cause us to retain this example'.
+
 
 Reducing coverage overhead by rewriting the target
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+https://arxiv.org/abs/1812.11875
 See "full-speed fuzzing", Nagy and Hicks.  The basic idea is that instead of paying
 the perf overhead of tracing every input, you replace uncovered branches with an
 interrupt.  When one fires, run that same input against your unmodified binary and
@@ -251,11 +312,12 @@ tool in Python.
 Ensemble fuzzing with seed sharing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+https://arxiv.org/abs/1807.00182
 Works very well in practice, but what other fuzzers are you going to run in Python?
 
 OK, there's python-afl and pythonfuzz, I guess, but I want to just be flat better
 than both.  crosshair-tool (SMT) integration would be pretty cool though, if we
-could get it to inter-operate with Hypothesis IR.  That's SF though, at least for now...
+could get it to inter-operate with Hypothesis IR.  That's scifi though, at least for now...
 
 Concretely, this suggests that using diverse algorithms would also be valuable as a way
 of getting 'unstuck'.  Obvious next question is adaptive scheduling of this too...
@@ -264,14 +326,15 @@ of getting 'unstuck'.  Obvious next question is adaptive scheduling of this too.
 Structure-aware fuzzing
 ~~~~~~~~~~~~~~~~~~~~~~~
 
+https://github.com/google/fuzzing/blob/master/docs/structure-aware-fuzzing.md
 Requires quite a lot of work elsewhere, e.g. Google has invested a lot of time in
 protobuf-based fuzzing (because of course they have).
 
 Hypothesis includes structured fuzzing for free, of course, with a slight skew.
 Upside, we design our parsers for a heuristically bug-finding distribution, and
 have some tricks to take this even further like swarm testing.
-Downside, we can't convert an external corpus into our own format.
 
+Downside, we can't convert an external corpus into our own format.
 (this would be a really really nice tool to have, though - it can't work universally,
 but might be worth the engineering work for the core strategies at least)
 
