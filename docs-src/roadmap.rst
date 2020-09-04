@@ -38,8 +38,6 @@ HypoFuzz's direct dependencies are:
 API Deprecation Policy
 ~~~~~~~~~~~~~~~~~~~~~~
 
-HypoFuzz does not provide a Python API.
-
 The command-line interface will not make incompatible changes without at least
 three months notice, during which passing deprecated options will emit runtime
 warnings (e.g. via the terminal, displayed on the dashboard, etc.).
@@ -61,15 +59,52 @@ See :doc:`literature` for notes on where some these ideas come from.
 
 .. note::
 
-    This page is more a personal TODO note than a plan.
-    Don't try to hold research outcomes to best intentions.
+    While we're interested in the features described below, HypoFuzz remains
+    a research project and plans may change as new information comes to light.
+    Please `get in touch <mailto:hypofuzz@zhd.dev>`__ to let us know which you
+    would prioritize, or if we're missing something important to you.
 
 
-For each fuzz target
-~~~~~~~~~~~~~~~~~~~~
+Workflow and development lifecycle
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- report failing examples in the dashboard - at least nodeid, ideally mimicing
-  the whole output from Hypothesis with traceback + minimal example.
+- expand user-facing documentation, examples, tips, etc.
+
+- better reporting of test collection, e.g. tests skipped due to use of fixtures
+
+- warn about tests where found examples can't be replayed because of settings
+  decorator with derandomize=True or database=None; recommend profiles instead
+
+- support collecting tests with ``unittest`` as well as pytest
+
+- exploit VCS metadata, i.e. target recently-changed parts of the SUT and
+  new / recently changed tests (c.f. :pypi:`pypi-testmon`)
+
+
+Monitoring and reporting
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+The `current dashboard <https://hypofuzz.com/example-dashboard/>`__ is a good
+start, but there's plenty of room for improvement.
+
+- Cross-filtering and highlighting between the graph and the table
+
+- Alternative graph axes - proportional on Y, time instead of count on X
+
+- Add a per-target page with more information
+
+    - HTML coverage report from the specific target
+    - validity and timing statistics
+    - if failing, minimal failing example and traceback
+
+
+Fuzzing machinery
+~~~~~~~~~~~~~~~~~
+
+- implement `predictive fuzzing like Pythia <https://github.com/mboehme/pythia>`__,
+  and use that for prioritization (currently number of inputs since last discovery)
+- (maybe) support moving targets between processes; could be more efficient in the
+  limit but constrains scaling.  Randomised assignment on restart probably better.
 
 
 Better mutation logic
@@ -79,12 +114,9 @@ Better mutation logic
 - explicitly find the minimal example that covers each known branch?
   might be too small to mutate from...
 
-- need to add some proper mutation operators to start with
-- structure-aware crossover / replacement / splicing etc (MOpt)
+- structure-aware operators for crossover / replacement / splicing etc
 - validity-aware mutations (Zest/RLCheck), based on structure
 - Nezha-like differential coverage via dynamic contexts
-
-    - could easily split out drawing examples from SUT code
 
 
 Guiding towards what?
@@ -101,61 +133,5 @@ but we can probably also do better.
   Note that branch coverage != available bugs; the control flow graph is not
   identical to the behaviour partition of the program.
 
-- perf-fuzz to maximise branch count(s) - would need upstream support from coverage
-
 - fuzz arbitrary scores with :func:`hypothesis:hypothesis.target()` (see FuzzFactory)
 
-
-
-
-
-Adaptive fuzzing of many targets
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-- get multi-process fuzzing working
-
-    - option to allow a target to run in multiple processes at once (off by default)
-    - avoid locking in a single-machine implementation, scaling further (dask?) is good
-
-- implement and characterise Pythia's predictions
-
-- deal with memory use problem - will probably need to run each target for longer
-  and dump (almost?) all state to disk between runs
-
-- dealing with "substantially overlapping" test functions
-
-    - do we use a similar inverse-stationary-distribution trick to afl-fast?
-      because maybe only the assertions vary, and we need to run both (do we?)
-    - means we'll be dealing with "arcs from any target" as well
-      makes sense though, if only one test covers part of the SUT
-      we probably do want to spend more compute on it.
-
-
-
-
-User experience, workflow integration, monitoring
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-- publish a bare-bones ``hypofuzz`` package on PyPI - goal is to have a public
-  no-op implementation of any helpers, so that test suites can be run (not fuzzed)
-  with only freely available libraries.
-  Move logic to Hypothesis itself where that makes sense.
-
-- user-facing documentation, examples, tips
-
-- live dashboard for the overall campaign, and subpage for each target
-
-- better reporting of tests skipped due to use of fixtures
-
-- warn about tests where found examples can't be replayed because of settings
-  decorator with derandomize=True or database=None; recommend profiles instead
-
-- support collecting tests with ``unittest`` as well as pytest
-
-- exploit VCS metadata, i.e. target recently-changed parts of the SUT and
-  new / recently changed tests (c.f. :pypi:`pypi-testmon`)
-
-- sharing state / adaptive params across runs, for 'live at head' fuzzing
-
-- must be zero configuration.  ask users to suggest heuristics/conventions
-  instead of configure their instance.  You can select the targets; that's it.
