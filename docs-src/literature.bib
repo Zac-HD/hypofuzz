@@ -201,3 +201,164 @@ series = {ISSTA 2012}
     location = {Montpellier, France},
     series = {ASE 2018}
 }
+
+@ARTICLE{AFLSmart,
+    author={V. {Pham} and M. {B{\"o}hme} and A. E. {Santosa} and A. R. {Caciulescu} and A. {Roychoudhury}},
+    journal={IEEE Transactions on Software Engineering},
+    title={Smart Greybox Fuzzing},
+    year={2019},
+    doi={10.1109/TSE.2019.2941681},
+    url={https://thuanpv.github.io/publications/TSE19_aflsmart.pdf},
+}
+
+@inproceedings{EnFuzz,
+  title={EnFuzz: Ensemble Fuzzing with Seed Synchronization among Diverse Fuzzers},
+  author={Yuanliang Chen and Yu Jiang and Fuchen Ma and Jie Liang and Mingzhe Wang and Chijin Zhou and Xun Jiao and Zhuo Su},
+  booktitle={USENIX Security Symposium},
+  year={2019},
+  url={https://www.usenix.org/system/files/sec19-chen-yuanliang.pdf},
+}
+
+@misc{FullSpeedFuzzing,
+    title={Full-speed Fuzzing: Reducing Fuzzing Overhead through Coverage-guided Tracing},
+    author={Stefan Nagy and Matthew Hicks},
+    year={2018},
+    eprint={1812.11875},
+    archivePrefix={arXiv},
+    primaryClass={cs.CR},
+    url={https://arxiv.org/pdf/1812.11875.pdf},
+}
+
+@inproceedings{AFLgo,
+    author = {B\"{o}hme, Marcel and Pham, Van-Thuan and Nguyen, Manh-Dung and Roychoudhury, Abhik},
+    title = {Directed Greybox Fuzzing},
+    year = {2017},
+    isbn = {9781450349468},
+    publisher = {Association for Computing Machinery},
+    address = {New York, NY, USA},
+    url = {https://mboehme.github.io/paper/CCS17.pdf},
+    doi = {10.1145/3133956.3134020},
+    abstract = {Existing Greybox Fuzzers (GF) cannot be effectively directed, for instance, towards problematic changes or patches, towards critical system calls or dangerous locations, or towards functions in the stack-trace of a reported vulnerability that we wish to reproduce. In this paper, we introduce Directed Greybox Fuzzing (DGF) which generates inputs with the objective of reaching a given set of target program locations efficiently. We develop and evaluate a simulated annealing-based power schedule that gradually assigns more energy to seeds that are closer to the target locations while reducing energy for seeds that are further away. Experiments with our implementation AFLGo demonstrate that DGF outperforms both directed symbolic-execution-based whitebox fuzzing and undirected greybox fuzzing. We show applications of DGF to patch testing and crash reproduction, and discuss the integration of AFLGo into Google's continuous fuzzing platform OSS-Fuzz. Due to its directedness, AFLGo could find 39 bugs in several well-fuzzed, security-critical projects like LibXML2. 17 CVEs were assigned.},
+    booktitle = {Proceedings of the 2017 ACM SIGSAC Conference on Computer and Communications Security},
+    pages = {2329–2344},
+    numpages = {16},
+    keywords = {directed testing, verifying true positives, coverage-based greybox fuzzing, crash reproduction, reachability, patch testing},
+    location = {Dallas, Texas, USA},
+    series = {CCS '17},
+}
+
+@misc{TOFU,
+    title={TOFU: Target-Oriented FUzzer},
+    author={Zi Wang and Ben Liblit and Thomas Reps},
+    year={2020},
+    eprint={2004.14375},
+    archivePrefix={arXiv},
+    primaryClass={cs.SE},
+    url={https://arxiv.org/pdf/2004.14375.pdf},
+}
+
+@inproceedings {MOpt-AFL,
+    author = {Chenyang Lyu and Shouling Ji and Chao Zhang and Yuwei Li and Wei-Han Lee and Yu Song and Raheem Beyah},
+    title = {{MOPT}: Optimized Mutation Scheduling for Fuzzers},
+    booktitle = {28th {USENIX} Security Symposium ({USENIX} Security 19)},
+    year = {2019},
+    isbn = {978-1-939133-06-9},
+    address = {Santa Clara, CA},
+    pages = {1949--1966},
+    url = {https://www.usenix.org/conference/usenixsecurity19/presentation/lyu},
+    publisher = {{USENIX} Association},
+    month = aug,
+}
+
+@inproceedings{AssuranceInTestingRoadmap,
+    author = {B\"{o}hme, Marcel},
+    title = {Assurance in Software Testing: A Roadmap},
+    year = {2019},
+    publisher = {IEEE Press},
+    url = {https://arxiv.org/pdf/1807.10255.pdf},
+    doi = {10.1109/ICSE-NIER.2019.00010},
+    booktitle = {Proceedings of the 41st International Conference on Software Engineering: New Ideas and Emerging Results},
+    pages = {5–8},
+    numpages = {4},
+    location = {Montreal, Quebec, Canada},
+    series = {ICSE-NIER '19}
+}
+
+@article{STADS,
+    author = {B\"{o}hme, Marcel},
+    title = {STADS: Software Testing as Species Discovery},
+    year = {2018},
+    issue_date = {July 2018},
+    publisher = {Association for Computing Machinery},
+    address = {New York, NY, USA},
+    volume = {27},
+    number = {2},
+    issn = {1049-331X},
+    url = {https://mboehme.github.io/paper/TOSEM18.pdf},
+    doi = {10.1145/3210309},
+    journal = {ACM Trans. Softw. Eng. Methodol.},
+    month = jun,
+    articleno = {7},
+    numpages = {52},
+}
+
+@inproceedings{ExponentialCost,
+    author = {B\"{o}hme, Marcel and Falk, Brandon},
+    title = {Fuzzing: On the Exponential Cost of Vulnerability Discovery},
+    year = {2020},
+    publisher = {Association for Computing Machinery},
+    url = {https://mboehme.github.io/paper/FSE20.EmpiricalLaw.pdf},
+    booktitle = {Proceedings of the ACM European Software Engineering Conference and Symposium on the Foundations of Software Engineering (ESEC/FSE) 2020},
+}
+
+@article{FuzzFactory,
+  doi = {10.1145/3360600},
+  url = {https://dl.acm.org/doi/pdf/10.1145/3360600},
+  year = {2019},
+  month = oct,
+  publisher = {Association for Computing Machinery ({ACM})},
+  volume = {3},
+  number = {{OOPSLA}},
+  pages = {1--29},
+  author = {Rohan Padhye and Caroline Lemieux and Koushik Sen and Laurent Simon and Hayawardh Vijayakumar},
+  title = {{FuzzFactory}: domain-specific fuzzing with waypoints},
+  journal = {Proceedings of the {ACM} on Programming Languages}
+}
+
+@INPROCEEDINGS{Nezha,
+    author={T. {Petsios} and A. {Tang} and S. {Stolfo} and A. D. {Keromytis} and S. {Jana}},
+    booktitle={2017 IEEE Symposium on Security and Privacy (SP)},
+    title={NEZHA: Efficient Domain-Independent Differential Testing},
+    year={2017},
+    url={https://www.ieee-security.org/TC/SP2017/papers/390.pdf},
+    pages={615-632},
+}
+
+@inproceedings{JQF,
+  doi = {10.1145/3293882.3339002},
+  url = {https://cs.berkeley.edu/~rohanpadhye/files/zest-issta19.pdf},
+  year = {2019},
+  publisher = {{ACM} Press},
+  author = {Rohan Padhye and Caroline Lemieux and Koushik Sen},
+  title = {{JQF}: coverage-guided property-based testing in Java},
+  booktitle = {Proceedings of the 28th {ACM} {SIGSOFT} International Symposium on Software Testing and Analysis - {ISSTA} 2019}
+}
+
+@inproceedings{Zest,
+  doi = {10.1145/3293882.3330576},
+  url = {https://people.eecs.berkeley.edu/~rohanpadhye/files/zest-issta19.pdf},
+  year = {2019},
+  publisher = {{ACM} Press},
+  author = {Rohan Padhye and Caroline Lemieux and Koushik Sen and Mike Papadakis and Yves Le Traon},
+  title = {Semantic fuzzing with zest},
+  booktitle = {Proceedings of the 28th {ACM} {SIGSOFT} International Symposium on Software Testing and Analysis - {ISSTA} 2019}
+}
+
+@inproceedings{RLCheck,
+    author = {Sameer Reddy and Caroline Lemieux and Rohan Padhye and Koushik Sen},
+    title = {Quickly Generating Diverse Valid Test Inputs with Reinforcement Learning},
+    year = {2020},
+    publisher = {IEEE Press},
+    url = {https://www.carolemieux.com/rlcheck_preprint.pdf},
+    booktitle = {Proceedings of the 42st International Conference on Software Engineering},
+}
