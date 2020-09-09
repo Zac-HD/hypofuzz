@@ -6,21 +6,9 @@ import sys
 import traceback
 from inspect import getfullargspec
 from random import Random
-from typing import (
-    Any,
-    Callable,
-    Counter,
-    Dict,
-    FrozenSet,
-    Generator,
-    List,
-    NoReturn,
-    Set,
-    Tuple,
-    Union,
-)
+from typing import Any, Callable, Dict, Generator, List, NoReturn, Union
 
-from hypothesis import settings, strategies as st
+from hypothesis import strategies as st
 from hypothesis.core import (
     BuildContext,
     deterministic_PRNG,
@@ -37,7 +25,8 @@ from hypothesis.internal.conjecture.junkdrawer import stack_depth_of_caller
 from hypothesis.internal.reflection import function_digest
 from sortedcontainers import SortedKeyList
 
-from .cov import Arc, CollectionContext
+from .corpus import BlackBoxMutator, CrossOverMutator, Pool
+from .cov import CollectionContext
 
 
 @contextlib.contextmanager
@@ -59,18 +48,6 @@ def constant_stack_depth() -> Generator[None, None, None]:
         yield
     finally:
         sys.setrecursionlimit(recursion_limit)
-
-
-def sort_key(buffer: Union[bytes, ConjectureResult]) -> Tuple[int, bytes]:
-    """Sort our buffers in shortlex order.
-
-    See `hypothesis.internal.conjecture.shrinker.sort_key` for details on why we
-    use shortlex order in particular.  This tweaked version is identical except
-    for handling ConjectureResult objects too.
-    """
-    if isinstance(buffer, ConjectureResult):
-        buffer = buffer.buffer
-    return (len(buffer), buffer)
 
 
 def fuzz_in_generator(
@@ -164,91 +141,40 @@ class FuzzProcess:
         nodeid: str = None,
         database_key: bytes,
         hypothesis_database: ExampleDatabase,
-    ):
+    ) -> None:
         """Construct a FuzzProcess from specific arguments."""
         # The actual fuzzer implementation
         self.random = Random(random_seed)
-        self.fuzz_generator = fuzz_in_generator(
-            test_fn,
-            strategy=strategy,
-            collector=CollectionContext(),
-            random=Random(random_seed),
-        )
+        self.__test_fn = test_fn
+        self.__strategy = strategy
         self.nodeid = nodeid or test_fn.__qualname__
 
-        # Database pointers and keys, so that we can resume fuzzing runs without
-        # losing all our progress, and to insert failing examples into the
-        # *hypothesis* database so they'll be replayed when running e.g. pytest.
-        #
-        # Only smallest-known failing examples go into the database under the
-        # main key to be replayed by running the tests; everything else goes under
-        # a specialised fuzz key - this is at minimum enough to replay coverage
-        # for every discovered arc or other source of interesting behaviour.
-        self._hy_database_key: bytes = database_key or function_digest(test_fn)
-        self._fuzz_database_key = b"fuzz_" + self._hy_database_key
-
-        # Each time we find a failing example (result.status is Status.INTERESTING)
-        # we insert it into the Hypothesis database *if* it's smaller than our
-        # previously minimal example of that interesting_origin, to avoid overfilling
-        # the database with mostly-redundant examples.
-        #
-        # If the test has database=None but there is a non-None default database,
-        # use that - otherwise we have no way to report or replay any failures we
-        # discover at all!
-        self._database = hypothesis_database or settings.default.database
-        self._interesting_examples: Dict[Any, bytes] = {}
+        # The seed pool is responsible for managing all seed state, including saving
+        # novel seeds to the database.  This includes tracking how often each branch
+        # has been hit, minimal covering examples, and so on.
+        self.pool = Pool(hypothesis_database, database_key)
+        self.mutators = tuple(
+            mutator(self.pool, self.random)
+            for mutator in (BlackBoxMutator, CrossOverMutator)
+        )
 
         # Set up the basic data that we'll track while fuzzing
-        self.seen_arcs: Counter[Arc] = Counter()
-        self.minimal_example_arcs: FrozenSet[Arc] = frozenset()
-        self.ninputs = self.last_new_cov_at = 0
-
-        # Maintain our pool of known examples as a set of ConjectureResult objects,
-        # which include the corresponding buffer and track the covered arcs as
-        # `item.extra_information.arcs` (added in fuzz_in_generator above).
-        #
-        # We will probably want a fancier data structure later for performance,
-        # but at this stage I'm going to stick with the simple-if-slow approach
-        # of calculating everything I need directly from the set data.
-        # We track a SortedList instead of a set of stability of random sampling.
-        self.pool: SortedKeyList[ConjectureResult] = SortedKeyList(key=sort_key)
+        self.ninputs = 0
+        self.since_new_cov = 0
+        # Any new examples from the database will be added to this replay buffer
         self._replay_buffer: List[bytes] = []
-        self._loaded_buffers: Set[bytes] = set()
 
     def startup(self) -> None:
-        """Set up initial state and replay the saved behaviour."""
-        assert not self.pool, "already started this FuzzProcess"
-        # The first thing we need to do is get the covered arcs for the minimal
-        # example.  Missing any of these later is taken to be new behaviour.
+        """Set up initial state and prepare to replay the saved behaviour."""
+        assert self.ninputs == 0, "already started this FuzzProcess"
+        # Report that we've started this fuzz target, and run zero examples so far
         self._report_change(self._json_description)
-        next(self.fuzz_generator)
-        self.ninputs += 1
-        firstresult = self.fuzz_generator.send(b"\x00" * BUFFER_SIZE)
-        self.minimal_example_arcs = firstresult.extra_information.arcs
-        self.pool.add(firstresult)
-        self._update(firstresult)
-        self._loaded_buffers.add(firstresult.buffer)
-
-        # Next, restore progress made in previous runs by replaying our saved examples.
+        # Next, restore progress made in previous runs by loading our saved examples.
         # This is meant to be the minimal set of inputs that exhibits all distinct
         # behaviours we've observed to date.  Replaying takes longer than restoring
         # our data structures directly, but copes much better with changed behaviour.
-        self._fill_replay_buffer()
-
-    def _fill_replay_buffer(self) -> None:
-        """Load inputs from the database into our replay buffer, skipping known inputs.
-
-        Tracking inputs we have already loaded from the database makes it suitable
-        as a mechanism for sharing progress between processes (ensemble fuzzing),
-        accepting some memory overhead to avoid redundant example replay.
-        """
-        if self._database is not None:
-            loaded = {
-                *self._database.fetch(self._hy_database_key),
-                *self._database.fetch(self._fuzz_database_key),
-            } - self._loaded_buffers
-            self._replay_buffer.extend(sorted(loaded, key=sort_key, reverse=True))
-            self._loaded_buffers.update(loaded)
+        self._replay_buffer.extend(self.pool.fetch())
+        self._replay_buffer.append(b"\x00" * BUFFER_SIZE)
 
     def generate_prefix(self) -> bytes:
         """Generate a test prefix by mutating previous examples.
@@ -267,131 +193,91 @@ class FuzzProcess:
         # progress made in other processes.
         if self._replay_buffer:
             return self._replay_buffer.pop()
-
-        # This is a dead-simple implemenation, with no validation of the approach
-        # beyond "plausibly works".  The first thousand examples we generate are
-        # truly random, and 1% of them after that.
-        if self.ninputs < 100 or self.random.random() <= 0.01:
-            return b""
-
-        # TODO: weight choice of buffers from the pool inversely to the hit-count
-        #       of the arcs they cover.  (least-covered arc they cover?)
-
-        # This ensures that we exploit newly-discovered behaviour ASAP, and that
-        # after reloading in a fresh session we converge back to the same roughly
-        # even distribution of effort by inverting the stationary distribution.
-
-        # Choose two previously-seen buffers to form a prefix and postfix,
-        # plus some random bytes in the middle to pad it out a bit.
-        # TODO: exploit the .examples tracking for structured mutation.
-        prefix, postfix = self.random.choices(self.pool, weights=None, k=2)
-        buffer = (
-            prefix.buffer[: self.random.randint(0, len(prefix.buffer))]
-            + self._gen_bytes(self.random.randint(0, 9))
-            + postfix.buffer[: self.random.randint(0, len(postfix.buffer))]
-        )
-        assert isinstance(buffer, bytes)
-        return buffer
-
-    def _gen_bytes(self, n: int) -> bytes:
-        return bytes(self.random.randint(0, 255) for _ in range(n))
+        # TODO: currently hard-coding a particular mutator; we want to do MOpt-style
+        # adaptive weighting of all the different mutators we could use.
+        return self.mutators[1].generate_buffer()
 
     def run_one(self) -> None:
         """Run a single input through the fuzz target."""
-        assert self.pool, "not started yet"
         self.ninputs += 1
 
         # If we've been stable for a little while, try loading new examples from the
         # database.  We do this unconditionally because even if this fuzzer doesn't
         # know of other concurrent runs, there may be e.g. a test process sharing the
         # database.  We do make it infrequent to manage the overhead though.
-        if self.ninputs % 1000 == 0 and self.ninputs - self.last_new_cov_at > 1000:
-            self._fill_replay_buffer()
+        if self.ninputs % 1000 == 0 and self.since_new_cov > 1000:
+            self._replay_buffer.extend(self.pool.fetch())
 
         # Run the input
-        next(self.fuzz_generator)
-        prefix = self.generate_prefix()
-        result = self.fuzz_generator.send(prefix)
-        assert result  # a ConjectureResult
-        if result.status > Status.OVERRUN:
-            self._update(result)
+        collector = CollectionContext()
+        data = ConjectureData(
+            max_length=BUFFER_SIZE,
+            prefix=self.generate_prefix(),
+            random=self.random,
+        )
+        try:
+            with deterministic_PRNG(), BuildContext(data), constant_stack_depth():
+                # Note that the data generation and test execution happen in the same
+                # coverage context.  We may later split this, or tag each separately.
+                with collector:
+                    args, kwargs = data.draw(self.__strategy)
+                    self.__test_fn(*args, **kwargs)
+        except StopTest:
+            data.status = Status.OVERRUN
+        except UnsatisfiedAssumption:
+            data.status = Status.INVALID
+        except failure_exceptions_to_catch() as e:
+            data.status = Status.INTERESTING
+            tb = get_trimmed_traceback()
+            filename, lineno, *_ = traceback.extract_tb(tb)[-1]
+            data.interesting_origin = (type(e), filename, lineno)
+            data.note(e)
+        data.extra_information.arcs = frozenset(getattr(collector, "arcs", ()))
+        data.freeze()
+
+        # Update the pool and report any changes immediately for new coverage.  If no
+        # new coverage, occasionally send an update anyway so we don't look stalled.
+        if self.pool.add(data.as_result()):
+            self.since_new_cov = 0
+        else:
+            self.since_new_cov += 1
+        if 0 in (self.since_new_cov, self.ninputs % 100):
+            self._report_change(self._json_description)
 
     def _report_change(self, data: dict) -> object:
         """Replace this method to send data to the dashboard."""
 
-    def _update(self, result: ConjectureResult) -> None:
-        assert isinstance(result, ConjectureResult)
-        if result.status == Status.OVERRUN:
-            return
-
-        # Save and use the coverage information we just collected.
-        arcs = self.minimal_example_arcs.symmetric_difference(
-            result.extra_information.arcs
-        )
-        if arcs.difference(self.seen_arcs):
-            self._database.save(self._fuzz_database_key, result.buffer)
-            self.last_new_cov_at = self.ninputs
-            self.pool.add(result)
-
-        # If the last example was "interesting" - i.e. raised an exception which
-        # indicates test failure, make sure we know about it and insert the failing
-        # example into the Hypothesis database to be replayed in standard tests.
-        if result.status == Status.INTERESTING:
-            x = self._interesting_examples.setdefault(
-                result.interesting_origin, result.buffer
-            )
-            if self._database and sort_key(result) <= sort_key(x):
-                # To avoid over-filling the hypothesis database, we only add a failure
-                # if it is a smaller example than the best such failure to date.
-                self._database.save(self._hy_database_key, result.buffer)
-
-        # Update the live chart immediately on new progress, and regularly even
-        # if we haven't discovered anything (to extend the line horizontally)
-        if self.ninputs % 100 == 0 or not arcs.issubset(self.seen_arcs):
-            self._report_change(self._json_description)
-
-        # Note: seen_arcs is a Counter, not a set
-        self.seen_arcs.update(arcs)
-
     @property
     def _json_description(self) -> Dict[str, Union[str, int, float]]:
         """Summarise current state to send to dashboard."""
-        if self.has_found_failure:
+        if self.pool.interesting_origin is not None:
             return {
                 "nodeid": self.nodeid,
                 "ninputs": self.ninputs,
-                "arcs": len(self.seen_arcs),
-                "note": "found failing example",
+                "arcs": len(self.pool.arc_counts),
+                "note": f"raised {self.pool.interesting_origin[0].__name__}",
             }
         elif self.ninputs == 0:
             return {"nodeid": self.nodeid, "note": "starting up..."}
         return {
             "nodeid": self.nodeid,
             "ninputs": self.ninputs,
-            "arcs": len(self.seen_arcs),
-            "since new cov": self.ninputs - self.last_new_cov_at,
+            "arcs": len(self.pool.arc_counts),
+            "since new cov": self.since_new_cov,
             "note": "replaying saved examples" if self._replay_buffer else "",
         }
 
     @property
-    def estimated_value_of_next_run(self) -> float:
-        """Estimate the value of scheduling this fuzz target for another run."""
-        # TODO: improve this method.  It should draw on (at least!) MBoehme's
-        #       papers, and runtime information so that tests get roughly even
-        #       runtime rather than number of runs.
-        return 1 / (1 + self.ninputs - self.last_new_cov_at)
-
-    @property
     def has_found_failure(self) -> bool:
         """If we've already found a failing example we might reprioritize."""
-        return bool(self._interesting_examples)
+        return self.pool.interesting_origin is not None
 
 
 def fuzz_several(*targets_: FuzzProcess, random_seed: int = None) -> NoReturn:
     """Take N fuzz targets and run them all."""
     # TODO: this isn't actually multi-process yet, and that's bad.
     rand = Random(random_seed)
-    targets = SortedKeyList(targets_, lambda t: -t.estimated_value_of_next_run)
+    targets = SortedKeyList(targets_, lambda t: t.since_new_cov)
 
     # Loop forever: at each timestep, we choose a target using an epsilon-greedy
     # strategy for simplicity (TODO: improve this later) and run it once.
@@ -409,7 +295,7 @@ def fuzz_several(*targets_: FuzzProcess, random_seed: int = None) -> NoReturn:
             if len(targets) > 1 and targets.key(targets[0]) > targets.key(targets[1]):
                 # pay our log-n cost to keep the list sorted
                 targets.add(targets.pop(0))
-            elif targets[0]._interesting_examples:
+            elif targets[0].has_found_failure:
                 print(f"found failing example for {targets[0].nodeid}")  # noqa
                 targets.pop(0)
             if not targets:
