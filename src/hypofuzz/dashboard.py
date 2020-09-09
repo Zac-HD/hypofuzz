@@ -11,7 +11,7 @@ from dash.dependencies import Input, Output
 DATA_TO_PLOT = [{"nodeid": "", "ninputs": 0, "arcs": 0}]
 LAST_UPDATE = {}
 
-headings = ["nodeid", "ninputs", "since new cov", "arcs", "estimated value", "note"]
+headings = ["nodeid", "ninputs", "since new cov", "arcs", "note"]
 app = flask.Flask(__name__)
 
 
@@ -26,7 +26,12 @@ external_stylesheets = ["https://codepen.io/chriddyp/pen/bWLwgP.css"]
 board = dash.Dash(__name__, server=app, external_stylesheets=external_stylesheets)
 board.layout = html.Div(
     children=[
-        html.H1(children="HypoFuzz Live Dashboard"),
+        html.H1(
+            children=[
+                html.A("HypoFuzz", href="https://hypofuzz.com"),
+                " Live Dashboard",
+            ]
+        ),
         html.Div(
             "Covered arcs discovered for each target.  "
             "Data updates every 100th input, or immediately for new arcs."

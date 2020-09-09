@@ -379,7 +379,6 @@ class FuzzProcess:
             "nodeid": self.nodeid,
             "ninputs": self.ninputs,
             "arcs": len(self.seen_arcs),
-            "estimated value": self.estimated_value_of_next_run,
             "since new cov": self.ninputs - self.last_new_cov_at,
             "note": "replaying saved examples" if self._replay_buffer else "",
         }
