@@ -1,6 +1,7 @@
 """CLI and Python API for the fuzzer."""
 import io
-from contextlib import redirect_stdout
+from contextlib import redirect_stdout, suppress
+from functools import partial
 from multiprocessing import Process
 from typing import TYPE_CHECKING, Iterable, List, NoReturn, Tuple
 
@@ -128,10 +129,6 @@ def fuzz(
 
     if dashboard:
         Process(target=start_dashboard_process, kwargs={"port": port}).start()
-        for t in tests:
-            t._report_change = lambda data: requests.post(  # type: ignore
-                f"http://localhost:{port}/", json=data
-            )
 
     for i in range(numprocesses):
         nodes = {t.nodeid for t in (tests if unsafe else tests[i::numprocesses])}
@@ -142,6 +139,11 @@ def fuzz(
         p.start()
     p.join()
     raise NotImplementedError("unreachable")
+
+
+def _post(port: int, data: dict) -> None:
+    with suppress(Exception):
+        requests.post(f"http://localhost:{port}/", json=data)
 
 
 def _fuzz_several(
@@ -160,9 +162,7 @@ def _fuzz_several(
     ]
     if port is not None:
         for t in tests:
-            t._report_change = lambda data: requests.post(  # type: ignore
-                f"http://localhost:{port}/", json=data
-            )
+            t._report_change = partial(_post, port)  # type: ignore
 
     fuzz_several(*tests)
     raise NotImplementedError("unreachable")

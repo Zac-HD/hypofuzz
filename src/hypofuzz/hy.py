@@ -118,16 +118,6 @@ def fuzz_in_generator(
     raise NotImplementedError("Loop not expected to exit")
 
 
-def engine(*targets: "FuzzProcess") -> NoReturn:
-    """Run a quick-and-dirty engine on top of FuzzProcess instances."""
-    for p in targets:
-        p.startup()
-    r = Random(0)
-    while True:
-        weights = [p.estimated_value_of_next_run for p in targets]
-        r.choices(targets, weights=weights)[0].run_one()
-
-
 class FuzzProcess:
     """Maintain all the state associated with fuzzing a single target.
 
