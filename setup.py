@@ -54,7 +54,7 @@ setuptools.setup(
         "Topic :: Software Development :: Testing",
         "Typing :: Typed",
     ],
-    entry_points={"hypothesis": ["_ = hypofuzz.interface"]},
+    entry_points={"hypothesis": ["_ = hypofuzz.entrypoint"]},
     long_description=open(README).read(),
     long_description_content_type="text/markdown",
     keywords="python testing fuzzing property-based-testing",
