@@ -232,9 +232,19 @@ class FuzzProcess:
             filename, lineno, *_ = traceback.extract_tb(tb)[-1]
             data.interesting_origin = (type(e), filename, lineno)
             data.note(e)
-        data.extra_information.arcs = frozenset(getattr(collector, "arcs", ()))
-        data.freeze()
 
+        # In addition to coverage arcs, use psudeo-coverage information provided via
+        # the `hypothesis.event()` function - exploiting user-defined partitions
+        # designed for diagnostic output to guide generation.  See
+        # https://hypothesis.readthedocs.io/en/latest/details.html#hypothesis.event
+        data.extra_information.arcs = frozenset(getattr(collector, "arcs", ())).union(
+            (event_str, 0, 0)
+            for event_str in map(str, data.events)
+            if not event_str.startswith("Retried draw from ")
+            or event_str.startswith("Aborted test because unable to satisfy ")
+        )
+
+        data.freeze()
         # Update the pool and report any changes immediately for new coverage.  If no
         # new coverage, occasionally send an update anyway so we don't look stalled.
         if self.pool.add(data.as_result()):
