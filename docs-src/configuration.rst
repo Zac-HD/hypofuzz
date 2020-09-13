@@ -24,7 +24,7 @@ heuristics and feeback mechanisms - and benefit everyone, automatically.
 
 
 
-Custom Coverage Events
+Custom coverage events
 ----------------------
 
 HypoFuzz runs :pypi:`coverage` on every input to observe the branch coverage of your
@@ -44,7 +44,7 @@ And as a bonus, you'll get useful summary statistics when running Hypothesis!
 
 
 
-The Hypothesis Database
+The Hypothesis database
 -----------------------
 
 The hypothesis database forms the basis of HypoFuzz workflows: failing examples
@@ -55,8 +55,8 @@ It is therefore critical that the fuzzer is using the *same* database as
 hypothesis - regardless of how or where you run it.
 
 
-Writing a custom ExampleDatabase
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Writing a custom ``ExampleDatabase``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 :hydocs:`Hypothesis' default database <database.html>` is designed to persist
 failing examples on a single developer's machine, and does so via the filesystem.
@@ -76,8 +76,8 @@ bytestrings - and use that instead.
 
 .. TODO: write a ``RedisExampleDatabase``; plus others by client request.
 
-Testing your custom ExampleDatabase
-+++++++++++++++++++++++++++++++++++
+Testing your custom ``ExampleDatabase``
++++++++++++++++++++++++++++++++++++++++
 
 HypoFuzz ships with a :hydocs:`Hypothesis state machine <stateful.html>` designed
 to test that custom databases implement the same semantics as the builtin classes.
@@ -85,7 +85,7 @@ to test that custom databases implement the same semantics as the builtin classe
 .. autoclass:: hypofuzz.database.DatabaseComparison
 
 
-Multiplexed and Read-Only Databases
+Multiplexed and read-only databases
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Sometimes, you want to read from a central database without also writing to it.

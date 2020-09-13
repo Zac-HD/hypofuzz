@@ -10,7 +10,7 @@ there which never makes the translation to practice - and I don't intend to
 add to it.
 
 
-Compatibility Policy
+Compatibility policy
 --------------------
 
 HypoFuzz uses `calendar-based versioning <https://calver.org/>`__, with a
@@ -23,7 +23,7 @@ environments based only on your VCS history, and ensures that any compatibility
 problems in new releases can be handled when it suits you.
 
 
-Direct Dependencies
+Direct dependencies
 ~~~~~~~~~~~~~~~~~~~
 
 HypoFuzz's direct dependencies are:
@@ -35,7 +35,7 @@ HypoFuzz's direct dependencies are:
    :append: ]
 
 
-API Deprecation Policy
+API deprecation policy
 ~~~~~~~~~~~~~~~~~~~~~~
 
 The command-line interface will not make incompatible changes without at least
@@ -52,7 +52,7 @@ If you would like to use new versions of HypoFuzz with old versions of its
 dependencies, please get in touch to discuss your specific needs.
 
 
-Planned Features
+Planned features
 ----------------
 
 See :doc:`literature` for notes on where some these ideas come from.

@@ -15,7 +15,7 @@ relevant unless you're *implementing* a fuzzer like HypoFuzz, the book is
 a great resource for anyone involved in software testing.
 
 
-Fuzzing Background
+Fuzzing background
 ------------------
 
 Fuzz / Fuzz Revisited / Fuzz 2020
@@ -60,7 +60,7 @@ Hypothesis tests have much more sophisticated support for `structured fuzzing
 
 
 
-Property-based Testing
+Property-based testing
 ----------------------
 
 It's common to observe that property-based testing (PBT) is conceptually
@@ -281,7 +281,7 @@ behaviour is correspondingly very valuable for well-fuzzed targets!
 Seed selection
 --------------
 
-Corpus Distillation
+Corpus distillation
 ~~~~~~~~~~~~~~~~~~~
 
 Corpus distillation refers to the technique of selecting an appropriately minimal

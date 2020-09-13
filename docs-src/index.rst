@@ -1,4 +1,4 @@
-HypoFuzz Documentation
+HypoFuzz documentation
 ======================
 
 If you're writing tests with Hypothesis, HypoFuzz takes them to the next
