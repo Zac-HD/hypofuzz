@@ -3,6 +3,7 @@
 import contextlib
 import itertools
 import sys
+import time
 import traceback
 from inspect import getfullargspec
 from random import Random
@@ -160,6 +161,7 @@ class FuzzProcess:
 
         # Set up the basic data that we'll track while fuzzing
         self.ninputs = 0
+        self.elapsed_time = 0.0
         self.since_new_cov = 0
         # Any new examples from the database will be added to this replay buffer
         self._replay_buffer: List[bytes] = []
@@ -199,6 +201,7 @@ class FuzzProcess:
 
     def run_one(self) -> None:
         """Run a single input through the fuzz target."""
+        start = time.perf_counter()
         self.ninputs += 1
 
         # If we've been stable for a little while, try loading new examples from the
@@ -254,6 +257,8 @@ class FuzzProcess:
         if 0 in (self.since_new_cov, self.ninputs % 100):
             self._report_change(self._json_description)
 
+        self.elapsed_time += time.perf_counter() - start
+
     def _report_change(self, data: dict) -> object:
         """Replace this method to send data to the dashboard."""
 
@@ -263,6 +268,7 @@ class FuzzProcess:
         if self.pool.interesting_origin is not None:
             return {
                 "nodeid": self.nodeid,
+                "elapsed_time": self.elapsed_time,
                 "ninputs": self.ninputs,
                 "arcs": len(self.pool.arc_counts),
                 "note": f"raised {self.pool.interesting_origin[0].__name__}",
@@ -271,6 +277,7 @@ class FuzzProcess:
             return {"nodeid": self.nodeid, "note": "starting up..."}
         return {
             "nodeid": self.nodeid,
+            "elapsed_time": self.elapsed_time,
             "ninputs": self.ninputs,
             "arcs": len(self.pool.arc_counts),
             "since new cov": self.since_new_cov,
