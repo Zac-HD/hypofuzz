@@ -180,12 +180,18 @@ class FuzzProcess:
             prefix=self.generate_prefix(),
             random=self.random,
         )
+        argstrings: List[str] = []
         try:
             with deterministic_PRNG(), BuildContext(data), constant_stack_depth():
                 # Note that the data generation and test execution happen in the same
                 # coverage context.  We may later split this, or tag each separately.
                 with collector:
                     args, kwargs = data.draw(self.__strategy)
+
+                    # Save the repr of our arguments so they can be reported later
+                    argstrings.extend(map(repr, args))
+                    argstrings.extend(f"{k}={v!r}" for k, v in kwargs.items())
+
                     self.__test_fn(*args, **kwargs)
         except StopTest:
             data.status = Status.OVERRUN
@@ -197,12 +203,19 @@ class FuzzProcess:
             filename, lineno, *_ = traceback.extract_tb(tb)[-1]
             data.interesting_origin = (type(e), filename, lineno)
             data.note(e)
+            data.extra_information.traceback = "".join(
+                traceback.format_exception(etype=type(e), value=e, tb=tb)
+            )
+        finally:
+            data.extra_information.call_repr = (
+                self.__test_fn.__name__ + "(" + ", ".join(argstrings) + ")"
+            )
 
         # In addition to coverage arcs, use psudeo-coverage information provided via
         # the `hypothesis.event()` function - exploiting user-defined partitions
         # designed for diagnostic output to guide generation.  See
         # https://hypothesis.readthedocs.io/en/latest/details.html#hypothesis.event
-        data.extra_information.arcs = frozenset(getattr(collector, "arcs", ())).union(
+        data.extra_information.arcs = frozenset(collector.arcs).union(
             (event_str, 0, 0)
             for event_str in map(str, data.events)
             if not event_str.startswith("Retried draw from ")
@@ -239,6 +252,7 @@ class FuzzProcess:
                 "ninputs": self.ninputs,
                 "arcs": len(self.pool.arc_counts),
                 "note": f"raised {self.pool.interesting_origin[0].__name__}",
+                "failure": self.pool.failing_example,  # type: ignore
             }
         elif self.ninputs == 0:
             return {"nodeid": self.nodeid, "note": "starting up..."}

@@ -48,6 +48,7 @@ class Pool:
 
         # And various internal attributes and metadata
         self.interesting_origin: Optional[Tuple[Type[BaseException], str, int]] = None
+        self.failing_example: List[str] = []
         self.__loaded_from_database: Set[bytes] = set()
 
     def __repr__(self) -> str:
@@ -107,6 +108,10 @@ class Pool:
         if result.status == Status.INTERESTING:
             self._database.save(self._key, buf)
             self.interesting_origin = result.interesting_origin
+            self.failing_example = [
+                result.extra_information.call_repr,
+                result.extra_information.traceback,
+            ]
             return True
 
         # TODO: we plan to use Hypothesis' shrinker to get a really minimal example

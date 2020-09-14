@@ -3,6 +3,7 @@ import datetime
 import json
 from typing import Tuple
 
+import black
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
@@ -10,7 +11,7 @@ import flask
 import plotly.express as px
 from dash.dependencies import Input, Output
 
-DATA_TO_PLOT = [{"nodeid": "", "ninputs": 0, "arcs": 0}]
+DATA_TO_PLOT = [{"nodeid": "", "elapsed_time": 0, "ninputs": 0, "arcs": 0}]
 LAST_UPDATE = {}
 
 headings = ["nodeid", "elapsed time", "ninputs", "since new cov", "arcs", "note"]
@@ -108,6 +109,20 @@ def display_page(pathname: str) -> html.Div:
     )
     fig1.update_layout(updatemenus=UPDATEMENUS)
     fig2.update_layout(updatemenus=UPDATEMENUS)
+    if "failure" in trace[-1]:
+        cause: str
+        traceback: str
+        cause, traceback = trace[-1]["failure"]  # type: ignore
+        try:
+            cause = black.format_str(cause, mode=black.FileMode())
+        except black.InvalidInput:
+            pass
+        add = [
+            html.Pre(children=[html.Code(children=[cause])]),
+            html.Pre(children=[html.Code(children=[traceback])]),
+        ]
+    else:
+        add = []
     return html.Div(
         children=[
             dcc.Link("Back to home", href="/"),
@@ -117,6 +132,7 @@ def display_page(pathname: str) -> html.Div:
                     row_for(trace[-1], include_link=False),
                 ]
             ),
+            *add,
             dcc.Graph(id=f"graph-of-{pathname}-1", figure=fig1),
             dcc.Graph(id=f"graph-of-{pathname}-2", figure=fig2),
         ]
