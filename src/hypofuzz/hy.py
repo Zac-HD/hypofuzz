@@ -29,6 +29,8 @@ from sortedcontainers import SortedKeyList
 from .corpus import BlackBoxMutator, CrossOverMutator, Pool
 from .cov import CollectionContext
 
+Report = Dict[str, Union[int, float, str]]
+
 
 @contextlib.contextmanager
 def constant_stack_depth() -> Generator[None, None, None]:
@@ -164,6 +166,10 @@ class FuzzProcess:
         # Any new examples from the database will be added to this replay buffer
         self._replay_buffer: List[bytes] = []
 
+        # We batch updates, since frequent HTTP posts are slow
+        self._to_post: List[Report] = []
+        self._last_post_time = self.elapsed_time
+
     def startup(self) -> None:
         """Set up initial state and prepare to replay the saved behaviour."""
         assert self.ninputs == 0, "already started this FuzzProcess"
@@ -257,12 +263,17 @@ class FuzzProcess:
         else:
             self.since_new_cov += 1
         if 0 in (self.since_new_cov, self.ninputs % 100):
-            self._report_change(self._json_description)
+            self._to_post.append(self._json_description)
 
         self.elapsed_time += time.perf_counter() - start
+        if self._to_post and (
+            self.has_found_failure or self._last_post_time + 10 < self.elapsed_time
+        ):
+            self._report_change(self._to_post)
+            del self._to_post[:]
 
-    def _report_change(self, data: dict) -> object:
-        """Replace this method to send data to the dashboard."""
+    def _report_change(self, data: Union[Report, List[Report]]) -> None:
+        """Replace this method to send JSON data to the dashboard."""
 
     @property
     def _json_description(self) -> Dict[str, Union[str, int, float]]:

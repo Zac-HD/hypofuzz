@@ -20,8 +20,10 @@ app = flask.Flask(__name__)
 @app.route("/", methods=["POST"])
 def add_data() -> Tuple[str, int]:
     data = flask.request.json
-    DATA_TO_PLOT.append(data)
-    LAST_UPDATE[data["nodeid"]] = data
+    if not isinstance(data, list):
+        data = [data]
+    DATA_TO_PLOT.extend(data)
+    LAST_UPDATE[data[-1]["nodeid"]] = data[-1]
     return "", 200
 
 
