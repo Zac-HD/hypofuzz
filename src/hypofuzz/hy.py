@@ -154,10 +154,8 @@ class FuzzProcess:
         # novel seeds to the database.  This includes tracking how often each branch
         # has been hit, minimal covering examples, and so on.
         self.pool = Pool(hypothesis_database, database_key)
-        self.mutators = tuple(
-            mutator(self.pool, self.random)
-            for mutator in (BlackBoxMutator, CrossOverMutator)
-        )
+        self._mutator_blackbox = BlackBoxMutator(self.pool, self.random)
+        self._mutator_crossover = CrossOverMutator(self.pool, self.random)
 
         # Set up the basic data that we'll track while fuzzing
         self.ninputs = 0
@@ -195,9 +193,13 @@ class FuzzProcess:
         # progress made in other processes.
         if self._replay_buffer:
             return self._replay_buffer.pop()
+
         # TODO: currently hard-coding a particular mutator; we want to do MOpt-style
         # adaptive weighting of all the different mutators we could use.
-        return self.mutators[1].generate_buffer()
+        # For now though, we'll just use a hardcoded swapover point
+        if self.since_new_cov < 1000 and self.ninputs < 100_000:
+            return self._mutator_blackbox.generate_buffer()
+        return self._mutator_crossover.generate_buffer()
 
     def run_one(self) -> None:
         """Run a single input through the fuzz target."""
