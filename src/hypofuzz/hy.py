@@ -16,11 +16,10 @@ from hypothesis.core import (
     failure_exceptions_to_catch,
     get_trimmed_traceback,
     process_arguments_to_given,
-    skip_exceptions_to_reraise,
 )
 from hypothesis.database import ExampleDatabase
 from hypothesis.errors import StopTest, UnsatisfiedAssumption
-from hypothesis.internal.conjecture.data import ConjectureData, ConjectureResult, Status
+from hypothesis.internal.conjecture.data import ConjectureData, Status
 from hypothesis.internal.conjecture.engine import BUFFER_SIZE
 from hypothesis.internal.conjecture.junkdrawer import stack_depth_of_caller
 from hypothesis.internal.reflection import function_digest
@@ -51,51 +50,6 @@ def constant_stack_depth() -> Generator[None, None, None]:
         yield
     finally:
         sys.setrecursionlimit(recursion_limit)
-
-
-def fuzz_in_generator(
-    test: Callable[..., None],
-    strategy: st.SearchStrategy,
-    collector: CollectionContext = None,
-    random: Random = None,
-) -> Generator[ConjectureResult, bytes, NoReturn]:
-    """Wrap the user's test function into a minimal Conjecture fuzz target.
-
-    This is our main integration point with Hypothesis internals - and it's designed
-    so that we can get a ConjectureResult out, push a bytestring in, and be done.
-    This is very useful in that it provides a great baseline for evaluations.
-
-    It's a combination of the logic in StateForAGivenExecution in
-    hypothesis.core, and hypothesis.internal.conjecture.engine.ConjectureRunner
-    with as much as possible taken out - for this fuzzing mode we prioritize
-    performance over health-checks (just run Hypothesis for the latter!).
-    """
-    random = random or Random(0)
-    collector = collector or contextlib.nullcontext()  # type: ignore
-    buf = b"\0" * BUFFER_SIZE
-    while True:
-        data = ConjectureData(max_length=BUFFER_SIZE, prefix=buf, random=random)
-        try:
-            with deterministic_PRNG(), BuildContext(data), constant_stack_depth():
-                # Note that the data generation and test execution happen in the same
-                # coverage context.  We may later split this, or tag each separately.
-                with collector:
-                    args, kwargs = data.draw(strategy)
-                    test(*args, **kwargs)
-        except StopTest:
-            data.status = Status.OVERRUN
-        except (UnsatisfiedAssumption,) + skip_exceptions_to_reraise():
-            data.status = Status.INVALID
-        except failure_exceptions_to_catch() as e:
-            data.status = Status.INTERESTING
-            tb = get_trimmed_traceback()
-            filename, lineno, *_ = traceback.extract_tb(tb)[-1]
-            data.interesting_origin = (type(e), filename, lineno)
-            data.note(e)
-        data.extra_information.arcs = frozenset(getattr(collector, "arcs", ()))
-        data.freeze()
-        buf = (yield data.as_result()) or b""
-    raise NotImplementedError("Loop not expected to exit")
 
 
 class FuzzProcess:
