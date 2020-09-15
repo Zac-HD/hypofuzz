@@ -166,6 +166,15 @@ Python is a much harder target than machine code for symbolic verification and t
 is more like science fiction than a roadmap item.
 
 
+(C / C++) TrailofBits' DeepState
+++++++++++++++++++++++++++++++++
+
+`DeepState <https://github.com/trailofbits/deepstate>`__ :cite:`DeepState` provides
+a common interface to various symbolic execution and fuzzing engines - write your
+tests once with a Google Test-style API, and then run them with a variety of backends
+and at various stages of your development cycle.
+
+
 Mutation operators
 ------------------
 
