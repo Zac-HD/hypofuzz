@@ -117,6 +117,7 @@ class FuzzProcess:
         self.ninputs = 0
         self.elapsed_time = 0.0
         self.since_new_cov = 0
+        self.status_counts = {s.name: 0 for s in Status}
         # Any new examples from the database will be added to this replay buffer
         self._replay_buffer: List[bytes] = []
 
@@ -225,6 +226,7 @@ class FuzzProcess:
         data.freeze()
         # Update the pool and report any changes immediately for new coverage.  If no
         # new coverage, occasionally send an update anyway so we don't look stalled.
+        self.status_counts[data.status.name] += 1
         if self.pool.add(data.as_result()):
             self.since_new_cov = 0
         else:
@@ -262,6 +264,7 @@ class FuzzProcess:
             "ninputs": self.ninputs,
             "arcs": len(self.pool.arc_counts),
             "since new cov": self.since_new_cov,
+            "status_counts": self.status_counts,
             "note": "replaying saved examples" if self._replay_buffer else "",
         }
 

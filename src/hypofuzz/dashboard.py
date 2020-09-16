@@ -126,6 +126,12 @@ def display_page(pathname: str) -> html.Div:
     return html.Div(
         children=[
             dcc.Link("Back to home", href="/"),
+            html.P(
+                children=[
+                    "Example count by status: ",
+                    str(trace[-1].get("status_counts", "???")),
+                ]
+            ),
             html.Table(
                 children=[
                     html.Tr([html.Th(h) for h in headings[1:]]),
