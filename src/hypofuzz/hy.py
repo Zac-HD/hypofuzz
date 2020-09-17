@@ -21,6 +21,7 @@ from hypothesis.database import ExampleDatabase
 from hypothesis.errors import StopTest, UnsatisfiedAssumption
 from hypothesis.internal.conjecture.data import ConjectureData, Status
 from hypothesis.internal.conjecture.engine import BUFFER_SIZE
+from hypothesis.internal.conjecture.shrinker import Shrinker
 from hypothesis.internal.conjecture.junkdrawer import stack_depth_of_caller
 from hypothesis.internal.reflection import function_digest
 from sortedcontainers import SortedKeyList
@@ -50,6 +51,27 @@ def constant_stack_depth() -> Generator[None, None, None]:
         yield
     finally:
         sys.setrecursionlimit(recursion_limit)
+
+
+class EngineStub:
+    """A knock-off ConjectureEngine, just large enough to run a shrinker."""
+
+    def __init__(
+        self, test_fn: Callable, random: Random = None, call_count: int = 0
+    ) -> None:
+        self.cached_test_function = test_fn
+        self.random = random
+        self.call_count = call_count
+        self.report_debug_info = False
+
+    def debug(self, msg: str) -> None:
+        """Unimplemented stub."""
+
+    def explain_next_call_as(self, msg: str) -> None:
+        """Unimplemented stub."""
+
+    def clear_call_explanation(self) -> None:
+        """Unimplemented stub."""
 
 
 class FuzzProcess:
@@ -163,10 +185,11 @@ class FuzzProcess:
         return self._mutator_crossover.generate_buffer()
 
     def run_one(self) -> None:
-        """Run a single input through the fuzz target."""
-        start = time.perf_counter()
-        self.ninputs += 1
+        """Run a single input through the fuzz target, or maybe more.
 
+        The "more" part is in cases where we discover new coverage, and shrink
+        to the minimal covering example.
+        """
         # If we've been stable for a little while, try loading new examples from the
         # database.  We do this unconditionally because even if this fuzzer doesn't
         # know of other concurrent runs, there may be e.g. a test process sharing the
@@ -174,14 +197,53 @@ class FuzzProcess:
         if self.ninputs % 1000 == 0 and self.since_new_cov > 1000:
             self._replay_buffer.extend(self.pool.fetch())
 
+        previously_seen_arcs = set(self.pool.arc_counts)
+
         # Run the input
+        result = self._run_test_on(self.generate_prefix())
+
+        # TODO: this shrink logic should be built into the pool, not part of the
+        # fuzzer class.  Mostly in order to track which examples have already
+        # been shrunk, so that we can try them in order without retrying shrinking
+        # for any buffer we've already tried to shrink.
+        #
+        # Note - even if we've tried shrinking for a branch A, there's no point
+        # trying to shrink the same buffer for branch B - if that would work, we
+        # would have made at least one step of progress while attempting A.
+
+        if result.status is Status.INTERESTING:
+            # Shrink to our minimal failing example, since we'll stop after this.
+            Shrinker(
+                EngineStub(self._run_test_on, self.random, self.ninputs),
+                result,
+                predicate=lambda d: d.status is Status.INTERESTING,
+                allow_transition=None,
+            ).shrink()
+
+        # If we've discovered new coverage, we want to shrink to the minimal covering
+        # example for each new branch.  Since we might discover new coverage while
+        # shrinking, the loop structure here is a bit unusual.
+        while set(self.pool.arc_counts) - previously_seen_arcs:
+            arc_to_shrink = (set(self.pool.arc_counts) - previously_seen_arcs).pop()
+            Shrinker(
+                EngineStub(self._run_test_on, self.random, self.ninputs),
+                result,
+                predicate=lambda d: arc_to_shrink in d.extra_information.arcs,
+                allow_transition=None,
+            ).shrink()
+            previously_seen_arcs.add(arc_to_shrink)
+
+    def _run_test_on(self, buffer: bytes) -> ConjectureData:
+        """This method is designed to be handed off to a Shrinker.
+
+        In normal operation, it's called via run_one (above), but we might also
+        delegate to the shrinker to find minimal covering examples.
+        """
+        start = time.perf_counter()
+        self.ninputs += 1
         collector = CollectionContext()
-        data = ConjectureData(
-            max_length=BUFFER_SIZE,
-            prefix=self.generate_prefix(),
-            random=self.random,
-        )
         argstrings: List[str] = []
+        data = ConjectureData(max_length=BUFFER_SIZE, prefix=buffer, random=self.random)
         try:
             with deterministic_PRNG(), BuildContext(data), constant_stack_depth():
                 # Note that the data generation and test execution happen in the same
@@ -240,6 +302,9 @@ class FuzzProcess:
         ):
             self._report_change(self._to_post)
             del self._to_post[:]
+
+        # The shrinker relies on returning the data object to be inspected.
+        return data.as_result()
 
     def _report_change(self, data: Union[Report, List[Report]]) -> None:
         """Replace this method to send JSON data to the dashboard."""
