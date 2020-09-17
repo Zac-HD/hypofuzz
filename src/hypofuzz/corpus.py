@@ -5,6 +5,8 @@ import math
 from random import Random
 from typing import Counter, Dict, Iterable, List, Optional, Set, Tuple, Type, Union
 
+from hypothesis import __version__ as hypothesis_version
+from hypothesis.core import encode_failure
 from hypothesis.database import ExampleDatabase
 from hypothesis.internal.conjecture.data import ConjectureResult, Overrun, Status
 from sortedcontainers import SortedDict
@@ -22,6 +24,11 @@ def sort_key(buffer: Union[bytes, ConjectureResult]) -> Tuple[int, bytes]:
     if isinstance(buffer, ConjectureResult):
         buffer = buffer.buffer
     return (len(buffer), buffer)
+
+
+def reproduction_decorator(buffer: bytes) -> str:
+    """Return `@reproduce_failure` decorator for the given buffer."""
+    return f"@reproduce_failure({hypothesis_version!r}, {encode_failure(buffer)!r})"
 
 
 class Pool:
@@ -50,6 +57,9 @@ class Pool:
         self.interesting_origin: Optional[Tuple[Type[BaseException], str, int]] = None
         self.failing_example: List[str] = []
         self.__loaded_from_database: Set[bytes] = set()
+
+        # To show the current state of the pool in the dashboard
+        self.json_report: List[List[str]] = []
 
     def __repr__(self) -> str:
         rs = {b: r.extra_information.arcs for b, r in self.results.items()}
@@ -94,9 +104,6 @@ class Pool:
         assert result is Overrun or isinstance(result, ConjectureResult), result
         if result.status < Status.VALID:
             return None
-        assert (
-            self.interesting_origin is None
-        ), f"Already found failing example {self.interesting_origin}"
 
         # We now know that we have a ConjectureResult representing a valid test
         # execution, either passing or possibly failing.
@@ -110,6 +117,7 @@ class Pool:
             self.interesting_origin = result.interesting_origin
             self.failing_example = [
                 result.extra_information.call_repr,
+                reproduction_decorator(result.buffer),
                 result.extra_information.traceback,
             ]
             return True
@@ -149,6 +157,10 @@ class Pool:
             # We add newly-discovered arcs to the counter later; so here our only
             # unseen arcs should be the newly discovered arcs.
             assert seen_arcs - set(self.arc_counts) == arcs - set(self.arc_counts)
+            self.json_report = [
+                [reproduction_decorator(res.buffer), res.extra_information.call_repr]
+                for res in self.results.values()
+            ]
 
         # Either update the arc counts so we can prioritize rarer arcs in future,
         # or save an example with new coverage and reset the counter because we'll

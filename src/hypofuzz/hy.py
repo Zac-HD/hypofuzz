@@ -247,26 +247,22 @@ class FuzzProcess:
     @property
     def _json_description(self) -> Dict[str, Union[str, int, float]]:
         """Summarise current state to send to dashboard."""
-        if self.pool.interesting_origin is not None:
-            return {
-                "nodeid": self.nodeid,
-                "elapsed_time": self.elapsed_time,
-                "ninputs": self.ninputs,
-                "arcs": len(self.pool.arc_counts),
-                "note": f"raised {self.pool.interesting_origin[0].__name__}",
-                "failure": self.pool.failing_example,  # type: ignore
-            }
-        elif self.ninputs == 0:
+        if self.ninputs == 0:
             return {"nodeid": self.nodeid, "note": "starting up..."}
-        return {
+        report = {
             "nodeid": self.nodeid,
             "elapsed_time": self.elapsed_time,
             "ninputs": self.ninputs,
             "arcs": len(self.pool.arc_counts),
             "since new cov": self.since_new_cov,
             "status_counts": self.status_counts,
+            "seed_pool": self.pool.json_report,
             "note": "replaying saved examples" if self._replay_buffer else "",
         }
+        if self.pool.interesting_origin is not None:
+            report["note"] = f"raised {self.pool.interesting_origin[0].__name__}"
+            report["failure"] = self.pool.failing_example  # type: ignore
+        return report
 
     @property
     def has_found_failure(self) -> bool:

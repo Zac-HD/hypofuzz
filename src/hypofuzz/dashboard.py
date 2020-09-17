@@ -23,8 +23,11 @@ def add_data() -> Tuple[str, int]:
     data = flask.request.json
     if not isinstance(data, list):
         data = [data]
-    DATA_TO_PLOT.extend(data)
-    LAST_UPDATE[data[-1]["nodeid"]] = data[-1]
+    for d in data:
+        DATA_TO_PLOT.append(
+            {k: d[k] for k in ["nodeid", "elapsed_time", "ninputs", "arcs"] if k in d}
+        )
+    LAST_UPDATE[d["nodeid"]] = d
     return "", 200
 
 
@@ -64,7 +67,7 @@ UPDATEMENUS = [
 ]
 
 
-def row_for(data: dict, include_link: bool = True) -> html.Tr:
+def row_for(data: dict, include_link: bool = True, *extra) -> html.Tr:
     parts = []
     if include_link:
         parts.append(dcc.Link(data["nodeid"], href=data["nodeid"].replace("/", "_")))
@@ -74,7 +77,14 @@ def row_for(data: dict, include_link: bool = True) -> html.Tr:
         parts.append("")
     for key in headings[2:]:
         parts.append(data.get(key, ""))
-    return html.Tr([html.Td(p) for p in parts])
+    return html.Tr([html.Td(p) for p in parts + [str(e) for e in extra]])
+
+
+def try_format(code: str) -> str:
+    try:
+        return black.format_str(code, mode=black.FileMode())
+    except black.InvalidInput:
+        return code
 
 
 @board.callback(  # type: ignore
@@ -112,35 +122,47 @@ def display_page(pathname: str) -> html.Div:
     if "failure" in trace[-1]:
         cause: str
         traceback: str
-        cause, traceback = trace[-1]["failure"]  # type: ignore
-        try:
-            cause = black.format_str(cause, mode=black.FileMode())
-        except black.InvalidInput:
-            pass
+        cause, decorator, traceback = trace[-1]["failure"]  # type: ignore
+        cause = try_format(cause)
         add = [
-            html.Pre(children=[html.Code(children=[cause])]),
-            html.Pre(children=[html.Code(children=[traceback])]),
+            html.Pre(children=[html.Code(children=[x])])
+            for x in (cause, decorator, traceback)
         ]
     else:
         add = []
+    last_update = LAST_UPDATE[trace[-1]["nodeid"]]
     return html.Div(
         children=[
             dcc.Link("Back to home", href="/"),
             html.P(
                 children=[
                     "Example count by status: ",
-                    str(trace[-1].get("status_counts", "???")),
+                    str(last_update.get("status_counts", "???")),
                 ]
             ),
             html.Table(
                 children=[
-                    html.Tr([html.Th(h) for h in headings[1:]]),
-                    row_for(trace[-1], include_link=False),
+                    html.Tr(
+                        [html.Th(h) for h in headings[1:]] + [html.Th(["Seed count"])]
+                    ),
+                    row_for(last_update, False, len(last_update.get("seed_pool", []))),
                 ]
             ),
             *add,
             dcc.Graph(id=f"graph-of-{pathname}-1", figure=fig1),
             dcc.Graph(id=f"graph-of-{pathname}-2", figure=fig2),
+            html.Table(
+                [html.Tr([html.Th("buffer"), html.Th("input")])]
+                + [
+                    html.Tr(
+                        [
+                            html.Code([row[0]]),
+                            html.Pre([html.Code([try_format(row[1])])]),
+                        ]
+                    )
+                    for row in last_update.get("seed_pool", [])
+                ]
+            ),
         ]
     )
 
