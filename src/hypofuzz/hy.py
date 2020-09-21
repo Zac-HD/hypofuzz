@@ -21,15 +21,15 @@ from hypothesis.database import ExampleDatabase
 from hypothesis.errors import StopTest, UnsatisfiedAssumption
 from hypothesis.internal.conjecture.data import ConjectureData, Status
 from hypothesis.internal.conjecture.engine import BUFFER_SIZE
-from hypothesis.internal.conjecture.shrinker import Shrinker
 from hypothesis.internal.conjecture.junkdrawer import stack_depth_of_caller
+from hypothesis.internal.conjecture.shrinker import Shrinker
 from hypothesis.internal.reflection import function_digest
 from sortedcontainers import SortedKeyList
 
 from .corpus import BlackBoxMutator, CrossOverMutator, Pool
 from .cov import CollectionContext
 
-Report = Dict[str, Union[int, float, str]]
+Report = Dict[str, Union[int, float, str, list, Dict[str, int]]]
 
 
 @contextlib.contextmanager
@@ -234,7 +234,7 @@ class FuzzProcess:
             previously_seen_arcs.add(arc_to_shrink)
 
     def _run_test_on(self, buffer: bytes) -> ConjectureData:
-        """This method is designed to be handed off to a Shrinker.
+        """Run the test_fn on a given buffer of bytes, in a way a Shrinker can handle.
 
         In normal operation, it's called via run_one (above), but we might also
         delegate to the shrinker to find minimal covering examples.
@@ -310,11 +310,11 @@ class FuzzProcess:
         """Replace this method to send JSON data to the dashboard."""
 
     @property
-    def _json_description(self) -> Dict[str, Union[str, int, float]]:
+    def _json_description(self) -> Report:
         """Summarise current state to send to dashboard."""
         if self.ninputs == 0:
             return {"nodeid": self.nodeid, "note": "starting up..."}
-        report = {
+        report: Report = {
             "nodeid": self.nodeid,
             "elapsed_time": self.elapsed_time,
             "ninputs": self.ninputs,
@@ -326,7 +326,7 @@ class FuzzProcess:
         }
         if self.pool.interesting_origin is not None:
             report["note"] = f"raised {self.pool.interesting_origin[0].__name__}"
-            report["failure"] = self.pool.failing_example  # type: ignore
+            report["failure"] = self.pool.failing_example
         return report
 
     @property

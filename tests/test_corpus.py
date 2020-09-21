@@ -22,7 +22,9 @@ def results(statuses=st.sampled_from(Status)) -> st.SearchStrategy[ConjectureRes
         buffer=st.binary(),
         blocks=st.none(),
         output=st.none(),
-        extra_information=st.builds(SimpleNamespace, arcs=arcs()),
+        extra_information=st.builds(
+            SimpleNamespace, arcs=arcs(), call_repr=st.just("")
+        ),
         has_discards=st.booleans(),
         target_observations=st.dictionaries(st.text(), st.integers() | st.floats()),
         tags=st.none(),

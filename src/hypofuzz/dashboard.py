@@ -67,7 +67,7 @@ UPDATEMENUS = [
 ]
 
 
-def row_for(data: dict, include_link: bool = True, *extra) -> html.Tr:
+def row_for(data: dict, include_link: bool = True, *extra: object) -> html.Tr:
     parts = []
     if include_link:
         parts.append(dcc.Link(data["nodeid"], href=data["nodeid"].replace("/", "_")))
@@ -121,6 +121,7 @@ def display_page(pathname: str) -> html.Div:
     fig2.update_layout(updatemenus=UPDATEMENUS)
     if "failure" in trace[-1]:
         cause: str
+        decorator: str
         traceback: str
         cause, decorator, traceback = trace[-1]["failure"]  # type: ignore
         cause = try_format(cause)
