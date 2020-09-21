@@ -12,6 +12,7 @@ looking for bugs.
 
     quickstart
     pricing
+    features
     configuration
     roadmap
     literature

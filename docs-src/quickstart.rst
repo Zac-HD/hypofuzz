@@ -26,7 +26,6 @@ or from a ``requirements.txt`` file like
 
 .. code-block:: text
 
-    # -*- coding: utf-8 -*-
     # Requirements for our test environment
     --extra-index-url=https://<YOUR_TOKEN>:@packages.hypofuzz.com/pypi/
 

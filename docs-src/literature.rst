@@ -34,7 +34,7 @@ AFL (classic)
 
 `Pulling JPEGs out of thin air
 <https://lcamtuf.blogspot.com/2014/11/pulling-jpegs-out-of-thin-air.html>`__ made
-a splash: `ALF <https://lcamtuf.coredump.cx/afl/>`__ was the first fuzzer tool
+a splash: `AFL <https://lcamtuf.coredump.cx/afl/>`__ was the first fuzzer tool
 to reach mainstream awareness, and its success - measured in important bugs rather
 than citations or benchmarks - revitalised the field.
 
@@ -43,7 +43,7 @@ would often outperform fancier but slower techniques, and that usability counts 
 with almost no configuration and a robust design applicable to any project,
 AFL saw much wider adoption and therefore impact than previous tools.
 
-Since 2017, `AFL~~ has been maintained by the community <https://aflplus.plus/>`__
+Since 2017, `AFL++ has been maintained by the community <https://aflplus.plus/>`__
 with a variety of bugfixes, patches, and additional features many of which are
 covered below.
 

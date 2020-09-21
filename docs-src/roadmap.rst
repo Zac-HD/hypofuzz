@@ -86,21 +86,18 @@ Monitoring and reporting
 
 The `current dashboard <https://hypofuzz.com/example-dashboard/>`__ is a good
 start, but there's plenty of room for improvement.
+Note that the web version does not show elapsed time, or the details page for
+each test.
 
-- Cross-filtering and highlighting between the graph and the table
-
-- Alternative graph axes - proportional on Y, time instead of count on X
-
-- Add a per-target page with more information
-
-    - HTML coverage report from the specific target
-    - validity and timing statistics
-    - if failing, minimal failing example and traceback
+Main wishlist item: good support for starting the dashboard and worker processes
+separately.
 
 
 Fuzzing machinery
 ~~~~~~~~~~~~~~~~~
 
+- reduce memory usage to allow long runs with many targets
+- performance profiling to pick up any low-hanging improvements
 - implement `predictive fuzzing like Pythia <https://github.com/mboehme/pythia>`__,
   and use that for prioritization (currently number of inputs since last discovery)
 - (maybe) support moving targets between processes; could be more efficient in the
@@ -109,10 +106,6 @@ Fuzzing machinery
 
 Better mutation logic
 +++++++++++++++++++++
-
-- improve our tracking of the input pool
-- explicitly find the minimal example that covers each known branch?
-  might be too small to mutate from...
 
 - structure-aware operators for crossover / replacement / splicing etc
 - validity-aware mutations (Zest/RLCheck), based on structure
