@@ -142,6 +142,9 @@ class FuzzProcess:
         self.status_counts = {s.name: 0 for s in Status}
         # Any new examples from the database will be added to this replay buffer
         self._replay_buffer: List[bytes] = []
+        # After replay, we stay in blackbox mode for a while, until we've generated
+        # 1000 consecutive examples without new coverage, and then switch to mutation.
+        self._early_blackbox_mode = True
 
         # We batch updates, since frequent HTTP posts are slow
         self._to_post: List[Report] = []
@@ -180,7 +183,7 @@ class FuzzProcess:
         # TODO: currently hard-coding a particular mutator; we want to do MOpt-style
         # adaptive weighting of all the different mutators we could use.
         # For now though, we'll just use a hardcoded swapover point
-        if self.since_new_cov < 1000 and self.ninputs < 100_000:
+        if self._early_blackbox_mode:
             return self._mutator_blackbox.generate_buffer()
         return self._mutator_crossover.generate_buffer()
 
@@ -219,6 +222,16 @@ class FuzzProcess:
                 predicate=lambda d: d.status is Status.INTERESTING,
                 allow_transition=None,
             ).shrink()
+
+        # Consider switching out of blackbox mode.
+        if (
+            self._early_blackbox_mode
+            and self.since_new_cov >= 1000
+            and not self._replay_buffer
+        ):
+            self._early_blackbox_mode = False
+            # and clear this, so that we distill the whole corpus from scratch
+            previously_seen_arcs = set()
 
         # If we've discovered new coverage, we want to shrink to the minimal covering
         # example for each new branch.  Since we might discover new coverage while
@@ -265,7 +278,6 @@ class FuzzProcess:
             tb = get_trimmed_traceback()
             filename, lineno, *_ = traceback.extract_tb(tb)[-1]
             data.interesting_origin = (type(e), filename, lineno)
-            data.note(e)
             data.extra_information.traceback = "".join(
                 traceback.format_exception(etype=type(e), value=e, tb=tb)
             )
