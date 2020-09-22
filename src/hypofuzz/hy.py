@@ -99,7 +99,7 @@ class FuzzProcess:
         _, _, _, search_strategy = process_arguments_to_given(
             wrapped_test,
             arguments=(),
-            kwargs=extra_kw,
+            kwargs=extra_kw or {},
             given_kwargs=wrapped_test.hypothesis._given_kwargs,
             argspec=getfullargspec(wrapped_test),
         )
