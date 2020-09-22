@@ -70,7 +70,9 @@ UPDATEMENUS = [
 def row_for(data: dict, include_link: bool = True, *extra: object) -> html.Tr:
     parts = []
     if include_link:
-        parts.append(dcc.Link(data["nodeid"], href=data["nodeid"].replace("/", "_")))
+        parts.append(
+            dcc.Link(data["nodeid"], href="/" + data["nodeid"].replace("/", "_"))
+        )
     if "elapsed_time" in data:
         parts.append(str(datetime.timedelta(seconds=int(data["elapsed_time"]))))
     else:
