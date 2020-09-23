@@ -7,7 +7,7 @@ import time
 import traceback
 from inspect import getfullargspec
 from random import Random
-from typing import Any, Callable, Dict, Generator, List, NoReturn, Set, Union
+from typing import Any, Callable, Dict, Generator, List, NoReturn, Union
 
 from hypothesis import strategies as st
 from hypothesis.core import (
@@ -24,9 +24,10 @@ from hypothesis.internal.conjecture.engine import BUFFER_SIZE
 from hypothesis.internal.conjecture.junkdrawer import stack_depth_of_caller
 from hypothesis.internal.conjecture.shrinker import Shrinker
 from hypothesis.internal.reflection import function_digest
+from hypothesis.reporting import with_reporter
 from sortedcontainers import SortedKeyList
 
-from .corpus import BlackBoxMutator, CrossOverMutator, Pool
+from .corpus import BlackBoxMutator, CrossOverMutator, EngineStub, Pool
 from .cov import Arc, CollectionContext
 
 Report = Dict[str, Union[int, float, str, list, Dict[str, int]]]
@@ -51,27 +52,6 @@ def constant_stack_depth() -> Generator[None, None, None]:
         yield
     finally:
         sys.setrecursionlimit(recursion_limit)
-
-
-class EngineStub:
-    """A knock-off ConjectureEngine, just large enough to run a shrinker."""
-
-    def __init__(
-        self, test_fn: Callable, random: Random = None, call_count: int = 0
-    ) -> None:
-        self.cached_test_function = test_fn
-        self.random = random
-        self.call_count = call_count
-        self.report_debug_info = False
-
-    def debug(self, msg: str) -> None:
-        """Unimplemented stub."""
-
-    def explain_next_call_as(self, msg: str) -> None:
-        """Unimplemented stub."""
-
-    def clear_call_explanation(self) -> None:
-        """Unimplemented stub."""
 
 
 class FuzzProcess:
@@ -200,24 +180,15 @@ class FuzzProcess:
         if self.ninputs % 1000 == 0 and self.since_new_cov > 1000:
             self._replay_buffer.extend(self.pool.fetch())
 
-        previously_seen_arcs = set(self.pool.arc_counts)
+        seen_count = len(self.pool.arc_counts)
 
         # Run the input
         result = self._run_test_on(self.generate_prefix())
 
-        # TODO: this shrink logic should be built into the pool, not part of the
-        # fuzzer class.  Mostly in order to track which examples have already
-        # been shrunk, so that we can try them in order without retrying shrinking
-        # for any buffer we've already tried to shrink.
-        #
-        # Note - even if we've tried shrinking for a branch A, there's no point
-        # trying to shrink the same buffer for branch B - if that would work, we
-        # would have made at least one step of progress while attempting A.
-
         if result.status is Status.INTERESTING:
             # Shrink to our minimal failing example, since we'll stop after this.
             Shrinker(
-                EngineStub(self._run_test_on, self.random, self.ninputs),
+                EngineStub(self._run_test_on, self.random),
                 result,
                 predicate=lambda d: d.status is Status.INTERESTING,
                 allow_transition=None,
@@ -230,27 +201,9 @@ class FuzzProcess:
             and not self._replay_buffer
         ):
             self._early_blackbox_mode = False
-
-        # If we've discovered new coverage, we want to shrink to the minimal covering
-        # example for each new branch.  Since we might discover new coverage while
-        # shrinking, the loop structure here is a bit unusual.
-        shrunk_to: Set[bytes] = set()
-        while set(self.pool.arc_counts) - previously_seen_arcs:
-            arc_to_shrink = (set(self.pool.arc_counts) - previously_seen_arcs).pop()
-            previously_seen_arcs.add(arc_to_shrink)
-            if self.pool.covering_buffers[arc_to_shrink] in shrunk_to:
-                # We've already run all our attempted shrinks on this buffer without
-                # finding anything that covered this branch (because it's still best).
-                # This is a neat trick that allows us to skip repeated shrink-attempts
-                # for arcs that are always covered together.
-                continue
-            Shrinker(
-                EngineStub(self._run_test_on, self.random, self.ninputs),
-                result,
-                predicate=lambda d: arc_to_shrink in d.extra_information.arcs,
-                allow_transition=None,
-            ).shrink()
-            shrunk_to.add(self.pool.covering_buffers[arc_to_shrink])
+            seen_count = 0
+        if len(self.pool.arc_counts) > seen_count and not self._early_blackbox_mode:
+            self.pool.distill(self._run_test_on, self.random)
 
     def _run_test_on(self, buffer: bytes) -> ConjectureData:
         """Run the test_fn on a given buffer of bytes, in a way a Shrinker can handle.
@@ -261,10 +214,13 @@ class FuzzProcess:
         start = time.perf_counter()
         self.ninputs += 1
         collector = CollectionContext()
+        reports: List[str] = []
         argstrings: List[str] = []
         data = ConjectureData(max_length=BUFFER_SIZE, prefix=buffer, random=self.random)
         try:
-            with deterministic_PRNG(), BuildContext(data), constant_stack_depth():
+            with deterministic_PRNG(), BuildContext(
+                data, is_final=True
+            ), constant_stack_depth(), with_reporter(reports.append):
                 # Note that the data generation and test execution happen in the same
                 # coverage context.  We may later split this, or tag each separately.
                 with collector:
@@ -291,6 +247,7 @@ class FuzzProcess:
             data.extra_information.call_repr = (
                 self.__test_fn.__name__ + "(" + ", ".join(argstrings) + ")"
             )
+            data.extra_information.reports = "\n".join(reports)
 
         # In addition to coverage arcs, use psudeo-coverage information provided via
         # the `hypothesis.event()` function - exploiting user-defined partitions
@@ -342,15 +299,20 @@ class FuzzProcess:
             "seed_pool": self.pool.json_report,
             "note": "replaying saved examples" if self._replay_buffer else "",
         }
-        if self.pool.interesting_origin is not None:
-            report["note"] = f"raised {self.pool.interesting_origin[0].__name__}"
-            report["failure"] = self.pool.failing_example
+        if self.pool.interesting_examples:
+            report[
+                "note"
+            ] = f"raised {list(self.pool.interesting_examples)[0][0].__name__}"
+            report["failures"] = [
+                ls for _, ls in self.pool.interesting_examples.values()
+            ]
+            del report["since new cov"]
         return report
 
     @property
     def has_found_failure(self) -> bool:
         """If we've already found a failing example we might reprioritize."""
-        return self.pool.interesting_origin is not None
+        return bool(self.pool.interesting_examples)
 
 
 def fuzz_several(*targets_: FuzzProcess, random_seed: int = None) -> NoReturn:

@@ -1,7 +1,7 @@
 """Live web dashboard for a fuzzing run."""
 import datetime
 import json
-from typing import Tuple
+from typing import List, Tuple
 
 import black
 import dash
@@ -121,19 +121,12 @@ def display_page(pathname: str) -> html.Div:
     )
     fig1.update_layout(updatemenus=UPDATEMENUS)
     fig2.update_layout(updatemenus=UPDATEMENUS)
-    if "failure" in trace[-1]:
-        cause: str
-        decorator: str
-        traceback: str
-        cause, decorator, traceback = trace[-1]["failure"]  # type: ignore
-        cause = try_format(cause)
-        add = [
-            html.Pre(children=[html.Code(children=[x])])
-            for x in (cause, decorator, traceback)
-        ]
-    else:
-        add = []
     last_update = LAST_UPDATE[trace[-1]["nodeid"]]
+    add: List[str] = []
+    if "failures" in last_update:
+        for failures in last_update["failures"]:
+            failures[0] = try_format(failures[0])
+            add.extend(html.Pre(children=[html.Code(children=[x])]) for x in failures)
     return html.Div(
         children=[
             dcc.Link("Back to home", href="/"),
@@ -154,18 +147,17 @@ def display_page(pathname: str) -> html.Div:
             *add,
             dcc.Graph(id=f"graph-of-{pathname}-1", figure=fig1),
             dcc.Graph(id=f"graph-of-{pathname}-2", figure=fig2),
-            html.Table(
-                [html.Tr([html.Th("buffer"), html.Th("input")])]
-                + [
-                    html.Tr(
-                        [
-                            html.Code([row[0]]),
-                            html.Pre([html.Code([try_format(row[1])])]),
-                        ]
-                    )
-                    for row in last_update.get("seed_pool", [])
+            html.H3(["Minimal covering examples"]),
+            html.P(
+                [
+                    "Each additional example shown below covers at least one branch "
+                    "not covered by any previous, more-minimal, example."
                 ]
             ),
+        ]
+        + [
+            html.Pre([html.Code([try_format(row[1]), row[2], "\n"])])
+            for row in last_update.get("seed_pool", [])
         ]
     )
 

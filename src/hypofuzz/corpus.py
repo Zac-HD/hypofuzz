@@ -3,12 +3,29 @@
 import abc
 import math
 from random import Random
-from typing import Counter, Dict, Iterable, List, Optional, Set, Tuple, Type, Union
+from typing import (
+    Callable,
+    Counter,
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    Set,
+    Tuple,
+    Type,
+    Union,
+)
 
 from hypothesis import __version__ as hypothesis_version
 from hypothesis.core import encode_failure
 from hypothesis.database import ExampleDatabase
-from hypothesis.internal.conjecture.data import ConjectureResult, Overrun, Status
+from hypothesis.internal.conjecture.data import (
+    ConjectureData,
+    ConjectureResult,
+    Overrun,
+    Status,
+)
+from hypothesis.internal.conjecture.shrinker import Shrinker
 from sortedcontainers import SortedDict
 
 from .cov import Arc
@@ -29,6 +46,27 @@ def sort_key(buffer: Union[bytes, ConjectureResult]) -> Tuple[int, bytes]:
 def reproduction_decorator(buffer: bytes) -> str:
     """Return `@reproduce_failure` decorator for the given buffer."""
     return f"@reproduce_failure({hypothesis_version!r}, {encode_failure(buffer)!r})"
+
+
+class EngineStub:
+    """A knock-off ConjectureEngine, just large enough to run a shrinker."""
+
+    def __init__(
+        self, test_fn: Callable[[bytes], ConjectureData], random: Random
+    ) -> None:
+        self.cached_test_function = test_fn
+        self.random = random
+        self.call_count = 0
+        self.report_debug_info = False
+
+    def debug(self, msg: str) -> None:
+        """Unimplemented stub."""
+
+    def explain_next_call_as(self, msg: str) -> None:
+        """Unimplemented stub."""
+
+    def clear_call_explanation(self) -> None:
+        """Unimplemented stub."""
 
 
 class Pool:
@@ -54,9 +92,11 @@ class Pool:
         self.arc_counts: Counter[Arc] = Counter()
 
         # And various internal attributes and metadata
-        self.interesting_origin: Optional[Tuple[Type[BaseException], str, int]] = None
-        self.failing_example: List[str] = []
+        self.interesting_examples: Dict[
+            Tuple[Type[BaseException], str, int], Tuple[ConjectureResult, List[str]]
+        ] = {}
         self.__loaded_from_database: Set[bytes] = set()
+        self.__shrunk_to_buffers: Set[bytes] = set()
 
         # To show the current state of the pool in the dashboard
         self.json_report: List[List[str]] = []
@@ -96,6 +136,13 @@ class Pool:
     def _fuzz_key(self) -> bytes:
         return self._key + b".fuzz"
 
+    @property
+    def _covered_arcs(self) -> Dict[bytes, Set[Arc]]:
+        out: Dict[bytes, Set[Arc]] = {}
+        for arc, buf in self.covering_buffers.items():
+            out.setdefault(buf, set()).add(arc)
+        return out
+
     def add(self, result: ConjectureResult) -> Optional[bool]:
         """Update the corpus with the result of running a test.
 
@@ -113,18 +160,21 @@ class Pool:
         # If the example is "interesting", i.e. the test failed, add the buffer to
         # the database under Hypothesis' default key so it will be reproduced.
         if result.status == Status.INTERESTING:
-            self._database.save(self._key, buf)
-            self.interesting_origin = result.interesting_origin
-            self.failing_example = [
-                result.extra_information.call_repr,
-                reproduction_decorator(result.buffer),
-                result.extra_information.traceback,
-            ]
-            return True
+            origin = result.interesting_origin
+            if origin not in self.interesting_examples or sort_key(result) < sort_key(
+                self.interesting_examples[origin]
+            ):
+                self.interesting_examples[origin] = (
+                    result,
+                    [
+                        result.extra_information.call_repr,
+                        result.extra_information.reports,
+                        reproduction_decorator(result.buffer),
+                        result.extra_information.traceback,
+                    ],
+                )
+                return True
 
-        # TODO: we plan to use Hypothesis' shrinker to get a really minimal example
-        # for each branch.  For now, we just track the smallest we've seen so far.
-        #
         # If we haven't just discovered new arcs and our example is larger than the
         # current largest minimal example, we can skip the expensive calculation.
         if (not arcs.issubset(self.arc_counts)) or (
@@ -158,7 +208,11 @@ class Pool:
             # unseen arcs should be the newly discovered arcs.
             assert seen_arcs - set(self.arc_counts) == arcs - set(self.arc_counts)
             self.json_report = [
-                [reproduction_decorator(res.buffer), res.extra_information.call_repr]
+                [
+                    reproduction_decorator(res.buffer),
+                    res.extra_information.call_repr,
+                    res.extra_information.reports,
+                ]
                 for res in self.results.values()
             ]
 
@@ -193,13 +247,54 @@ class Pool:
         For the purposes of this method, a buffer which we saved to the database
         counts as having been loaded - the idea is to avoid duplicate executions.
         """
-        fetched = {
-            *self._database.fetch(self._key),
-            *self._database.fetch(self._key + b".fuzz"),
-        } - self.__loaded_from_database
-        for buf in sorted(fetched, key=sort_key, reverse=True):
-            yield buf
-            self.__loaded_from_database.add(buf)
+        saved = sorted(self._database.fetch(self._key), key=sort_key, reverse=True)
+        self.__loaded_from_database.update(saved)
+        for idx in (0, -1):
+            if saved:
+                buf = saved.pop(idx)
+                yield buf
+                self.__loaded_from_database.add(buf)
+        seeds = sorted(
+            self._database.fetch(self._key + b".fuzz"), key=sort_key, reverse=True
+        )
+        self.__loaded_from_database.update(seeds)
+        yield from seeds
+        yield from saved
+        self._check_invariants()
+
+    def distill(self, fn: Callable[[bytes], ConjectureData], random: Random) -> None:
+        """Shrink to a pool of *minimal* covering examples.
+
+        We have a couple of unusual structures here.
+
+        1. We exploit the fact that each successful shrink calls self.add(result)
+           to let us skip a lot of work.  Because any "fully shrunk" example is
+           a local fixpoint of all our reduction passes, there's no point trying
+           to shrink a buffer for arc A if it's already minimal for arc B.
+           (because we'd have updated the best known for A while shrinking for B)
+        2. All of the loops are designed to make some amount of progress, and then
+           try again if they did not reach a fixpoint.  Almost all of the structures
+           we're using can be mutated in the process, so it can get strange.
+        """
+        self._check_invariants()
+        covered_arcs = self._covered_arcs
+        while set(covered_arcs) - self.__shrunk_to_buffers:
+            for buf, arcset in covered_arcs.items():
+                while (
+                    arcset
+                    and buf in self.results
+                    and buf not in self.__shrunk_to_buffers
+                ):
+                    arc_to_shrink = arcset.pop()
+                    shrinker = Shrinker(
+                        EngineStub(fn, random),
+                        self.results[buf],
+                        predicate=lambda d: arc_to_shrink in d.extra_information.arcs,
+                        allow_transition=None,
+                    )
+                    shrinker.shrink()
+                    self.__shrunk_to_buffers.add(shrinker.shrink_target.buffer)
+            covered_arcs = self._covered_arcs
         self._check_invariants()
 
 
