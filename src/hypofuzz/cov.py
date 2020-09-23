@@ -1,13 +1,32 @@
 """Adaptive fuzzing for property-based tests using Hypothesis."""
 
-from typing import Any, Dict, FrozenSet, Set, Tuple
+from typing import Any, Dict, FrozenSet, Set
 
+import attr
 import coverage
 from hypothesis.internal.escalation import is_hypothesis_file
 
 # The upstream notion of an arc is (int, int) with an implicit filename,
 # but HypoFuzz uses an explicit filename as part of the arc.
-Arc = Tuple[str, int, int]
+_ARC_CACHE: Dict[str, Dict[int, Dict[int, "Arc"]]] = {}
+
+
+@attr.s(frozen=True, slots=True)
+class Arc:
+    fname: str = attr.ib()
+    start_line: int = attr.ib()
+    end_line: int = attr.ib()
+
+    @staticmethod
+    def make(fname: str, start: int, end: int) -> "Arc":
+        try:
+            return _ARC_CACHE[fname][start][end]
+        except KeyError:
+            self = Arc(fname, start, end)
+            _ARC_CACHE.setdefault(fname, {}).setdefault(start, {})[end] = self
+            return self
+
+
 _POSSIBLE_ARCS: Dict[str, FrozenSet[Arc]] = {}
 
 
@@ -30,7 +49,9 @@ def get_possible_arcs(cov: coverage.CoverageData, fname: str) -> FrozenSet[Arc]:
         return _POSSIBLE_ARCS[fname]
     except KeyError:
         fr = coverage.python.PythonFileReporter(fname, coverage=cov)
-        _POSSIBLE_ARCS[fname] = frozenset((fname, src, dst) for src, dst in fr.arcs())
+        _POSSIBLE_ARCS[fname] = frozenset(
+            Arc.make(fname, src, dst) for src, dst in fr.arcs()
+        )
         return _POSSIBLE_ARCS[fname]
 
 
@@ -61,7 +82,9 @@ class CollectionContext:
         self.cov.save()
         for f in self.cov._data.measured_files():
             if not is_hypothesis_file(f):
-                self.arcs.update((f, src, dst) for src, dst in self.cov._data.arcs(f))
+                self.arcs.update(
+                    Arc.make(f, src, dst) for src, dst in self.cov._data.arcs(f)
+                )
                 # For later: we may want to generalise our notion of an arc to include
                 # coverage contexts, for easy Nezha-style differential fuzzing.
                 # See `CoverageData.contexts_by_lineno()` for this.
