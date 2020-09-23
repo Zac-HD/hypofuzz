@@ -7,7 +7,7 @@ import time
 import traceback
 from inspect import getfullargspec
 from random import Random
-from typing import Any, Callable, Dict, Generator, List, NoReturn, Union
+from typing import Any, Callable, Dict, Generator, List, NoReturn, Set, Union
 
 from hypothesis import strategies as st
 from hypothesis.core import (
@@ -230,21 +230,27 @@ class FuzzProcess:
             and not self._replay_buffer
         ):
             self._early_blackbox_mode = False
-            # and clear this, so that we distill the whole corpus from scratch
-            previously_seen_arcs = set()
 
         # If we've discovered new coverage, we want to shrink to the minimal covering
         # example for each new branch.  Since we might discover new coverage while
         # shrinking, the loop structure here is a bit unusual.
+        shrunk_to: Set[bytes] = set()
         while set(self.pool.arc_counts) - previously_seen_arcs:
             arc_to_shrink = (set(self.pool.arc_counts) - previously_seen_arcs).pop()
+            previously_seen_arcs.add(arc_to_shrink)
+            if self.pool.covering_buffers[arc_to_shrink] in shrunk_to:
+                # We've already run all our attempted shrinks on this buffer without
+                # finding anything that covered this branch (because it's still best).
+                # This is a neat trick that allows us to skip repeated shrink-attempts
+                # for arcs that are always covered together.
+                continue
             Shrinker(
                 EngineStub(self._run_test_on, self.random, self.ninputs),
                 result,
                 predicate=lambda d: arc_to_shrink in d.extra_information.arcs,
                 allow_transition=None,
             ).shrink()
-            previously_seen_arcs.add(arc_to_shrink)
+            shrunk_to.add(self.pool.covering_buffers[arc_to_shrink])
 
     def _run_test_on(self, buffer: bytes) -> ConjectureData:
         """Run the test_fn on a given buffer of bytes, in a way a Shrinker can handle.
