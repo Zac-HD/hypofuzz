@@ -279,13 +279,13 @@ class Pool:
         self._check_invariants()
         covered_arcs = self._covered_arcs
         while set(covered_arcs) - self.__shrunk_to_buffers:
-            for buf, arcset in covered_arcs.items():
+            for buf in sorted(covered_arcs, key=sort_key):
                 while (
-                    arcset
+                    covered_arcs[buf]
                     and buf in self.results
                     and buf not in self.__shrunk_to_buffers
                 ):
-                    arc_to_shrink = arcset.pop()
+                    arc_to_shrink = covered_arcs[buf].pop()
                     shrinker = Shrinker(
                         EngineStub(fn, random),
                         self.results[buf],
