@@ -9,7 +9,7 @@ from inspect import getfullargspec
 from random import Random
 from typing import Any, Callable, Dict, Generator, List, NoReturn, Union
 
-from hypothesis import strategies as st
+from hypothesis import settings, strategies as st
 from hypothesis.core import (
     BuildContext,
     deterministic_PRNG,
@@ -90,7 +90,8 @@ class FuzzProcess:
             strategy=search_strategy,
             nodeid=nodeid,
             database_key=function_digest(wrapped_test),
-            hypothesis_database=wrapped_test._hypothesis_internal_use_settings.database,
+            hypothesis_database=wrapped_test._hypothesis_internal_use_settings.database
+            or settings.default.database,
         )
 
     def __init__(
