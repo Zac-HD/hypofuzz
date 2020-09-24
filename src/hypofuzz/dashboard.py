@@ -27,7 +27,7 @@ def add_data() -> Tuple[str, int]:
         DATA_TO_PLOT.append(
             {k: d[k] for k in ["nodeid", "elapsed_time", "ninputs", "arcs"] if k in d}
         )
-    LAST_UPDATE[d["nodeid"]] = d
+        LAST_UPDATE[d["nodeid"]] = d
     return "", 200
 
 

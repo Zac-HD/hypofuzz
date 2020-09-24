@@ -32,6 +32,8 @@ from .cov import Arc, CollectionContext
 
 Report = Dict[str, Union[int, float, str, list, Dict[str, int]]]
 
+UNDELIVERED_REPORTS: List[Report] = []
+
 
 @contextlib.contextmanager
 def constant_stack_depth() -> Generator[None, None, None]:
@@ -127,7 +129,6 @@ class FuzzProcess:
         self._early_blackbox_mode = True
 
         # We batch updates, since frequent HTTP posts are slow
-        self._to_post: List[Report] = []
         self._last_post_time = self.elapsed_time
 
     def startup(self) -> None:
@@ -269,14 +270,14 @@ class FuzzProcess:
         else:
             self.since_new_cov += 1
         if 0 in (self.since_new_cov, self.ninputs % 100):
-            self._to_post.append(self._json_description)
+            UNDELIVERED_REPORTS.append(self._json_description)
 
         self.elapsed_time += time.perf_counter() - start
-        if self._to_post and (
+        if UNDELIVERED_REPORTS and (
             self.has_found_failure or self._last_post_time + 10 < self.elapsed_time
         ):
-            self._report_change(self._to_post)
-            del self._to_post[:]
+            self._report_change(UNDELIVERED_REPORTS)
+            del UNDELIVERED_REPORTS[:]
 
         # The shrinker relies on returning the data object to be inspected.
         return data.as_result()
