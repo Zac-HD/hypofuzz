@@ -126,5 +126,8 @@ but we can probably also do better.
   Note that branch coverage != available bugs; the control flow graph is not
   identical to the behaviour partition of the program.
 
+- try using a custom trace function, investigate performance and use of alternative
+  coverage metrics (e.g. length-n path segments, callstack-aware coverage, etc.)
+
 - fuzz arbitrary scores with :func:`hypothesis:hypothesis.target()` (see FuzzFactory)
 

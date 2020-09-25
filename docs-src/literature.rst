@@ -175,6 +175,22 @@ tests once with a Google Test-style API, and then run them with a variety of bac
 and at various stages of your development cycle.
 
 
+(Haskell) QuickFuzz
++++++++++++++++++++
+
+QuickFuzz :cite:`QuickFuzz` uses the venerable QuickCheck :cite:`QuickCheck` and
+file format parsers from `Hackage <https://hackage.haskell.org/>`__ to implement
+an unguided generational fuzzer.
+
+
+(Coq) FuzzChick
++++++++++++++++
+
+FuzzChick :cite:`FuzzChick` is a coverage-guided backed for QuickChick :cite:`QuickChick`,
+a property-based testing library for the `Coq <https://en.wikipedia.org/wiki/Coq>`__
+theorem prover.
+
+
 Mutation operators
 ------------------
 
@@ -299,13 +315,27 @@ under test (``afl-cmin``, if you've used that).  While traditionally defined onl
 for coverage, this is trivially extensible to other metrics - just ensure that there
 are no discarded inputs which would be kept if freshly discovered by the fuzzer.
 
-While reducing (``afl-tmin``) and normalising inputs is also a known technique for
-debugging, I haven't seen an evaluation of its use to prepare a seed corpus for
-fuzzing.  Maintaining such a canonical minimal seed pool could plausibly be useful,
-or alternatively it may turn out to discard too much information instead.
+:cite:`Moonlight` evaluates a variety of approaches to designing input corpora,
+given a typically much larger initial corpus (which might be `scraped from the internet
+<https://security.googleblog.com/2011/08/fuzzing-at-scale.html>`__ or created with
+a generative fuzzer), and finds that minimising both the number of inputs in the
+seed pool and their cumulative size improves fuzzer performance - and that no
+single approach dominates the others.
 
-I intend to evaluate a validity-aware canonical seed pool approach on top of
-appropriately smart mutation operators, and will link to results from here.
+Reducing (:cite:`DeltaDebugging` or ``afl-tmin``) and normalising
+(:cite:`OneTestToRuleThemAll`) failing test-cases is a well-known as technique
+to assist in debugging, and supported - often called *shrinking* - by all good
+property-based testing tools.  HypoFuzz uses Hypothesis' world-class test case
+reduction to calculate the minimal example for each feature of interest - covered
+branch, high score from :func:`hypothesis:hypothesis.target`, etc. - and uses
+this as a basis for further fuzzing as well as reporting failing examples.
+
+I am unaware of previous work which uses this approach or evaluates it in
+comparison to less-intensive distillation.  I expect that it works very well
+if-and-only-if combined with generative and structure-aware fuzzing, to allow
+for exploitation of the covering structure without unduely standardising
+unrelated parts of the input, and characterising this is one of my ongoing
+research projects.
 
 
 Nezha - efficient differential testing
@@ -333,15 +363,30 @@ Domain-specific targets with FuzzFactory
 observes that coverage may not be the only metric of interest, and extends the feedback
 mechanism in AFL to support user-specified labels.
 
-This essentially brings targeted propety-based testing (above) to fuzzing workflows,
+This essentially brings targeted property-based testing (above) to fuzzing workflows,
 and provides prior art (outside Hypothesis' implementation) of the multi-objective
 approach - finding that this is often much more effective than optimising component
 metrics independently.
 
 
+Virtual branches with IJON
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Miscellaneous
--------------
+`IJON <https://github.com/RUB-SysSec/ijon>`__ :cite:`IJON` adds custom feedback to
+AFL.  The ``IJON_SET`` macro adds a 'virtual branch' based on the value passed, so
+that at least one input exhibiting whatever custom behaviour will be retained in
+the seed pool (HypoFuzz implements this with the :func:`hypothesis:hypothesis.event`
+function).  The ``IJON_MAX`` macro is equivalent to :func:`hypothesis:hypothesis.target`,
+similar to FuzzFactory above.
+
+IJON is particularly notable for winning 29 out of 32 *Super Mario Bros* levels,
+a feat more typically of dedicated reinforcement learning systems, as well as
+fuzzing a Trusted Platform Module, complex format parsers, mazes, and a hash map.
+
+
+
+Coverage
+--------
 
 Reducing coverage overhead by rewriting the target
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -356,9 +401,36 @@ not impossible - in Python.  Augumenting PyPy's tracing JIT to report coverage
 information would probably be more fruitful, and also very fast given the repeated
 execution pattern of fuzzing.
 
-See also: `Python Coverage could be fast
-<https://www.drmaciver.com/2017/09/python-coverage-could-be-fast/>`__.
 
+Faster coverage measurement for Python
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+:pypi:`coverage` typically slows instrumented programs by a factor of several times,
+typically ranging from 2-5x but with as much as 70x known on some workloads.
+There have been several proposals to improve this - e.g. `Python Coverage could be fast
+<https://www.drmaciver.com/2017/09/python-coverage-could-be-fast/>`__ - and relatively
+small grants could make a very large impact.
+
+Abandoning most of the features in :pypi:`coverage` (reporting, analysis of untaken
+branches, aggregation across interpreters, etc.) to focus solely on the branch-reporting
+logic used by a fuzzer `can also offer substantial speedups
+<https://dustri.org/b/fuzzing-python-in-python-and-doing-it-fast.html>`__.
+
+
+Sensitive coverage metrics
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+*Be Sensitive and Collaborative: Analyzing Impact of Coverage Metrics in Greybox Fuzzing*
+:cite:`SensitiveAndCollaborative` compares a range of coverage metrics - from branch
+coverage, to n-gram-coverage (chains of branches, when standard branch coverage is 2-gram),
+full path coverage, and several others.  Due to resource limits - time, memory, compute -
+no metric dominates all others, suggesting that adapting the metric per-target might
+be helpful.
+
+
+
+Miscellaneous
+-------------
 
 Ensemble fuzzing with seed sharing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -383,6 +455,35 @@ At the science-fiction end of things, it *might* be possible to interoperate wit
 :pypi:`crosshair-tool` - a SMT-solver based whitebox fuzzer for Python - and
 parse a restricted set of Python objects back into the IR which would generate
 them from a given Hypothesis strategy.  That's nowhere near the roadmap, though.
+
+
+Visualising fuzzer performance
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+HypoFuzz does not offer many configuration options, but users are effectively
+co-developers of the fuzzer because they provide the system under test, the
+test function, and the strategies which define possible inputs.  Providing
+clear and detailed - but not overwhelming - information about what the fuzzer
+is doing can therefore support a wider feedback loop of improvement to the tests
+and ultimately better bug-detection.
+
+Brandon Falk's `some fuzzing thoughts
+<https://gamozolabs.github.io/2020/08/11/some_fuzzing_thoughts.html>`__ points
+out that a log-x-axis is almost always the right way to view fuzzer progress
+graphs, especially considering the well-known exponential scaling curve
+:cite:`ExponentialCost`.
+
+Cornelius Aschermann's `on measuring and visualising fuzzer performance
+<https://hexgolems.com/2020/08/on-measuring-and-visualizing-fuzzer-performance/>`__
+suggests a range of other helpful visualisations, including the proportion of
+inputs from various generation or mutation strategies which cover each known
+branch.
+
+*Evaluating Fuzz Testing* :cite:`EvaluatingFuzzTesting` investigates serious
+problems in previous evaluations, and provides the now-canonical guidelines
+for evaluating fuzzers.  Essential reading if you wish to publish an evaluation,
+or simply decide whether some tweak was actually helpful without getting the
+sign of the relationship wrong due to random noise.
 
 
 
