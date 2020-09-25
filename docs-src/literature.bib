@@ -62,26 +62,6 @@
   urldate      = {2019-09-09 16:42:54+02:00}
 }
 
-@article{10.1145/2499370.2462173,
-  author     = {Chen, Yang and Groce, Alex and Zhang, Chaoqiang and Wong, Weng-Keen and Fern, Xiaoli and Eide, Eric and Regehr, John},
-  title      = {Taming Compiler Fuzzers},
-  year       = {2013},
-  issue_date = {June 2013},
-  publisher  = {Association for Computing Machinery},
-  address    = {New York, NY, USA},
-  volume     = {48},
-  number     = {6},
-  issn       = {0362-1340},
-  url        = {https://doi.org/10.1145/2499370.2462173},
-  doi        = {10.1145/2499370.2462173},
-  abstract   = {Aggressive random testing tools ("fuzzers") are impressively effective at finding compiler bugs. For example, a single test-case generator has resulted in more than 1,700 bugs reported for a single JavaScript engine. However, fuzzers can be frustrating to use: they indiscriminately and repeatedly find bugs that may not be severe enough to fix right away. Currently, users filter out undesirable test cases using ad hoc methods such as disallowing problematic features in tests and grepping test results. This paper formulates and addresses the fuzzer taming problem: given a potentially large number of random test cases that trigger failures, order them such that diverse, interesting test cases are highly ranked. Our evaluation shows our ability to solve the fuzzer taming problem for 3,799 test cases triggering 46 bugs in a C compiler and 2,603 test cases triggering 28 bugs in a JavaScript engine.},
-  journal    = {SIGPLAN Not.},
-  month      = jun,
-  pages      = {197–208},
-  numpages   = {12},
-  keywords   = {fuzz testing, compiler testing, random testing, compiler defect, bug reporting, test-case reduction, automated testing}
-}
-
 @inproceedings{TamingCompilerFuzzers,
   author    = {Chen, Yang and Groce, Alex and Zhang, Chaoqiang and Wong, Weng-Keen and Fern, Xiaoli and Eide, Eric and Regehr, John},
   title     = {Taming Compiler Fuzzers},
@@ -105,7 +85,7 @@
   title     = {QuickCheck: A Lightweight Tool for Random Testing of Haskell Programs},
   year      = {2000},
   publisher = {Association for Computing Machinery},
-  url       = {https://doi.org/10.1145/357766.351266},
+  url       = {https://www.cs.tufts.edu/~nr/cs257/archive/john-hughes/quick.pdf},
   doi       = {10.1145/357766.351266},
   journal   = {Proceedings of the Fifth ACM SIGPLAN International Conference on Functional Programming}
 }
@@ -184,11 +164,20 @@
 @misc{Fuzz2020,
   title         = {The Relevance of Classic Fuzz Testing: Have We Solved This One?},
   author        = {Barton P. Miller and Mengxiao Zhang and Elisa R. Heymann},
-  url           = {https://arxiv.org/pdf/2008.06537.pdf},
   year          = {2020},
   eprint        = {2008.06537},
   archiveprefix = {arXiv},
   primaryclass  = {cs.SE}
+}
+
+@inproceedings{AFL++,
+  author    = {Andrea Fioraldi and Dominik Maier and Heiko Ei{\ss}feldt and Marc Heuse},
+  title     = {AFL++ : Combining Incremental Steps of Fuzzing Research},
+  booktitle = {14th {USENIX} Workshop on Offensive Technologies ({WOOT} 20)},
+  year      = {2020},
+  url       = {https://www.usenix.org/system/files/woot20-paper-fioraldi.pdf},
+  publisher = {{USENIX} Association},
+  month     = aug
 }
 
 @article{AFLFast,
@@ -243,8 +232,7 @@
   year          = {2018},
   eprint        = {1812.11875},
   archiveprefix = {arXiv},
-  primaryclass  = {cs.CR},
-  url           = {https://arxiv.org/pdf/1812.11875.pdf}
+  primaryclass  = {cs.CR}
 }
 
 @inproceedings{AFLgo,
@@ -271,8 +259,7 @@
   year          = {2020},
   eprint        = {2004.14375},
   archiveprefix = {arXiv},
-  primaryclass  = {cs.SE},
-  url           = {https://arxiv.org/pdf/2004.14375.pdf}
+  primaryclass  = {cs.SE}
 }
 
 @inproceedings{MOpt-AFL,
@@ -476,4 +463,34 @@
   volume    = {},
   number    = {},
   pages     = {1597-1612}
+}
+
+@inproceedings{Ankou,
+  author    = {Valentin J. M. Man{\`{e}}s and Soomin Kim and Sang Kil Cha},
+  title     = {Ankou: Guiding Grey-box Fuzzing towards Combinatorial Difference},
+  booktitle = {Proceedings of the International Conference on Software Engineering},
+  pages     = {1024--1036},
+  year      = {2020},
+  url       = {https://www.jiliac.com/files/ankou-icse2020.pdf}
+}
+
+@misc{wang2020sok,
+  title         = {SoK: The Progress, Challenges, and Perspectives of Directed Greybox Fuzzing},
+  author        = {Pengfei Wang and Xu Zhou and Kai Lu and Yingying Liu and Tai Yue},
+  year          = {2020},
+  eprint        = {2005.11907},
+  archiveprefix = {arXiv},
+  primaryclass  = {cs.CR}
+}
+
+@article{InputsFromHell,
+  author  = {Soremekun, Ezekiel and Pavese, Esteban and Havrikov, Nikolas and Grunske, Lars and Zeller, Andreas},
+  year    = {2020},
+  month   = {08},
+  pages   = {1-1},
+  title   = {Inputs from Hell Learning Input Distributions for Grammar-Based Test Generation},
+  volume  = {PP},
+  journal = {IEEE Transactions on Software Engineering},
+  doi     = {10.1109/TSE.2020.3013716},
+  url     = {https://publications.cispa.saarland/3167/7/inputs-from-hell.pdf}
 }

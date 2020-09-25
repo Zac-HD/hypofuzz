@@ -357,3 +357,12 @@ class CrossOverMutator(Mutator):
         )
         assert isinstance(buffer, bytes)
         return buffer
+
+
+class RadamsaMutator(Mutator):
+    # TODO: based on https://github.com/tsundokul/pyradamsa
+    # I *expect* this to be useful mostly for evaluation, and I'd rather not
+    # have the dependency, but I guess it could surprise me.
+    # (expectation/evaluation is to quantify the advantages of structure-aware
+    # mutation given Hypothesis' designed-for-that IR format)
+    pass

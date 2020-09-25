@@ -44,8 +44,8 @@ with almost no configuration and a robust design applicable to any project,
 AFL saw much wider adoption and therefore impact than previous tools.
 
 Since 2017, `AFL++ has been maintained by the community <https://aflplus.plus/>`__
-with a variety of bugfixes, patches, and additional features many of which are
-covered below.
+:cite:`AFL++` with a variety of bugfixes, patches, and additional features - many of
+which are covered below.
 
 
 LibFuzzer
@@ -227,6 +227,16 @@ goal; preferring large (add, delete, splice, etc.) operations while distant and 
 (e.g. bitflip) when closer.
 
 
+Inputs from Hell
+~~~~~~~~~~~~~~~~
+
+:cite:`InputsFromHell` generates inputs matching a grammar, with a twist: by observing
+the frequency with which various generation choices appear in a sample, you can
+*invert* this distribution to instead generate dissimilar inputs.  While partly
+subsumed by rare-branch-targeting tricks (under scheduling inputs, below), this trick
+might also have some synergistic effects.
+
+
 
 Scheduling inputs
 -----------------
@@ -263,6 +273,7 @@ code paths, areas flagged as bug-prone by static analysis, functions seen in log
 errors to reproduce a crash, etc.
 TOFU :cite:`TOFU` also exploits input structure, and claims that this is substantially
 responsible for it's -40% improvement over AFL-go.
+:cite:`wang2020sok` survey the state-of-the-art in directed greybox fuzzing as of  mid-2020.
 
 HypoFuzz could get the control-flow graph from coverage.py, which tracks possible arcs
 in order to report un-covered branches, so the implementation is straightforward.
@@ -380,7 +391,7 @@ function).  The ``IJON_MAX`` macro is equivalent to :func:`hypothesis:hypothesis
 similar to FuzzFactory above.
 
 IJON is particularly notable for winning 29 out of 32 *Super Mario Bros* levels,
-a feat more typically of dedicated reinforcement learning systems, as well as
+a feat more typical of dedicated reinforcement learning systems, as well as
 fuzzing a Trusted Platform Module, complex format parsers, mazes, and a hash map.
 
 
@@ -426,6 +437,16 @@ coverage, to n-gram-coverage (chains of branches, when standard branch coverage 
 full path coverage, and several others.  Due to resource limits - time, memory, compute -
 no metric dominates all others, suggesting that adapting the metric per-target might
 be helpful.
+
+
+Compressing coverage information
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Ankou :cite:`Ankou` measures coverage of the *number of times* each branch was executed,
+i.e. order-insensitive path coverage, rather than the more typical *boolean* was each
+branch executed (1 or more times).  To manage the very large number of covering inputs,
+they use a dynamic distance-based metric to retain only dissimilar inputs rather than
+all covering inputs.
 
 
 
@@ -489,5 +510,8 @@ sign of the relationship wrong due to random noise.
 
 References
 ----------
+
+*While not all the referenced papers are open access, they
+do all have freely accessible PDFs.  Enjoy!*
 
 .. bibliography:: literature.bib
