@@ -1,4 +1,4 @@
-Development Roadmap
+Development roadmap
 ===================
 
 HypoFuzz is both an active research project and a production-ready tool.
@@ -42,9 +42,9 @@ The command-line interface will not make incompatible changes without at least
 three months notice, during which passing deprecated options will emit runtime
 warnings (e.g. via the terminal, displayed on the dashboard, etc.).
 
-Integration points with Hypothesis, such as the
+User-accesible integration points with Hypothesis, such as the
 :class:`~hypothesis:hypothesis.database.ExampleDatabase` API, are considered
-stable upstream and are very unlikely to change.
+stable upstream and are unlikely to change even in major version releases.
 
 If it is impractical to continue to support old versions of Hypothesis (or other
 dependencies) after a major update, the minimum supported version will be updated.

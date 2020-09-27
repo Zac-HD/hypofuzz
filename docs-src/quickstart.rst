@@ -33,7 +33,8 @@ or from a ``requirements.txt`` file like
     hypofuzz >= 20.08.1
     ...
 
-with ``<YOUR_TOKEN>`` being the access token issued to you (see :doc:`pricing`).
+with ``<YOUR_TOKEN>`` being the access token issued to you
+(see `pricing <https://hypofuzz.com/pricing>`__).
 
 
 

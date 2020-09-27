@@ -1,17 +1,22 @@
 HypoFuzz documentation
 ======================
 
-If you're writing tests with Hypothesis, HypoFuzz takes them to the next
-level: where property-based testing fits into your edit-test-commit or CI
-cycle, smart fuzzing gives you an effective way to spend compute time
-looking for bugs.
+:pypi:`Hypothesis` is free and open-source software, and always will be.
+It's proven itself invaluable for everyone - from students to high-school
+teachers, astrophysicists to data scientists, web developers to systems
+programmers, and even for hardware designers.
+
+HypoFuzz builds on that success: if you have Hypothesis tests, HypoFuzz
+gives you a fantastic way to spend CPU time - instead of engineering time -
+to find bugs early in your development cycle.
 
 
 .. toctree::
     :maxdepth: 2
 
+    Main website <https://hypofuzz.com/>
     quickstart
-    pricing
+    Pricing <https://hypofuzz.com/pricing/>
     features
     configuration
     roadmap
