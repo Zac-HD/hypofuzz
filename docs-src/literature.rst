@@ -462,8 +462,9 @@ The argument that this works by allowing specialised fuzzers to build on each ot
 work, including iteratively, is compelling.
 
 It's less clear how to leverage this for HypoFuzz, since there aren't many other
-fuzzers targeting Hypothesis tests.  You could use :pypi:`python-afl` or
-:pypi:`pythonfuzz` on :hydocs:`.fuzz_one_input <details.html#use-with-external-fuzzers>`
+fuzzers targeting Hypothesis tests.  You could use :pypi:`python-afl`,
+:pypi:`pythonfuzz`, or `python-hfuzz <https://github.com/thebabush/python-hfuzz>`__
+on Hypothesis' :hydocs:`.fuzz_one_input <details.html#use-with-external-fuzzers>` hook
 if you were careful enough about the database location; I intend to evaluate this
 approach but don't expect an advantage from adding structure-naive fuzzers.
 
