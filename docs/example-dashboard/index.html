@@ -22,6 +22,7 @@
 
     <!-- Bootstrap core CSS -->
     <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="./dashboard-table.css" rel="stylesheet">
 </head>
 
 <body>
@@ -55,129 +56,132 @@
         </nav>
     </div>
 
-    <h1>Dashboard Demo</h1>
-    <div style="max-width: 50em">
-        <p>
-            Unless you start it with <code>--no-dashboard</code>, HypoFuzz serves a live dashboard
-            to give an overview of runtime statistics and let you know when it finds failing examples.
-            This page is an interactive snapshot of an early version of the dashboard, fuzzing the well-tested
-            <a href="https://pypi.org/project/hypothesis-jsonschema/"><code>hypothesis-jsonschema</code></a>
-            library. Even after running hundreds of property-based tests for several CPU-months, HypoFuzz
-            found multiple new bugs overnight - with those same tests!
-        </p>
-        <p>
-            The graph and table show <a href="https://coverage.readthedocs.io/en/stable/api_coveragedata.html">
-                the number of covered arcs</a> discovered for each target. In the live dashboard, the backing
-            data is updated on every 100th input, or immediately when new coverage is discovered.
-        </p>
-    </div>
+    <div class="container">
+        <h1>Dashboard Demo</h1>
+        <div class="alert alert-dismissible alert-light">
+            <p>
+                Unless you start it with <code>--no-dashboard</code>, HypoFuzz serves a live dashboard
+                to give an overview of runtime statistics and let you know when it finds failing examples.
+                This page is an interactive snapshot of an early version of the dashboard, fuzzing the well-tested
+                <a href="https://pypi.org/project/hypothesis-jsonschema/"><code>hypothesis-jsonschema</code></a>
+                library. Even after running hundreds of property-based tests for several CPU-months, HypoFuzz
+                found multiple new bugs overnight - with those same tests!
+            </p>
+            <i>
+                The graph shows the number of covered branches ("arcs") discovered for each test.
+                In the local dashboard, it updates in real time as HypoFuzz runs.
+            </i>
+        </div>
 
-    <embed type="text/html" src="figure.html" width="100%" height="600">
+        <embed type="text/html" src="figure.html" width="100%" height="850">
 
-    <table id="summary-table-rows">
-        <tr>
-            <th>nodeid</th>
-            <th>ninputs</th>
-            <th>since new cov</th>
-            <th>arcs</th>
-            <th>estimated value</th>
-            <th>note</th>
-        </tr>
-        <tr>
-            <td>test_canonical.py::test_can_almost_always_merge_numeric_schemas</td>
-            <td>32</td>
-            <td></td>
-            <td>889</td>
-            <td></td>
-            <td>found failing example</td>
-        </tr>
-        <tr>
-            <td>test_canonical.py::test_canonical_json_encoding</td>
-            <td>100</td>
-            <td>83</td>
-            <td>171</td>
-            <td>0.011904761904761904</td>
-            <td></td>
-        </tr>
-        <tr>
-            <td>test_canonical.py::test_canonicalises_to_equivalent_fixpoint[any-schema]</td>
-            <td>1500</td>
-            <td></td>
-            <td>3075</td>
-            <td></td>
-            <td>found failing example</td>
-        </tr>
-        <tr>
-            <td>test_canonical.py::test_canonicalises_to_equivalent_fixpoint[array-schema]</td>
-            <td>1300</td>
-            <td>15</td>
-            <td>3167</td>
-            <td>0.0625</td>
-            <td></td>
-        </tr>
-        <tr>
-            <td>test_canonical.py::test_canonicalises_to_equivalent_fixpoint[enum-schema]</td>
-            <td>200</td>
-            <td>105</td>
-            <td>206</td>
-            <td>0.009433962264150943</td>
-            <td>replaying saved examples</td>
-        </tr>
-        <tr>
-            <td>test_canonical.py::test_canonicalises_to_equivalent_fixpoint[integer-schema]</td>
-            <td>400</td>
-            <td>17</td>
-            <td>855</td>
-            <td>0.05555555555555555</td>
-            <td></td>
-        </tr>
-        <tr>
-            <td>test_canonical.py::test_canonicalises_to_equivalent_fixpoint[number-schema]</td>
-            <td>400</td>
-            <td>20</td>
-            <td>1025</td>
-            <td>0.047619047619047616</td>
-            <td></td>
-        </tr>
-        <tr>
-            <td>test_canonical.py::test_canonicalises_to_equivalent_fixpoint[object-schema]</td>
-            <td>1508</td>
-            <td></td>
-            <td>3746</td>
-            <td></td>
-            <td>found failing example</td>
-        </tr>
-        <tr>
-            <td>test_canonical.py::test_canonicalises_to_equivalent_fixpoint[string-schema]</td>
-            <td>300</td>
-            <td>34</td>
-            <td>1705</td>
-            <td>0.02857142857142857</td>
-            <td>replaying saved examples</td>
-        </tr>
-        <tr>
-            <td>test_canonical.py::test_merge_semantics</td>
-            <td>62</td>
-            <td></td>
-            <td>2613</td>
-            <td></td>
-            <td>found failing example</td>
-        </tr>
-        <tr>
-            <td>test_canonical.py::test_self_merge_eq_canonicalish</td>
-            <td>33</td>
-            <td></td>
-            <td>1627</td>
-            <td></td>
-            <td>found failing example</td>
-        </tr>
-    </table>
-    <hr>
-    <div>
-        <strong>
-            Want to learn more?
-            <a href="../docs/quickstart.html">Check out the quickstart guide &raquo;</a>
-        </strong>
+        <div class="alert alert-dismissible alert-light">
+            <i>The summary table gives an overview for each test, and links to subpages with more detail.</i>
+        </div>
+
+        <table id="summary-table-rows">
+            <tr>
+                <th>nodeid</th>
+                <th>elapsed time</th>
+                <th>ninputs</th>
+                <th>since new cov</th>
+                <th>arcs</th>
+                <th>note</th>
+            </tr>
+            <tr>
+                <td><a href="./passing.html">tests/test_canonicalise.py::test_merge_semantics
+                </td>
+                <td>0:04:40</td>
+                <td>3300</td>
+                <td>418</td>
+                <td>4422</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>
+                    <a href="./failing.html">
+                        tests/test_canonicalise.py::test_can_almost_always_merge_numeric_schemas
+                    </a>
+                </td>
+                <td>0:00:28</td>
+                <td>1374</td>
+                <td></td>
+                <td>1148</td>
+                <td>raised OverflowError</td>
+            </tr>
+            <tr>
+                <td>tests/test_canonicalise.py::test_canonicalises_to_equivalent_fixpoint[any-schema]
+                </td>
+                <td>0:02:04</td>
+                <td>2318</td>
+                <td></td>
+                <td>3495</td>
+                <td>raised AssertionError</td>
+            </tr>
+            <tr>
+                <td>tests/test_canonicalise.py::test_canonicalises_to_equivalent_fixpoint[array-schema]
+                </td>
+                <td>0:05:18</td>
+                <td>8000</td>
+                <td>4088</td>
+                <td>3796</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>tests/test_canonicalise.py::test_canonicalises_to_equivalent_fixpoint[enum-schema]
+                </td>
+                <td>0:05:15</td>
+                <td>15300</td>
+                <td>14803</td>
+                <td>1448</td>
+                <td>replaying saved examples</td>
+            </tr>
+            <tr>
+                <td>tests/test_canonicalise.py::test_canonicalises_to_equivalent_fixpoint[integer-schema]
+                </td>
+                <td>0:00:03</td>
+                <td>204</td>
+                <td></td>
+                <td>1286</td>
+                <td>raised AssertionError</td>
+            </tr>
+            <tr>
+                <td>tests/test_canonicalise.py::test_canonicalises_to_equivalent_fixpoint[number-schema]
+                </td>
+                <td>0:00:17</td>
+                <td>1000</td>
+                <td></td>
+                <td>1483</td>
+                <td>raised AssertionError</td>
+            </tr>
+            <tr>
+                <td>tests/test_canonicalise.py::test_canonicalises_to_equivalent_fixpoint[object-schema
+                </td>
+                <td>0:05:23</td>
+                <td>4200</td>
+                <td>276</td>
+                <td>4000</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>tests/test_canonicalise.py::test_canonicalises_to_equivalent_fixpoint[string-schema]
+                </td>
+                <td>0:04:53</td>
+                <td>14000</td>
+                <td>7519</td>
+                <td>2892</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>tests/test_canonicalise.py::test_self_merge_eq_canonicalish
+                </td>
+                <td>0:05:55</td>
+                <td>5000</td>
+                <td>1854</td>
+                <td>4027</td>
+                <td></td>
+            </tr>
+        </table>
     </div>
 </body>
 

@@ -294,6 +294,7 @@ class FuzzProcess:
         report: Report = {
             "nodeid": self.nodeid,
             "elapsed_time": self.elapsed_time,
+            "timestamp": time.time(),
             "ninputs": self.ninputs,
             "arcs": len(self.pool.arc_counts),
             "since new cov": self.since_new_cov,

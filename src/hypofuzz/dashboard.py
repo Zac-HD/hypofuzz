@@ -1,6 +1,7 @@
 """Live web dashboard for a fuzzing run."""
 import datetime
 import json
+import os
 from typing import List, Tuple
 
 import black
@@ -14,21 +15,34 @@ from dash.dependencies import Input, Output
 DATA_TO_PLOT = [{"nodeid": "", "elapsed_time": 0, "ninputs": 0, "arcs": 0}]
 LAST_UPDATE = {}
 
+DEMO_JSON_FILE = ".hypothesis/dashboard-demo-data.json"
+DEMO_SAVED_DATA: List[dict] = []
+DEMO_MODE = os.environ.get("_HYPOFUZZ_DEMO_MODE") == "true"
+RECORD_MODE = os.environ.get("_HYPOFUZZ_RECORD_MODE") == "true"
+assert not (DEMO_MODE and RECORD_MODE)
+
 headings = ["nodeid", "elapsed time", "ninputs", "since new cov", "arcs", "note"]
 app = flask.Flask(__name__)
 
 
 @app.route("/", methods=["POST"])
-def add_data() -> Tuple[str, int]:
+def recv_data() -> Tuple[str, int]:
+    assert not DEMO_MODE
     data = flask.request.json
     if not isinstance(data, list):
         data = [data]
     for d in data:
-        DATA_TO_PLOT.append(
-            {k: d[k] for k in ["nodeid", "elapsed_time", "ninputs", "arcs"] if k in d}
-        )
-        LAST_UPDATE[d["nodeid"]] = d
+        add_data(d)
     return "", 200
+
+
+def add_data(d: dict) -> None:
+    if RECORD_MODE:
+        DEMO_SAVED_DATA.append(d)
+    DATA_TO_PLOT.append(
+        {k: d[k] for k in ["nodeid", "elapsed_time", "ninputs", "arcs"] if k in d}
+    )
+    LAST_UPDATE[d["nodeid"]] = d
 
 
 external_stylesheets = ["https://codepen.io/chriddyp/pen/bWLwgP.css"]
@@ -89,6 +103,28 @@ def try_format(code: str) -> str:
         return code
 
 
+def update_data_for_demo_mode() -> None:
+    if RECORD_MODE:
+        with open(DEMO_JSON_FILE, mode="w") as f:
+            json.dump(DEMO_SAVED_DATA, indent=4, fp=f)
+
+    if not DEMO_MODE:
+        return
+    global DEMO_START_TIME
+    if len(DATA_TO_PLOT) <= 1:
+        with open(DEMO_JSON_FILE) as f:
+            DEMO_SAVED_DATA.extend(json.load(f))
+        DEMO_SAVED_DATA.sort(key=lambda d: -d.get("timestamp", 0))
+
+    if DEMO_SAVED_DATA:
+        stop_at_timestamp = DEMO_SAVED_DATA[-1].get("timestamp", 0) + 10
+        while (
+            DEMO_SAVED_DATA
+            and DEMO_SAVED_DATA[-1].get("timestamp", 0) <= stop_at_timestamp
+        ):
+            add_data(DEMO_SAVED_DATA.pop())
+
+
 @board.callback(  # type: ignore
     Output("page-content", "children"),
     [Input("url", "pathname")],
@@ -121,6 +157,10 @@ def display_page(pathname: str) -> html.Div:
     )
     fig1.update_layout(updatemenus=UPDATEMENUS)
     fig2.update_layout(updatemenus=UPDATEMENUS)
+    if RECORD_MODE:
+        slug = pathname.split("::")[-1]
+        fig1.write_html(f".hypothesis/{slug}-fig1.html", include_plotlyjs="cdn")
+        fig2.write_html(f".hypothesis/{slug}-fig2.html", include_plotlyjs="cdn")
     last_update = LAST_UPDATE[trace[-1]["nodeid"]]
     add: List[str] = []
     if "failures" in last_update:
@@ -129,7 +169,7 @@ def display_page(pathname: str) -> html.Div:
             add.extend(html.Pre(children=[html.Code(children=[x])]) for x in failures)
     return html.Div(
         children=[
-            dcc.Link("Back to home", href="/"),
+            dcc.Link("Back to main dashboard", href="/"),
             html.P(
                 children=[
                     "Example count by status: ",
@@ -139,7 +179,7 @@ def display_page(pathname: str) -> html.Div:
             html.Table(
                 children=[
                     html.Tr(
-                        [html.Th(h) for h in headings[1:]] + [html.Th(["Seed count"])]
+                        [html.Th(h) for h in headings[1:]] + [html.Th(["seed count"])]
                     ),
                     row_for(last_update, False, len(last_update.get("seed_pool", []))),
                 ]
@@ -167,6 +207,7 @@ def display_page(pathname: str) -> html.Div:
     [Input("interval-component", "n_intervals")],
 )
 def update_graph_live(n: int) -> object:
+    update_data_for_demo_mode()
     fig = px.line(
         DATA_TO_PLOT,
         x="ninputs",
@@ -185,6 +226,8 @@ def update_graph_live(n: int) -> object:
         legend_y=-0.08,
         legend_x=0,
     )
+    if RECORD_MODE:
+        fig.write_html(".hypothesis/figure.html", include_plotlyjs="cdn")
     # Setting this to a constant prevents data updates clobbering zoom / selections
     fig.layout.uirevision = "this key never changes"
     return fig
@@ -195,8 +238,6 @@ def update_graph_live(n: int) -> object:
     [Input("interval-component", "n_intervals")],
 )
 def update_table_live(n: int) -> object:
-    # with open(".hypothesis/dump.json", mode="w") as f:
-    #     json.dump([LAST_UPDATE, DATA_TO_PLOT], indent=4, fp=f)
     return [html.Tr([html.Th(h) for h in headings])] + [
         row_for(data) for name, data in sorted(LAST_UPDATE.items()) if name
     ]
@@ -210,7 +251,5 @@ def start_dashboard_process(
 
 
 if __name__ == "__main__":
-    # for debugging
-    with open(".hypothesis/dump.json") as f:
-        LAST_UPDATE, DATA_TO_PLOT = json.load(f)
+    assert DEMO_MODE
     start_dashboard_process(port=9999, debug=True)
