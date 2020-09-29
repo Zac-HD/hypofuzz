@@ -18,17 +18,6 @@
     <!-- Bootstrap core CSS -->
     <link href="css/bootstrap.min.css" rel="stylesheet">
 
-    <!-- Favicons -->
-    <link rel="apple-touch-icon" href="/docs/4.5/assets/img/favicons/apple-touch-icon.png" sizes="180x180">
-    <link rel="icon" href="/docs/4.5/assets/img/favicons/favicon-32x32.png" sizes="32x32" type="image/png">
-    <link rel="icon" href="/docs/4.5/assets/img/favicons/favicon-16x16.png" sizes="16x16" type="image/png">
-    <link rel="manifest" href="/docs/4.5/assets/img/favicons/manifest.json">
-    <link rel="mask-icon" href="/docs/4.5/assets/img/favicons/safari-pinned-tab.svg" color="#563d7c">
-    <link rel="icon" href="/docs/4.5/assets/img/favicons/favicon.ico">
-    <meta name="msapplication-config" content="/docs/4.5/assets/img/favicons/browserconfig.xml">
-    <meta name="theme-color" content="#563d7c">
-
-
     <style>
         .bd-placeholder-img {
             font-size: 1.125rem;
@@ -97,7 +86,6 @@
     </div>
     <main role="main">
 
-        <!-- Main jumbotron for a primary marketing message or call to action -->
         <div class="jumbotron">
             <div class="container">
                 <h1 class="display-3">HypoFuzz</h1>
@@ -110,7 +98,6 @@
                     We're currently in closed beta, so if you want to learn more please subscribe to our mailing list!
                 </p>
 
-                <!-- Begin Mailchimp Signup Form -->
                 <div id="mc_embed_signup">
                     <form
                         action="https://hypofuzz.us17.list-manage.com/subscribe/post?u=7c7cccd93480e9b723c4696ee&amp;id=e6284f13ed"
@@ -134,53 +121,55 @@
                         </div>
                     </form>
                 </div>
-
-                <!-- <p><a class="btn btn-primary btn-lg" href="#" role="button">Learn more &raquo;</a></p> -->
             </div>
         </div>
 
         <div class="container">
-            <!-- Example row of columns -->
             <div class="row">
-                <div class="col-md-4">
+                <div class="col-md-4 d-flex flex-column">
                     <h2>Hypothesis</h2>
                     <p>
                         Hypothesis is world-leading library for property-based testing, and used by thousands of
                         companies and Python projects who are serious about finding bugs.
-                    </p>
-                    <p><a class="btn btn-secondary" href="https://hypothesis.works" role="button">Learn more &raquo;</a>
-                    </p>
+                    </p><a class="mt-auto btn btn-secondary" href="https://hypothesis.works" role="button">Learn more
+                        &raquo;</a>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-4 d-flex flex-column">
                     <h2>Documentation</h2>
                     <p>
                         HypoFuzz fits seamlessly into your workflow, with a familiar CLI and
                         <a href="./example-dashboard/">a live dashboard</a> to monitor progress.
                         Any questions about how to get set up to find bugs, or reproduce bugs that you've found?
                         Our docs have you covered.
-                    </p>
-                    <p><a class="btn btn-secondary" href="docs/" role="button">Read the docs &raquo;</a></p>
+                    </p><a class="mt-auto btn btn-secondary" href="docs/" role="button">Read the docs &raquo;</a>
                 </div>
-                <div class="col-md-4">
-                    <h2>Pricing</h2>
+                <div class="col-md-4 d-flex flex-column">
+                    <h2>Get started</h2>
                     <p>
                         Whether you're a corporate team or a community nonprofit, we've got a plan for you.
                         And if you want an expert to help you get started - or unstuck - we also offer
                         consulting.
                     </p>
-                    <p><a class="btn btn-secondary" href="./pricing/" role="button">View pricing &raquo;</a></p>
+                    <a class="mt-auto btn btn-secondary" href="./pricing/" role="button">View pricing &raquo;</a>
                 </div>
             </div>
-
-            <hr>
-
-        </div> <!-- /container -->
+        </div>
 
     </main>
 
-    <footer class="container">
-        <p>&copy; Zac Hatfield-Dodds 2020</p>
+    <footer class="footer">
+        <div class="container text-right">
+            <hr>
+            <!--
+            TODO: have these pages
+            <a href="/legal/about">About</a>
+            <a href="/legal/privacy">Privacy</a>
+            <a href="/legal/terms">Terms</a>
+            -->
+            <p>&copy; <a href="https://zhd.dev">Zac Hatfield-Dodds</a> 2020</p>
+        </div>
     </footer>
+
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"
         integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj"
         crossorigin="anonymous"></script>

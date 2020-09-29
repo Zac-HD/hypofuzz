@@ -71,3 +71,7 @@ Then Flatly theme from https://bootswatch.com/flatly/ replaces bootstrap.min.css
 And then go to boostrap examples to copy and paste snippets and assembly webpage.
 
 For human-oriented graphics, open source, https://www.humaaans.com/
+
+https://saaspages.xyz/ collects examples of standard pages from SAAS businesses
+
+https://www.checklist.design/ is, well, design checklists
