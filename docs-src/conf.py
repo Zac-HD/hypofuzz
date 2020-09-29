@@ -49,30 +49,8 @@ extlinks = {
 html_title = "HypoFuzz docs"
 html_theme = "sphinx_rtd_theme"
 html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
+html_theme_options = {"analytics_id": "UA-176879127-1"}
 # html_favicon = "favicon.ico"
 # html_logo = ""  # path to the project logo, for the top of the sidebar, ~200px
 html_baseurl = "https://hypofuzz.com/docs/"
 html_show_sphinx = False
-
-
-# -- Inline plugin to add Google Analytics js, modelled on sphinxcontrib-googleanalytics
-
-ANALYTICS_JS = """
-  <!-- Global site tag (gtag.js) - Google Analytics -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=UA-176879127-1"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag() { dataLayer.push(arguments); }
-    gtag('js', new Date());
-    gtag('config', 'UA-176879127-1');
-  </script>
-"""
-
-
-def add_ga_javascript(app, pagename, templatename, context, doctree):
-    context["metatags"] = context.get("metatags", "") + ANALYTICS_JS
-
-
-def setup(app):
-    app.connect("html-page-context", add_ga_javascript)
-    return {"version": "1.0.0", "parallel_read_safe": True}
