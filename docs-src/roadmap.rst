@@ -93,6 +93,18 @@ Main wishlist item: good support for starting the dashboard and worker processes
 separately.
 
 
+Observability ideas
++++++++++++++++++++
+
+- Cuumulative and per-input coverage reports like :command:`coverage html`
+- Compare branch-hit frequency between blackbox and mutational modes, to assist
+  in designing strategies (inspired by `this blog post
+  <https://hexgolems.com/2020/08/on-measuring-and-visualizing-fuzzer-performance/>`__).
+- `Abstracting away inputs <https://youtu.be/Wy7qY5ms3qY?t=2058>`__ like
+  e.g. `gamozolabs/cookie_dough <https://github.com/gamozolabs/cookie_dough>`__
+- integrate a time-travelling debugger like https://pytrace.com/
+
+
 Fuzzing machinery
 ~~~~~~~~~~~~~~~~~
 
