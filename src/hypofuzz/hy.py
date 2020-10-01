@@ -252,7 +252,7 @@ class FuzzProcess:
             data.extra_information.call_repr = (
                 self.__test_fn.__name__ + "(" + ", ".join(argstrings) + ")"
             )
-            data.extra_information.reports = "\n".join(reports)
+            data.extra_information.reports = "\n".join(map(str, reports))
 
         # In addition to coverage arcs, use psudeo-coverage information provided via
         # the `hypothesis.event()` function - exploiting user-defined partitions
