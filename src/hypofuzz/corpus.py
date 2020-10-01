@@ -100,6 +100,7 @@ class Pool:
 
         # To show the current state of the pool in the dashboard
         self.json_report: List[List[str]] = []
+        self._in_distill_phase = False
 
     def __repr__(self) -> str:
         rs = {b: r.extra_information.arcs for b, r in self.results.items()}
@@ -135,13 +136,6 @@ class Pool:
     @property
     def _fuzz_key(self) -> bytes:
         return self._key + b".fuzz"
-
-    @property
-    def _covered_arcs(self) -> Dict[bytes, Set[Arc]]:
-        out: Dict[bytes, Set[Arc]] = {}
-        for arc, buf in self.covering_buffers.items():
-            out.setdefault(buf, set()).add(arc)
-        return out
 
     def add(self, result: ConjectureResult) -> Optional[bool]:
         """Update the corpus with the result of running a test.
@@ -276,26 +270,36 @@ class Pool:
            try again if they did not reach a fixpoint.  Almost all of the structures
            we're using can be mutated in the process, so it can get strange.
         """
+        self._in_distill_phase = True
         self._check_invariants()
-        covered_arcs = self._covered_arcs
-        while set(covered_arcs) - self.__shrunk_to_buffers:
-            for buf in sorted(covered_arcs, key=sort_key):
-                while (
-                    covered_arcs[buf]
-                    and buf in self.results
-                    and buf not in self.__shrunk_to_buffers
-                ):
-                    arc_to_shrink = covered_arcs[buf].pop()
-                    shrinker = Shrinker(
-                        EngineStub(fn, random),
-                        self.results[buf],
-                        predicate=lambda d: arc_to_shrink in d.extra_information.arcs,
-                        allow_transition=None,
-                    )
-                    shrinker.shrink()
-                    self.__shrunk_to_buffers.add(shrinker.shrink_target.buffer)
-            covered_arcs = self._covered_arcs
-        self._check_invariants()
+        minimal_arcs = {
+            arc
+            for arc, buf in self.covering_buffers.items()
+            if buf in self.__shrunk_to_buffers
+        }
+        while set(self.covering_buffers) - minimal_arcs:
+            # The "largest first" shrinking order is designed to maximise the rate
+            # of incidental progress, where shrinking hard problems stumbles over
+            # smaller starting points for the easy ones.
+            arc_to_shrink = max(
+                set(self.covering_buffers) - minimal_arcs,
+                key=lambda a: sort_key(self.covering_buffers[a]),
+            )
+            shrinker = Shrinker(
+                EngineStub(fn, random),
+                self.results[self.covering_buffers[arc_to_shrink]],
+                predicate=lambda d: arc_to_shrink in d.extra_information.arcs,
+                allow_transition=None,
+            )
+            shrinker.shrink()
+            self.__shrunk_to_buffers.add(shrinker.shrink_target.buffer)
+            minimal_arcs |= {
+                arc
+                for arc, buf in self.covering_buffers.items()
+                if buf == shrinker.shrink_target.buffer
+            }
+            self._check_invariants()
+        self._in_distill_phase = False
 
 
 class Mutator(abc.ABC):
