@@ -182,7 +182,7 @@ class FuzzProcess:
         if self.ninputs % 1000 == 0 and self.since_new_cov > 1000:
             self._replay_buffer.extend(self.pool.fetch())
 
-        seen_count = len(self.pool.arc_counts)
+        # seen_count = len(self.pool.arc_counts)
 
         # Run the input
         result = self._run_test_on(self.generate_prefix())
@@ -203,9 +203,12 @@ class FuzzProcess:
             and not self._replay_buffer
         ):
             self._early_blackbox_mode = False
-            seen_count = 0
-        if len(self.pool.arc_counts) > seen_count and not self._early_blackbox_mode:
-            self.pool.distill(self._run_test_on, self.random)
+            # seen_count = 0
+
+        # NOTE: this distillation logic works fine, it's just discovering new coverage
+        # much more slowly than jumping directly to mutational mode.
+        # if len(self.pool.arc_counts) > seen_count and not self._early_blackbox_mode:
+        #     self.pool.distill(self._run_test_on, self.random)
 
     def _run_test_on(self, buffer: bytes) -> ConjectureData:
         """Run the test_fn on a given buffer of bytes, in a way a Shrinker can handle.
