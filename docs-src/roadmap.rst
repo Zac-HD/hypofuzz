@@ -108,8 +108,6 @@ Observability ideas
 Fuzzing machinery
 ~~~~~~~~~~~~~~~~~
 
-- reduce memory usage to allow long runs with many targets
-- performance profiling to pick up any low-hanging improvements
 - implement `predictive fuzzing like Pythia <https://github.com/mboehme/pythia>`__,
   and use that for prioritization (currently number of inputs since last discovery)
 - (maybe) support moving targets between processes; could be more efficient in the
@@ -142,4 +140,3 @@ but we can probably also do better.
   coverage metrics (e.g. length-n path segments, callstack-aware coverage, etc.)
 
 - fuzz arbitrary scores with :func:`hypothesis:hypothesis.target()` (see FuzzFactory)
-

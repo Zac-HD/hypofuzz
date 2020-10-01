@@ -1,5 +1,6 @@
 """Adaptive fuzzing for property-based tests using Hypothesis."""
 
+import sys
 from typing import Any, Dict, FrozenSet, Set
 
 import attr
@@ -95,3 +96,32 @@ class CollectionContext:
         # This would also need to handle the not-under-coverage case, for both
         # correctness and performance.
         # coverage.Coverage.current()._data.update(self.cov._data)
+
+
+class CustomCollectionContext:
+    """Collect coverage data as a context manager.
+
+    The context manager can be reused; each use updates the ``.arcs``
+    attribute which will be reset on next use.
+
+    TODO: excluding Hypothesis (and fuzz) files from tracing as well
+            as results would be a small performance upgrade.
+    """
+
+    def trace(self, frame, event, arg):
+        if event == "line":
+            fname = frame.f_code.co_filename
+            if not is_hypothesis_file(fname):
+                this = (fname, frame.f_lineno)
+                self.arcs.add((self.last, this))
+                self.last = this
+        return self.trace
+
+    def __enter__(self) -> None:
+        self.last = None
+        self.arcs: Set[Arc] = set()
+        self.prev_trace = sys.gettrace()
+        sys.settrace(self.trace)
+
+    def __exit__(self, _type: Exception, _value: object, _traceback: object) -> None:
+        sys.settrace(self.prev_trace)

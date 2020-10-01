@@ -28,7 +28,7 @@ from hypothesis.reporting import with_reporter
 from sortedcontainers import SortedKeyList
 
 from .corpus import BlackBoxMutator, CrossOverMutator, EngineStub, Pool
-from .cov import Arc, CollectionContext
+from .cov import Arc, CustomCollectionContext
 
 Report = Dict[str, Union[int, float, str, list, Dict[str, int]]]
 
@@ -215,7 +215,7 @@ class FuzzProcess:
         """
         start = time.perf_counter()
         self.ninputs += 1
-        collector = CollectionContext()
+        collector = CustomCollectionContext()
         reports: List[str] = []
         argstrings: List[str] = []
         data = ConjectureData(max_length=BUFFER_SIZE, prefix=buffer, random=self.random)
@@ -300,7 +300,9 @@ class FuzzProcess:
             "since new cov": self.since_new_cov,
             "status_counts": self.status_counts,
             "seed_pool": self.pool.json_report,
-            "note": "replaying saved examples" if self._replay_buffer else "",
+            "note": "replaying saved examples"
+            if self._replay_buffer
+            else ("shrinking known examples" if self.pool._in_distill_phase else ""),
         }
         if self.pool.interesting_examples:
             report[
