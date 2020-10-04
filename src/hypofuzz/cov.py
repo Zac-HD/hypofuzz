@@ -1,7 +1,7 @@
 """Adaptive fuzzing for property-based tests using Hypothesis."""
 
 import sys
-from typing import Any, Dict, FrozenSet, Set
+from typing import Any, Dict, FrozenSet, Optional, Set
 
 import attr
 import coverage
@@ -108,7 +108,9 @@ class CustomCollectionContext:
             as results would be a small performance upgrade.
     """
 
-    def trace(self, frame, event, arg):
+    last: Optional[tuple]
+
+    def trace(self, frame: Any, event: Any, arg: Any) -> Any:
         if event == "line":
             fname = frame.f_code.co_filename
             if not is_hypothesis_file(fname):
@@ -119,7 +121,7 @@ class CustomCollectionContext:
 
     def __enter__(self) -> None:
         self.last = None
-        self.arcs: Set[Arc] = set()
+        self.arcs: Set[tuple] = set()
         self.prev_trace = sys.gettrace()
         sys.settrace(self.trace)
 

@@ -28,7 +28,7 @@ from hypothesis.reporting import with_reporter
 from sortedcontainers import SortedKeyList
 
 from .corpus import BlackBoxMutator, CrossOverMutator, EngineStub, Pool
-from .cov import Arc, CustomCollectionContext
+from .cov import CustomCollectionContext
 
 Report = Dict[str, Union[int, float, str, list, Dict[str, int]]]
 
@@ -259,7 +259,7 @@ class FuzzProcess:
         # designed for diagnostic output to guide generation.  See
         # https://hypothesis.readthedocs.io/en/latest/details.html#hypothesis.event
         data.extra_information.arcs = frozenset(collector.arcs).union(
-            Arc.make(event_str, 0, 0)
+            event_str  # type: ignore  # events aren't arcs, but that's OK
             for event_str in map(str, data.events)
             if not event_str.startswith("Retried draw from ")
             or event_str.startswith("Aborted test because unable to satisfy ")
