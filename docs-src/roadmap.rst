@@ -86,8 +86,6 @@ Monitoring and reporting
 
 The `current dashboard <https://hypofuzz.com/example-dashboard/>`__ is a good
 start, but there's plenty of room for improvement.
-Note that the web version does not show elapsed time, or the details page for
-each test.
 
 Main wishlist item: good support for starting the dashboard and worker processes
 separately.
@@ -128,8 +126,6 @@ Guiding towards what?
 Typically, fuzzers haven't really been guided towards new arcs (src-dest branches)
 as they have been good at exploiting them once found at random.  We can do that,
 but we can probably also do better.
-
-- prioritize under-explored arcs, afl-fast or fairfuzz style
 
 - use CFG from :pypi:`coverage` to tell if new branches are actually available
   from a given path.  If not, we can hit it less often.

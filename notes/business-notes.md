@@ -1,17 +1,10 @@
 # hypofuzz business notes
 
-TODO: update landing page, add image (of dashboard), add Hypothesis testimonials, create pricing page and remove the docs version.
+TODO: update landing page, add image (of dashboard), add Hypothesis testimonials
 
 TODO: use a static site generator to generate the frontpage, pricing page, etc.
 or on investigation, just write HTML, Pelican is rather blog-focussed and I have
 rather few non-docs pages.
-
-
-current best plan: flat-rate monthly pricing ($249/month?, annual option) for unlimited use on your own servers.  Or price by number of employees...
-
-Thinking in plans: Freelancer $99, Team $249, Business $999, and Enterprise (call us).
-
-Offer concierge onboarding for Business or an annual signup for Team.  (and at least initially, reach out to everyone for a chat anyway)
 
 
 
