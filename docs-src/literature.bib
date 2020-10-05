@@ -71,7 +71,6 @@
   address   = {New York, NY, USA},
   url       = {http://www.cs.utah.edu/~regehr/papers/pldi13.pdf},
   doi       = {10.1145/2491956.2462173},
-  abstract  = {Aggressive random testing tools ("fuzzers") are impressively effective at finding compiler bugs. For example, a single test-case generator has resulted in more than 1,700 bugs reported for a single JavaScript engine. However, fuzzers can be frustrating to use: they indiscriminately and repeatedly find bugs that may not be severe enough to fix right away. Currently, users filter out undesirable test cases using ad hoc methods such as disallowing problematic features in tests and grepping test results. This paper formulates and addresses the fuzzer taming problem: given a potentially large number of random test cases that trigger failures, order them such that diverse, interesting test cases are highly ranked. Our evaluation shows our ability to solve the fuzzer taming problem for 3,799 test cases triggering 46 bugs in a C compiler and 2,603 test cases triggering 28 bugs in a JavaScript engine.},
   booktitle = {Proceedings of the 34th ACM SIGPLAN Conference on Programming Language Design and Implementation},
   pages     = {197–208},
   numpages  = {12},
@@ -127,7 +126,6 @@
   address   = {New York, NY, USA},
   url       = {https://www.cs.utah.edu/~regehr/papers/swarm12.pdf},
   doi       = {10.1145/2338965.2336763},
-  abstract  = { Swarm testing is a novel and inexpensive way to improve the diversity of test cases generated during random testing. Increased diversity leads to improved coverage and fault detection. In swarm testing, the usual practice of potentially including all features in every test case is abandoned. Rather, a large “swarm” of randomly generated configurations, each of which omits some features, is used, with configurations receiving equal resources. We have identified two mechanisms by which feature omission leads to better exploration of a system’s state space. First, some features actively prevent the system from executing interesting behaviors; e.g., “pop” calls may prevent a stack data structure from executing a bug in its overflow detection logic. Second, even when there is no active suppression of behaviors, test features compete for space in each test, limiting the depth to which logic driven by features can be explored. Experimental results show that swarm testing increases coverage and can improve fault detection dramatically; for example, in a week of testing it found 42% more distinct ways to crash a collection of C compilers than did the heavily hand-tuned default configuration of a random tester. },
   booktitle = {Proceedings of the 2012 International Symposium on Software Testing and Analysis},
   pages     = {78–88},
   numpages  = {11},
@@ -147,7 +145,6 @@
   issn       = {0001-0782},
   url        = {ftp://ftp.cs.wisc.edu/paradyn/technical_papers/fuzz.pdf},
   doi        = {10.1145/96267.96279},
-  abstract   = {The following section describes the tools we built to test the utilities. These tools include the fuzz (random character) generator, ptyjig (to test interactive utilities), and scripts to automate the testing process. Next, we will describe the tests we performed, giving the types of input we presented to the utilities. Results from the tests will follow along with an analysis of the results, including identification and classification of the program bugs that caused the crashes. The final section presents concluding remarks, including suggestions for avoiding the types of problems detected by our study and some commentary on the bugs we found. We include an Appendix with the user manual pages for fuzz and ptyjig.},
   journal    = {Commun. ACM},
   month      = dec,
   pages      = {32–44},
@@ -244,7 +241,6 @@
   address   = {New York, NY, USA},
   url       = {https://mboehme.github.io/paper/CCS17.pdf},
   doi       = {10.1145/3133956.3134020},
-  abstract  = {Existing Greybox Fuzzers (GF) cannot be effectively directed, for instance, towards problematic changes or patches, towards critical system calls or dangerous locations, or towards functions in the stack-trace of a reported vulnerability that we wish to reproduce. In this paper, we introduce Directed Greybox Fuzzing (DGF) which generates inputs with the objective of reaching a given set of target program locations efficiently. We develop and evaluate a simulated annealing-based power schedule that gradually assigns more energy to seeds that are closer to the target locations while reducing energy for seeds that are further away. Experiments with our implementation AFLGo demonstrate that DGF outperforms both directed symbolic-execution-based whitebox fuzzing and undirected greybox fuzzing. We show applications of DGF to patch testing and crash reproduction, and discuss the integration of AFLGo into Google's continuous fuzzing platform OSS-Fuzz. Due to its directedness, AFLGo could find 39 bugs in several well-fuzzed, security-critical projects like LibXML2. 17 CVEs were assigned.},
   booktitle = {Proceedings of the 2017 ACM SIGSAC Conference on Computer and Communications Security},
   pages     = {2329–2344},
   numpages  = {16},
@@ -313,6 +309,15 @@
   year      = {2020},
   publisher = {Association for Computing Machinery},
   url       = {https://mboehme.github.io/paper/FSE20.EmpiricalLaw.pdf},
+  booktitle = {Proceedings of the ACM European Software Engineering Conference and Symposium on the Foundations of Software Engineering (ESEC/FSE) 2020}
+}
+
+@inproceedings{Entropic,
+  author    = {B\"{o}hme, Marcel and Falk, Brandon},
+  title     = {Boosting Fuzzer Efficiency: An Information Theoretic Perspective},
+  year      = {2020},
+  publisher = {Association for Computing Machinery},
+  url       = {https://mboehme.github.io/paper/FSE20.Entropy.pdf},
   booktitle = {Proceedings of the ACM European Software Engineering Conference and Symposium on the Foundations of Software Engineering (ESEC/FSE) 2020}
 }
 
@@ -488,9 +493,107 @@
   year    = {2020},
   month   = {08},
   pages   = {1-1},
-  title   = {Inputs from Hell Learning Input Distributions for Grammar-Based Test Generation},
+  title   = {Inputs from Hell: Learning Input Distributions for Grammar-Based Test Generation},
   volume  = {PP},
   journal = {IEEE Transactions on Software Engineering},
   doi     = {10.1109/TSE.2020.3013716},
   url     = {https://publications.cispa.saarland/3167/7/inputs-from-hell.pdf}
+}
+
+@misc{Cupid,
+  author    = {G{\"u}ler, Emre and G{\"o}rz, Philipp and Geretto, Elia and Jemmett, Andrea and {\"O}sterlund, Sebastian and Bos, Herbert and Giuffrida, Cristiano and Holz, Thorste},
+  title     = {Cupid: Automatic Fuzzer Selection for Collaborative Fuzzing},
+  publisher = {ACM},
+  year      = {2020},
+  month     = {December},
+  booktitle = {Annual Computer Security Applications Conference (ACSAC), ACM, 2020},
+  address   = {Austin, USA},
+  doi       = {10.1145/3427228.3427266},
+  isbn      = {978-1-4503-8858-0/20/12 },
+  url       = {https://www.ei.ruhr-uni-bochum.de/media/emma/veroeffentlichungen/2020/09/26/ACSAC20-Cupid_TiM9H07.pdf}
+}
+
+@inproceedings{DART,
+  author    = {Godefroid, Patrice and Klarlund, Nils and Sen, Koushik},
+  title     = {DART: Directed Automated Random Testing},
+  year      = {2005},
+  isbn      = {1595930566},
+  publisher = {Association for Computing Machinery},
+  address   = {New York, NY, USA},
+  url       = {https://patricegodefroid.github.io/public_psfiles/pldi2005.pdf},
+  doi       = {10.1145/1065010.1065036},
+  booktitle = {Proceedings of the 2005 ACM SIGPLAN Conference on Programming Language Design and Implementation},
+  pages     = {213–223},
+  numpages  = {11},
+  keywords  = {software testing, random testing, interfaces, program verification, automated test generation},
+  location  = {Chicago, IL, USA},
+  series    = {PLDI '05}
+}
+
+@inproceedings{CUTE,
+  author    = {Sen, Koushik and Marinov, Darko and Agha, Gul},
+  title     = {CUTE: A Concolic Unit Testing Engine for C},
+  year      = {2005},
+  isbn      = {1595930140},
+  publisher = {Association for Computing Machinery},
+  address   = {New York, NY, USA},
+  url       = {http://mir.cs.illinois.edu/marinov/publications/SenETAL05CUTE.pdf},
+  doi       = {10.1145/1081706.1081750},
+  booktitle = {Proceedings of the 10th European Software Engineering Conference Held Jointly with 13th ACM SIGSOFT International Symposium on Foundations of Software Engineering},
+  pages     = {263–272},
+  numpages  = {10},
+  keywords  = {random testing, testing C programs, unit testing, concolic testing, data structure testing, explicit path model-checking},
+  location  = {Lisbon, Portugal},
+  series    = {ESEC/FSE-13}
+}
+
+@inproceedings{SAGE,
+  title     = {Automated Whitebox Fuzz Testing},
+  author    = {Godefroid, Patrice and Levin, Michael Y and Molnar, David A and others},
+  booktitle = {NDSS},
+  volume    = {8},
+  pages     = {151--166},
+  year      = {2008},
+  url       = {https://patricegodefroid.github.io/public_psfiles/ndss2008.pdf}
+}
+
+@inproceedings{PAFL,
+  author    = {Liang, Jie and Jiang, Yu and Chen, Yuanliang and Wang, Mingzhe and Zhou, Chijin and Sun, Jiaguang},
+  title     = {PAFL: Extend Fuzzing Optimizations of Single Mode to Industrial Parallel Mode},
+  year      = {2018},
+  isbn      = {9781450355735},
+  publisher = {Association for Computing Machinery},
+  address   = {New York, NY, USA},
+  url       = {http://wingtecher.com/themes/WingTecherResearch/assets/papers/fse18-pafl.pdf},
+  doi       = {10.1145/3236024.3275525},
+  booktitle = {Proceedings of the 2018 26th ACM Joint Meeting on European Software Engineering Conference and Symposium on the Foundations of Software Engineering},
+  pages     = {809–814},
+  numpages  = {6},
+  keywords  = {Software testing, Parallel, Fuzzing},
+  location  = {Lake Buena Vista, FL, USA},
+  series    = {ESEC/FSE 2018}
+}
+
+@misc{HowToMisuseCoverage,
+  author = {Brian Marick},
+  title  = {How to Misuse Code Coverage},
+  year   = {1997},
+  url    = {http://www.exampler.com/testing-com/writings/coverage.pdf}
+}
+
+@inproceedings{CoverageDiscontents,
+  author    = {Groce, Alex and Alipour, Mohammad Amin and Gopinath, Rahul},
+  title     = {Coverage and Its Discontents},
+  year      = {2014},
+  isbn      = {9781450332101},
+  publisher = {Association for Computing Machinery},
+  address   = {New York, NY, USA},
+  url       = {https://agroce.github.io/onwardessays14.pdf},
+  doi       = {10.1145/2661136.2661157},
+  booktitle = {Proceedings of the 2014 ACM International Symposium on New Ideas, New Paradigms, and Reflections on Programming & Software},
+  pages     = {255–268},
+  numpages  = {14},
+  keywords  = {testing, coverage, evaluation},
+  location  = {Portland, Oregon, USA},
+  series    = {Onward! 2014}
 }

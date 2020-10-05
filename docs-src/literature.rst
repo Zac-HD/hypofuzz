@@ -64,7 +64,7 @@ Property-based testing
 ----------------------
 
 It's common to observe that property-based testing (PBT) is conceptually
-related to fuzzing - see for example Dan Luu's `AFL ~ QuickCheck = ?
+related to fuzzing - see for example Dan Luu's `AFL + QuickCheck = ?
 <https://danluu.com/testing/>`__ or Nelson Elhage's `Property-Based Testing Is Fuzzing
 <https://blog.nelhage.com/post/property-testing-is-fuzzing/>`__ and
 `Property Testing Like AFL <https://blog.nelhage.com/post/property-testing-like-afl/>`__.
@@ -297,8 +297,8 @@ maximal coverage, and a difficulty metric.  These metrics are obviously of inter
 to users, and can also be used to schedule those targets with the highest expected
 value - maximising the overall rate of progress.
 
-Applying this scheduling insight to seeds rather than targets yields `Entropic (preprint)
-<https://mboehme.github.io/paper/FSE20.Entropy.pdf>`__, which prioritizes those seeds
+Applying this scheduling insight to seeds rather than targets yields Entropic
+:cite:`Entropic`, which prioritizes those seeds
 which maximise the rate of discovery of new information about the behaviour of the
 fuzzed program.  This shows `substantial improvement over baseline LibFuzzer
 <https://www.fuzzbench.com/reports/2020-05-24/index.html>`__, and is now heavily used
@@ -399,6 +399,29 @@ fuzzing a Trusted Platform Module, complex format parsers, mazes, and a hash map
 Coverage
 --------
 
+Before diving in to the use of coverage information as feedback for test-case generation
+in fuzzers, it's worth covering the use of code coverage in a software development cycle.
+
+*How to Misuse Code Coverage* :cite:`HowToMisuseCoverage` still resonates:
+"I wouldn’t have written four coverage tools if I didn’t think they’re helpful.
+But they’re only helpful if they’re used to *enhance* thought, not *replace* it.".
+More than 20 years later, `code coverage best practices
+<https://testing.googleblog.com/2020/08/code-coverage-best-practices.html>`__
+from the Google Testing Blog gives similar advice.
+
+*Coverage and its discontents* :cite:`CoverageDiscontents` explores the role of coverage
+metrics in test-suite evaluation, and argues that there is an underlying uncertainty as
+to what exactly measuring coverage should achieve, how we would know if it can, and what
+we as researchers and developers can do about it.
+
+`Verification, coverage and maximization: the big picture
+<https://blog.foretellix.com/2016/12/23/verification-coverage-and-maximization-the-big-picture/>`__
+aims to explain coverage is used to optimize the verification process, what it means to
+auto-maximize coverage, and how people have tried to do it - from a background in
+hardware design, which brings an instructively different perspective to analogous problems.
+(similar to Dan Luu's `AFL + QuickCheck = ? <https://danluu.com/testing/>`__, above)
+
+
 Reducing coverage overhead by rewriting the target
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -461,6 +484,13 @@ joint performance (given equal resources), and makes the performance much more r
 The argument that this works by allowing specialised fuzzers to build on each other's
 work, including iteratively, is compelling.
 
+Cupid :cite:`Cupid` demonstrates significant practical advances in ensemble fuzzing,
+defining a *complementarity* metric (union of the expected value of the set of covered
+branches for each fuzzer).  This allows for efficient selection of fuzzers to be ensembled
+based only on 'solo' runs of each.  Because Cupid leaves seed scheduling to future work
+and is based on target-independent characterisation, this technique is used to design
+HypoFuzz 'tactics' but not for runtime adaptation.
+
 It's less clear how to leverage this for HypoFuzz, since there aren't many other
 fuzzers targeting Hypothesis tests.  You could use :pypi:`python-afl`,
 :pypi:`pythonfuzz`, or `python-hfuzz <https://github.com/thebabush/python-hfuzz>`__
@@ -473,10 +503,44 @@ key to effective fuzzing.  Knowing that in advance though, we can build our sing
 fuzzer to execute a mixture of the relevant behaviours with the desired distribution,
 and even make that distribution adaptive with respect to each target.
 
-At the science-fiction end of things, it *might* be possible to interoperate with
-:pypi:`crosshair-tool` - a SMT-solver based whitebox fuzzer for Python - and
-parse a restricted set of Python objects back into the IR which would generate
-them from a given Hypothesis strategy.  That's nowhere near the roadmap, though.
+
+Hybrid concrete/symbolic fuzzing
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This literature review has largely ignored symbolic execution, because support for
+Python is at a very early stage and does not scale to real-world programs.
+
+For native code, *concolic execution* - tools which combine concrete and symbolic
+execution of tests - date back to DART :cite:`DART` and CUTE :cite:`CUTE` in 2005;
+while Microsoft's SAGE :cite:`SAGE` found `roughly one-third of all the bugs
+<https://queue.acm.org/detail.cfm?id=2094081>`__ discovered by file fuzzing during
+the development of Windows 7 - running *after* static analysis and other fuzzers.
+
+Inputs synthesised by symbolic or concolic approaches could provide the initial
+seed pool for a classic mutational fuzzer.  While :pypi:`crosshair-tool` provides
+a prototype SMT-solver based whitebox fuzzer for Python, serialising Python objects
+back into the bytes which would produce them from a given strategy is impossible
+in the general case.  It's a tempting challenge, but any practical implementation
+would probably be too restricted to be of much use on real workloads.
+
+
+Scaling fuzzers up to many cores
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The `scaling behaviour of fuzzers is often neglected
+<https://gamozolabs.github.io/2020/08/11/some_fuzzing_thoughts.html#scaling>`__,
+which can make academic evaluations running on single cores misleading as users
+in industry run campaigns on tens, hundreds, or even thousands of cores.
+For example, classic AFL quickly (5-20 cores) bottlenecks on ``fork()``,
+and adding more than 40 cores may *reduce total throughput*.
+IO bottlenecks are also common in filesystem accesses for ensemble fuzzing campaigns.
+
+:cite:`PAFL` finds that this problem is *worse* among more advanced fuzzers -
+if you share seeds but not e.g. the branch hit-counts for AFL-Fast, each process
+must duplicate the discovery process.  P-AFL adds a mechanism for global sharing
+of guidance information as well as seeds, and additionally focusses each process
+on fuzzing a subset of the branches in the program - which diversifies the search
+process and effectively ensembles variants of a single base fuzzer.
 
 
 Visualising fuzzer performance
