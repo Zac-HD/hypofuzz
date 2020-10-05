@@ -1,6 +1,7 @@
 """Adaptive fuzzing for property-based tests using Hypothesis."""
 
 import abc
+import enum
 import math
 from random import Random
 from typing import (
@@ -29,6 +30,12 @@ from hypothesis.internal.conjecture.shrinker import Shrinker
 from sortedcontainers import SortedDict
 
 from .cov import Arc
+
+
+class HowGenerated(enum.Enum):
+    blackbox = "blackbox"
+    mutation = "mutation"
+    shrinking = "shrinking"
 
 
 def sort_key(buffer: Union[bytes, ConjectureResult]) -> Tuple[int, bytes]:
@@ -137,7 +144,7 @@ class Pool:
     def _fuzz_key(self) -> bytes:
         return self._key + b".fuzz"
 
-    def add(self, result: ConjectureResult) -> Optional[bool]:
+    def add(self, result: ConjectureResult, source: HowGenerated) -> Optional[bool]:
         """Update the corpus with the result of running a test.
 
         Returns None for invalid examples, False if no change, True if changed.

@@ -5,7 +5,7 @@ from types import SimpleNamespace
 from hypothesis import given, note, strategies as st
 from hypothesis.database import InMemoryExampleDatabase
 
-from hypofuzz.corpus import Arc, ConjectureResult, Pool, Status
+from hypofuzz.corpus import Arc, ConjectureResult, HowGenerated, Pool, Status
 
 
 def arcs(
@@ -33,12 +33,20 @@ def results(statuses=st.sampled_from(Status)) -> st.SearchStrategy[ConjectureRes
     )
 
 
-@given(st.lists(results(statuses=st.just(Status.VALID)), unique_by=lambda r: r.buffer))
+@given(
+    st.lists(
+        st.tuples(
+            results(statuses=st.just(Status.VALID)),
+            st.sampled_from(HowGenerated),
+        ),
+        unique_by=lambda r: r[0].buffer,
+    )
+)
 def test_automatic_distillation(ls):
     total_coverage = set()
     pool = Pool(database=InMemoryExampleDatabase(), key=b"")
-    for res in ls:
-        pool.add(res)
+    for res, how in ls:
+        pool.add(res, how)
         note(repr(pool))
         pool._check_invariants()
         total_coverage.update(res.extra_information.arcs)

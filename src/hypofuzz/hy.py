@@ -27,7 +27,7 @@ from hypothesis.internal.reflection import function_digest
 from hypothesis.reporting import with_reporter
 from sortedcontainers import SortedKeyList
 
-from .corpus import BlackBoxMutator, CrossOverMutator, EngineStub, Pool
+from .corpus import BlackBoxMutator, CrossOverMutator, EngineStub, HowGenerated, Pool
 from .cov import CustomCollectionContext
 
 Report = Dict[str, Union[int, float, str, list, Dict[str, int]]]
@@ -210,7 +210,9 @@ class FuzzProcess:
         # if len(self.pool.arc_counts) > seen_count and not self._early_blackbox_mode:
         #     self.pool.distill(self._run_test_on, self.random)
 
-    def _run_test_on(self, buffer: bytes) -> ConjectureData:
+    def _run_test_on(
+        self, buffer: bytes, source: HowGenerated = HowGenerated.shrinking
+    ) -> ConjectureData:
         """Run the test_fn on a given buffer of bytes, in a way a Shrinker can handle.
 
         In normal operation, it's called via run_one (above), but we might also
@@ -269,7 +271,7 @@ class FuzzProcess:
         # Update the pool and report any changes immediately for new coverage.  If no
         # new coverage, occasionally send an update anyway so we don't look stalled.
         self.status_counts[data.status.name] += 1
-        if self.pool.add(data.as_result()):
+        if self.pool.add(data.as_result(), source):
             self.since_new_cov = 0
         else:
             self.since_new_cov += 1
