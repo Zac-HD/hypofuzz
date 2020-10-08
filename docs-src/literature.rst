@@ -282,6 +282,11 @@ I'm inclined to initially stick to zero-config direction towards recent patches 
 lines flagged by e.g. :pypi:`flake8`; though the balance between directed and general
 exploration might take some tuning.
 
+Directed swarm testing :cite:`DirectedSwarmTesting` takes a slightly different approach:
+it is assumed that *some* randomly generated test cases will execute the target code,
+and so the goal is to increase that proportion by biasing the swarm configuration
+towards including 'trigger' features and omitting 'suppressors'.
+
 
 Predictive fuzzing, scaling laws, & when to stop
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
