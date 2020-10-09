@@ -39,3 +39,4 @@ https://www.fit.vut.cz/study/thesis/23094/.en - masters thesis based on schemath
 https://arxiv.org/pdf/1912.09686.pdf - QuickRest, based on Clojure.spec
 https://2019.icse-conferences.org/details/icse-2019-Technical-Papers/6/REST-ler-Stateful-REST-API-Fuzzing
 https://www.microsoft.com/en-us/research/publication/rest-ler-automatic-intelligent-rest-api-fuzzing/
+https://pypi.org/project/fuzz-lightyear/
