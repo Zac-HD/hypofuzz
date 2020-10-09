@@ -28,3 +28,14 @@ link to related ideas in grammar-based fuzzing (by e.g. Andreas Zeller)
 
 model-based stateful testing needs some explication
 contrast shrinking/reduction vs normalisation vs generalisation
+
+
+lots of interest in schema-based testing of web APIs.  See
+https://dygalo.dev/blog/schemathesis-progress-report/
+https://schemathesis.readthedocs.io/en/stable/index.html
+https://github.com/IBM/service-validator is built on top of Schemathesis
+
+https://www.fit.vut.cz/study/thesis/23094/.en - masters thesis based on schemathesis
+https://arxiv.org/pdf/1912.09686.pdf - QuickRest, based on Clojure.spec
+https://2019.icse-conferences.org/details/icse-2019-Technical-Papers/6/REST-ler-Stateful-REST-API-Fuzzing
+https://www.microsoft.com/en-us/research/publication/rest-ler-automatic-intelligent-rest-api-fuzzing/
