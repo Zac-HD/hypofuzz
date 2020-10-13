@@ -47,12 +47,12 @@ And as a bonus, you'll get useful summary statistics when running Hypothesis!
 The Hypothesis database
 -----------------------
 
-The hypothesis database forms the basis of HypoFuzz workflows: failing examples
+The Hypothesis database forms the basis of HypoFuzz workflows: failing examples
 can be reproduced automatically just by running the tests - because those inputs
-are added to the database and replayed by hypothesis itself.
+are added to the database and replayed by Hypothesis itself.
 
 It is therefore critical that the fuzzer is using the *same* database as
-hypothesis - regardless of how or where you run it.
+Hypothesis - regardless of how or where you run it.
 
 :hydocs:`Hypothesis' default database <database.html>` is designed to persist
 failing examples on a single developer's machine, and does so via the filesystem.

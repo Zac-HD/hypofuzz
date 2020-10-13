@@ -2,8 +2,9 @@ Summary of related research
 ===========================
 
 HypoFuzz is built on, and inspired by, a wide range of research and practice
-in software testing and verification.  This page summarises selected parts
-of that literature, with opinionated comments.
+in software testing and verification.  This page summarises and comments on
+selected parts of that literature, focussing on papers which are in some sense
+prior art for fuzzing property-based tests for Python.
 
 .. contents::
     :local:
@@ -161,7 +162,7 @@ recent tools have built on top of this to provide both `fuzzing
 <https://github.com/project-oak/rust-verification-tools>`__ with (almost) the same
 user-facing API.
 
-I'd *like* to support the latter too - e.g. via :pypi:`crosshair-tool` - but sadly
+We'd *like* to support the latter too - e.g. via :pypi:`crosshair-tool` - but sadly
 Python is a much harder target than machine code for symbolic verification and this
 is more like science fiction than a roadmap item.
 
@@ -278,7 +279,7 @@ responsible for it's -40% improvement over AFL-go.
 HypoFuzz could get the control-flow graph from coverage.py, which tracks possible arcs
 in order to report un-covered branches, so the implementation is straightforward.
 The tradeoff between simplicity and power-requiring-configuration is less obvious;
-I'm inclined to initially stick to zero-config direction towards recent patches and/or
+we're inclined to initially stick to zero-config direction towards recent patches and/or
 lines flagged by e.g. :pypi:`flake8`; though the balance between directed and general
 exploration might take some tuning.
 
@@ -346,8 +347,8 @@ reduction to calculate the minimal example for each feature of interest - covere
 branch, high score from :func:`hypothesis:hypothesis.target`, etc. - and uses
 this as a basis for further fuzzing as well as reporting failing examples.
 
-I am unaware of previous work which uses this approach or evaluates it in
-comparison to less-intensive distillation.  I expect that it works very well
+We are unaware of previous work which uses this approach or evaluates it in
+comparison to less-intensive distillation.  We expect that it works very well
 if-and-only-if combined with generative and structure-aware fuzzing, to allow
 for exploitation of the covering structure without unduely standardising
 unrelated parts of the input, and characterising this is one of my ongoing
@@ -367,7 +368,7 @@ for edge-case inputs which may be mishandled by the other, using joint instead o
 independent coverage has similar advantages to that of ensemble fuzzing.
 
 This is relatively easy to implement using :pypi:`coverage` dynamic contexts and
-a context manager or decorator API *within a given process*; while I'd also like
+a context manager or decorator API *within a given process*; while we'd also like
 to support differential coverage between Python versions or operating systems
 that will require some deeper changes to HypoFuzz's execution model.
 
@@ -500,10 +501,10 @@ It's less clear how to leverage this for HypoFuzz, since there aren't many other
 fuzzers targeting Hypothesis tests.  You could use :pypi:`python-afl`,
 :pypi:`pythonfuzz`, or `python-hfuzz <https://github.com/thebabush/python-hfuzz>`__
 on Hypothesis' :hydocs:`.fuzz_one_input <details.html#use-with-external-fuzzers>` hook
-if you were careful enough about the database location; I intend to evaluate this
+if you were careful enough about the database location; we intend to evaluate this
 approach but don't expect an advantage from adding structure-naive fuzzers.
 
-I think the general lesson is more like that of swarm testing: diversity is the
+We think the general lesson is more like that of swarm testing: diversity is the
 key to effective fuzzing.  Knowing that in advance though, we can build our single
 fuzzer to execute a mixture of the relevant behaviours with the desired distribution,
 and even make that distribution adaptive with respect to each target.

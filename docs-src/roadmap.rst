@@ -3,10 +3,10 @@ Development roadmap
 
 HypoFuzz is both an active research project and a production-ready tool.
 
-I believe that this dual nature is a strength for both: users get to leverage
+We believe that this dual nature is a strength for both: users get to leverage
 a tool based on cutting-edge research, but also ensure that the problems it
 solves are ones that really matter.  There's a lot of applied research out
-there which never makes the translation to practice - and I don't intend to
+there which never makes the translation to practice - and we don't intend to
 add to it.
 
 
