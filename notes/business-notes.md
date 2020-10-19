@@ -6,6 +6,8 @@ TODO: use a static site generator to generate the frontpage, pricing page, etc.
 or on investigation, just write HTML, Pelican is rather blog-focussed and I have
 rather few non-docs pages.
 
+GitLab has a nice fuzzing roadmap:
+https://about.gitlab.com/direction/secure/fuzz-testing/fuzz-testing/
 
 
 ## Corporate structure

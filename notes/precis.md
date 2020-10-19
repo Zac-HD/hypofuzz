@@ -15,21 +15,16 @@ and fixed costs reasonably low.
 
 
 # Company description
-I intend to but have not yet formed a company for this venture, and am seeking professional
-advice on the corporate structure I should use.
+I have formed a company, "ZHD Technologies Pty Ltd", to run the operations for this
+venture, while retaining all intellectual property in my own name.  I am the sole
+member (shareholder) and director of the company, and expect to be the sole regular
+contributor to the business and product for at least the next two years.
 
-I (Zac Hatfield-Dodds) will be the sole director, 2/3 shareholder, and responsible for
-both technical and business execution.  I expect to be the sole regular contributor
-for at least the next two years.
-
-The remaining 1/3 share is for David MacIver, the UK-based founder of the open source
-project Hypothesis (I am the 'second author'; there are ~200 few-time contributors).
-HypoFuzz is very tightly linked to Hypothesis - David may eventually join the company
-full-time, but over the medium term will contribute his expertise in developing the technology,
-as well as continuing to maintain Hypothesis, and promote both use of HypoFuzz and
-the ongoing health of their integration.
-
-The details are still under discussion, but will obviously need to be agreed in writing.
+In the "growing" scenario (below), David MacIver may join the company.  David founded
+the open source Hypothesis project (I am the 'second author'; there are ~200 few-time
+contributors) which HypoFuzz is based on.  In the meantime, he will occasionally
+contribute his expertise in developing the technology, continue to maintain Hypothesis,
+and promote both use of HypoFuzz and the ongoing health of their integration.
 
 
 ## Intellectual property
@@ -140,7 +135,7 @@ make it immaterial compared to the uncertainty in e.g. revenue outcomes.
 
 ## Costs
 Selling subscription software licenses, the marginal unit costs are trivial.  One-off setup
-costs (web domain registration, company formation, etc.) are around $1000.
+costs (web domain registration, company formation, etc.) are around $2000.
 I estimate monthly fixed costs of $50 to $200 for distribution, website maintainence,
 G-Suite (Google email and documents), and Xero.
 
