@@ -36,3 +36,14 @@ contrast shrinking/reduction vs normalisation vs generalisation
 
 For Hypothesmith - section 3 has tables of related tools and papers
 https://software-lab.org/publications/csur2019_compiler_testing.pdf
+
+
+investigate https://github.com/laike9m/Cyberbrain for observability
+
+
+
+OneFuzz notes
+- pivoting from a hacker bolton to part of developer tooling
+- "everyone wants fuzzing, but also agrees it's hard and expensive in terms of engineer time"
+- I should publish a table of fuzzing tasks and categorise which HypoFuzz does for you
+
