@@ -1,0 +1,114 @@
+# Launch Plan - Nov-Dec 2020
+
+As of late October, ZHD Technologies Pty Ltd exists (!), and so it's time to
+work out the launch plan.  At a high level, this involves:
+
+- Pre-launch setup and conversations
+- "Soft launch", building up automation and organic growth drivers
+- "Public launch", the low-marginal-input steady state
+
+The remainder of this document goes into more detail about each phase of the
+launch, and will later include some notes about how it went.
+
+
+## 0-1: Finish setup, early conversations
+The goal of this stage: go from "owning a company" to "running a small business".
+
+Specifically, that means that ZHD Tech. can and does take money from one customer
+to deliver a product.  In turn, that means that a high priority for early in the
+week is to
+
+- [x] set up GSuite for emails like sales@hypofuzz.com
+- [ ] get a business bank account
+    - [ ] Talk to Kathy, Bendigo, Bank Aus, Papendrea; choose account
+    - [ ] Set up account and make initial deposit
+    - [ ] Configure GSuite billing
+- [ ] Xero subscription for bookeeping and invoicing
+    - [ ] Work with Papendrea to get everything linked and set up
+
+Before that's finished, I also want to start some conversations with highly
+qualified leads on corporate dev teams about
+
+- Non-negotiable features (e.g. `unittest` support)
+- 'Killer features' which would result in an immediate sale
+- How HypoFuzz would fit into their development cycle (who uses it and when)
+- What questions the documentation doesn't answer
+- Would you help with feedback, research (bug numbers), a testimonial?
+
+Specific people to reach out to - prominent open source Hypothesis users
+at tech companies:
+
+- [ ] Instagram's LibCST team
+- [ ] Paul Ganssle @ Google New York
+- [ ] Nikita Sobolev (https://drylabs.io/ and https://wemake.services/meta/)
+- [ ] Rob Smallshire, https://sixty-north.com/
+- [ ] Yelp `fuzz-lightyear` team (ask for followup call after Schemathesis)
+
+
+
+
+## Soft Launch: cover costs and confirm viability
+The goal of this stage is to validate basic product-market fit, cover recurring
+costs, and get ready for public launch.  Tactically, this includes resolving any
+serious customed objections, and skipping as much of the 'saas ramp' as possible
+by doing things that don't scale to acquire early customers.
+
+
+### Build inbound links
+This drives credibility, long-term customer acquisition, and hands-off growth.
+
+- [ ] Sprinkle links through Hypothesis documentation where appropriate
+- [ ] Add links to my personal site
+- [ ] Check 'Stop Writing Tests' talk descriptions
+- [ ] Ask Louise, ?? to proofread website
+- Reach out to ask bloggers who wrote about Hypothesis + Fuzzing for a link
+    - [ ] https://danluu.com/testing/
+    - [ ] https://blog.nelhage.com/post/property-testing-is-fuzzing/
+      and https://blog.nelhage.com/post/property-testing-like-afl/
+    - [ ] https://hypothesis.works/articles/what-is-property-based-testing/
+    - ???
+
+
+### Automate onboarding
+Reducing the marginal cost in my time to onboard a customer is nice,
+but the real goal is minimal friction (ie sales funnel losses).
+
+- [ ] Set up a Stripe-based checkout flow
+- [ ] Automatic key issuance - does this need different distribution?
+
+
+## More outreach
+Directed outreach to qualified leads i.e. Hypothesis users.  Corporate users
+get a "hey you use Hypothesis, why not fuzz your tests" sales pitch.
+Credible non-commercial users get "are you interested in a free licence,
+I'd love to hear what you think" and then asked for blog post/link/testimonial
+if they take it up.  Small OSS projects don't get contacted.
+
+- [ ] Hypothesis mailing list - DRMacIver can send out via Tinyletter
+- [ ] Search GitHub and libraries.io
+- [ ] Email my GitHub followers
+- [ ] PyPy, CPython (via Paul Ganssle, Terry Reedy), Enthought/NumFocus
+- ???
+
+
+
+
+## Public launch
+*Goal: scale up, profit, minimise marginal work per customer.*
+
+The defining feature of this stage is **low-touch sales**: I no longer feel that
+I need to "do things that don't scale" to keep things rolling at an acceptable
+rate (though I might choose to anyway, as an accelerator).
+
+- [ ] Talk to Kathy about getting tech media coverage
+- Post links on
+    - [ ] Reddit (fuzzing, python, programming)
+    - [ ] news.ycombinator.com ("Show HN")
+    - [ ] producthunt.com
+    - [ ] Twitter
+    - [ ] Python testing newsletters, podcasts, etc.
+    - ???
+- [ ] Consider general/local media coverage?
+- [ ] Get a contractor to improve website and dashboard?
+- [ ] Scale up content marketing plan, landing pages, etc.
+- ???
