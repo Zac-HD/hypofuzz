@@ -12,7 +12,8 @@ https://about.gitlab.com/direction/secure/fuzz-testing/fuzz-testing/
 
 ## Corporate structure
 
-TBC, but likely to be whatever makes sense as a small Australian business.
+"ZHD Technologies Pty Ltd" is the operating entity; I (Zac) personally retain all
+intellectual property rights.
 
 TODO: insurance, accounting, tax advice, etc.
 
@@ -60,6 +61,8 @@ See https://mail.google.com/mail/u/0/?shva=1#sent/QgrcJHrnwgwrcxKSMNVSRVQQvxbNHH
 
 
 ## Website design etc.
+
+Emails should also follow graphic and brand guidelines
 
 https://getbootstrap.com/ for basic CSS and JS
 Then Flatly theme from https://bootswatch.com/flatly/ replaces bootstrap.min.css

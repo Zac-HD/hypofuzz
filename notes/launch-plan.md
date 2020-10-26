@@ -20,11 +20,17 @@ week is to
 
 - [x] set up GSuite for emails like sales@hypofuzz.com
 - [ ] get a business bank account
-    - [ ] Talk to Kathy, Bendigo, Bank Aus, Papendrea; choose account
-    - [ ] Set up account and make initial deposit
+    - [x] Talk to Kathy, Bendigo, Bank Aus, Papendrea; choose account
+    - [ ] Set up account (transaction + savings) and make initial deposit
     - [ ] Configure GSuite billing
+    - [x] Ask Papendrea about GST registration (-> do it later)
+    - [x] Ask re super, wages, etc (-> do it later; just take distributions
+      while small.  NB check this makes sense given minimal income)
 - [ ] Xero subscription for bookeeping and invoicing
-    - [ ] Work with Papendrea to get everything linked and set up
+    - [ ] Get everything linked and set up ASAP (Gianmarco can send a setup brief)
+    - [ ] decide on and record chart of accounts - Xero defaults poor for SAAS
+      Kathy adds codes for domains, subscriptions, etc.  Sponsorships?
+    - [ ] Get logos etc done before setting up invoices
 
 Before that's finished, I also want to start some conversations with highly
 qualified leads on corporate dev teams about
@@ -38,11 +44,11 @@ qualified leads on corporate dev teams about
 Specific people to reach out to - prominent open source Hypothesis users
 at tech companies:
 
-- [ ] Instagram's LibCST team
-- [ ] Paul Ganssle @ Google New York
-- [ ] Nikita Sobolev (https://drylabs.io/ and https://wemake.services/meta/)
-- [ ] Rob Smallshire, https://sixty-north.com/
-- [ ] Yelp `fuzz-lightyear` team (ask for followup call after Schemathesis)
+- [x] Instagram's LibCST team
+- [x] Paul Ganssle @ Google New York
+- [x] Uber engineering (follows gufuncs blog post; bounced - follow up later)
+- [ ] Yelp `fuzz-lightyear` team (ask for followup after Schemathesis call)
+- [x] Nelson Elhage (for general feedback)
 
 
 
