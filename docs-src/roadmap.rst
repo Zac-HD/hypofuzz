@@ -61,7 +61,7 @@ See :doc:`literature` for notes on where some these ideas come from.
 
     While we're interested in the features described below, HypoFuzz remains
     a research project and plans may change as new information comes to light.
-    Please `get in touch <mailto:hypofuzz@zhd.dev>`__ to let us know which you
+    Please `get in touch <mailto:hello@hypofuzz.com>`__ to let us know which you
     would prioritize, or if we're missing something important to you.
 
 

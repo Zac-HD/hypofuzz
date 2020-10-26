@@ -15,7 +15,7 @@ setuptools.setup(
     name="hypofuzz",
     version="0.0.0",
     author="Zac Hatfield-Dodds",
-    author_email="hypofuzz@zhd.dev",
+    author_email="zac@hypofuzz.com",
     py_modules=["hypofuzz"],
     url="https://hypofuzz.com",
     description="See hypofuzz.com",

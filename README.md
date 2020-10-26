@@ -55,4 +55,4 @@ Unlike Hypothesis, it is *not* open source and I am not seeking external contrib
 
 As a complement to users of free, world-class PBT tools, I'm planning to sell
 licenses in order to fund ongoing work on both this project and Hypothesis itself.
-Please [contact me](mailto:hypofuzz@zhd.dev) if you are interested.
+Please [contact me](mailto:sales@hypofuzz.com) if you are interested.

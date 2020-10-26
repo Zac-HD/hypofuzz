@@ -21,7 +21,7 @@ setuptools.setup(
     name="hypofuzz",
     version=__version__,
     author="Zac Hatfield-Dodds",
-    author_email="hypofuzz@zhd.dev",
+    author_email="zac@hypofuzz.com",
     packages=setuptools.find_packages(SOURCE),
     package_dir={"": SOURCE},
     package_data={"": ["py.typed"]},
