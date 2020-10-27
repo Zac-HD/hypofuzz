@@ -47,8 +47,9 @@ at tech companies:
 - [x] Instagram's LibCST team
 - [x] Paul Ganssle @ Google New York
 - [x] Uber engineering (follows gufuncs blog post; bounced - follow up later)
-- [ ] Yelp `fuzz-lightyear` team (ask for followup after Schemathesis call)
-- [x] Nelson Elhage (for general feedback)
+- [x] Yelp `fuzz-lightyear` team (turns out they don't use Hypothesis much)
+- [x] Nelson Elhage (for general feedback and backlinks)
+- ??? who else should I get in touch with personally?
 
 
 
@@ -56,7 +57,7 @@ at tech companies:
 ## Soft Launch: cover costs and confirm viability
 The goal of this stage is to validate basic product-market fit, cover recurring
 costs, and get ready for public launch.  Tactically, this includes resolving any
-serious customed objections, and skipping as much of the 'saas ramp' as possible
+serious customer objections, and skipping as much of the 'saas ramp' as possible
 by doing things that don't scale to acquire early customers.
 
 
@@ -65,13 +66,14 @@ This drives credibility, long-term customer acquisition, and hands-off growth.
 
 - [ ] Sprinkle links through Hypothesis documentation where appropriate
 - [ ] Add links to my personal site
-- [ ] Check 'Stop Writing Tests' talk descriptions
+- [x] Check 'Stop Writing Tests' talk descriptions
 - [ ] Ask Louise, ?? to proofread website
 - Reach out to ask bloggers who wrote about Hypothesis + Fuzzing for a link
     - [ ] https://danluu.com/testing/
-    - [ ] https://blog.nelhage.com/post/property-testing-is-fuzzing/
+    - [x] https://blog.nelhage.com/post/property-testing-is-fuzzing/
       and https://blog.nelhage.com/post/property-testing-like-afl/
     - [ ] https://hypothesis.works/articles/what-is-property-based-testing/
+      (might want to get the whole website into the monorepo first)
     - ???
 
 
