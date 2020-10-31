@@ -134,20 +134,36 @@ I entirely ignore the time-value of money, as low interest rates and the short t
 make it immaterial compared to the uncertainty in e.g. revenue outcomes.
 
 ## Costs
-Selling subscription software licenses, the marginal unit costs are trivial.  One-off setup
-costs (web domain registration, company formation, etc.) are around $2000.
-I estimate monthly fixed costs of $50 to $200 for distribution, website maintainence,
-G-Suite (Google email and documents), and Xero.
+Software-as-a-service is a *very* nice business to be in, particularly if you're not
+paying for developers.  It's capital-efficient and has *absurdly* good margins.
 
-These estimates do not include the cost of professional accounting and legal advice,
-where I do not have good estimates.
 
-The final - substantial! - cost is the opportunity cost of my own time; my usual consulting
-rate is AUD $300/hour and I would expect to make 150-250k/year working as a full-time
-software engineer.  However, I am currently in and enjoying the first year of my PhD in
-computer science, and have very tight synergies between my research agenda and product
-development.  Between my stipend and personal savings I do not need the company to start
-paying me quickly, so long as it otherwise reaches breakeven.
+### Setup costs
+
+| Cost ($) | Description |
+| ---: | :--- |
+| 1,645 | Company formation |
+| 187 | Domain name registration (ten years) - hypofuzz.com |
+| *???* | *Graphic design and branding* |
+| *???* | *Legal advice - subscription terms etc.* |
+| 1,832 | **total** |
+
+
+### Monthly recurring costs
+
+| Cost ($) | Description |
+| ---: | :--- |
+| 22 | ASIC registration fee ($254 annually) |
+| 8 | Bank Australia account fee |
+| 65 | Xero - bookkeeping and invoicing with multi-currency support |
+| 9 | Google Workspaces - email, docs, video calls, etc. |
+| 13 | GemFury - package hosting / distribution |
+| 0 | Github - source code hosting, testing, website backend (free plan for now) |
+| *??* | Papendrea partners - accounting services (monthly average) |
+| 117 | **monthly total** |
+
+*Note: many of these costs are approximate and rounded due to currency conversion from
+USD into AUD, and where noted may be pro-rated from e.g. annual into monthly costs.*
 
 I do not plan to incur discretionary costs (e.g. paid marketing, copywriting, design) until
 the business is otherwise profitable and they are credibly linked to marginal revenue growth.
@@ -155,6 +171,15 @@ the business is otherwise profitable and they are credibly linked to marginal re
 Support costs are minimal; I expect online documentation and in-product hints to cover
 most queries.  Remaining issues can be handled by email, though a response SLA would
 require a quote and separate contract.
+
+
+### Other
+The final - substantial! - cost is the opportunity cost of my own time; my usual consulting
+rate is AUD $300/hour and I would expect to make 150-250k/year working as a full-time
+software engineer.  However, I am currently in and enjoying the first year of my PhD in
+computer science, and have very tight synergies between my research agenda and product
+development.  Between my stipend and personal savings I do not need the company to start
+paying me quickly, so long as it otherwise reaches breakeven.
 
 
 ## Revenue
@@ -190,10 +215,6 @@ business - which I don't plan to but might happen anyway; let's call that 30% od
 Sustainable is my median estimate if I'm pushing hard on the business, ~40% odds.
 Fast growth would imply that I've underestimated the rate of update and/or size
 of the addressable market (~10% chance).
-
-My goal for company structure is to serve well in the "sustainable" scenario, without
-either costing too much to maintain in the "side project" scenario or requiring
-expensive rework in the "fast growth" scenario.
 
 
 
