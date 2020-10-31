@@ -15,22 +15,30 @@ launch, and will later include some notes about how it went.
 The goal of this stage: go from "owning a company" to "running a small business".
 
 Specifically, that means that ZHD Tech. can and does take money from one customer
-to deliver a product.  In turn, that means that a high priority for early in the
-week is to
+to deliver a product.  In turn, that means that the priorities are to
 
 - [x] set up GSuite for emails like sales@hypofuzz.com
 - [ ] get a business bank account
     - [x] Talk to Kathy, Bendigo, Bank Aus, Papendrea; choose account
-    - [ ] Set up account (transaction + savings) and make initial deposit
+    - [x] Set up account (transaction + savings) and make initial deposit
     - [ ] Configure GSuite billing
+    - [ ] Configure Xero billing
     - [x] Ask Papendrea about GST registration (-> do it later)
     - [x] Ask re super, wages, etc (-> do it later; just take distributions
       while small.  NB check this makes sense given minimal income)
-- [ ] Xero subscription for bookeeping and invoicing
-    - [ ] Get everything linked and set up ASAP (Gianmarco can send a setup brief)
-    - [ ] decide on and record chart of accounts - Xero defaults poor for SAAS
-      Kathy adds codes for domains, subscriptions, etc.  Sponsorships?
-    - [ ] Get logos etc done before setting up invoices
+- [x] Xero subscription for bookeeping and invoicing
+    - [x] Send form to set up bank feeds
+    - [ ] Talk to Kathy and Gianmarco about
+        - [ ] decide on and record chart of accounts
+          (e.g. splitting other revenue from subs; maybe subs by size)
+          Kathy adds codes for domains, subscriptions, etc.  Sponsorships?
+        - What other setup should I be doing?
+        - What legal advice / drafting do I need?
+        - What insurance do I need?
+    - [ ] Get first-pass logos and colourscheme etc done for website and invoices
+- [ ] get legal policies done
+  (privacy policy, subscription terms, etc.; some standard but not all)
+- [ ] get whatever insurance I need
 
 Before that's finished, I also want to start some conversations with highly
 qualified leads on corporate dev teams about
@@ -41,7 +49,7 @@ qualified leads on corporate dev teams about
 - What questions the documentation doesn't answer
 - Would you help with feedback, research (bug numbers), a testimonial?
 
-Specific people to reach out to - prominent open source Hypothesis users
+Specific people to reach out to - mostly prominent open source Hypothesis users
 at tech companies:
 
 - [x] Instagram's LibCST team
@@ -49,6 +57,8 @@ at tech companies:
 - [x] Uber engineering (follows gufuncs blog post; bounced - follow up later)
 - [x] Yelp `fuzz-lightyear` team (turns out they don't use Hypothesis much)
 - [x] Nelson Elhage (for general feedback and backlinks)
+- [x] Dan Luu (general feedback, links, other people)
+- [x] each of the Mailchimp signups
 - ??? who else should I get in touch with personally?
 
 
@@ -65,7 +75,7 @@ by doing things that don't scale to acquire early customers.
 This drives credibility, long-term customer acquisition, and hands-off growth.
 
 - [ ] Sprinkle links through Hypothesis documentation where appropriate
-- [ ] Add links to my personal site
+- [x] Add links to my personal site
 - [x] Check 'Stop Writing Tests' talk descriptions
 - [ ] Ask Louise, ?? to proofread website
 - Reach out to ask bloggers who wrote about Hypothesis + Fuzzing for a link
