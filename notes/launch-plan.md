@@ -18,7 +18,7 @@ Specifically, that means that ZHD Tech. can and does take money from one custome
 to deliver a product.  In turn, that means that the priorities are to
 
 - [x] set up GSuite for emails like sales@hypofuzz.com
-- [ ] get a business bank account
+- [x] get a business bank account
     - [x] Talk to Kathy, Bendigo, Bank Aus, Papendrea; choose account
     - [x] Set up account (transaction + savings) and make initial deposit
     - [ ] Configure GSuite billing
@@ -28,10 +28,8 @@ to deliver a product.  In turn, that means that the priorities are to
       while small.  NB check this makes sense given minimal income)
 - [x] Xero subscription for bookeeping and invoicing
     - [x] Send form to set up bank feeds
-    - [ ] Talk to Kathy and Gianmarco about
-        - [ ] decide on and record chart of accounts
-          (e.g. splitting other revenue from subs; maybe subs by size)
-          Kathy adds codes for domains, subscriptions, etc.  Sponsorships?
+    - [x] Set up chart of accounts (added SAAS, sponsorships, and revenue sources)
+    - [ ] Talk to Gianmarco about
         - What other setup should I be doing?
         - What legal advice / drafting do I need?
         - What insurance do I need?
@@ -79,7 +77,7 @@ This drives credibility, long-term customer acquisition, and hands-off growth.
 - [x] Check 'Stop Writing Tests' talk descriptions
 - [ ] Ask Louise, ?? to proofread website
 - Reach out to ask bloggers who wrote about Hypothesis + Fuzzing for a link
-    - [ ] https://danluu.com/testing/
+    - [x] https://danluu.com/testing/
     - [x] https://blog.nelhage.com/post/property-testing-is-fuzzing/
       and https://blog.nelhage.com/post/property-testing-like-afl/
     - [ ] https://hypothesis.works/articles/what-is-property-based-testing/

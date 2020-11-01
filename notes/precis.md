@@ -36,7 +36,8 @@ Hypothesis is published under the Mozilla Public License 2.0, which explicitly p
 commercial use and distribution of larger works under different terms.
 See https://choosealicense.com/licenses/mpl-2.0/ for a summary and terms.
 
-In my judgement, HypoFuzz is not patentable.  The main technical contribution is
+In my judgement, HypoFuzz is not patentable in Australia; but it may be worth seeking
+a US patent once the business is established.  The main technical innovation is an
 effective combination and execution of known techniques rather than a novel invention.
 
 
@@ -127,9 +128,6 @@ See "Direct outreach" under the sales and marketing section, below.
 
 
 # Financial projections
-This section is indicative only, since I don't actually have any customers or a corporate
-structure yet, but I believe the broad strokes are reasonably accurate.
-
 I entirely ignore the time-value of money, as low interest rates and the short timeframe
 make it immaterial compared to the uncertainty in e.g. revenue outcomes.
 
@@ -183,6 +181,9 @@ paying me quickly, so long as it otherwise reaches breakeven.
 
 
 ## Revenue
+This section is indicative, since I don't actually have any customers yet,
+but I believe the broad strokes are reasonably accurate.
+
 Per https://hypofuzz.com/pricing/ I expect to have two broad sources of revenue:
 
 - subscription payments, at USD $99, $249, or $999 per month (or custom enterprise plans)
@@ -193,7 +194,7 @@ and at what price?  The 'sales and marketing' section has details, but indicativ
 for the first two years:
 
 - "It's a flop" - less than five customers sign up at sustainable price-points.
-  I take a personal loss of $1X,000 and shut down the company, open source the product
+  I take a personal loss of $X,000 and shut down the company, open source the product
   and find a job after I graduate.  Expensive learning experience but not a disaster.
 
 - "Side project" - 5-20 customers, implying monthly recurring revenue of around $3,000 AUD.
