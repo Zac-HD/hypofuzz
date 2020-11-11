@@ -33,6 +33,7 @@ to deliver a product.  In turn, that means that the priorities are to
         - What other setup should I be doing?
         - What legal advice / drafting do I need?
         - What insurance do I need?
+        - Estimating legal, accounting, insurance costs
     - [ ] Get first-pass logos and colourscheme etc done for website and invoices
 - [ ] get legal policies done
   (privacy policy, subscription terms, etc.; some standard but not all)
@@ -50,7 +51,7 @@ qualified leads on corporate dev teams about
 Specific people to reach out to - mostly prominent open source Hypothesis users
 at tech companies:
 
-- [x] Instagram's LibCST team
+- [x] Instagram's LibCST team (@zsol will find users to talk to)
 - [x] Paul Ganssle @ Google New York
 - [x] Uber engineering (follows gufuncs blog post; bounced - follow up later)
 - [x] Yelp `fuzz-lightyear` team (turns out they don't use Hypothesis much)
@@ -72,7 +73,7 @@ by doing things that don't scale to acquire early customers.
 ### Build inbound links
 This drives credibility, long-term customer acquisition, and hands-off growth.
 
-- [ ] Sprinkle links through Hypothesis documentation where appropriate
+- [x] Sprinkle links through Hypothesis documentation where appropriate
 - [x] Add links to my personal site
 - [x] Check 'Stop Writing Tests' talk descriptions
 - [ ] Ask Louise, ?? to proofread website

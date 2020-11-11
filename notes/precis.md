@@ -142,9 +142,12 @@ paying for developers.  It's capital-efficient and has *absurdly* good margins.
 | ---: | :--- |
 | 1,645 | Company formation |
 | 187 | Domain name registration (ten years) - hypofuzz.com |
+| 1,500 | Legal - subscriber agreement |
 | *???* | *Graphic design and branding* |
-| *???* | *Legal advice - subscription terms etc.* |
-| 1,832 | **total** |
+| 3,332 | **total** |
+
+*I've paid most of this out of pocket, but can probably loan the company money
+and have it reimburse me.*
 
 
 ### Monthly recurring costs
@@ -158,6 +161,7 @@ paying for developers.  It's capital-efficient and has *absurdly* good margins.
 | 13 | GemFury - package hosting / distribution |
 | 0 | Github - source code hosting, testing, website backend (free plan for now) |
 | *??* | Papendrea partners - accounting services (monthly average) |
+| *??* | Insurance |
 | 117 | **monthly total** |
 
 *Note: many of these costs are approximate and rounded due to currency conversion from
