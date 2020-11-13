@@ -32,3 +32,15 @@ Called Frank; Adrian is the person to talk to
 
 From Gianmarco: likely to need business insurance, maybe professional liability,
 probably not directors
+
+
+Called Peter at AllInsure.
+    Workers comp is mandatory; 0.2% * salary (call that 100K for the year);
+    but in practice a ~700-800 dollar minimum for the policy
+
+    Main policy is "IT liability" - combined professional indemnity and
+    public liability insurance.  A 'just the piece of paper' policy is ~800;
+    something useful starts at $1200-1500 or upwards.
+
+    Estimate annual cost 2-2.5K but I'll get an actual quote after he looks.
+    I'll have an email from Jessica to get the info they need this evening.
