@@ -160,9 +160,10 @@ and have it reimburse me.*
 | 9 | Google Workspaces - email, docs, video calls, etc. |
 | 13 | GemFury - package hosting / distribution |
 | 0 | Github - source code hosting, testing, website backend (free plan for now) |
+| **117** | **known monthly total** |
 | *??* | Papendrea partners - accounting services (monthly average) |
-| *??* | Insurance |
-| 117 | **monthly total** |
+| *180?* | IT Liability Insurance (PI + PL) - est. 2k - 2.5k annually |
+| ***350*** | **estimated monthly total** |
 
 *Note: many of these costs are approximate and rounded due to currency conversion from
 USD into AUD, and where noted may be pro-rated from e.g. annual into monthly costs.*

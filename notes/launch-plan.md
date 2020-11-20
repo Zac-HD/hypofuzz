@@ -29,15 +29,15 @@ to deliver a product.  In turn, that means that the priorities are to
 - [x] Xero subscription for bookeeping and invoicing
     - [x] Send form to set up bank feeds
     - [x] Set up chart of accounts (added SAAS, sponsorships, and revenue sources)
-    - [ ] Talk to Gianmarco about
+    - [x] Talk to Gianmarco about
         - What other setup should I be doing?
         - What legal advice / drafting do I need?
         - What insurance do I need?
         - Estimating legal, accounting, insurance costs
     - [ ] Get first-pass logos and colourscheme etc done for website and invoices
-- [ ] get legal policies done
-  (privacy policy, subscription terms, etc.; some standard but not all)
-- [ ] get whatever insurance I need
+- [ ] Loan the company money to cover setup and recurring costs; expense prior setups.
+- [ ] Get subscriber agreement drafted (~$1500 from Aulich)
+- [ ] Get IT liability insurance (professional indemnity + public liability)
 
 Before that's finished, I also want to start some conversations with highly
 qualified leads on corporate dev teams about
