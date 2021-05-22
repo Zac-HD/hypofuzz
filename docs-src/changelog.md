@@ -1,5 +1,9 @@
 # Changelog
 
+## 21.05.1
+Improved dashboard, fixed memory leaks, support arbitary `hypothesis.event()`
+calls as coverage, performance improvements.
+
 ## 20.09.1
 Multiprocess fuzzing with seed sharing and corpus distillation,
 and basic prioritisation of seeds covering rare branches.
