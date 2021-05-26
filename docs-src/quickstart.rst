@@ -30,7 +30,7 @@ or from a ``requirements.txt`` file like
     --extra-index-url=https://<YOUR_TOKEN>:@packages.hypofuzz.com/pypi/
 
     ...
-    hypofuzz >= 20.08.1
+    hypofuzz >= 21.05.1
     ...
 
 with ``<YOUR_TOKEN>`` being the access token issued to you
