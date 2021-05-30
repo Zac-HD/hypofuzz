@@ -34,7 +34,7 @@ or from a ``requirements.txt`` file like
     ...
 
 with ``<YOUR_TOKEN>`` being the access token issued to you
-(see `pricing <https://hypofuzz.com/pricing>`__).
+(see `pricing <https://hypofuzz.com/pricing/>`__).
 
 
 

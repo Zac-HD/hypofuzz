@@ -25,7 +25,9 @@ while unlikely it's not much more expensive and mostly good discipline anyway.
 
 ### Payments system
 
-TODO: set up Stripe to take payments
+Using Stripe 'payment links' https://dashboard.stripe.com/payment-links
+for a no-code checkout.  Each standard tier is set up as a separate "product"
+with recurring billing.
 
 
 ### Distribution
@@ -49,6 +51,10 @@ https://analytics.google.com/analytics/web/#/
 https://mailchimp.com/
 
 
+To send announcements via https://tinyletter.com/DRMacIver/archive
+email them to beamer-4b1ffbf69f7ae89ffe2cb1cb053537da3fbedf7a@tinyletter.com
+
+
 ### Split with David
 
 Talking to David MacIver on 2020-09-19, we talked over the general principles of running
@@ -57,6 +63,9 @@ but we agreed that a 1/3 profit assignment is fair in light of past and future w
 on Hypothesis enabling HypoFuzz to exist at all.
 
 See https://mail.google.com/mail/u/0/?shva=1#sent/QgrcJHrnwgwrcxKSMNVSRVQQvxbNHHswHdv
+
+Subsequently he decided not to be involved initially, due to other committments and the
+tax and other paperwork issues involved in trans-national business ownership.
 
 
 
