@@ -6,18 +6,42 @@ in software testing and verification.  This page summarises and comments on
 selected parts of that literature, focussing on papers which are in some sense
 prior art for fuzzing property-based tests for Python.
 
+.. tip::
+
+    `See HypoFuzz in action here! <../example-dashboard/>`__
+
 .. contents::
     :local:
 
+
+Fuzzing background
+------------------
+
+Fuzzers can generally be divided into two categories:
+
+1. *Generational* fuzzers generate new inputs from scratch, using a random number
+   generator to choose various options.  This covers everything from the simplest
+   use of random numbers in a unit test, to highly sophisticated tools like
+   CSmith :cite:`CSmith`.
+
+2. *Mutational* fuzzers derive new inputs by mutating known inputs, and adding
+   interesting examples to the 'pool' of known inputs.  Greybox mutational fuzzers
+   reliabily find security vulnerabilities in almost any previously-unfuzzed C code,
+   but are only rarely applied to search for semantic or non-security bugs.
+
+Hypothesis takes a hybrid approach, using (mostly) generational fuzzing to find
+failing examples, and then mutating and replaying an internal representation
+to find the minimal failing example.
+HypoFuzz takes a smarter approach by exploiting mutation-based example generation,
+running a variety of instrumentation which is too expensive for sub-second unit
+tests, and adapting the fuzzing logic to each test function as it learns.
+More on this below.
 
 *The Fuzzing Book* :cite:`fuzzingbook2019` is a fantastic introduction to
 and overview of the field.  While many of the papers cited below may not be
 relevant unless you're *implementing* a fuzzer like HypoFuzz, the book is
 a great resource for anyone involved in software testing.
 
-
-Fuzzing background
-------------------
 
 Fuzz / Fuzz Revisited / Fuzz 2020
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
