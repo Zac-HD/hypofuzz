@@ -78,20 +78,38 @@
                         </p>
                         <p>
                             <a href="https://increment.com/testing/in-praise-of-property-based-testing/">
-                                Property-based tests</a> using <a href="https://hypothesis.works/">Hypothesis</a>
+                                Property-based tests</a>
                             fit cleanly into any Python test suite - while being faster to write, better at finding
                             bugs, and giving clearer design feedback than traditional example-based unit tests.
-                            That's why everyone serious about testing Python code uses it - from companies like
+                            That's why everyone serious about testing Python code uses
+                            <a href="https://hypothesis.works/">Hypothesis</a> - from companies like
                             Google and Amazon, to open source projects like Numpy or dateutil, to high-school
                             students and professors of astrophysics.
                         </p>
+                        <p class="lead">
+                            <strong>
+                                HypoFuzz is an advanced fuzzing backend for test suites which use Hypothesis.
+                            </strong>
+                        </p>
                         <p>
-                            HypoFuzz runs your property-based test suite, using cutting-edge fuzzing techniques
-                            and coverage instrumentation to find even the rarest inputs which trigger an error.
-                            Interleaving and prioritising your tests make it the most efficient way to spend
-                            compute instead of engineering time looking for bugs, and the
-                            <a href="https://hypothesis.readthedocs.io/en/latest/database.html">Hypothesis database</a>
-                            makes it easy to reproduce and diagnose errors when you're ready to deal with them.
+                            Because HypoFuzz is designed to run for hours or days - unlike Hypothesis' sub-second
+                            budget for unit tests - we can use cutting-edge fuzzing techniques and coverage
+                            instrumentation to find even the rarest inputs which trigger an error. Find bugs with
+                            continuous fuzzing, so you can keep CI fast and focussed on regressions.
+                        </p>
+                        <p>
+                            Instead of running a fixed number of examples for each test and then stopping, we can
+                            interleave examples for multiple tests, and dynamically prioritise those which are finding
+                            new behaviour or bugs. We're not just spending compute time instead of engineer-time,
+                            HypoFuzz does so as efficiently as possible - and we're working on quantifying the
+                            residual risk so you can make an informed decision about when to stop fuzzing.
+                        </p>
+                        <p>
+                            Finally, if <a href="./example-dashboard/">our web-based dashboard</a> doesn't make it
+                            clear what failed, you can replay the minimal failing example for any bug locally
+                            <i>just by running the same test</i>. With a shared
+                            <a href="https://hypothesis.readthedocs.io/en/latest/database.html">Hypothesis database</a>,
+                            that's all it ever takes!
                         </p>
 
                     </div>
