@@ -8,7 +8,7 @@ from hypothesis.database import InMemoryExampleDatabase
 from hypofuzz.corpus import Arc, ConjectureResult, HowGenerated, Pool, Status
 
 
-def arcs(
+def branches(
     fnames=st.sampled_from("abc"), lines=st.integers(0, 3)
 ) -> st.SearchStrategy[Arc]:
     return st.frozensets(st.tuples(fnames, lines, lines))
@@ -23,7 +23,10 @@ def results(statuses=st.sampled_from(Status)) -> st.SearchStrategy[ConjectureRes
         blocks=st.none(),
         output=st.none(),
         extra_information=st.builds(
-            SimpleNamespace, arcs=arcs(), call_repr=st.just(""), reports=st.builds(list)
+            SimpleNamespace,
+            branches=branches(),
+            call_repr=st.just(""),
+            reports=st.builds(list),
         ),
         has_discards=st.booleans(),
         target_observations=st.dictionaries(st.text(), st.integers() | st.floats()),
@@ -49,5 +52,5 @@ def test_automatic_distillation(ls):
         pool.add(res, how)
         note(repr(pool))
         pool._check_invariants()
-        total_coverage.update(res.extra_information.arcs)
+        total_coverage.update(res.extra_information.branches)
     assert total_coverage == set(pool.arc_counts)

@@ -3,7 +3,7 @@
 import hypofuzz.cov
 
 
-def test_can_get_possible_arcs():
+def test_can_get_possible_branches():
     c = hypofuzz.cov.get_coverage_instance()
-    arcs = hypofuzz.cov.get_possible_arcs(c, __file__)
-    assert arcs and isinstance(arcs, frozenset)
+    branches = hypofuzz.cov.get_possible_branches(c, __file__)
+    assert branches and isinstance(branches, frozenset)

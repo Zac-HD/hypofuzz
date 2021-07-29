@@ -44,8 +44,8 @@ def get_coverage_instance(**kwargs: Any) -> coverage.Coverage:
     return c
 
 
-def get_possible_arcs(cov: coverage.CoverageData, fname: str) -> FrozenSet[Arc]:
-    """Return a list of possible arcs for the given file."""
+def get_possible_branches(cov: coverage.CoverageData, fname: str) -> FrozenSet[Arc]:
+    """Return a list of possible branches for the given file."""
     try:
         return _POSSIBLE_ARCS[fname]
     except KeyError:
@@ -59,7 +59,7 @@ def get_possible_arcs(cov: coverage.CoverageData, fname: str) -> FrozenSet[Arc]:
 class CollectionContext:
     """Collect coverage data as a context manager.
 
-    The context manager can be reused; each use updates the ``.arcs``
+    The context manager can be reused; each use updates the ``.branches``
     attribute which will be reset on next use.
 
     TODO: excluding Hypothesis (and fuzz) files from tracing as well
@@ -68,10 +68,10 @@ class CollectionContext:
 
     def __init__(self, cov: coverage.CoverageData = None) -> None:
         self.cov = cov or get_coverage_instance()
-        self.arcs: Set[Arc] = set()
+        self.branches: Set[Arc] = set()
 
     def __enter__(self) -> None:
-        self.arcs = set()
+        self.branches = set()
         self.cov.erase()
         self.cov.start()
 
@@ -83,8 +83,8 @@ class CollectionContext:
         self.cov.save()
         for f in self.cov._data.measured_files():
             if not is_hypothesis_file(f):
-                self.arcs.update(
-                    Arc.make(f, src, dst) for src, dst in self.cov._data.arcs(f)
+                self.branches.update(
+                    Arc.make(f, src, dst) for src, dst in self.cov._data.branches(f)
                 )
                 # For later: we may want to generalise our notion of an arc to include
                 # coverage contexts, for easy Nezha-style differential fuzzing.
@@ -101,7 +101,7 @@ class CollectionContext:
 class CustomCollectionContext:
     """Collect coverage data as a context manager.
 
-    The context manager can be reused; each use updates the ``.arcs``
+    The context manager can be reused; each use updates the ``.branches``
     attribute which will be reset on next use.
 
     TODO: excluding Hypothesis (and fuzz) files from tracing as well
@@ -115,13 +115,13 @@ class CustomCollectionContext:
             fname = frame.f_code.co_filename
             if not is_hypothesis_file(fname):
                 this = (fname, frame.f_lineno)
-                self.arcs.add((self.last, this))
+                self.branches.add((self.last, this))
                 self.last = this
         return self.trace
 
     def __enter__(self) -> None:
         self.last = None
-        self.arcs: Set[tuple] = set()
+        self.branches: Set[tuple] = set()
         self.prev_trace = sys.gettrace()
         sys.settrace(self.trace)
 

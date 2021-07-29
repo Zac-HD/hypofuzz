@@ -110,7 +110,7 @@ class Pool:
         self._in_distill_phase = False
 
     def __repr__(self) -> str:
-        rs = {b: r.extra_information.arcs for b, r in self.results.items()}
+        rs = {b: r.extra_information.branches for b, r in self.results.items()}
         return (
             f"<Pool\n    results={rs}\n    arc_counts={self.arc_counts}\n    "
             f"covering_buffers={self.covering_buffers}\n>"
@@ -122,14 +122,14 @@ class Pool:
         for res in self.results.values():
             # Each result in our ordered buffer covers at least one arc not covered
             # by any more-minimal result.
-            not_previously_covered = res.extra_information.arcs - seen
+            not_previously_covered = res.extra_information.branches - seen
             assert not_previously_covered
             # And our covering_buffers map points back the correct (minimal) buffer
             for arc in not_previously_covered:
                 assert self.covering_buffers[arc] == res.buffer
-            seen.update(res.extra_information.arcs)
+            seen.update(res.extra_information.branches)
 
-        # And the union of those arcs is exactly covered by our counters.
+        # And the union of those branches is exactly covered by our counters.
         assert seen == set(self.covering_buffers), seen.symmetric_difference(
             self.covering_buffers
         )
@@ -155,7 +155,7 @@ class Pool:
 
         # We now know that we have a ConjectureResult representing a valid test
         # execution, either passing or possibly failing.
-        arcs = result.extra_information.arcs
+        branches = result.extra_information.branches
         buf = result.buffer
 
         # If the example is "interesting", i.e. the test failed, add the buffer to
@@ -176,16 +176,16 @@ class Pool:
                 )
                 return True
 
-        # If we haven't just discovered new arcs and our example is larger than the
+        # If we haven't just discovered new branches and our example is larger than the
         # current largest minimal example, we can skip the expensive calculation.
-        if (not arcs.issubset(self.arc_counts)) or (
+        if (not branches.issubset(self.arc_counts)) or (
             self.results
             and sort_key(result.buffer)
             < sort_key(self.results.keys()[-1])  # type: ignore
             and any(
                 sort_key(buf) < sort_key(known_buf)
                 for arc, known_buf in self.covering_buffers.items()
-                if arc in arcs
+                if arc in branches
             )
         ):
             # We do this the stupid-but-obviously-correct way: add the new buffer to
@@ -194,20 +194,22 @@ class Pool:
             self._database.save(self._fuzz_key, buf)
             self.__loaded_from_database.add(buf)
             # Clear out any redundant entries
-            seen_arcs: Set[Arc] = set()
+            seen_branches: Set[Arc] = set()
             self.covering_buffers = {}
             for res in list(self.results.values()):
-                covers = res.extra_information.arcs - seen_arcs
-                seen_arcs.update(res.extra_information.arcs)
+                covers = res.extra_information.branches - seen_branches
+                seen_branches.update(res.extra_information.branches)
                 if not covers:
                     del self.results[res.buffer]
                     self._database.delete(self._fuzz_key, res.buffer)
                 else:
                     for arc in covers:
                         self.covering_buffers[arc] = res.buffer
-            # We add newly-discovered arcs to the counter later; so here our only
-            # unseen arcs should be the newly discovered arcs.
-            assert seen_arcs - set(self.arc_counts) == arcs - set(self.arc_counts)
+            # We add newly-discovered branches to the counter later; so here our only
+            # unseen branches should be the newly discovered branches.
+            assert seen_branches - set(self.arc_counts) == branches - set(
+                self.arc_counts
+            )
             self.json_report = [
                 [
                     reproduction_decorator(res.buffer),
@@ -217,22 +219,22 @@ class Pool:
                 for res in self.results.values()
             ]
 
-        # Either update the arc counts so we can prioritize rarer arcs in future,
+        # Either update the arc counts so we can prioritize rarer branches in future,
         # or save an example with new coverage and reset the counter because we'll
         # have a different distribution with a new seed pool.
-        if arcs.issubset(self.arc_counts):
-            self.arc_counts.update(arcs)
+        if branches.issubset(self.arc_counts):
+            self.arc_counts.update(branches)
         else:
             # Reset our seen arc counts.  This is essential because changing our
             # seed pool alters the probability of seeing each arc in future.
             # For details see AFL-fast, esp. the markov-chain trick.
-            self.arc_counts = Counter(arcs.union(self.arc_counts))
+            self.arc_counts = Counter(branches.union(self.arc_counts))
 
             # Save this buffer as our minimal-known covering example for each new arc.
             if result.buffer not in self.results:
                 self.results[result.buffer] = result
             self._database.save(self._fuzz_key, buf)
-            for arc in arcs - set(self.covering_buffers):
+            for arc in branches - set(self.covering_buffers):
                 self.covering_buffers[arc] = buf
 
             # We've just finished making some tricky changes, so this is a good time
@@ -279,28 +281,28 @@ class Pool:
         """
         self._in_distill_phase = True
         self._check_invariants()
-        minimal_arcs = {
+        minimal_branches = {
             arc
             for arc, buf in self.covering_buffers.items()
             if buf in self.__shrunk_to_buffers
         }
-        while set(self.covering_buffers) - minimal_arcs:
+        while set(self.covering_buffers) - minimal_branches:
             # The "largest first" shrinking order is designed to maximise the rate
             # of incidental progress, where shrinking hard problems stumbles over
             # smaller starting points for the easy ones.
             arc_to_shrink = max(
-                set(self.covering_buffers) - minimal_arcs,
+                set(self.covering_buffers) - minimal_branches,
                 key=lambda a: sort_key(self.covering_buffers[a]),
             )
             shrinker = Shrinker(
                 EngineStub(fn, random),
                 self.results[self.covering_buffers[arc_to_shrink]],
-                predicate=lambda d: arc_to_shrink in d.extra_information.arcs,
+                predicate=lambda d: arc_to_shrink in d.extra_information.branches,
                 allow_transition=None,
             )
             shrinker.shrink()
             self.__shrunk_to_buffers.add(shrinker.shrink_target.buffer)
-            minimal_arcs |= {
+            minimal_branches |= {
                 arc
                 for arc, buf in self.covering_buffers.items()
                 if buf == shrinker.shrink_target.buffer
@@ -339,7 +341,7 @@ class CrossOverMutator(Mutator):
         # This is related to the AFL-fast trick, but doesn't track the transition
         # probabilities - just node densities in the markov chain.
         weights = [
-            1 / min(self.pool.arc_counts[arc] for arc in res.extra_information.arcs)
+            1 / min(self.pool.arc_counts[arc] for arc in res.extra_information.branches)
             for res in self.pool.results.values()
         ]
         # Now take softmax to turn this into a probability distribution

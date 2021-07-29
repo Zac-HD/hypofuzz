@@ -300,7 +300,7 @@ TOFU :cite:`TOFU` also exploits input structure, and claims that this is substan
 responsible for it's -40% improvement over AFL-go.
 :cite:`wang2020sok` survey the state-of-the-art in directed greybox fuzzing as of  mid-2020.
 
-HypoFuzz could get the control-flow graph from coverage.py, which tracks possible arcs
+HypoFuzz could get the control-flow graph from coverage.py, which tracks possible branches
 in order to report un-covered branches, so the implementation is straightforward.
 The tradeoff between simplicity and power-requiring-configuration is less obvious;
 we're inclined to initially stick to zero-config direction towards recent patches and/or

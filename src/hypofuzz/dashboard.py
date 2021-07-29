@@ -12,7 +12,7 @@ import flask
 import plotly.express as px
 from dash.dependencies import Input, Output
 
-DATA_TO_PLOT = [{"nodeid": "", "elapsed_time": 0, "ninputs": 0, "arcs": 0}]
+DATA_TO_PLOT = [{"nodeid": "", "elapsed_time": 0, "ninputs": 0, "branches": 0}]
 LAST_UPDATE = {}
 
 DEMO_JSON_FILE = ".hypothesis/dashboard-demo-data.json"
@@ -21,7 +21,7 @@ DEMO_MODE = os.environ.get("_HYPOFUZZ_DEMO_MODE") == "true"
 RECORD_MODE = os.environ.get("_HYPOFUZZ_RECORD_MODE") == "true"
 assert not (DEMO_MODE and RECORD_MODE)
 
-headings = ["nodeid", "elapsed time", "ninputs", "since new cov", "arcs", "note"]
+headings = ["nodeid", "elapsed time", "ninputs", "since new cov", "branches", "note"]
 app = flask.Flask(__name__)
 
 
@@ -40,7 +40,7 @@ def add_data(d: dict) -> None:
     if RECORD_MODE:
         DEMO_SAVED_DATA.append(d)
     DATA_TO_PLOT.append(
-        {k: d[k] for k in ["nodeid", "elapsed_time", "ninputs", "arcs"] if k in d}
+        {k: d[k] for k in ["nodeid", "elapsed_time", "ninputs", "branches"] if k in d}
     )
     LAST_UPDATE[d["nodeid"]] = d
 
@@ -134,10 +134,7 @@ def display_page(pathname: str) -> html.Div:
     if pathname == "/" or pathname is None:
         return html.Div(
             children=[
-                html.Div(
-                    "Covered arcs discovered for each target.  "
-                    "Data updates every 100th input, or immediately for new arcs."
-                ),
+                html.Div("Total branch coverage for each test."),
                 dcc.Graph(id="live-update-graph"),
                 html.Div(html.Table(id="summary-table-rows")),
             ]
@@ -150,10 +147,10 @@ def display_page(pathname: str) -> html.Div:
         if d["nodeid"].replace("/", "_") == pathname[1:]  # type: ignore
     ]
     fig1 = px.line(
-        trace, x="ninputs", y="arcs", line_shape="hv", hover_data=["elapsed_time"]
+        trace, x="ninputs", y="branches", line_shape="hv", hover_data=["elapsed_time"]
     )
     fig2 = px.line(
-        trace, x="elapsed_time", y="arcs", line_shape="hv", hover_data=["ninputs"]
+        trace, x="elapsed_time", y="branches", line_shape="hv", hover_data=["ninputs"]
     )
     fig1.update_layout(updatemenus=UPDATEMENUS)
     fig2.update_layout(updatemenus=UPDATEMENUS)
@@ -211,7 +208,7 @@ def update_graph_live(n: int) -> object:
     fig = px.line(
         DATA_TO_PLOT,
         x="ninputs",
-        y="arcs",
+        y="branches",
         color="nodeid",
         line_shape="hv",
         hover_data=["elapsed_time"],

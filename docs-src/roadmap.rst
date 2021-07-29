@@ -123,9 +123,9 @@ Better mutation logic
 Guiding towards what?
 +++++++++++++++++++++
 
-Typically, fuzzers haven't really been guided towards new arcs (src-dest branches)
-as they have been good at exploiting them once found at random.  We can do that,
-but we can probably also do better.
+Typically, fuzzers haven't really been guided towards inputs which improve branch
+coverage, as they have been good at exploiting them once found at random.
+We can do that, but we can probably also do better.
 
 - use CFG from :pypi:`coverage` to tell if new branches are actually available
   from a given path.  If not, we can hit it less often.

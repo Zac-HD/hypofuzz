@@ -256,12 +256,12 @@ class FuzzProcess:
             )
             data.extra_information.reports = "\n".join(map(str, reports))
 
-        # In addition to coverage arcs, use psudeo-coverage information provided via
+        # In addition to coverage branches, use psudeo-coverage information provided via
         # the `hypothesis.event()` function - exploiting user-defined partitions
         # designed for diagnostic output to guide generation.  See
         # https://hypothesis.readthedocs.io/en/latest/details.html#hypothesis.event
-        data.extra_information.arcs = frozenset(collector.arcs).union(
-            event_str  # type: ignore  # events aren't arcs, but that's OK
+        data.extra_information.branches = frozenset(collector.branches).union(
+            event_str  # type: ignore  # events aren't branches, but that's OK
             for event_str in map(str, data.events)
             if not event_str.startswith("Retried draw from ")
             or event_str.startswith("Aborted test because unable to satisfy ")
@@ -301,7 +301,7 @@ class FuzzProcess:
             "elapsed_time": self.elapsed_time,
             "timestamp": time.time(),
             "ninputs": self.ninputs,
-            "arcs": len(self.pool.arc_counts),
+            "branches": len(self.pool.arc_counts),
             "since new cov": self.since_new_cov,
             "status_counts": self.status_counts,
             "seed_pool": self.pool.json_report,
@@ -333,8 +333,8 @@ def fuzz_several(*targets_: FuzzProcess, random_seed: int = None) -> NoReturn:
 
     # Loop forever: at each timestep, we choose a target using an epsilon-greedy
     # strategy for simplicity (TODO: improve this later) and run it once.
-    # TODO: make this aware of test runtime, so it adapts for arcs-per-second
-    #       rather than arcs-per-input.
+    # TODO: make this aware of test runtime, so it adapts for branches-per-second
+    #       rather than branches-per-input.
     for t in targets:
         t.startup()
     for i in itertools.count():
