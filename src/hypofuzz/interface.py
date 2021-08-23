@@ -1,5 +1,6 @@
 """CLI and Python API for the fuzzer."""
 import io
+import sys
 from contextlib import redirect_stdout, suppress
 from functools import partial
 from typing import TYPE_CHECKING, Iterable, List, NoReturn, Tuple
@@ -46,11 +47,15 @@ def _get_hypothesis_tests_with_pytest(args: Iterable[str]) -> List["FuzzProcess"
     This basically uses `pytest --collect-only -m hypothesis $args`.
     """
     collector = _ItemsCollector()
-    with redirect_stdout(io.StringIO()):
-        pytest.main(
+    out = io.StringIO()
+    with redirect_stdout(out):
+        ret = pytest.main(
             args=["--collect-only", "-m=hypothesis", *args],
             plugins=[collector],
         )
+    if ret:
+        print(out.getvalue())
+        sys.exit(ret)
     return collector.fuzz_targets
 
 
