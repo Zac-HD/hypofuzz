@@ -1,6 +1,7 @@
 ## Project-specific ignore patterns
 /docs/docs/
 __latexindent_temp.tex
+pycrunch-recordings/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
