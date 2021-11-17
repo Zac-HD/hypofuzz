@@ -30,6 +30,11 @@ from sortedcontainers import SortedKeyList
 from .corpus import BlackBoxMutator, CrossOverMutator, EngineStub, HowGenerated, Pool
 from .cov import CustomCollectionContext
 
+try:
+    from .debugger import record_pytrace
+except ImportError:
+    record_pytrace = None
+
 Report = Dict[str, Union[int, float, str, list, Dict[str, int]]]
 
 UNDELIVERED_REPORTS: List[Report] = []
@@ -189,12 +194,19 @@ class FuzzProcess:
 
         if result.status is Status.INTERESTING:
             # Shrink to our minimal failing example, since we'll stop after this.
-            Shrinker(
+            shrinker = Shrinker(
                 EngineStub(self._run_test_on, self.random),
                 result,
                 predicate=lambda d: d.status is Status.INTERESTING,
                 allow_transition=None,
-            ).shrink()
+            )
+            shrinker.shrink()
+            if record_pytrace:
+                # Replay minimal example under our time-travelling debug tracer
+                self._run_test_on(
+                    shrinker.shrink_target.buffer,
+                    collector=record_pytrace(self.nodeid),
+                )
 
         # Consider switching out of blackbox mode.
         if self.since_new_cov >= 1000 and not self._replay_buffer:
@@ -206,7 +218,11 @@ class FuzzProcess:
         #     self.pool.distill(self._run_test_on, self.random)
 
     def _run_test_on(
-        self, buffer: bytes, source: HowGenerated = HowGenerated.shrinking
+        self,
+        buffer: bytes,
+        *,
+        source: HowGenerated = HowGenerated.shrinking,
+        collector: contextlib.AbstractContextManager = None,
     ) -> ConjectureData:
         """Run the test_fn on a given buffer of bytes, in a way a Shrinker can handle.
 
@@ -215,7 +231,7 @@ class FuzzProcess:
         """
         start = time.perf_counter()
         self.ninputs += 1
-        collector = CustomCollectionContext()
+        collector = collector or CustomCollectionContext()
         reports: List[str] = []
         argstrings: List[str] = []
         data = ConjectureData(max_length=BUFFER_SIZE, prefix=buffer, random=self.random)
@@ -255,7 +271,9 @@ class FuzzProcess:
         # the `hypothesis.event()` function - exploiting user-defined partitions
         # designed for diagnostic output to guide generation.  See
         # https://hypothesis.readthedocs.io/en/latest/details.html#hypothesis.event
-        data.extra_information.branches = frozenset(collector.branches).union(
+        data.extra_information.branches = frozenset(
+            getattr(collector, "branches", ())  # might be a debug tracer instead
+        ).union(
             event_str  # type: ignore  # events aren't branches, but that's OK
             for event_str in map(str, data.events)
             if not event_str.startswith("Retried draw from ")

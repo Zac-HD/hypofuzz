@@ -9,9 +9,15 @@ import dash
 import dash_core_components as dcc
 import dash_html_components as html
 import flask
+import flask_cors
 import plotly.graph_objects as go
 import plotly.express as px
 from dash.dependencies import Input, Output
+
+try:
+    from pycrunch_trace.oop.safe_filename import SafeFilename
+except ImportError:
+    SafeFilename = None
 
 DATA_TO_PLOT = [{"nodeid": "", "elapsed_time": 0, "ninputs": 0, "branches": 0}]
 LAST_UPDATE = {}
@@ -23,7 +29,8 @@ RECORD_MODE = os.environ.get("_HYPOFUZZ_RECORD_MODE") == "true"
 assert not (DEMO_MODE and RECORD_MODE)
 
 headings = ["nodeid", "elapsed time", "ninputs", "since new cov", "branches", "note"]
-app = flask.Flask(__name__)
+app = flask.Flask(__name__, static_folder=os.path.abspath("pycrunch-recordings"))
+flask_cors.CORS(app)
 
 
 @app.route("/", methods=["POST"])
@@ -127,10 +134,11 @@ def display_page(pathname: str) -> html.Div:
         )
 
     # Target-specific subpages
+    nodeid = pathname[1:]
     trace = [
         d
         for d in DATA_TO_PLOT
-        if d["nodeid"].replace("/", "_") == pathname[1:]  # type: ignore
+        if d["nodeid"].replace("/", "_") == nodeid  # type: ignore
     ]
     fig1 = px.line(
         trace, x="ninputs", y="branches", line_shape="hv", hover_data=["elapsed_time"]
@@ -148,6 +156,13 @@ def display_page(pathname: str) -> html.Div:
         for failures in last_update["failures"]:
             failures[0] = try_format(failures[0])
             add.extend(html.Pre(children=[html.Code(children=[x])]) for x in failures)
+        if SafeFilename:
+            url = f"http://{flask.request.host}/pycrunch-recordings/{SafeFilename(nodeid)}/session.chunked"
+            link = dcc.Link(
+                "Debug failing example online with pytrace",
+                href=f"https://app.pytrace.com/?open={url}",
+            )
+            add.append(html.Pre(children=[link]))
     return html.Div(
         children=[
             dcc.Link("Back to main dashboard", href="/"),
@@ -228,6 +243,15 @@ def update_table_live(n: int) -> object:
     return [html.Tr([html.Th(h) for h in headings])] + [
         row_for(data) for name, data in sorted(LAST_UPDATE.items()) if name
     ]
+
+
+@app.route("/pycrunch-recordings/<path:name>")
+def download_file(name):
+    return flask.send_from_directory(
+        directory="pycrunch-recordings",
+        filename=name,
+        mimetype="application/octet-stream",
+    )
 
 
 def start_dashboard_process(

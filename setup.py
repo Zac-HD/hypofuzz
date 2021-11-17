@@ -33,9 +33,11 @@ setuptools.setup(
     install_requires=[
         "coverage >= 5.2.1",
         "dash >= 1.15.0",
+        "flask-cors >= 3.0.10",
         "hypothesis[cli] >= 5.29.4",
         "pandas >= 1.0.0",
         "psutil >= 3.0.0",
+        "pycrunch-trace >= 0.1.6",
         "pytest >= 6.0.1",
         "requests >= 2.24.0",
     ],
