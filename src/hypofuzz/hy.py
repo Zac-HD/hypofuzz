@@ -123,6 +123,7 @@ class FuzzProcess:
         self.elapsed_time = 0.0
         self.since_new_cov = 0
         self.status_counts = {s.name: 0 for s in Status}
+        self.shrinking = False
         # Any new examples from the database will be added to this replay buffer
         self._replay_buffer: List[bytes] = []
         # After replay, we stay in blackbox mode for a while, until we've generated
@@ -189,12 +190,16 @@ class FuzzProcess:
 
         if result.status is Status.INTERESTING:
             # Shrink to our minimal failing example, since we'll stop after this.
+            self.shrinking = True
             Shrinker(
                 EngineStub(self._run_test_on, self.random),
                 result,
                 predicate=lambda d: d.status is Status.INTERESTING,
                 allow_transition=None,
             ).shrink()
+            self.shrinking = False
+            self._report_change(UNDELIVERED_REPORTS)
+            del UNDELIVERED_REPORTS[:]
 
         # Consider switching out of blackbox mode.
         if self.since_new_cov >= 1000 and not self._replay_buffer:
@@ -274,9 +279,7 @@ class FuzzProcess:
             UNDELIVERED_REPORTS.append(self._json_description)
 
         self.elapsed_time += time.perf_counter() - start
-        if UNDELIVERED_REPORTS and (
-            self.has_found_failure or self._last_post_time + 10 < self.elapsed_time
-        ):
+        if UNDELIVERED_REPORTS and (self._last_post_time + 10 < self.elapsed_time):
             self._report_change(UNDELIVERED_REPORTS)
             del UNDELIVERED_REPORTS[:]
 
@@ -305,9 +308,10 @@ class FuzzProcess:
             else ("shrinking known examples" if self.pool._in_distill_phase else ""),
         }
         if self.pool.interesting_examples:
-            report[
-                "note"
-            ] = f"raised {list(self.pool.interesting_examples)[0][0].__name__}"
+            report["note"] = (
+                f"raised {list(self.pool.interesting_examples)[0][0].__name__} "
+                f"({'shrinking...' if self.shrinking else 'finished'})"
+            )
             report["failures"] = [
                 ls for _, ls in self.pool.interesting_examples.values()
             ]
