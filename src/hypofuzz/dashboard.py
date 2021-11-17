@@ -9,6 +9,7 @@ import dash
 import dash_core_components as dcc
 import dash_html_components as html
 import flask
+import plotly.graph_objects as go
 import plotly.express as px
 from dash.dependencies import Input, Output
 
@@ -197,6 +198,14 @@ def update_graph_live(n: int, clicks: int) -> object:
         hover_data=["elapsed_time"],
         log_x=bool(clicks % 2),
     )
+    failing = [
+        (d["ninputs"], d["branches"])
+        for d in LAST_UPDATE.values()
+        if d.get("note", "").startswith("raised ")
+    ]
+    if failing:
+        xs, ys = zip(*failing)
+        fig.add_trace(go.Scatter(x=xs, y=ys, mode="text", text="💥", showlegend=False))
     fig.update_layout(
         height=800,
         legend_yanchor="top",
