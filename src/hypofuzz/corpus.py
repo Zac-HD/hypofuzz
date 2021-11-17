@@ -102,7 +102,7 @@ class Pool:
         self.interesting_examples: Dict[
             Tuple[Type[BaseException], str, int], Tuple[ConjectureResult, List[str]]
         ] = {}
-        self.__loaded_from_database: Set[bytes] = set()
+        self._loaded_from_database: Set[bytes] = set()
         self.__shrunk_to_buffers: Set[bytes] = set()
 
         # To show the current state of the pool in the dashboard
@@ -138,7 +138,7 @@ class Pool:
         )
 
         # Every covering buffer was either read from the database, or saved to it.
-        assert self.__loaded_from_database.issuperset(self.covering_buffers.values())
+        assert self._loaded_from_database.issuperset(self.covering_buffers.values())
 
     @property
     def _fuzz_key(self) -> bytes:
@@ -192,7 +192,7 @@ class Pool:
             # our tracked corpus, and then run a distillation step.
             self.results[result.buffer] = result
             self._database.save(self._fuzz_key, buf)
-            self.__loaded_from_database.add(buf)
+            self._loaded_from_database.add(buf)
             # Clear out any redundant entries
             seen_branches: Set[Arc] = set()
             self.covering_buffers = {}
@@ -251,21 +251,21 @@ class Pool:
         counts as having been loaded - the idea is to avoid duplicate executions.
         """
         saved = sorted(
-            set(self._database.fetch(self._key)) - self.__loaded_from_database,
+            set(self._database.fetch(self._key)) - self._loaded_from_database,
             key=sort_key,
             reverse=True,
         )
-        self.__loaded_from_database.update(saved)
+        self._loaded_from_database.update(saved)
         for idx in (0, -1):
             if saved:
                 yield saved.pop(idx)
         seeds = sorted(
             set(self._database.fetch(self._key + b".fuzz"))
-            - self.__loaded_from_database,
+            - self._loaded_from_database,
             key=sort_key,
             reverse=True,
         )
-        self.__loaded_from_database.update(seeds)
+        self._loaded_from_database.update(seeds)
         yield from seeds
         yield from saved
         self._check_invariants()
@@ -349,10 +349,8 @@ class CrossOverMutator(Mutator):
             1 / min(self.pool.arc_counts[arc] for arc in res.extra_information.branches)
             for res in self.pool.results.values()
         ]
-        # Now take softmax to turn this into a probability distribution
-        exp = [math.exp(x) for x in weights]
-        total = sum(exp)
-        return [x / total for x in exp]
+        total = sum(weights)
+        return [x / total for x in weights]
 
     def generate_buffer(self) -> bytes:
         """Splice together two known valid buffers with some random infill.

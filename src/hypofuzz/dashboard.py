@@ -92,6 +92,8 @@ def display_page(pathname: str) -> html.Div:
                 dcc.Graph(id="live-update-graph"),
                 html.Button("Toggle log-xaxis", id="xaxis-state", n_clicks=0),
                 html.Div(html.Table(id="summary-table-rows")),
+                html.Div("Estimated number of inputs to discover new coverage or bugs"),
+                html.Div(html.Table(id="estimators-table-rows")),
             ]
         )
 
@@ -165,7 +167,7 @@ def update_graph_live(n: int, clicks: int) -> object:
     failing = [
         (d["ninputs"], d["branches"])
         for d in LAST_UPDATE.values()
-        if d.get("note", "").startswith("raised ")
+        if d.get("status_counts", {}).get("INTERESTING", 0)
     ]
     if failing:
         xs, ys = zip(*failing)
@@ -190,6 +192,43 @@ def update_table_live(n: int) -> object:
     return [html.Tr([html.Th(h) for h in headings])] + [
         row_for(data) for name, data in sorted(LAST_UPDATE.items()) if name
     ]
+
+
+def estimators(data):
+    since_new_cov = data["since new cov"]
+    ninputs = data["ninputs"]
+    loaded_from_db = data["loaded_from_db"]
+    return {
+        "branch_lower": 1 / (since_new_cov + 1),
+        "branch_upper": 1 / (max(ninputs - loaded_from_db, 0) + 1),
+        "bug": 1 if data.get("failures") else 1 / max(ninputs + 1, loaded_from_db),
+    }
+
+
+@board.callback(  # type: ignore
+    Output("estimators-table-rows", "children"),
+    [Input("interval-component", "n_intervals")],
+)
+def update_estimators_table(n: int) -> object:
+    contents = [html.Col(), html.Colgroup(span=1)] + [
+        html.Colgroup(span=2) for _ in range(2)
+    ]
+    colnames = ["nodeid", "branch-lower", "branch-upper", "bug"]
+    contents = [html.Tr([html.Th(h) for h in colnames])]
+
+    for _, d in sorted(LAST_UPDATE.items()):
+        try:
+            est = estimators(d)
+        except KeyError:
+            continue
+        row = [
+            d["nodeid"],
+            int(1 / est["branch_lower"]),
+            int(1 / est["branch_upper"]),
+            int(1 / est["bug"]),
+        ]
+        contents.append(html.Tr([html.Td(x) for x in row]))
+    return contents
 
 
 def start_dashboard_process(

@@ -198,6 +198,7 @@ class FuzzProcess:
                 allow_transition=None,
             ).shrink()
             self.shrinking = False
+            UNDELIVERED_REPORTS.append(self._json_description)
             self._report_change(UNDELIVERED_REPORTS)
             del UNDELIVERED_REPORTS[:]
 
@@ -301,6 +302,7 @@ class FuzzProcess:
             "ninputs": self.ninputs,
             "branches": len(self.pool.arc_counts),
             "since new cov": self.since_new_cov,
+            "loaded_from_db": len(self.pool._loaded_from_database),
             "status_counts": self.status_counts,
             "seed_pool": self.pool.json_report,
             "note": "replaying saved examples"
