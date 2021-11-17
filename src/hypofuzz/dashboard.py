@@ -39,6 +39,8 @@ def recv_data() -> Tuple[str, int]:
 def add_data(d: dict) -> None:
     if RECORD_MODE:
         DEMO_SAVED_DATA.append(d)
+    if not LAST_UPDATE:
+        del DATA_TO_PLOT[0]
     DATA_TO_PLOT.append(
         {k: d[k] for k in ["nodeid", "elapsed_time", "ninputs", "branches"] if k in d}
     )

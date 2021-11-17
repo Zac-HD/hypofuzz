@@ -250,15 +250,20 @@ class Pool:
         For the purposes of this method, a buffer which we saved to the database
         counts as having been loaded - the idea is to avoid duplicate executions.
         """
-        saved = sorted(self._database.fetch(self._key), key=sort_key, reverse=True)
+        saved = sorted(
+            set(self._database.fetch(self._key)) - self.__loaded_from_database,
+            key=sort_key,
+            reverse=True,
+        )
         self.__loaded_from_database.update(saved)
         for idx in (0, -1):
             if saved:
-                buf = saved.pop(idx)
-                yield buf
-                self.__loaded_from_database.add(buf)
+                yield saved.pop(idx)
         seeds = sorted(
-            self._database.fetch(self._key + b".fuzz"), key=sort_key, reverse=True
+            set(self._database.fetch(self._key + b".fuzz"))
+            - self.__loaded_from_database,
+            key=sort_key,
+            reverse=True,
         )
         self.__loaded_from_database.update(seeds)
         yield from seeds
