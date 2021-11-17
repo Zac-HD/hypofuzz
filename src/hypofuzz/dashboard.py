@@ -62,24 +62,6 @@ board.layout = html.Div(
     ]
 )
 
-UPDATEMENUS = [
-    {
-        "type": "buttons",
-        "buttons": [
-            {
-                "label": "Linear xaxis",
-                "method": "update",
-                "args": [{"visible": True}, {"xaxis": {"type": "linear"}}],
-            },
-            {
-                "label": "Log xaxis",
-                "method": "update",
-                "args": [{"visible": True}, {"xaxis": {"type": "log"}}],
-            },
-        ],
-    },
-]
-
 
 def row_for(data: dict, include_link: bool = True, *extra: object) -> html.Tr:
     parts = []
@@ -136,6 +118,7 @@ def display_page(pathname: str) -> html.Div:
             children=[
                 html.Div("Total branch coverage for each test."),
                 dcc.Graph(id="live-update-graph"),
+                html.Button("Toggle log-xaxis", id="xaxis-state", n_clicks=0),
                 html.Div(html.Table(id="summary-table-rows")),
             ]
         )
@@ -152,8 +135,6 @@ def display_page(pathname: str) -> html.Div:
     fig2 = px.line(
         trace, x="elapsed_time", y="branches", line_shape="hv", hover_data=["ninputs"]
     )
-    fig1.update_layout(updatemenus=UPDATEMENUS)
-    fig2.update_layout(updatemenus=UPDATEMENUS)
     if RECORD_MODE:
         slug = pathname.split("::")[-1]
         fig1.write_html(f".hypothesis/{slug}-fig1.html", include_plotlyjs="cdn")
@@ -201,9 +182,9 @@ def display_page(pathname: str) -> html.Div:
 
 @board.callback(  # type: ignore
     Output("live-update-graph", "figure"),
-    [Input("interval-component", "n_intervals")],
+    [Input("interval-component", "n_intervals"), Input("xaxis-state", "n_clicks")],
 )
-def update_graph_live(n: int) -> object:
+def update_graph_live(n: int, clicks: int) -> object:
     update_data_for_demo_mode()
     fig = px.line(
         DATA_TO_PLOT,
@@ -212,12 +193,10 @@ def update_graph_live(n: int) -> object:
         color="nodeid",
         line_shape="hv",
         hover_data=["elapsed_time"],
+        log_x=bool(clicks % 2),
     )
-    # Define some controls for log-x-axis plotting, which values to plot, etc.
-    # TODO: work out why axis UI state resets on every interval despite uirevision
     fig.update_layout(
         height=800,
-        updatemenus=UPDATEMENUS,
         legend_yanchor="top",
         legend_xanchor="left",
         legend_y=-0.08,
