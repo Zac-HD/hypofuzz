@@ -165,7 +165,7 @@ class FuzzProcess:
         # TODO: currently hard-coding a particular mutator; we want to do MOpt-style
         # adaptive weighting of all the different mutators we could use.
         # For now though, we'll just use a hardcoded swapover point
-        if self._early_blackbox_mode:
+        if self._early_blackbox_mode or self.random.random() < 0.05:
             return self._mutator_blackbox.generate_buffer()
         return self._mutator_crossover.generate_buffer()
 
@@ -197,13 +197,8 @@ class FuzzProcess:
             ).shrink()
 
         # Consider switching out of blackbox mode.
-        if (
-            self._early_blackbox_mode
-            and self.since_new_cov >= 1000
-            and not self._replay_buffer
-        ):
+        if self.since_new_cov >= 1000 and not self._replay_buffer:
             self._early_blackbox_mode = False
-            # seen_count = 0
 
         # NOTE: this distillation logic works fine, it's just discovering new coverage
         # much more slowly than jumping directly to mutational mode.
