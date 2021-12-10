@@ -366,6 +366,10 @@ class CrossOverMutator(Mutator):
         prefix, postfix = self.random.choices(  # type: ignore
             self.pool.results.keys(), weights=self._get_weights(), k=2  # type: ignore
         )
+        # TODO: structure-aware slicing - we want to align the crossover points
+        # with a `start_example()` boundary.  This is tricky to get out of Hypothesis
+        # at the moment though, and we don't have any facilities (beyond luck!)
+        # to line up the postfix boundary correctly.  Requires upstream changes.
         buffer = (
             prefix[: self.random.randint(0, len(prefix))]
             + self._random_bytes(self.random.randint(0, 9))

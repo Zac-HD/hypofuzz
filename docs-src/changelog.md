@@ -1,5 +1,9 @@
 # Changelog
 
+## 21.12.1
+Improved dashboard (again!), better generation/mutation heuristics,
+basic residual-risk estimation, free-for-noncommercial-use on PyPI.
+
 ## 21.05.1
 Improved dashboard, fixed memory leaks, support arbitary `hypothesis.event()`
 calls as coverage, performance improvements.

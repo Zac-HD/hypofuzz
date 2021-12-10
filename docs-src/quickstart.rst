@@ -20,22 +20,15 @@ HypoFuzz is a pure-Python package, and can be installed from your shell with
 
 .. code-block:: shell
 
-    pip install --extra-index-url=https://<YOUR_TOKEN>:@packages.hypofuzz.com/pypi/ hypofuzz
+    pip install hypofuzz
 
 or from a ``requirements.txt`` file like
 
 .. code-block:: text
 
-    # Requirements for our test environment
-    --extra-index-url=https://<YOUR_TOKEN>:@packages.hypofuzz.com/pypi/
-
     ...
     hypofuzz >= 21.05.1
     ...
-
-with ``<YOUR_TOKEN>`` being the access token issued to you
-(see `pricing <https://hypofuzz.com/pricing/>`__).
-
 
 
 Running :command:`hypothesis fuzz`

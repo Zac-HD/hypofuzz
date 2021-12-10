@@ -54,7 +54,8 @@ def _get_hypothesis_tests_with_pytest(args: Iterable[str]) -> List["FuzzProcess"
             plugins=[collector],
         )
     if ret:
-        print(out.getvalue())
+        print(out.getvalue())  # noqa
+        print(f"Exiting because pytest returned exit code {ret}")  # noqa
         sys.exit(ret)
     return collector.fuzz_targets
 
