@@ -26,7 +26,10 @@ setuptools.setup(
     package_dir={"": SOURCE},
     package_data={"": ["py.typed"]},
     url="https://github.com/Zac-HD/hypofuzz",
-    project_urls={"Funding": "https://hypofuzz.com/pricing/"},
+    project_urls={
+        "Funding": "https://hypofuzz.com/pricing/",
+        "Documentation": "https://hypofuzz.com/docs/",
+    },
     license="Proprietary License",
     description="Adaptive fuzzing for property-based tests",
     zip_safe=False,

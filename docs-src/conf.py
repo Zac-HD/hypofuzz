@@ -45,6 +45,8 @@ extlinks = {
     "hydocs": ("https://hypothesis.readthedocs.io/en/latest/%s", ""),
 }
 
+bibtex_bibfiles = ["literature.bib"]
+
 
 # -- Options for HTML output -------------------------------------------------
 html_title = "HypoFuzz docs"

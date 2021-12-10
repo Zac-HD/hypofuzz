@@ -1,7 +1,5 @@
 """Live web dashboard for a fuzzing run."""
 import datetime
-import json
-import os
 from typing import List, Tuple
 
 import black
@@ -9,18 +7,18 @@ import dash
 import dash_core_components as dcc
 import dash_html_components as html
 import flask
-import plotly.graph_objects as go
 import plotly.express as px
+import plotly.graph_objects as go
 from dash.dependencies import Input, Output
 
 DATA_TO_PLOT = [{"nodeid": "", "elapsed_time": 0, "ninputs": 0, "branches": 0}]
-LAST_UPDATE = {}
+LAST_UPDATE: dict = {}
 
 headings = ["nodeid", "elapsed time", "ninputs", "since new cov", "branches", "note"]
 app = flask.Flask(__name__)
 
 
-@app.route("/", methods=["POST"])
+@app.route("/", methods=["POST"])  # type: ignore
 def recv_data() -> Tuple[str, int]:
     data = flask.request.json
     if not isinstance(data, list):
@@ -75,7 +73,7 @@ def row_for(data: dict, include_link: bool = True, *extra: object) -> html.Tr:
 def try_format(code: str) -> str:
     try:
         return black.format_str(code, mode=black.FileMode())
-    except black.InvalidInput:
+    except Exception:
         return code
 
 
@@ -194,7 +192,7 @@ def update_table_live(n: int) -> object:
     ]
 
 
-def estimators(data):
+def estimators(data: dict) -> dict:
     since_new_cov = data["since new cov"]
     ninputs = data["ninputs"]
     loaded_from_db = data["loaded_from_db"]
