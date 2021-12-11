@@ -25,10 +25,11 @@ setuptools.setup(
     packages=setuptools.find_packages(SOURCE),
     package_dir={"": SOURCE},
     package_data={"": ["py.typed"]},
-    url="https://github.com/Zac-HD/hypofuzz",
+    url="https://hypofuzz.com/",
     project_urls={
         "Funding": "https://hypofuzz.com/pricing/",
         "Documentation": "https://hypofuzz.com/docs/",
+        "Changelog": "https://hypofuzz.com/docs/changelog.html",
     },
     license="Proprietary License",
     description="Adaptive fuzzing for property-based tests",
@@ -42,6 +43,12 @@ setuptools.setup(
         "pytest >= 6.0.1",
         "requests >= 2.24.0",
     ],
+    extras_require={
+        "pytrace": [
+            "flask-cors >= 3.0.10",
+            "pycrunch-trace >= 0.1.6",
+        ],
+    },
     python_requires=">=3.7",
     classifiers=[
         "Development Status :: 3 - Alpha",

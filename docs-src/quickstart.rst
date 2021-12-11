@@ -30,6 +30,9 @@ or from a ``requirements.txt`` file like
     hypofuzz >= 21.05.1
     ...
 
+Optionally, you can ``pip install hypofuzz[pytrace]`` for automatic time-travel
+debugging with `PyTrace <https://pytrace.com/>`__ through the web interface.
+
 
 Running :command:`hypothesis fuzz`
 ----------------------------------

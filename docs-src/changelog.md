@@ -1,5 +1,9 @@
 # Changelog
 
+## 21.12.2
+Web-based time-travel debugging with [PyTrace](https://pytrace.com/) - just
+`pip install hypofuzz[pytrace]` and click the link on any failing test!
+
 ## 21.12.1
 Improved dashboard (again!), better generation/mutation heuristics,
 basic residual-risk estimation, free-for-noncommercial-use on PyPI.

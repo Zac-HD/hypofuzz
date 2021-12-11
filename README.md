@@ -1,4 +1,4 @@
-# hypofuzz
+# [HypoFuzz](https://hypofuzz.com/)
 
 *Adaptive fuzzing of [Hypothesis](https://hypothesis.readthedocs.io) tests.*
 
@@ -38,8 +38,8 @@ just not worth the trouble for less than a thousand inputs.
 - Prioritise functions where we expect to make progress
 - Coverage-guided exploration of your system-under-test
 - Seamless python-native and CLI integrations
-
-(see personal notes for more plans, and papers I'm cribbing from)
+- Web-based time-travel debugging with [PyTrace](https://pytrace.com/)
+  (automatic if you `pip install hypofuzz[pytrace]`)
 
 
 ## Changelog

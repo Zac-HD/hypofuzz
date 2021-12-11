@@ -1,5 +1,6 @@
 """Live web dashboard for a fuzzing run."""
 import datetime
+import os
 from typing import List, Tuple
 
 import black
@@ -15,7 +16,15 @@ DATA_TO_PLOT = [{"nodeid": "", "elapsed_time": 0, "ninputs": 0, "branches": 0}]
 LAST_UPDATE: dict = {}
 
 headings = ["nodeid", "elapsed time", "ninputs", "since new cov", "branches", "note"]
-app = flask.Flask(__name__)
+app = flask.Flask(__name__, static_folder=os.path.abspath("pycrunch-recordings"))
+
+try:
+    import flask_cors
+    from pycrunch_trace.oop.safe_filename import SafeFilename
+except ImportError:
+    SafeFilename = None
+else:
+    flask_cors.CORS(app)
 
 
 @app.route("/", methods=["POST"])  # type: ignore
@@ -96,10 +105,11 @@ def display_page(pathname: str) -> html.Div:
         )
 
     # Target-specific subpages
+    nodeid = pathname[1:]
     trace = [
         d
         for d in DATA_TO_PLOT
-        if d["nodeid"].replace("/", "_") == pathname[1:]  # type: ignore
+        if d["nodeid"].replace("/", "_") == nodeid  # type: ignore
     ]
     fig1 = px.line(
         trace, x="ninputs", y="branches", line_shape="hv", hover_data=["elapsed_time"]
@@ -113,6 +123,13 @@ def display_page(pathname: str) -> html.Div:
         for failures in last_update["failures"]:
             failures[0] = try_format(failures[0])
             add.extend(html.Pre(children=[html.Code(children=[x])]) for x in failures)
+        if SafeFilename:
+            url = f"http://{flask.request.host}/pycrunch-recordings/{SafeFilename(nodeid)}/session.chunked"
+            link = dcc.Link(
+                "Debug failing example online with pytrace",
+                href=f"https://app.pytrace.com/?open={url}",
+            )
+            add.append(html.Pre(children=[link]))
     return html.Div(
         children=[
             dcc.Link("Back to main dashboard", href="/"),
@@ -169,7 +186,15 @@ def update_graph_live(n: int, clicks: int) -> object:
     ]
     if failing:
         xs, ys = zip(*failing)
-        fig.add_trace(go.Scatter(x=xs, y=ys, mode="text", text="💥", showlegend=False))
+        fig.add_trace(
+            go.Scatter(
+                x=xs,
+                y=ys,
+                mode="text",
+                text="💥",
+                showlegend=False,
+            )
+        )
     fig.update_layout(
         height=800,
         legend_yanchor="top",
@@ -227,6 +252,15 @@ def update_estimators_table(n: int) -> object:
         ]
         contents.append(html.Tr([html.Td(x) for x in row]))
     return contents
+
+
+@app.route("/pycrunch-recordings/<path:name>")  # type: ignore
+def download_file(name: str) -> flask.Response:
+    return flask.send_from_directory(
+        directory="pycrunch-recordings",
+        filename=name,
+        mimetype="application/octet-stream",
+    )
 
 
 def start_dashboard_process(
