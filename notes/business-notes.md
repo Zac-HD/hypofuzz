@@ -32,16 +32,11 @@ with recurring billing.
 
 ### Distribution
 
-Is currently via GemFury's PyPI support, though long term I'd like to move to something
+Is currently via PyPI support, though long term I'd like to move to something
 customised which can give me more detailed analytics, etc.  This might actually be
 pretty easy to do if I'm already running a webserver for Stripe integration.
 
-See https://gemfury.com/help/pypi-server
-It's already aliased to packages.hypofuzz.com/pypi
-
-Test access token: 1GVNXw-JKMinWjFBpDYcrgTwQ8nEl35wA0 to be used as
-
-    pip install --extra-index-url=https://1GVNXw-JKMinWjFBpDYcrgTwQ8nEl35wA0:@packages.hypofuzz.com/pypi/ hypofuzz
+    pip install hypofuzz
 
 
 ### Other services
