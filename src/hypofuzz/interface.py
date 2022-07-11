@@ -50,7 +50,12 @@ def _get_hypothesis_tests_with_pytest(args: Iterable[str]) -> List["FuzzProcess"
     out = io.StringIO()
     with redirect_stdout(out):
         ret = pytest.main(
-            args=["--collect-only", "-m=hypothesis", *args],
+            args=[
+                "--collect-only",
+                "-m=hypothesis",
+                "--pythonwarnings=ignore::pytest.PytestAssertRewriteWarning",
+                *args,
+            ],
             plugins=[collector],
         )
     if ret:
