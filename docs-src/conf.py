@@ -35,14 +35,14 @@ intersphinx_mapping = {
 # See http://sphinx-doc.org/ext/extlinks.html
 _repo = "https://github.com/Zac-HD/hypofuzz"
 extlinks = {
-    "commit": (f"{_repo}/commit/%s", "commit "),
-    "gh-file": (f"{_repo}/blob/master/%s", ""),
-    "gh-link": (f"{_repo}/%s", ""),
-    "issue": (f"{_repo}/issues/%s", "issue #"),
-    "pull": (f"{_repo}/pull/%s", "pull request #"),
-    "pypi": ("https://pypi.org/project/%s", ""),
-    "bpo": ("https://bugs.python.org/issue%s", "bpo-"),
-    "hydocs": ("https://hypothesis.readthedocs.io/en/latest/%s", ""),
+    "commit": (f"{_repo}/commit/%s", "commit %s"),
+    "gh-file": (f"{_repo}/blob/master/%s", "%s"),
+    "gh-link": (f"{_repo}/%s", "%s"),
+    "issue": (f"{_repo}/issues/%s", "issue #%s"),
+    "pull": (f"{_repo}/pull/%s", "pull request #%s"),
+    "pypi": ("https://pypi.org/project/%s", "%s"),
+    "bpo": ("https://bugs.python.org/issue%s", "bpo-%s"),
+    "hydocs": ("https://hypothesis.readthedocs.io/en/latest/%s", "%s"),
 }
 
 bibtex_bibfiles = ["literature.bib"]

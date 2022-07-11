@@ -301,7 +301,7 @@ class Pool:
             shrinker = Shrinker(
                 EngineStub(fn, random),
                 self.results[self.covering_buffers[arc_to_shrink]],
-                predicate=lambda d: arc_to_shrink in d.extra_information.branches,
+                predicate=lambda d, a=arc_to_shrink: a in d.extra_information.branches,
                 allow_transition=None,
             )
             shrinker.shrink()

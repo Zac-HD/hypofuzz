@@ -5,10 +5,10 @@ from typing import List, Tuple
 
 import black
 import dash
-from dash import dcc, html
 import flask
 import plotly.express as px
 import plotly.graph_objects as go
+from dash import dcc, html
 from dash.dependencies import Input, Output
 
 DATA_TO_PLOT = [{"nodeid": "", "elapsed_time": 0, "ninputs": 0, "branches": 0}]
