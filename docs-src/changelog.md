@@ -1,5 +1,9 @@
 # Changelog
 
+## 22.07.1
+Fixes compatibility with [Hypothesis 6.49.1](https://hypothesis.readthedocs.io/en/latest/changes.html#v6-49-1)
+and later (released July 5th).
+
 ## 21.12.2
 Web-based time-travel debugging with [PyTrace](https://pytrace.com/) - just
 `pip install hypofuzz[pytrace]` and click the link on any failing test!

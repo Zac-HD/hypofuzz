@@ -5,7 +5,6 @@ import itertools
 import sys
 import time
 import traceback
-from inspect import getfullargspec
 from random import Random
 from typing import Any, Callable, Dict, Generator, List, NoReturn, Union
 
@@ -23,7 +22,7 @@ from hypothesis.internal.conjecture.data import ConjectureData, Status
 from hypothesis.internal.conjecture.engine import BUFFER_SIZE
 from hypothesis.internal.conjecture.junkdrawer import stack_depth_of_caller
 from hypothesis.internal.conjecture.shrinker import Shrinker
-from hypothesis.internal.reflection import function_digest
+from hypothesis.internal.reflection import function_digest, get_signature
 from hypothesis.reporting import with_reporter
 from sortedcontainers import SortedKeyList
 
@@ -88,7 +87,7 @@ class FuzzProcess:
             arguments=(),
             kwargs=extra_kw or {},
             given_kwargs=wrapped_test.hypothesis._given_kwargs,
-            argspec=getfullargspec(wrapped_test),
+            params=get_signature(wrapped_test).parameters,
         )
         return cls(
             test_fn=wrapped_test.hypothesis.inner_test,
