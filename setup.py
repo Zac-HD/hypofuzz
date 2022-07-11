@@ -36,7 +36,7 @@ setuptools.setup(
     zip_safe=False,
     install_requires=[
         "coverage >= 5.2.1",
-        "dash >= 1.15.0",
+        "dash >= 2.0.0",
         "hypothesis[cli] >= 6.50.1",
         "pandas >= 1.0.0",
         "psutil >= 3.0.0",
