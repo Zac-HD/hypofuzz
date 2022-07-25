@@ -245,7 +245,13 @@ Adaptive mutation operator selection
 
 `MOpt-AFL <https://github.com/puppet-meteor/MOpt-AFL>`__ :cite:`MOpt-AFL` finds that
 the effectiveness of mutation strategies varies by target, and evaluates an adaptive
-algorithm to customise the mutation logic accordingly.
+particle-swarm algorithm to customise the mutation logic accordingly.
+
+:cite:`OneFuzzingStrategyToRuleThemAll` study "Havoc" mode, in which multiple
+randomly-selected mutation operators are applied in a single step.  They find that
+this typically outperforms a one-operator-at-a-time approach, and that dynamically
+tuning the operator weights with a (non-stationary) multi-arm-bandit approach yields
+further large improvements.
 
 TOFU :cite:`TOFU` varies the weighting of mutation operators with distance to the
 goal; preferring large (add, delete, splice, etc.) operations while distant and small
@@ -266,8 +272,8 @@ might also have some synergistic effects.
 Scheduling inputs
 -----------------
 
-AFLFast & FairFuzz
-~~~~~~~~~~~~~~~~~~
+AFLFast, FairFuzz, and AlphaFuzz
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 AFLFast :cite:`AFLFast` and FairFuzz :cite:`FairFuzz` observe that some branches
 are covered by a higher proportion of inputs than others - for example, code which
@@ -279,6 +285,12 @@ and more bugs than previous approaches.  Technically, the trick is to represent
 the probability of covering each branch from a random mutation of each input as a
 Markov chain, and then using the inverse of the stationary distribution as our
 choice weights.
+
+AlphaFuzz :cite:`AlphaFuzz` observes that because mutation operators tend to make
+local changes, modelling the lineage of each seed (again, as a Markov chain) further
+improves on AFL-Fast by accounting for semantic diversity among seeds that reach
+the same set of branches.  However, I doubt this would help HypoFuzz, given our
+larger mutation steps and strong reduction and normalization of seeds.
 
 FairFuzz shares the goal of increasing coverage of rare branches, but does so by
 detecting regions of the input which may be required to do so and disabling
@@ -311,6 +323,12 @@ Directed swarm testing :cite:`DirectedSwarmTesting` takes a slightly different a
 it is assumed that *some* randomly generated test cases will execute the target code,
 and so the goal is to increase that proportion by biasing the swarm configuration
 towards including 'trigger' features and omitting 'suppressors'.
+
+SyML :cite:`SyMLPatternLearning` learn patterns among vulnerability-triggering paths
+in known-buggy programs, and find that the learned features are predictive in unrelated
+programs.  Originally motivated by mitigating path explosion in symbolic execution, it
+seems equally applicable to directed fuzzing and could be a substantial advantage for
+a centralized platform where there are more programs (and bugs) to learn from.
 
 
 Predictive fuzzing, scaling laws, & when to stop
@@ -425,6 +443,35 @@ a feat more typical of dedicated reinforcement learning systems, as well as
 fuzzing a Trusted Platform Module, complex format parsers, mazes, and a hash map.
 
 
+Diversity
+~~~~~~~~~
+
+A key point here is that fuzzing and testing tools should search for *diverse* inputs,
+to avoid getting trapped in a "optimal" but non-bug-finding state.  For example, IJON
+optimized x-distance *at each distinct altitude* to avoid dead-ends.
+
+Hypothesis tracks the :wikipedia:`pareto frontier <Pareto_front>` of metrics passed
+to :func:`hypothesis.target` (plus some internal metrics).  For observable dimensions
+where there is *not* a clear "best" direction and may be thousands of dimensions,
+such as the hit-count of each branch, there are a variety of approaches.
+
+AFL and related fuzzers "bucketize" the hitcount and then track uniqueness up to a
+64k hash of this vector, as a compromise between performance (driven by CPU cache sizes)
+and collision rate (typically 10-15% for library-like targets, but up to 75% for
+larger applications :cite:`CollAFL`).
+
+HypoFuzz's approach of keeping the best (shortlex-minimal) seed covering each branch
+is reminiscent of SugarSearch :cite:`SugarSearch`; that paper opens with a lovely
+survey of `quality-diversity algorithms <https://quality-diversity.github.io/>`__
+algorithms - including CVT-MAP-elites :cite:`MAP-elites,CVT-MAP-elites`, which might
+be nice to try for prioritization in high-dimensional spaces.
+
+BeDivFuzz :cite:`BeDivFuzz` proposes measuring behavioural diversity using the
+:wikipedia:`'Hill numbers' <Diversity_index>` from ecology; HypoFuzz already selects
+seeds via (a mixed distribution including) sampling seeds in inverse proportion to
+the observed frequency of the rarest branch covered by each.
+
+
 
 Coverage
 --------
@@ -433,8 +480,8 @@ Before diving in to the use of coverage information as feedback for test-case ge
 in fuzzers, it's worth covering the use of code coverage in a software development cycle.
 
 *How to Misuse Code Coverage* :cite:`HowToMisuseCoverage` still resonates:
-"I wouldn’t have written four coverage tools if I didn’t think they’re helpful.
-But they’re only helpful if they’re used to *enhance* thought, not *replace* it.".
+"I wouldn't have written four coverage tools if I didn't think they're helpful.
+But they're only helpful if they're used to *enhance* thought, not *replace* it.".
 More than 20 years later, `code coverage best practices
 <https://testing.googleblog.com/2020/08/code-coverage-best-practices.html>`__
 from the Google Testing Blog gives similar advice.

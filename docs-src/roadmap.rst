@@ -65,6 +65,46 @@ See :doc:`literature` for notes on where some these ideas come from.
     would prioritize, or if we're missing something important to you.
 
 
+Architecture overhaul
+~~~~~~~~~~~~~~~~~~~~~
+I'm seriously considering going 'full distributed system' for Hypofuzz, by using
+persistent state in the database as the coordination mechanism instead of http.
+
+Currently: you launch ``hypothesis fuzz``, that starts n_cores worker processes
+plus one to serve the dashboard, and UI data is streamed over JSON-over-HTTP.
+This is basically fine, but you have to recover all your state by replaying saved
+examples on every restart, the dashboard is tied to the worker processes, and you
+can't scale up or down (or even really out beyond a single node).
+
+But... we do have this handy Hypothesis database, which is without-loss-of-generality
+a distributed database mapping bytes to set-of-bytes (e.g. using Redis, S3, whatever).
+So why don't we just communicate via DB state instead of HTTP?
+
+- The dashboard then works independently of how many (if any) worker processes
+  are currently fuzzing, because it's just a presentation layer over the database.
+- I can persist all the which-branches-discovered-when metadata and get much
+  more accurate estimates of residual risk.  This should include provenance -
+  from black/grey/whitebox - and needs to account for concurrent executions.
+- Oh no. I'd hoped to avoid this but finally have a problem which actually
+  calls for distributed consensus algorithms.  (fortunately I think this is simpler than Paxos...)
+- The data model becomes much more complicated; some state might be from e.g.
+  an earlier or unconnected commit.  Any notion of "the current code" is now local
+  to the dashboard, so failing examples (etc) have to be replayed in the dashboard
+  process - unless the cached data was tagged with the same e.g. commit hash -
+  or else the text of the reports also needs to be stored in the database.
+  Not to mention HypoFuzz itself updating...
+- Oh, and the whole thing had better support fuzzing multiple repos or packages
+  with a single database, so let's add another layer of namespacing.
+- The main trick is to define exactly what data we need to store, and then use some
+  CRDT-style technique to allow concurrent reads and writes. Or a git-style tree?
+  Alternatively we could treat this as strictly-speculative and just throw out
+  anything we can't linearize...
+
+On the upside, the net effect of this design is that we'll be able to just throw things
+into whatever autoscaling setup is convenient, and the overall system will continue
+to make progress as nodes come and go.
+
+
 Workflow and development lifecycle
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -88,7 +128,11 @@ The `current dashboard <https://hypofuzz.com/example-dashboard/>`__ is a good
 start, but there's plenty of room for improvement.
 
 Main wishlist item: good support for starting the dashboard and worker processes
-separately.
+separately - especially with the architecture overhaul above.
+
+We should also report coverage stability fraction, including a rating
+stable (100%), unstable (85%--100%), or serious problem (<85%");
+and explain the difference between stability=coverage and flakiness=outcome.
 
 
 Observability ideas
@@ -100,7 +144,6 @@ Observability ideas
   <https://hexgolems.com/2020/08/on-measuring-and-visualizing-fuzzer-performance/>`__).
 - `Abstracting away inputs <https://youtu.be/Wy7qY5ms3qY?t=2058>`__ like
   e.g. `gamozolabs/cookie_dough <https://github.com/gamozolabs/cookie_dough>`__
-- integrate a time-travelling debugger like https://pytrace.com/
 
 
 Fuzzing machinery
@@ -110,6 +153,7 @@ Fuzzing machinery
   and use that for prioritization (currently number of inputs since last discovery)
 - (maybe) support moving targets between processes; could be more efficient in the
   limit but constrains scaling.  Randomised assignment on restart probably better.
+  Easy-ish following architecture overhaul.
 
 
 Better mutation logic

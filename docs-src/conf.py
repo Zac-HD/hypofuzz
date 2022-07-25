@@ -43,6 +43,7 @@ extlinks = {
     "pypi": ("https://pypi.org/project/%s", "%s"),
     "bpo": ("https://bugs.python.org/issue%s", "bpo-%s"),
     "hydocs": ("https://hypothesis.readthedocs.io/en/latest/%s", "%s"),
+    "wikipedia": ("https://en.wikipedia.org/wiki/%s", "%s"),
 }
 
 bibtex_bibfiles = ["literature.bib"]
