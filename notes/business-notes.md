@@ -77,3 +77,5 @@ For human-oriented graphics, open source, https://www.humaaans.com/
 https://saaspages.xyz/ collects examples of standard pages from SAAS businesses
 
 https://www.checklist.design/ is, well, design checklists
+
+https://review.firstround.com/how-superhuman-built-an-engine-to-find-product-market-fit
