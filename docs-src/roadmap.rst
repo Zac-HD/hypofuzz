@@ -149,6 +149,9 @@ Observability ideas
 Fuzzing machinery
 ~~~~~~~~~~~~~~~~~
 
+- experiment with `slipcover <https://github.com/plasma-umass/slipcover>`__ - if the
+  overhead of adding instrumentation is low, this could be a big win - and amortized
+  across many unlikely-to-find-new-branches executions anyway if not.
 - implement `predictive fuzzing like Pythia <https://github.com/mboehme/pythia>`__,
   and use that for prioritization (currently number of inputs since last discovery)
 - (maybe) support moving targets between processes; could be more efficient in the

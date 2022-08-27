@@ -507,10 +507,14 @@ coverage measurement by rewriting the target - because most executions do not fi
 new coverage, this allows you to instrument a very small proportion of executions.
 
 While offering very impressive speedups, this doesn't support differential metrics
-or non-coverage metrics, and the rewriting trick would be rather difficult - though
-not impossible - in Python.  Augumenting PyPy's tracing JIT to report coverage
-information would probably be more fruitful, and also very fast given the repeated
-execution pattern of fuzzing.
+or non-coverage metrics, and the rewriting trick would be rather difficult in Python.
+Nonetheless, the `PLASMA-UMass <https://plasma-umass.org/>`__ team have released
+`Slipcover <https://github.com/plasma-umass/slipcover>`__, a super-low-overhead
+coverage tool for Python based on just this principle - and explicitly list fuzzing
+as one of the applications.
+
+Augumenting PyPy's tracing JIT to report coverage information would probably also be
+fruitful, and very fast given the JIT-friendly repeated execution pattern of fuzzing.
 
 
 Faster coverage measurement for Python
