@@ -37,4 +37,4 @@ Read more at https://hypofuzz.com/docs/
 
 ## Changelog
 
-Patch notes [can be found in `CHANGELOG.md`](https://github.com/Zac-HD/hypofuzz/blob/master/CHANGELOG.md).
+Patch notes [can be found in changelog](https://hypofuzz.com/docs/changelog.html).
