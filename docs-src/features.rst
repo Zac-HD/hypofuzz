@@ -42,7 +42,7 @@ a whole test suite at a time.
 HypoFuzz dashboard
 ------------------
 
-The HypoFuzz dashboard - `online demo here <../../example-dashboard/>`__ shows
+The HypoFuzz dashboard - `online demo here <../../example-dashboard/>`__ - shows
 the current state of the fuzzing campaign overall, with a sub-page for each test
 to show more information.
 

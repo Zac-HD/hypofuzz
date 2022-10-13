@@ -181,14 +181,15 @@ approach to generation for acceptable performance - even when seriously unintuit
 
 The `proptest <https://github.com/AltSysrq/proptest/>`__ library for Rust is directly
 inspired by Hypothesis.  Showing the power of a good intermediate representation,
-recent tools have built on top of this to provide both `fuzzing
+recent tools have attempted to build on top of this to provide both `fuzzing
 <https://github.com/facebookincubator/propfuzz>`__ and `formal verification
 <https://github.com/project-oak/rust-verification-tools>`__ with (almost) the same
 user-facing API.
 
-We'd *like* to support the latter too - e.g. via :pypi:`crosshair-tool` - but sadly
-Python is a much harder target than machine code for symbolic verification and this
-is more like science fiction than a roadmap item.
+There are `plans for Hypothesis to support symbolic execution via
+<https://github.com/HypothesisWorks/hypothesis/issues/3086>`__ :pypi:`crosshair-tool`,
+and a promising proof-of-concept, but no firm timeline unless someone volunteers to
+take on the project.
 
 
 (C / C++) TrailofBits' DeepState
@@ -232,6 +233,8 @@ While they use `"Peach pits" <https://www.peach.tech/products/peach-fuzzer/peach
 to define the input grammar - and as the blackbox baseline - we can get the same
 structural information directly from instrumentation in the Hypothesis internals
 without any additional work for users or implementors.
+Doing so will also give Hypothesis `better ways to explain why your test failed
+<https://github.com/HypothesisWorks/hypothesis/issues/3411>`__ essentially for free.
 
 Note that *structure-aware mutation* is a different technique to what is often
 called *structure-aware fuzzing* (e.g. `here
@@ -392,9 +395,8 @@ this as a basis for further fuzzing as well as reporting failing examples.
 We are unaware of previous work which uses this approach or evaluates it in
 comparison to less-intensive distillation.  We expect that it works very well
 if-and-only-if combined with generative and structure-aware fuzzing, to allow
-for exploitation of the covering structure without unduely standardising
-unrelated parts of the input, and characterising this is one of my ongoing
-research projects.
+for exploitation of the covering structure without unduly standardising
+unrelated parts of the input.
 
 
 Nezha - efficient differential testing
@@ -493,7 +495,7 @@ we as researchers and developers can do about it.
 
 `Verification, coverage and maximization: the big picture
 <https://blog.foretellix.com/2016/12/23/verification-coverage-and-maximization-the-big-picture/>`__
-aims to explain coverage is used to optimize the verification process, what it means to
+aims to explain how coverage is used to optimize the verification process, what it means to
 auto-maximize coverage, and how people have tried to do it - from a background in
 hardware design, which brings an instructively different perspective to analogous problems.
 (similar to Dan Luu's `AFL + QuickCheck = ? <https://danluu.com/testing/>`__, above)
@@ -547,10 +549,9 @@ Compressing coverage information
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Ankou :cite:`Ankou` measures coverage of the *number of times* each branch was executed,
-i.e. order-insensitive path coverage, rather than the more typical *boolean* was each
-branch executed (1 or more times).  To manage the very large number of covering inputs,
+i.e. order-insensitive path coverage.  To manage the very large number of covering inputs,
 they use a dynamic distance-based metric to retain only dissimilar inputs rather than
-all covering inputs.
+all covering inputs.  By comparison AFL bucketizes branch hit-counts.
 
 
 
@@ -598,11 +599,12 @@ while Microsoft's SAGE :cite:`SAGE` found `roughly one-third of all the bugs
 the development of Windows 7 - running *after* static analysis and other fuzzers.
 
 Inputs synthesised by symbolic or concolic approaches could provide the initial
-seed pool for a classic mutational fuzzer.  While :pypi:`crosshair-tool` provides
-a prototype SMT-solver based whitebox fuzzer for Python, serialising Python objects
-back into the bytes which would produce them from a given strategy is impossible
-in the general case.  It's a tempting challenge, but any practical implementation
-would probably be too restricted to be of much use on real workloads.
+seed pool for a classic mutational fuzzer, and provide a way to 'get unstuck'
+on conditions which are hard to satisfy by chance.
+There are `plans for Hypothesis to support symbolic execution via
+<https://github.com/HypothesisWorks/hypothesis/issues/3086>`__ :pypi:`crosshair-tool`,
+and a promising proof-of-concept, but no firm timeline unless someone volunteers to
+take on the project.
 
 
 Scaling fuzzers up to many cores
@@ -622,6 +624,9 @@ must duplicate the discovery process.  P-AFL adds a mechanism for global sharing
 of guidance information as well as seeds, and additionally focusses each process
 on fuzzing a subset of the branches in the program - which diversifies the search
 process and effectively ensembles variants of a single base fuzzer.
+
+We plan to mitigate this in HypoFuzz, by sharing ephemeral state between instances
+and runs via the database.
 
 
 Visualising fuzzer performance

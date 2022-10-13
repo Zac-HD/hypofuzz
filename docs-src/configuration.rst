@@ -10,7 +10,7 @@ It's all automatic
 
 Wherever possible, HypoFuzz is designed to do the right thing without configuration.
 
-:command:`hypothesis fuzz` accepts arguments to determine parameters like the
+The :command:`hypothesis fuzz` CLI accepts arguments to determine parameters like the
 number of processes to use, and the port on which to serve the dashboard -
 though every one of them is optional - and you can select which tests to fuzz
 in the same way you would select them via :pypi:`pytest`.
@@ -18,9 +18,6 @@ in the same way you would select them via :pypi:`pytest`.
 Once that's all set up though, the fuzzer is not configurable: manual prioritization
 of a fuzzing process is considerably more error-prone than allowing the adaptive
 scheduler to do its thing, and computer time is much cheaper than yours.
-
-If the fuzzer is missing something, please get in touch so we can improve the
-heuristics and feeback mechanisms - and benefit everyone, automatically.
 
 
 

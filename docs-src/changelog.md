@@ -1,4 +1,6 @@
 # Changelog
+HypoFuzz uses `calendar-based versioning <https://calver.org/>`__, with a
+``YY-MM-patch`` format.
 
 ## 22.07.1
 Fixes compatibility with [Hypothesis 6.49.1](https://hypothesis.readthedocs.io/en/latest/changes.html#v6-49-1)

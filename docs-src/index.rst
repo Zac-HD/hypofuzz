@@ -16,7 +16,6 @@ to find bugs early in your development cycle.
 
     Main website <https://hypofuzz.com/>
     quickstart
-    Pricing <https://hypofuzz.com/pricing/>
     features
     configuration
     roadmap

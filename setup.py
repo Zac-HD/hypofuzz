@@ -27,11 +27,10 @@ setuptools.setup(
     package_data={"": ["py.typed"]},
     url="https://hypofuzz.com/",
     project_urls={
-        "Funding": "https://hypofuzz.com/pricing/",
         "Documentation": "https://hypofuzz.com/docs/",
         "Changelog": "https://hypofuzz.com/docs/changelog.html",
     },
-    license="Proprietary License",
+    license="AGPL-3.0",
     description="Adaptive fuzzing for property-based tests",
     zip_safe=False,
     install_requires=[
@@ -49,15 +48,14 @@ setuptools.setup(
             "pycrunch-trace >= 0.1.6",
         ],
     },
-    python_requires=">=3.7",
+    python_requires=">=3.8",
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Framework :: Hypothesis",
         "Intended Audience :: Developers",
-        "License :: Other/Proprietary License",  # Get in touch if you're interested!
+        "License :: OSI Approved :: GNU Affero General Public License v3",
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",

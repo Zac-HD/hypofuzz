@@ -32,6 +32,7 @@ or from a ``requirements.txt`` file like
 
 Optionally, you can ``pip install hypofuzz[pytrace]`` for automatic time-travel
 debugging with `PyTrace <https://pytrace.com/>`__ through the web interface.
+There are still some rough edges here, but it's pretty cool.
 
 
 Running :command:`hypothesis fuzz`

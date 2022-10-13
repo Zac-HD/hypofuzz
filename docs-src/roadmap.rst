@@ -1,7 +1,7 @@
 Development roadmap
 ===================
 
-HypoFuzz is both an active research project and a production-ready tool.
+HypoFuzz is both a research project and a production-ready tool.
 
 We believe that this dual nature is a strength for both: users get to leverage
 a tool based on cutting-edge research, but also ensure that the problems it
@@ -157,6 +157,10 @@ Fuzzing machinery
 - (maybe) support moving targets between processes; could be more efficient in the
   limit but constrains scaling.  Randomised assignment on restart probably better.
   Easy-ish following architecture overhaul.
+- Construct a 'dictionary' of known-interesting values based on extracting constants
+  from the code under test, to generate more often than chance.
+- Investigate Redqueen-style tracking, e.g. "a string in the input matched against this
+  regex pattern in the code, so try generating from that" as the advanced version.
 
 
 Better mutation logic
