@@ -2,6 +2,10 @@
 HypoFuzz uses `calendar-based versioning <https://calver.org/>`__, with a
 ``YY-MM-patch`` format.
 
+## 22.10.1
+First open-source release!  Also improves database handling and adds
+a timelimit to shrinking to better handle pathological cases.
+
 ## 22.07.1
 Fixes compatibility with [Hypothesis 6.49.1](https://hypothesis.readthedocs.io/en/latest/changes.html#v6-49-1)
 and later (released July 5th).

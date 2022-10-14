@@ -6,7 +6,7 @@ import sys
 import time
 import traceback
 from random import Random
-from typing import Any, Callable, Dict, Generator, List, NoReturn, Union
+from typing import Any, Callable, Dict, Generator, List, NoReturn, Optional, Union
 
 from hypothesis import settings, strategies as st
 from hypothesis.core import (
@@ -60,6 +60,10 @@ def constant_stack_depth() -> Generator[None, None, None]:
         sys.setrecursionlimit(recursion_limit)
 
 
+class HitShrinkTimeoutError(Exception):
+    pass
+
+
 class FuzzProcess:
     """Maintain all the state associated with fuzzing a single target.
 
@@ -79,7 +83,7 @@ class FuzzProcess:
         wrapped_test: Any,
         *,
         nodeid: str = None,
-        extra_kw: Dict[str, object] = None,
+        extra_kw: Optional[Dict[str, object]] = None,
     ) -> "FuzzProcess":
         """Return a FuzzProcess for an @given-decorated test function."""
         _, _, _, search_strategy = process_arguments_to_given(
@@ -93,7 +97,7 @@ class FuzzProcess:
             test_fn=wrapped_test.hypothesis.inner_test,
             strategy=search_strategy,
             nodeid=nodeid,
-            database_key=function_digest(wrapped_test),
+            database_key=function_digest(wrapped_test.hypothesis.inner_test),
             hypothesis_database=wrapped_test._hypothesis_internal_use_settings.database
             or settings.default.database,
         )
@@ -125,6 +129,7 @@ class FuzzProcess:
         # Set up the basic data that we'll track while fuzzing
         self.ninputs = 0
         self.elapsed_time = 0.0
+        self.stop_shrinking_at = float("inf")
         self.since_new_cov = 0
         self.status_counts = {s.name: 0 for s in Status}
         self.shrinking = False
@@ -201,7 +206,9 @@ class FuzzProcess:
                 predicate=lambda d: d.status is Status.INTERESTING,
                 allow_transition=None,
             )
-            shrinker.shrink()
+            self.stop_shrinking_at = self.elapsed_time + 300
+            with contextlib.suppress(HitShrinkTimeoutError):
+                shrinker.shrink()
             self.shrinking = False
             if record_pytrace:
                 # Replay minimal example under our time-travelling debug tracer
@@ -302,6 +309,9 @@ class FuzzProcess:
             self._report_change(UNDELIVERED_REPORTS)
             del UNDELIVERED_REPORTS[:]
 
+        if self.elapsed_time > self.stop_shrinking_at:
+            raise HitShrinkTimeoutError
+
         # The shrinker relies on returning the data object to be inspected.
         return data.as_result()
 
@@ -312,7 +322,13 @@ class FuzzProcess:
     def _json_description(self) -> Report:
         """Summarise current state to send to dashboard."""
         if self.ninputs == 0:
-            return {"nodeid": self.nodeid, "note": "starting up..."}
+            return {
+                "nodeid": self.nodeid,
+                "note": "starting up...",
+                "ninputs": 0,
+                "branches": 0,
+                "elapsed_time": 0,
+            }
         report: Report = {
             "nodeid": self.nodeid,
             "elapsed_time": self.elapsed_time,

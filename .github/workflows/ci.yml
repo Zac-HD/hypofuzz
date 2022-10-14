@@ -36,6 +36,7 @@ jobs:
       run: |
         python -m tox --recreate -e docs
     - name: Upload docs
+      if: github.repository == 'Zac-HD/hypofuzz' &&  github.ref == 'refs/heads/master'
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"

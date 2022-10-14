@@ -164,6 +164,7 @@ class Pool:
             if origin not in self.interesting_examples or sort_key(result) < sort_key(
                 self.interesting_examples[origin]
             ):
+                self._database.save(self._key, result.buffer)
                 self.interesting_examples[origin] = (
                     result,
                     [

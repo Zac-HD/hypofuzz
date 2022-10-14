@@ -40,7 +40,7 @@ def add_data(d: dict) -> None:
     if not LAST_UPDATE:
         del DATA_TO_PLOT[0]
     DATA_TO_PLOT.append(
-        {k: d[k] for k in ["nodeid", "elapsed_time", "ninputs", "branches"] if k in d}
+        {k: d[k] for k in ["nodeid", "elapsed_time", "ninputs", "branches"]}
     )
     LAST_UPDATE[d["nodeid"]] = d
 
@@ -164,6 +164,9 @@ def display_page(pathname: str) -> html.Div:
     )
 
 
+FIRST_FAILED_AT = {}
+
+
 @board.callback(  # type: ignore
     Output("live-update-graph", "figure"),
     [Input("interval-component", "n_intervals"), Input("xaxis-state", "n_clicks")],
@@ -178,22 +181,26 @@ def update_graph_live(n: int, clicks: int) -> object:
         hover_data=["elapsed_time"],
         log_x=bool(clicks % 2),
     )
-    failing = [
-        (d["ninputs"], d["branches"])
+    failing = {
+        d["nodeid"]: (d["ninputs"], d["branches"])
         for d in LAST_UPDATE.values()
         if d.get("status_counts", {}).get("INTERESTING", 0)
-    ]
-    if failing:
-        xs, ys = zip(*failing)
-        fig.add_trace(
-            go.Scatter(
-                x=xs,
-                y=ys,
-                mode="text",
-                text="💥",
-                showlegend=False,
+    }
+    for k, v in failing.items():
+        if k not in FIRST_FAILED_AT:
+            FIRST_FAILED_AT[k] = v
+    for series, symbol in [(failing, "🔍"), (FIRST_FAILED_AT, "💥")]:
+        if series:
+            xs, ys = zip(*series.values())
+            fig.add_trace(
+                go.Scatter(
+                    x=xs,
+                    y=ys,
+                    mode="text",
+                    text=symbol,
+                    showlegend=False,
+                )
             )
-        )
     fig.update_layout(
         height=800,
         legend_yanchor="top",

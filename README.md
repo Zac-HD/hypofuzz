@@ -32,9 +32,5 @@ HypoFuzz solves all of these problems, and more!
 - Web-based time-travel debugging with [PyTrace](https://pytrace.com/)
   (automatic if you `pip install hypofuzz[pytrace]`)
 
-Read more at https://hypofuzz.com/docs/
-
-
-## Changelog
-
-Patch notes [can be found in `CHANGELOG.md`](https://github.com/Zac-HD/hypofuzz/blob/master/CHANGELOG.md).
+Read more about HypoFuzz at https://hypofuzz.com/docs/, including
+[the changelog](https://hypofuzz.com/docs/changelog.html).
