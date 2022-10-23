@@ -192,13 +192,19 @@ and a promising proof-of-concept, but no firm timeline unless someone volunteers
 take on the project.
 
 
-(C / C++) TrailofBits' DeepState
-++++++++++++++++++++++++++++++++
+(C / C++) TrailofBits' DeepState, Google's ``fuzztest``
++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 `DeepState <https://github.com/trailofbits/deepstate>`__ :cite:`DeepState` provides
 a common interface to various symbolic execution and fuzzing engines - write your
 tests once with a Google Test-style API, and then run them with a variety of backends
 and at various stages of your development cycle.
+
+Google's `fuzztest <https://github.com/google/fuzztest>`__ library is described as
+a tool that bridges the gap between fuzzing and property-based testing, allowing you
+to write fuzz test side by side with regular unit tests.  ``fuzztest`` always runs
+with coverage guidance, but is designed to be used as part of a testing (rather than
+standard fuzzing) workflow.
 
 
 (Haskell) QuickFuzz
