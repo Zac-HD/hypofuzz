@@ -2,6 +2,10 @@
 HypoFuzz uses `calendar-based versioning <https://calver.org/>`__, with a
 ``YY-MM-patch`` format.
 
+## 22.12.1
+Fixed a `NotImplementedError` when HypoFuzz had found a failing input for *every*
+test running in some process.  Now, we cleanly `sys.exit(1)` instead.
+
 ## 22.10.1
 First open-source release!  Also improves database handling and adds
 a timelimit to shrinking to better handle pathological cases.

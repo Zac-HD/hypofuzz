@@ -1,5 +1,6 @@
 """CLI and Python API for the fuzzer."""
 
+import sys
 from multiprocessing import Process
 from typing import NoReturn, Tuple
 
@@ -82,6 +83,7 @@ def fuzz(
 
         Process(target=start_dashboard_process, kwargs={"port": port}).start()
 
+    processes = []
     for i in range(numprocesses):
         nodes = {t.nodeid for t in (tests if unsafe else tests[i::numprocesses])}
         p = Process(
@@ -89,5 +91,9 @@ def fuzz(
             kwargs={"pytest_args": pytest_args, "nodeids": nodes, "port": port},
         )
         p.start()
-    p.join()
+        processes.append(p)
+    for p in processes:
+        p.join()
+    print("Found a failing input for every test!", file=sys.stderr)  # noqa: T201
+    sys.exit(1)
     raise NotImplementedError("unreachable")
