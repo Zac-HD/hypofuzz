@@ -2,6 +2,9 @@
 HypoFuzz uses `calendar-based versioning <https://calver.org/>`__, with a
 ``YY-MM-patch`` format.
 
+## 23.04.1
+Fixed a bug affecting traceback reporting on Python 3.10+ (#16).
+
 ## 22.12.1
 Fixed a `NotImplementedError` when HypoFuzz had found a failing input for *every*
 test running in some process.  Now, we cleanly `sys.exit(1)` instead.
