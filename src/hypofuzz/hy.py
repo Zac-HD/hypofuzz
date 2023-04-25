@@ -272,7 +272,7 @@ class FuzzProcess:
             filename, lineno, *_ = traceback.extract_tb(tb)[-1]
             data.interesting_origin = (type(e), filename, lineno)
             data.extra_information.traceback = "".join(
-                traceback.format_exception(etype=type(e), value=e, tb=tb)
+                traceback.format_exception(type(e), value=e, tb=tb)
             )
         finally:
             data.extra_information.call_repr = (
