@@ -2,6 +2,10 @@
 HypoFuzz uses `calendar-based versioning <https://calver.org/>`__, with a
 ``YY-MM-patch`` format.
 
+## 23.05.1
+Now requires Hypothesis 6.75.2 or later, fixing compatibility with some unstable internals
+that HypoFuzz hooks into.
+
 ## 23.04.1
 Fixed a bug affecting traceback reporting on Python 3.10+ (#16).
 
