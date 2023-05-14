@@ -3,7 +3,7 @@ import io
 import sys
 from contextlib import redirect_stdout, suppress
 from functools import partial
-from typing import TYPE_CHECKING, Iterable, List, NoReturn, Tuple
+from typing import TYPE_CHECKING, Iterable, List, NoReturn, Optional, Tuple
 
 import pytest
 import requests
@@ -67,11 +67,11 @@ def _get_hypothesis_tests_with_pytest(args: Iterable[str]) -> List["FuzzProcess"
 
 def _post(port: int, data: dict) -> None:
     with suppress(Exception):
-        requests.post(f"http://localhost:{port}/", json=data)
+        requests.post(f"http://localhost:{port}/", json=data, timeout=30)
 
 
 def _fuzz_several(
-    pytest_args: Tuple[str, ...], nodeids: List[str], port: int = None
+    pytest_args: Tuple[str, ...], nodeids: List[str], port: Optional[int] = None
 ) -> NoReturn:
     """Collect and fuzz tests.
 

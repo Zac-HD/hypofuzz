@@ -29,10 +29,11 @@ from sortedcontainers import SortedKeyList
 from .corpus import BlackBoxMutator, CrossOverMutator, EngineStub, HowGenerated, Pool
 from .cov import CustomCollectionContext
 
+record_pytrace: Optional[Callable[..., Any]]
 try:
     from .debugger import record_pytrace
 except ImportError:
-    record_pytrace = None  # type: ignore
+    record_pytrace = None
 
 Report = Dict[str, Union[int, float, str, list, Dict[str, int]]]
 
@@ -82,7 +83,7 @@ class FuzzProcess:
         cls,
         wrapped_test: Any,
         *,
-        nodeid: str = None,
+        nodeid: Optional[str] = None,
         extra_kw: Optional[Dict[str, object]] = None,
     ) -> "FuzzProcess":
         """Return a FuzzProcess for an @given-decorated test function."""
@@ -108,7 +109,7 @@ class FuzzProcess:
         strategy: st.SearchStrategy,
         *,
         random_seed: int = 0,
-        nodeid: str = None,
+        nodeid: Optional[str] = None,
         database_key: bytes,
         hypothesis_database: ExampleDatabase,
     ) -> None:
@@ -205,6 +206,7 @@ class FuzzProcess:
                 result,
                 predicate=lambda d: d.status is Status.INTERESTING,
                 allow_transition=None,
+                explain=True,
             )
             self.stop_shrinking_at = self.elapsed_time + 300
             with contextlib.suppress(HitShrinkTimeoutError):
@@ -234,7 +236,7 @@ class FuzzProcess:
         buffer: bytes,
         *,
         source: HowGenerated = HowGenerated.shrinking,
-        collector: contextlib.AbstractContextManager = None,
+        collector: Optional[contextlib.AbstractContextManager] = None,
     ) -> ConjectureData:
         """Run the test_fn on a given buffer of bytes, in a way a Shrinker can handle.
 
@@ -360,7 +362,7 @@ class FuzzProcess:
         return bool(self.pool.interesting_examples)
 
 
-def fuzz_several(*targets_: FuzzProcess, random_seed: int = None) -> NoReturn:
+def fuzz_several(*targets_: FuzzProcess, random_seed: Optional[int] = None) -> NoReturn:
     """Take N fuzz targets and run them all."""
     # TODO: this isn't actually multi-process yet, and that's bad.
     rand = Random(random_seed)
