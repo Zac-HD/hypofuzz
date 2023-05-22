@@ -8,9 +8,10 @@ import traceback
 from random import Random
 from typing import Any, Callable, Dict, Generator, List, NoReturn, Optional, Union
 
-from hypothesis import settings, strategies as st
+from hypothesis import settings
 from hypothesis.core import (
     BuildContext,
+    Stuff,
     deterministic_PRNG,
     failure_exceptions_to_catch,
     get_trimmed_traceback,
@@ -87,7 +88,7 @@ class FuzzProcess:
         extra_kw: Optional[Dict[str, object]] = None,
     ) -> "FuzzProcess":
         """Return a FuzzProcess for an @given-decorated test function."""
-        _, _, _, search_strategy = process_arguments_to_given(
+        _, _, _, stuff = process_arguments_to_given(
             wrapped_test,
             arguments=(),
             kwargs=extra_kw or {},
@@ -96,7 +97,7 @@ class FuzzProcess:
         )
         return cls(
             test_fn=wrapped_test.hypothesis.inner_test,
-            strategy=search_strategy,
+            stuff=stuff,
             nodeid=nodeid,
             database_key=function_digest(wrapped_test.hypothesis.inner_test),
             hypothesis_database=wrapped_test._hypothesis_internal_use_settings.database
@@ -106,7 +107,7 @@ class FuzzProcess:
     def __init__(
         self,
         test_fn: Callable,
-        strategy: st.SearchStrategy,
+        stuff: Stuff,
         *,
         random_seed: int = 0,
         nodeid: Optional[str] = None,
@@ -117,7 +118,7 @@ class FuzzProcess:
         # The actual fuzzer implementation
         self.random = Random(random_seed)
         self.__test_fn = test_fn
-        self.__strategy = strategy
+        self.__stuff = stuff
         self.nodeid = nodeid or test_fn.__qualname__
 
         # The seed pool is responsible for managing all seed state, including saving
@@ -253,11 +254,20 @@ class FuzzProcess:
         try:
             with deterministic_PRNG(), BuildContext(
                 data, is_final=True
-            ), constant_stack_depth(), with_reporter(reports.append):
+            ) as context, constant_stack_depth(), with_reporter(reports.append):
                 # Note that the data generation and test execution happen in the same
                 # coverage context.  We may later split this, or tag each separately.
                 with collector:
-                    args, kwargs = data.draw(self.__strategy)
+                    if self.__stuff.selfy is not None:
+                        data.hypothesis_runner = self.__stuff.selfy
+                    # Generate all arguments to the test function.
+                    args = self.__stuff.args
+                    kwargs = dict(self.__stuff.kwargs)
+                    a, kw, argslices = context.prep_args_kwargs_from_strategies(
+                        (), self.__stuff.given_kwargs
+                    )
+                    assert not a, "strategies all moved to kwargs by now"
+                    kwargs.update(kw)
 
                     # Save the repr of our arguments so they can be reported later
                     argstrings.extend(map(repr, args))
