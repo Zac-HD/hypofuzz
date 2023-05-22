@@ -25,6 +25,7 @@ from hypothesis.internal.conjecture.junkdrawer import stack_depth_of_caller
 from hypothesis.internal.conjecture.shrinker import Shrinker
 from hypothesis.internal.reflection import function_digest, get_signature
 from hypothesis.reporting import with_reporter
+from hypothesis.vendor.pretty import RepresentationPrinter
 from sortedcontainers import SortedKeyList
 
 from .corpus import BlackBoxMutator, CrossOverMutator, EngineStub, HowGenerated, Pool
@@ -197,17 +198,20 @@ class FuzzProcess:
         # seen_count = len(self.pool.arc_counts)
 
         # Run the input
-        result = self._run_test_on(self.generate_prefix())
+        result = self._run_test_on(self.generate_prefix(), extend=BUFFER_SIZE)
 
         if result.status is Status.INTERESTING:
             # Shrink to our minimal failing example, since we'll stop after this.
             self.shrinking = True
+            passing_buffers = frozenset(
+                b for b, r in self.pool.results.items() if r.status == Status.VALID
+            )
             shrinker = Shrinker(
-                EngineStub(self._run_test_on, self.random),
+                EngineStub(self._run_test_on, self.random, passing_buffers),
                 result,
                 predicate=lambda d: d.status is Status.INTERESTING,
                 allow_transition=None,
-                explain=True,
+                explain=False,  # TODO: enable explain mode
             )
             self.stop_shrinking_at = self.elapsed_time + 300
             with contextlib.suppress(HitShrinkTimeoutError):
@@ -236,6 +240,8 @@ class FuzzProcess:
         self,
         buffer: bytes,
         *,
+        error_on_discard: bool = False,
+        extend: int = 0,
         source: HowGenerated = HowGenerated.shrinking,
         collector: Optional[contextlib.AbstractContextManager] = None,
     ) -> ConjectureData:
@@ -249,8 +255,11 @@ class FuzzProcess:
         collector = collector or CustomCollectionContext()  # type: ignore
         assert collector is not None
         reports: List[str] = []
-        argstrings: List[str] = []
-        data = ConjectureData(max_length=BUFFER_SIZE, prefix=buffer, random=self.random)
+        data = ConjectureData(
+            max_length=min(BUFFER_SIZE, len(buffer) + extend),
+            prefix=buffer,
+            random=self.random,
+        )
         try:
             with deterministic_PRNG(), BuildContext(
                 data, is_final=True
@@ -269,9 +278,20 @@ class FuzzProcess:
                     assert not a, "strategies all moved to kwargs by now"
                     kwargs.update(kw)
 
-                    # Save the repr of our arguments so they can be reported later
-                    argstrings.extend(map(repr, args))
-                    argstrings.extend(f"{k}={v!r}" for k, v in kwargs.items())
+                    printer = RepresentationPrinter(context=context)
+                    printer.repr_call(
+                        self.__test_fn.__name__,
+                        args,
+                        kwargs,
+                        force_split=True,
+                        arg_slices=argslices,
+                        leading_comment=(
+                            "# " + context.data.slice_comments[(0, 0)]
+                            if (0, 0) in context.data.slice_comments
+                            else None
+                        ),
+                    )
+                    data.extra_information.call_repr = printer.getvalue()
 
                     self.__test_fn(*args, **kwargs)
         except StopTest:
@@ -287,9 +307,6 @@ class FuzzProcess:
                 traceback.format_exception(type(e), value=e, tb=tb)
             )
         finally:
-            data.extra_information.call_repr = (
-                self.__test_fn.__name__ + "(" + ", ".join(argstrings) + ")"
-            )
             data.extra_information.reports = "\n".join(map(str, reports))
 
         # In addition to coverage branches, use psudeo-coverage information provided via

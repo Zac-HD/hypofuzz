@@ -7,6 +7,7 @@ from typing import (
     Callable,
     Counter,
     Dict,
+    FrozenSet,
     Iterable,
     List,
     Optional,
@@ -58,12 +59,16 @@ class EngineStub:
     """A knock-off ConjectureEngine, just large enough to run a shrinker."""
 
     def __init__(
-        self, test_fn: Callable[[bytes], ConjectureData], random: Random
+        self,
+        test_fn: Callable[[bytes], ConjectureData],
+        random: Random,
+        passing_buffers: FrozenSet[bytes],
     ) -> None:
         self.cached_test_function = test_fn
         self.random = random
         self.call_count = 0
         self.report_debug_info = False
+        self.__passing_buffers = passing_buffers
 
     def debug(self, msg: str) -> None:
         """Unimplemented stub."""
@@ -73,6 +78,13 @@ class EngineStub:
 
     def clear_call_explanation(self) -> None:
         """Unimplemented stub."""
+
+    def passing_buffers(self, prefix: bytes = b"") -> FrozenSet[bytes]:
+        """Return a collection of bytestrings which cause the test to pass.
+
+        Optionally restrict this by a certain prefix, which is useful for explain mode.
+        """
+        return frozenset(b for b in self.__passing_buffers if b.startswith(prefix))
 
 
 class Pool:
@@ -161,8 +173,8 @@ class Pool:
         # the database under Hypothesis' default key so it will be reproduced.
         if result.status == Status.INTERESTING:
             origin = result.interesting_origin
-            if origin not in self.interesting_examples or sort_key(result) < sort_key(
-                self.interesting_examples[origin]
+            if origin not in self.interesting_examples or (
+                sort_key(result) < sort_key(self.interesting_examples[origin][0])
             ):
                 self._database.save(self._key, result.buffer)
                 self.interesting_examples[origin] = (
@@ -300,10 +312,11 @@ class Pool:
                 key=lambda a: sort_key(self.covering_buffers[a]),
             )
             shrinker = Shrinker(
-                EngineStub(fn, random),
+                EngineStub(fn, random, passing_buffers=frozenset()),
                 self.results[self.covering_buffers[arc_to_shrink]],
                 predicate=lambda d, a=arc_to_shrink: a in d.extra_information.branches,
                 allow_transition=None,
+                explain=False,
             )
             shrinker.shrink()
             self.__shrunk_to_buffers.add(shrinker.shrink_target.buffer)
