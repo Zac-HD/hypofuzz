@@ -2,6 +2,10 @@
 HypoFuzz uses [calendar-based versioning](https://calver.org/), with a
 `YY-MM-patch` format.
 
+## 23.05.3
+Yet another compatibility fix for explain mode, with even _more_ tests for future regressions.
+Third time lucky, we hope!
+
 ## 23.05.2
 Additional compatibility fix, and improved tests to avoid future regressions.
 
