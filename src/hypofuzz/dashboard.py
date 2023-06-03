@@ -1,6 +1,8 @@
 """Live web dashboard for a fuzzing run."""
+import atexit
 import datetime
 import os
+import signal
 from typing import List, Tuple
 
 import black
@@ -10,9 +12,14 @@ import plotly.express as px
 import plotly.graph_objects as go
 from dash import dcc, html
 from dash.dependencies import Input, Output
+from hypothesis.configuration import storage_directory
+
+from .patching import make_and_save_patches
 
 DATA_TO_PLOT = [{"nodeid": "", "elapsed_time": 0, "ninputs": 0, "branches": 0}]
 LAST_UPDATE: dict = {}
+
+PYTEST_ARGS = None
 
 headings = ["nodeid", "elapsed time", "ninputs", "since new cov", "branches", "note"]
 app = flask.Flask(__name__, static_folder=os.path.abspath("pycrunch-recordings"))
@@ -97,6 +104,12 @@ def display_page(pathname: str) -> html.Div:
                 html.Div("Total branch coverage for each test."),
                 dcc.Graph(id="live-update-graph"),
                 html.Button("Toggle log-xaxis", id="xaxis-state", n_clicks=0),
+                html.Div(
+                    dcc.Link(
+                        "See patches with covering and/or failing examples",
+                        href="/patches/",
+                    )
+                ),
                 html.Div(html.Table(id="summary-table-rows")),
                 html.Div("Estimated number of inputs to discover new coverage or bugs"),
                 html.Div(html.Table(id="estimators-table-rows")),
@@ -264,13 +277,72 @@ def update_estimators_table(n: int) -> object:
 def download_file(name: str) -> flask.Response:
     return flask.send_from_directory(
         directory="pycrunch-recordings",
-        filename=name,
+        path=name,
         mimetype="application/octet-stream",
     )
 
 
+@app.route("/patches/<path:name>")  # type: ignore
+def download_patch(name: str) -> flask.Response:
+    return flask.send_from_directory(
+        directory=os.path.relpath(storage_directory("patches"), app.root_path),
+        path=name,
+        mimetype="application/octet-stream",
+    )
+
+
+@app.route("/patches/")  # type: ignore
+def patch_summary() -> flask.Response:
+    patches = make_and_save_patches(PYTEST_ARGS, LAST_UPDATE)
+    if not patches:
+        return """<html>
+    <head><title>HypoFuzz patches</title><meta charset="utf-8"/></head>
+    <body style="font-family: Sans-Serif">
+        Waiting for examples, please refresh the page in minute or so.
+    </body></html>"""
+    show = "fail"
+    if show not in patches:
+        show = "cov"
+    patch_path = patches[show]
+    describe = {"fail": "failing", "cov": "covering", "all": "covering and failing"}
+    links = "\n".join(
+        f'<li><a href="/patches/{patches[k].name}">patch with {v} examples</a></li>'
+        for k, v in describe.items()
+        if k in patches
+    )
+    return f"""<html>
+    <head>
+        <title>HypoFuzz patches</title>
+        <meta charset="utf-8" />
+        <link rel="stylesheet" type="text/css" href="/assets/prism.css" />
+        <script src="/assets/prism.js"></script>
+    </head>
+    <body style="font-family: Sans-Serif">
+        <h2>Download links</h2>
+        <ul>{links}</ul>
+        <h2>Latest {describe[show]} patch</h2>
+        <pre class="language-diff-python diff-highlight"><code>{patch_path.read_text()}</code></pre>
+    </body>
+    </html>"""
+
+
 def start_dashboard_process(
-    port: int, *, host: str = "localhost", debug: bool = False
+    port: int, *, pytest_args: list, host: str = "localhost", debug: bool = False
 ) -> None:
+    global PYTEST_ARGS
+    PYTEST_ARGS = pytest_args
+
+    # Ensure that we dump whatever patches are ready before shutting down
+    def signal_handler(signum, frame):  # type: ignore
+        make_and_save_patches(pytest_args, LAST_UPDATE)
+        if old_handler in (signal.SIG_DFL, None):
+            return old_handler
+        elif old_handler is not signal.SIG_IGN:
+            return old_handler(signum, frame)
+        raise NotImplementedError("Unreachable")
+
+    old_handler = signal.signal(signal.SIGTERM, signal_handler)
+    atexit.register(make_and_save_patches, pytest_args, LAST_UPDATE)
+
     print(f"\n\tNow serving dashboard at  http://{host}:{port}/\n")  # noqa
     app.run(host=host, port=port, debug=debug)
