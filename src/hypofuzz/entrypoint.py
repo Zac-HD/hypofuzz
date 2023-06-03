@@ -81,7 +81,10 @@ def fuzz(
     if dashboard:
         from .dashboard import start_dashboard_process
 
-        Process(target=start_dashboard_process, kwargs={"port": port}).start()
+        Process(
+            target=start_dashboard_process,
+            kwargs={"port": port, "pytest_args": pytest_args},
+        ).start()
 
     processes = []
     for i in range(numprocesses):

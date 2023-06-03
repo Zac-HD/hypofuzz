@@ -118,7 +118,7 @@ class FuzzProcess:
         """Construct a FuzzProcess from specific arguments."""
         # The actual fuzzer implementation
         self.random = Random(random_seed)
-        self.__test_fn = test_fn
+        self._test_fn = test_fn
         self.__stuff = stuff
         self.nodeid = nodeid or test_fn.__qualname__
 
@@ -280,7 +280,7 @@ class FuzzProcess:
 
                     printer = RepresentationPrinter(context=context)
                     printer.repr_call(
-                        self.__test_fn.__name__,
+                        self._test_fn.__name__,
                         args,
                         kwargs,
                         force_split=True,
@@ -293,7 +293,7 @@ class FuzzProcess:
                     )
                     data.extra_information.call_repr = printer.getvalue()
 
-                    self.__test_fn(*args, **kwargs)
+                    self._test_fn(*args, **kwargs)
         except StopTest:
             data.status = Status.OVERRUN
         except UnsatisfiedAssumption:

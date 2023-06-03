@@ -34,9 +34,11 @@ setuptools.setup(
     description="Adaptive fuzzing for property-based tests",
     zip_safe=False,
     install_requires=[
+        "black >= 23.3.0",
         "coverage >= 5.2.1",
         "dash >= 2.0.0",
-        "hypothesis[cli] >= 6.75.2",
+        "hypothesis[cli] >= 6.75.7",
+        "libcst >= 1.0.0",
         "pandas >= 1.0.0",
         "psutil >= 3.0.0",
         "pytest >= 6.0.1",
