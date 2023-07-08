@@ -2,6 +2,11 @@
 HypoFuzz uses [calendar-based versioning](https://calver.org/), with a
 `YY-MM-patch` format.
 
+## 23.07.1
+Various small patches for issues found by fuzzing Hypothesis itself.
+Notably, we now try to fuzz functions which require autouse fixtures
+even though we don't provide those fixtures - it often works!
+
 ## 23.06.1
 Hypofuzz now writes ``.patch`` files with failing examples, *and* optionally
 with covering examples - including removal of redundant covering examples.

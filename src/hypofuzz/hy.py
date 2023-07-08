@@ -101,7 +101,9 @@ class FuzzProcess:
             stuff=stuff,
             nodeid=nodeid,
             database_key=function_digest(wrapped_test.hypothesis.inner_test),
-            hypothesis_database=wrapped_test._hypothesis_internal_use_settings.database
+            hypothesis_database=getattr(
+                wrapped_test, "_hypothesis_internal_use_settings", settings.default
+            ).database
             or settings.default.database,
         )
 
@@ -306,6 +308,10 @@ class FuzzProcess:
             data.extra_information.traceback = "".join(
                 traceback.format_exception(type(e), value=e, tb=tb)
             )
+        except KeyboardInterrupt:
+            # If you have a test function which raises KI, this is pretty useful.
+            print(f"Got a KeyboardInterrupt in {self.nodeid}, exiting...")  # noqa
+            raise
         finally:
             data.extra_information.reports = "\n".join(map(str, reports))
 

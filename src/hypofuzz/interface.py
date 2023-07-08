@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Iterable, List, NoReturn, Optional, Tuple
 
 import pytest
 import requests
+from hypothesis.stateful import RuleBasedStateMachine, run_state_machine_as_test
 
 if TYPE_CHECKING:
     # We have to defer imports to within functions here, because this module
@@ -26,19 +27,35 @@ class _ItemsCollector:
         for item in session.items:
             # If the test takes a fixture, we skip it - the fuzzer doesn't have
             # pytest scopes, so we just can't support them.  TODO: note skips.
-            if item._request._fixturemanager.getfixtureinfo(
+            manager = item._request._fixturemanager
+            name2fixturedefs = manager.getfixtureinfo(
                 node=item, func=item.function, cls=None
-            ).name2fixturedefs:
+            ).name2fixturedefs
+            # However, autouse fixtures are ubiquitous enough that we'll skip them;
+            # until we get full pytest compatibility it's an expedient approximation.
+            _, all_autouse, _ = manager.getfixtureclosure(
+                tuple(manager._getautousenames(item.nodeid)), item
+            )
+            if set(name2fixturedefs).difference(all_autouse):
                 continue
             # For parametrized tests, we have to pass the parametrized args into
             # wrapped_test.hypothesis.get_strategy() to avoid trivial TypeErrors
             # from missing required arguments.
             extra_kw = item.callspec.params if hasattr(item, "callspec") else {}
             # Wrap it up in a FuzzTarget and we're done!
-            fuzz = FuzzProcess.from_hypothesis_test(
-                item.obj, nodeid=item.nodeid, extra_kw=extra_kw
-            )
-            self.fuzz_targets.append(fuzz)
+            try:
+                # Skip state-machine classes, since they're not
+                if isinstance(item.obj, RuleBasedStateMachine.TestCase):
+                    target = partial(run_state_machine_as_test, item.obj)
+                else:
+                    target = item.obj
+                fuzz = FuzzProcess.from_hypothesis_test(
+                    target, nodeid=item.nodeid, extra_kw=extra_kw
+                )
+                self.fuzz_targets.append(fuzz)
+                # print("going to fuzz", item.nodeid)
+            except Exception as err:
+                print("crashed in", item.nodeid, err)  # noqa
 
 
 def _get_hypothesis_tests_with_pytest(args: Iterable[str]) -> List["FuzzProcess"]:

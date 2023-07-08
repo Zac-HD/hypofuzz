@@ -180,7 +180,7 @@ class Pool:
                 self.interesting_examples[origin] = (
                     result,
                     [
-                        result.extra_information.call_repr,
+                        getattr(result.extra_information, "call_repr", "<unknown>"),
                         result.extra_information.reports,
                         reproduction_decorator(result.buffer),
                         result.extra_information.traceback,
