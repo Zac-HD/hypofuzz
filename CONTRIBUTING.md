@@ -49,4 +49,4 @@ You accept and agree to the following terms and conditions for Your present and 
 **Other contributors:**
 <!-- Add yourself to the end of the bulleted list below -->
 
-*None yet.*
+* [Liam DeVoe](https://github.com/tybug)
