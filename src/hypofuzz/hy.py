@@ -53,7 +53,7 @@ def constant_stack_depth() -> Generator[None, None, None]:
     # to imagine an intentionally-deeply-recursive use of this code.
     assert depth <= 1000, (
         f"Hypothesis would usually add {recursion_limit} to the stack depth of "
-        "{depth} here, but we are already much deeper than expected.  Aborting "
+        f"{depth} here, but we are already much deeper than expected.  Aborting "
         "now, to avoid extending the stack limit in an infinite loop..."
     )
     try:
