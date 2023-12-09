@@ -89,7 +89,7 @@ class FuzzProcess:
         extra_kw: Optional[Dict[str, object]] = None,
     ) -> "FuzzProcess":
         """Return a FuzzProcess for an @given-decorated test function."""
-        _, _, _, stuff = process_arguments_to_given(
+        _, _, stuff = process_arguments_to_given(
             wrapped_test,
             arguments=(),
             kwargs=extra_kw or {},
@@ -322,10 +322,9 @@ class FuzzProcess:
         data.extra_information.branches = frozenset(
             getattr(collector, "branches", ())  # might be a debug tracer instead
         ).union(
-            event_str
-            for event_str in map(str, data.events)
-            if not event_str.startswith("Retried draw from ")
-            or event_str.startswith("Aborted test because unable to satisfy ")
+            f"event:{k}:{v}"
+            for k, v in data.events.items()
+            if not k.startswith(("invalid because", "Retried draw from "))
         )
 
         data.freeze()

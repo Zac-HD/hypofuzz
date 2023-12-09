@@ -17,7 +17,7 @@ is__pytest_file = belongs_to(_pytest)
 is_pycrunch_file = belongs_to(sys.modules["pycrunch_trace"])
 
 
-@lru_cache()
+@lru_cache
 def is_hypofuzz_file() -> Callable:
     # Layer of indirection to avoid import cycles
     import hypofuzz
