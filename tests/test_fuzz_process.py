@@ -1,4 +1,5 @@
 """Tests for the hypofuzz library."""
+
 from hypothesis import given, strategies as st
 from hypothesis.internal.conjecture.data import Status
 

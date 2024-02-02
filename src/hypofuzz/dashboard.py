@@ -1,4 +1,5 @@
 """Live web dashboard for a fuzzing run."""
+
 import atexit
 import datetime
 import os
@@ -142,6 +143,15 @@ def display_page(pathname: str) -> html.Div:
                 href=f"https://app.pytrace.com/?open={url}",
             )
             add.append(html.Pre(children=[link]))
+
+    _seen_cov_examples = set()
+    covering_examples = []
+    for row in last_update.get("seed_pool", []):
+        example = try_format(row[1]), row[2]
+        if example not in _seen_cov_examples:
+            _seen_cov_examples.add(example)
+            covering_examples.append(example)
+
     return html.Div(
         children=[
             dcc.Link("Back to main dashboard", href="/"),
@@ -169,10 +179,7 @@ def display_page(pathname: str) -> html.Div:
                     "not covered by any previous, more-minimal, example."
                 ]
             ),
-        ]
-        + [
-            html.Pre([html.Code([try_format(row[1]), row[2], "\n"])])
-            for row in last_update.get("seed_pool", [])
+            *(html.Pre([html.Code([*ex, "\n"])]) for ex in covering_examples),
         ]
     )
 

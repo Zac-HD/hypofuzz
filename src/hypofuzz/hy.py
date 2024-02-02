@@ -274,10 +274,9 @@ class FuzzProcess:
                     # Generate all arguments to the test function.
                     args = self.__stuff.args
                     kwargs = dict(self.__stuff.kwargs)
-                    a, kw, argslices = context.prep_args_kwargs_from_strategies(
-                        (), self.__stuff.given_kwargs
+                    kw, argslices = context.prep_args_kwargs_from_strategies(
+                        self.__stuff.given_kwargs
                     )
-                    assert not a, "strategies all moved to kwargs by now"
                     kwargs.update(kw)
 
                     printer = RepresentationPrinter(context=context)
@@ -373,9 +372,11 @@ class FuzzProcess:
             "loaded_from_db": len(self.pool._loaded_from_database),
             "status_counts": self.status_counts,
             "seed_pool": self.pool.json_report,
-            "note": "replaying saved examples"
-            if self._replay_buffer
-            else ("shrinking known examples" if self.pool._in_distill_phase else ""),
+            "note": (
+                "replaying saved examples"
+                if self._replay_buffer
+                else ("shrinking known examples" if self.pool._in_distill_phase else "")
+            ),
         }
         if self.pool.interesting_examples:
             report["note"] = (

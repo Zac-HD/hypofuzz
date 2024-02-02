@@ -4,68 +4,44 @@
 #
 #    pip-compile --annotation-style=line --output-file=deps/check.txt deps/check.in
 #
-annotated-types==0.6.0    # via pydantic
-attrs==23.1.0             # via flake8-bugbear
+attrs==23.2.0             # via flake8-bugbear
 autoflake==2.2.1          # via shed
-bandit==1.7.6             # via flake8-bandit
-black==23.11.0            # via shed
-cerberus==1.3.5           # via plette
-certifi==2023.11.17       # via requests
-charset-normalizer==3.3.2  # via requests
+bandit==1.7.7             # via flake8-bandit
+black==24.1.1             # via shed
 click==8.1.7              # via black
 com2ann==0.3.0            # via shed
-distlib==0.3.7            # via requirementslib
-docopt==0.6.2             # via pipreqs
-flake8==6.1.0             # via -r deps/check.in, flake8-bandit, flake8-bugbear, flake8-builtins, flake8-comprehensions, flake8-docstrings, flake8-print, pep8-naming
+flake8==7.0.0             # via -r deps/check.in, flake8-bandit, flake8-bugbear, flake8-builtins, flake8-comprehensions, flake8-docstrings, flake8-print, pep8-naming
 flake8-bandit==4.1.1      # via -r deps/check.in
-flake8-bugbear==23.12.2   # via -r deps/check.in
+flake8-bugbear==24.1.17   # via -r deps/check.in
 flake8-builtins==2.2.0    # via -r deps/check.in
 flake8-comprehensions==3.14.0  # via -r deps/check.in
 flake8-docstrings==1.7.0  # via -r deps/check.in
 flake8-print==5.0.0       # via -r deps/check.in
-gitdb==4.0.11             # via gitpython
-gitpython==3.1.40         # via bandit
-idna==3.6                 # via requests
-isort==5.13.0             # via shed
+isort==5.13.2             # via shed
 libcst==1.1.0             # via shed
 markdown-it-py==3.0.0     # via rich
 mccabe==0.7.0             # via flake8
 mdurl==0.1.2              # via markdown-it-py
-mypy==1.7.1               # via -r deps/check.in
+mypy==1.8.0               # via -r deps/check.in
 mypy-extensions==1.0.0    # via black, mypy, typing-inspect
 packaging==23.2           # via black
-pathspec==0.11.2          # via black
+pathspec==0.12.1          # via black
 pbr==6.0.0                # via stevedore
-pep517==0.13.1            # via requirementslib
 pep8-naming==0.13.3       # via -r deps/check.in
-pip-api==0.0.30           # via isort
-pipreqs==0.4.13           # via isort
-platformdirs==4.1.0       # via black, requirementslib
-plette[validation]==0.4.4  # via requirementslib
+platformdirs==4.2.0       # via black
 pycodestyle==2.11.1       # via flake8, flake8-print
-pydantic==2.5.2           # via requirementslib
-pydantic-core==2.14.5     # via pydantic
 pydocstyle==6.3.0         # via flake8-docstrings
-pyflakes==3.1.0           # via autoflake, flake8
+pyflakes==3.2.0           # via autoflake, flake8
 pygments==2.17.2          # via rich
 pyupgrade==3.15.0         # via shed
 pyyaml==6.0.1             # via bandit, libcst
-requests==2.31.0          # via requirementslib, yarg
-requirementslib==3.0.0    # via isort
 rich==13.7.0              # via bandit
-shed==2023.6.1            # via -r deps/check.in
-smmap==5.0.1              # via gitdb
+shed==2024.1.1            # via -r deps/check.in
 snowballstemmer==2.2.0    # via pydocstyle
 stevedore==5.1.0          # via bandit
 tokenize-rt==5.2.0        # via pyupgrade
-tomli==2.0.1              # via autoflake, black, mypy, pep517
-tomlkit==0.12.3           # via plette, requirementslib
-types-requests==2.31.0.10  # via -r deps/check.in
-typing-extensions==4.8.0  # via black, libcst, mypy, pydantic, pydantic-core, typing-inspect
+tomli==2.0.1              # via autoflake, black, mypy
+types-requests==2.31.0.20240125  # via -r deps/check.in
+typing-extensions==4.9.0  # via black, libcst, mypy, typing-inspect
 typing-inspect==0.9.0     # via libcst
-urllib3==2.1.0            # via requests, types-requests
-yarg==0.1.9               # via pipreqs
-
-# The following packages are considered to be unsafe in a requirements file:
-# pip
-# setuptools
+urllib3==2.2.0            # via types-requests

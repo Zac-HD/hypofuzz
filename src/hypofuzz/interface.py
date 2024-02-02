@@ -1,4 +1,5 @@
 """CLI and Python API for the fuzzer."""
+
 import io
 import sys
 from contextlib import redirect_stdout, suppress

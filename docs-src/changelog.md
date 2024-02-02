@@ -2,6 +2,11 @@
 HypoFuzz uses [calendar-based versioning](https://calver.org/), with a
 `YY-MM-patch` format.
 
+## 24.02.1
+Now requires [Hypothesis 6.93.2](https://hypothesis.readthedocs.io/en/latest/changes.html#v6-93-2)
+or later, fixing compatibility with some unstable internals that HypoFuzz hooks into (yes, again).
+Also deduplicates the displayed covering examples in the dashboard, when their reprs are identical.
+
 ## 23.12.1
 Now requires [Hypothesis 6.91](https://hypothesis.readthedocs.io/en/latest/changes.html#v6-91-0)
 or later, fixing compatibility with some unstable internals that HypoFuzz hooks into.
