@@ -225,7 +225,7 @@ class Pool:
             self.json_report = [
                 [
                     reproduction_decorator(res.buffer),
-                    getattr(result.extra_information, "call_repr", "<unknown>"),
+                    getattr(res.extra_information, "call_repr", "<unknown>"),
                     res.extra_information.reports,
                 ]
                 for res in self.results.values()

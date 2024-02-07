@@ -109,6 +109,7 @@ def display_page(pathname: str) -> html.Div:
                     dcc.Link(
                         "See patches with covering and/or failing examples",
                         href="/patches/",
+                        refresh=True,
                     )
                 ),
                 html.Div(html.Table(id="summary-table-rows")),
@@ -124,6 +125,13 @@ def display_page(pathname: str) -> html.Div:
         for d in DATA_TO_PLOT
         if d["nodeid"].replace("/", "_") == nodeid  # type: ignore
     ]
+    if not trace:
+        return html.Div(
+            children=[
+                dcc.Link("Back to main dashboard", href="/"),
+                html.P(["No results for this test function yet."]),
+            ]
+        )
     fig1 = px.line(
         trace, x="ninputs", y="branches", line_shape="hv", hover_data=["elapsed_time"]
     )

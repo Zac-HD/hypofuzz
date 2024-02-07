@@ -2,6 +2,9 @@
 HypoFuzz uses [calendar-based versioning](https://calver.org/), with a
 `YY-MM-patch` format.
 
+## 24.02.2
+Fixed a dashboard bug ([#31](https://github.com/Zac-HD/hypofuzz/issues/31)).
+
 ## 24.02.1
 Now requires [Hypothesis 6.93.2](https://hypothesis.readthedocs.io/en/latest/changes.html#v6-93-2)
 or later, fixing compatibility with some unstable internals that HypoFuzz hooks into (yes, again).
