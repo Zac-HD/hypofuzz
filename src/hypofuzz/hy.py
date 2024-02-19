@@ -6,7 +6,7 @@ import sys
 import time
 import traceback
 from random import Random
-from typing import Any, Callable, Dict, Generator, List, NoReturn, Optional, Union
+from typing import Any, Callable, Dict, Generator, List, Optional, Union
 
 from hypothesis import settings
 from hypothesis.core import (
@@ -395,7 +395,7 @@ class FuzzProcess:
         return bool(self.pool.interesting_examples)
 
 
-def fuzz_several(*targets_: FuzzProcess, random_seed: Optional[int] = None) -> NoReturn:
+def fuzz_several(*targets_: FuzzProcess, random_seed: Optional[int] = None) -> None:
     """Take N fuzz targets and run them all."""
     # TODO: this isn't actually multi-process yet, and that's bad.
     rand = Random(random_seed)
@@ -421,5 +421,5 @@ def fuzz_several(*targets_: FuzzProcess, random_seed: Optional[int] = None) -> N
                 print(f"found failing example for {targets[0].nodeid}")  # noqa
                 targets.pop(0)
             if not targets:
-                raise Exception("Found failures for all tests!")
+                return
     raise NotImplementedError("unreachable")

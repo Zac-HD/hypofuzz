@@ -49,6 +49,7 @@ jobs:
     strategy:
       matrix:
         python-version: ["3.9", "3.10", "3.11", "3.12"]
+        toxenv: ["test", "pytest7"]
       fail-fast: false
     steps:
     - uses: actions/checkout@v2
@@ -59,7 +60,10 @@ jobs:
     - name: Install dependencies
       run: python -m pip install --upgrade pip setuptools tox
     - name: Run tests
-      run: python -m tox --recreate -e test
+      env:
+        # we hit https://github.com/dateutil/dateutil/issues/1314 via pandas/plotly
+        PYTHONWARNINGS: ignore::DeprecationWarning:dateutil
+      run: python -m tox --recreate -e ${{ matrix.toxenv }}
 
   release:
     runs-on: ubuntu-latest

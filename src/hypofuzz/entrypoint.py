@@ -56,6 +56,27 @@ def fuzz(
 
     This process will run forever unless stopped with e.g. ctrl-C.
     """
+    dash_proc = _fuzz_impl(
+        numprocesses=numprocesses,
+        dashboard=dashboard,
+        port=port,
+        unsafe=unsafe,
+        pytest_args=pytest_args,
+    )
+    if dash_proc:
+        dash_proc.kill()
+        dash_proc.join()
+    sys.exit(1)
+    raise NotImplementedError("unreachable")
+
+
+def _fuzz_impl(
+    numprocesses: int,
+    dashboard: bool,
+    port: Optional[int],
+    unsafe: bool,
+    pytest_args: Tuple[str, ...],
+) -> Optional[Process]:
     # Before doing anything with our arguments, we'll check that none
     # of HypoFuzz's arguments will be passed on to pytest instead.
     misplaced: set = set(pytest_args) & set().union(*(p.opts for p in fuzz.params))
@@ -81,12 +102,14 @@ def fuzz(
     if dashboard:
         from .dashboard import start_dashboard_process
 
-        Process(
+        dash_proc = Process(
             target=start_dashboard_process,
             kwargs={"port": port, "pytest_args": pytest_args},
-        ).start()
+        )
+        dash_proc.start()
     else:
         port = None
+        dash_proc = None
 
     if numprocesses <= 1:
         _fuzz_several(
@@ -105,5 +128,4 @@ def fuzz(
         for p in processes:
             p.join()
     print("Found a failing input for every test!", file=sys.stderr)  # noqa: T201
-    sys.exit(1)
-    raise NotImplementedError("unreachable")
+    return dash_proc
