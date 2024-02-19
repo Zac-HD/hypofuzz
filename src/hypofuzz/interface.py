@@ -4,7 +4,8 @@ import io
 import sys
 from contextlib import redirect_stdout, suppress
 from functools import partial
-from typing import TYPE_CHECKING, Iterable, List, NoReturn, Optional, Tuple
+from inspect import signature
+from typing import TYPE_CHECKING, Iterable, List, Optional, Tuple
 
 import pytest
 import requests
@@ -34,9 +35,13 @@ class _ItemsCollector:
             ).name2fixturedefs
             # However, autouse fixtures are ubiquitous enough that we'll skip them;
             # until we get full pytest compatibility it's an expedient approximation.
-            _, all_autouse, _ = manager.getfixtureclosure(
-                tuple(manager._getautousenames(item.nodeid)), item
-            )
+            # The relevant internals changed in Pytest 8.0, so handle both cases...
+            if "ignore_args" in signature(manager.getfixtureclosure).parameters:
+                all_autouse = set(manager._getautousenames(item.nodeid))
+            else:
+                _, all_autouse, _ = manager.getfixtureclosure(
+                    tuple(manager._getautousenames(item.nodeid)), item
+                )
             if set(name2fixturedefs).difference(all_autouse):
                 continue
             # For parametrized tests, we have to pass the parametrized args into
@@ -90,7 +95,7 @@ def _post(port: int, data: dict) -> None:
 
 def _fuzz_several(
     pytest_args: Tuple[str, ...], nodeids: List[str], port: Optional[int] = None
-) -> NoReturn:
+) -> None:
     """Collect and fuzz tests.
 
     Designed to be used inside a multiprocessing.Process started with the spawn()
@@ -107,4 +112,3 @@ def _fuzz_several(
             t._report_change = partial(_post, port)  # type: ignore
 
     fuzz_several(*tests)
-    raise NotImplementedError("unreachable")

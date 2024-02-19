@@ -2,3 +2,8 @@
 pytest
 pytest-cov
 pytest-xdist
+
+pyarrow  # avoid Pandas deprecation warning via plotly/dash
+
+# avoid https://github.com/dateutil/dateutil/issues/1314
+git+https://github.com/dateutil/dateutil.git@296d419fe6bf3b22897f8f210735ac9c4e1cb796

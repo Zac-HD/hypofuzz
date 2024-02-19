@@ -2,6 +2,9 @@
 HypoFuzz uses [calendar-based versioning](https://calver.org/), with a
 `YY-MM-patch` format.
 
+## 24.02.3
+Fixed compatibility with Pytest 8.x ([#32](https://github.com/Zac-HD/hypofuzz/issues/32)).
+
 ## 24.02.2
 Fixed a dashboard bug ([#31](https://github.com/Zac-HD/hypofuzz/issues/31)).
 

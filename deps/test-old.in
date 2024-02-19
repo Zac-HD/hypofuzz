@@ -1,0 +1,2 @@
+-r ./test.in
+pytest < 8.0

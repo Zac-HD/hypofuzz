@@ -5,14 +5,14 @@
 #    pip-compile --annotation-style=line --output-file=deps/check.txt deps/check.in
 #
 attrs==23.2.0             # via flake8-bugbear
-autoflake==2.2.1          # via shed
+autoflake==2.3.0          # via shed
 bandit==1.7.7             # via flake8-bandit
-black==24.1.1             # via shed
+black==24.2.0             # via shed
 click==8.1.7              # via black
 com2ann==0.3.0            # via shed
 flake8==7.0.0             # via -r deps/check.in, flake8-bandit, flake8-bugbear, flake8-builtins, flake8-comprehensions, flake8-docstrings, flake8-print, pep8-naming
 flake8-bandit==4.1.1      # via -r deps/check.in
-flake8-bugbear==24.1.17   # via -r deps/check.in
+flake8-bugbear==24.2.6    # via -r deps/check.in
 flake8-builtins==2.2.0    # via -r deps/check.in
 flake8-comprehensions==3.14.0  # via -r deps/check.in
 flake8-docstrings==1.7.0  # via -r deps/check.in
@@ -33,7 +33,7 @@ pycodestyle==2.11.1       # via flake8, flake8-print
 pydocstyle==6.3.0         # via flake8-docstrings
 pyflakes==3.2.0           # via autoflake, flake8
 pygments==2.17.2          # via rich
-pyupgrade==3.15.0         # via shed
+pyupgrade==3.15.1         # via shed
 pyyaml==6.0.1             # via bandit, libcst
 rich==13.7.0              # via bandit
 shed==2024.1.1            # via -r deps/check.in
@@ -41,7 +41,7 @@ snowballstemmer==2.2.0    # via pydocstyle
 stevedore==5.1.0          # via bandit
 tokenize-rt==5.2.0        # via pyupgrade
 tomli==2.0.1              # via autoflake, black, mypy
-types-requests==2.31.0.20240125  # via -r deps/check.in
+types-requests==2.31.0.20240218  # via -r deps/check.in
 typing-extensions==4.9.0  # via black, libcst, mypy, typing-inspect
 typing-inspect==0.9.0     # via libcst
-urllib3==2.2.0            # via types-requests
+urllib3==2.2.1            # via types-requests
