@@ -2,7 +2,10 @@
 HypoFuzz uses [calendar-based versioning](https://calver.org/), with a
 `YY-MM-patch` format.
 
+## 24.09.1
 Fixed compatibility with Pytest 8.1 ([#35](https://github.com/Zac-HD/hypofuzz/issues/35)).
+Requires [Hypothesis 6.103](https://hypothesis.readthedocs.io/en/latest/changes.html#v6-103-0)
+or newer, for compatibility with the new and improved shrinker.
 
 ## 24.02.3
 Fixed compatibility with Pytest 8.0 ([#32](https://github.com/Zac-HD/hypofuzz/issues/32)).
