@@ -7,7 +7,6 @@ from typing import (
     Callable,
     Counter,
     Dict,
-    FrozenSet,
     Iterable,
     List,
     Optional,
@@ -17,7 +16,7 @@ from typing import (
     Union,
 )
 
-from hypothesis import __version__ as hypothesis_version
+from hypothesis import __version__ as hypothesis_version, settings
 from hypothesis.core import encode_failure
 from hypothesis.database import ExampleDatabase
 from hypothesis.internal.conjecture.data import (
@@ -26,6 +25,7 @@ from hypothesis.internal.conjecture.data import (
     Overrun,
     Status,
 )
+from hypothesis.internal.conjecture.engine import ConjectureRunner
 from hypothesis.internal.conjecture.shrinker import Shrinker
 from sortedcontainers import SortedDict
 
@@ -55,36 +55,23 @@ def reproduction_decorator(buffer: bytes) -> str:
     return f"@reproduce_failure({hypothesis_version!r}, {encode_failure(buffer)!r})"
 
 
-class EngineStub:
-    """A knock-off ConjectureEngine, just large enough to run a shrinker."""
-
-    def __init__(
-        self,
-        test_fn: Callable[[bytes], ConjectureData],
-        random: Random,
-        passing_buffers: FrozenSet[bytes],
-    ) -> None:
-        self.cached_test_function = test_fn
-        self.random = random
-        self.call_count = 0
-        self.report_debug_info = False
-        self.__passing_buffers = passing_buffers
-
-    def debug(self, msg: str) -> None:
-        """Unimplemented stub."""
-
-    def explain_next_call_as(self, msg: str) -> None:
-        """Unimplemented stub."""
-
-    def clear_call_explanation(self) -> None:
-        """Unimplemented stub."""
-
-    def passing_buffers(self, prefix: bytes = b"") -> FrozenSet[bytes]:
-        """Return a collection of bytestrings which cause the test to pass.
-
-        Optionally restrict this by a certain prefix, which is useful for explain mode.
-        """
-        return frozenset(b for b in self.__passing_buffers if b.startswith(prefix))
+def get_shrinker(
+    pool: "Pool",
+    fn: Callable[[bytes], ConjectureData],
+    *,
+    initial: Union[ConjectureData, ConjectureResult],
+    predicate: Callable[..., bool],
+    random: Random,
+    explain: bool = False,
+) -> Shrinker:
+    s = settings(database=pool._database, deadline=None)
+    return Shrinker(
+        ConjectureRunner(fn, random=random, database_key=pool._key, settings=s),
+        initial=initial,
+        predicate=predicate,
+        allow_transition=None,
+        explain=explain,
+    )
 
 
 class Pool:
@@ -311,12 +298,12 @@ class Pool:
                 set(self.covering_buffers) - minimal_branches,
                 key=lambda a: sort_key(self.covering_buffers[a]),
             )
-            shrinker = Shrinker(
-                EngineStub(fn, random, passing_buffers=frozenset()),
-                self.results[self.covering_buffers[arc_to_shrink]],
+            shrinker = get_shrinker(
+                self,
+                fn,
+                initial=self.results[self.covering_buffers[arc_to_shrink]],
                 predicate=lambda d, a=arc_to_shrink: a in d.extra_information.branches,
-                allow_transition=None,
-                explain=False,
+                random=random,
             )
             shrinker.shrink()
             self.__shrunk_to_buffers.add(shrinker.shrink_target.buffer)

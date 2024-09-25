@@ -22,13 +22,12 @@ from hypothesis.errors import StopTest, UnsatisfiedAssumption
 from hypothesis.internal.conjecture.data import ConjectureData, Status
 from hypothesis.internal.conjecture.engine import BUFFER_SIZE
 from hypothesis.internal.conjecture.junkdrawer import stack_depth_of_caller
-from hypothesis.internal.conjecture.shrinker import Shrinker
 from hypothesis.internal.reflection import function_digest, get_signature
 from hypothesis.reporting import with_reporter
 from hypothesis.vendor.pretty import RepresentationPrinter
 from sortedcontainers import SortedKeyList
 
-from .corpus import BlackBoxMutator, CrossOverMutator, EngineStub, HowGenerated, Pool
+from .corpus import BlackBoxMutator, CrossOverMutator, HowGenerated, Pool, get_shrinker
 from .cov import CustomCollectionContext
 
 record_pytrace: Optional[Callable[..., Any]]
@@ -200,20 +199,24 @@ class FuzzProcess:
         # seen_count = len(self.pool.arc_counts)
 
         # Run the input
-        result = self._run_test_on(self.generate_prefix(), extend=BUFFER_SIZE)
+        result = self._run_test_on(
+            ConjectureData(
+                max_length=BUFFER_SIZE,
+                prefix=self.generate_prefix(),
+                random=self.random,
+            )
+        )
 
         if result.status is Status.INTERESTING:
             # Shrink to our minimal failing example, since we'll stop after this.
             self.shrinking = True
-            passing_buffers = frozenset(
-                b for b, r in self.pool.results.items() if r.status == Status.VALID
-            )
-            shrinker = Shrinker(
-                EngineStub(self._run_test_on, self.random, passing_buffers),
-                result,
+            shrinker = get_shrinker(
+                self.pool,
+                self._run_test_on,
+                initial=result,
                 predicate=lambda d: d.status is Status.INTERESTING,
-                allow_transition=None,
-                explain=False,  # TODO: enable explain mode
+                random=self.random,
+                explain=True,
             )
             self.stop_shrinking_at = self.elapsed_time + 300
             with contextlib.suppress(HitShrinkTimeoutError):
@@ -222,7 +225,7 @@ class FuzzProcess:
             if record_pytrace:
                 # Replay minimal example under our time-travelling debug tracer
                 self._run_test_on(
-                    shrinker.shrink_target.buffer,
+                    shrinker.shrink_target,
                     collector=record_pytrace(self.nodeid),
                 )
             UNDELIVERED_REPORTS.append(self._json_description)
@@ -240,10 +243,8 @@ class FuzzProcess:
 
     def _run_test_on(
         self,
-        buffer: bytes,
+        data: ConjectureData,
         *,
-        error_on_discard: bool = False,
-        extend: int = 0,
         source: HowGenerated = HowGenerated.shrinking,
         collector: Optional[contextlib.AbstractContextManager] = None,
     ) -> ConjectureData:
@@ -257,11 +258,6 @@ class FuzzProcess:
         collector = collector or CustomCollectionContext()  # type: ignore
         assert collector is not None
         reports: List[str] = []
-        data = ConjectureData(
-            max_length=min(BUFFER_SIZE, len(buffer) + extend),
-            prefix=buffer,
-            random=self.random,
-        )
         try:
             with deterministic_PRNG(), BuildContext(
                 data, is_final=True
