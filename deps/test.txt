@@ -30,7 +30,7 @@ markupsafe==2.1.5         # via jinja2, werkzeug
 mdurl==0.1.2              # via markdown-it-py
 mypy-extensions==1.0.0    # via black
 nest-asyncio==1.6.0       # via dash
-numpy==2.1.1              # via pandas, pyarrow
+numpy==2.0.2              # via -r deps/test.in, pandas, pyarrow
 packaging==24.1           # via black, plotly, pytest
 pandas==2.2.3             # via hypofuzz (setup.py)
 pathspec==0.12.1          # via black
@@ -54,7 +54,7 @@ sortedcontainers==2.4.0   # via hypothesis
 tenacity==9.0.0           # via plotly
 tomli==2.0.1              # via black, coverage, pytest
 typing-extensions==4.12.2  # via black, dash
-tzdata==2024.1            # via pandas
+tzdata==2024.2            # via pandas
 urllib3==2.2.3            # via requests
 werkzeug==3.0.4           # via dash, flask
 zipp==3.20.2              # via importlib-metadata
