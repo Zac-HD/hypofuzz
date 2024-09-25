@@ -29,7 +29,7 @@ def test(a, b, c):
 @pytest.mark.parametrize("numprocesses", [1])  # consider multiprocess someday?
 def test_end_to_end(numprocesses, tmp_path):
     """An end-to-end test to start the fuzzer and access the dashboard."""
-    test_fname = tmp_path / "test_demo.py"
+    test_fname = tmp_path / "test_demo2.py"
     test_fname.write_text(TEST_CODE, encoding="utf-8")
     dash_proc = entrypoint._fuzz_impl(
         numprocesses=numprocesses,
