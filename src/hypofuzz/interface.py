@@ -5,7 +5,7 @@ import sys
 from contextlib import redirect_stdout, suppress
 from functools import partial
 from inspect import signature
-from typing import TYPE_CHECKING, Iterable, List, Optional, Tuple
+from typing import TYPE_CHECKING, Iterable, List, Optional, Tuple, get_type_hints
 
 import pytest
 import requests
@@ -21,7 +21,7 @@ class _ItemsCollector:
     """A pytest plugin which grabs all the fuzzable tests at the end of collection."""
 
     def __init__(self) -> None:
-        self.fuzz_targets: List["FuzzProcess"] = []
+        self.fuzz_targets: List[FuzzProcess] = []
 
     def pytest_collection_finish(self, session: pytest.Session) -> None:
         from .hy import FuzzProcess
@@ -37,7 +37,13 @@ class _ItemsCollector:
             # until we get full pytest compatibility it's an expedient approximation.
             # The relevant internals changed in Pytest 8.0, so handle both cases...
             if "ignore_args" in signature(manager.getfixtureclosure).parameters:
-                all_autouse = set(manager._getautousenames(item.nodeid))
+                from _pytest.nodes import Node
+
+                if get_type_hints(manager._getautousenames).get("node") == Node:
+                    # from pytest 8.3 or thereabouts
+                    all_autouse = set(manager._getautousenames(item))
+                else:
+                    all_autouse = set(manager._getautousenames(item.nodeid))
             else:
                 _, all_autouse, _ = manager.getfixtureclosure(
                     tuple(manager._getautousenames(item.nodeid)), item
