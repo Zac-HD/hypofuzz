@@ -5,7 +5,7 @@
 #    pip-compile --annotation-style=line --output-file=deps/check.txt deps/check.in
 #
 attrs==24.2.0             # via flake8-bugbear
-bandit==1.7.9             # via flake8-bandit
+bandit==1.7.10            # via flake8-bandit
 black==24.8.0             # via shed
 click==8.1.7              # via black
 com2ann==0.3.0            # via shed
