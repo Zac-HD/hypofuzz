@@ -4,8 +4,11 @@ from types import SimpleNamespace
 
 from hypothesis import given, note, strategies as st
 from hypothesis.database import InMemoryExampleDatabase
+from hypothesis.internal.intervalsets import IntervalSet
 
 from hypofuzz.corpus import Arc, ConjectureResult, HowGenerated, Pool, Status
+
+st.register_type_strategy(IntervalSet, st.builds(IntervalSet.from_string, st.text()))
 
 
 def branches(
