@@ -7,6 +7,7 @@ import time
 import traceback
 from random import Random
 from typing import Any, Callable, Dict, Generator, List, Optional, Union
+import msgpack
 
 from hypothesis import settings
 from hypothesis.core import (
@@ -37,8 +38,6 @@ except ImportError:
     record_pytrace = None
 
 Report = Dict[str, Union[int, float, str, list, Dict[str, int]]]
-
-UNDELIVERED_REPORTS: List[Report] = []
 
 
 @contextlib.contextmanager
@@ -122,6 +121,7 @@ class FuzzProcess:
         self._test_fn = test_fn
         self.__stuff = stuff
         self.nodeid = nodeid or test_fn.__qualname__
+        self.database_key = database_key
 
         # The seed pool is responsible for managing all seed state, including saving
         # novel seeds to the database.  This includes tracking how often each branch
@@ -143,14 +143,23 @@ class FuzzProcess:
         # 1000 consecutive examples without new coverage, and then switch to mutation.
         self._early_blackbox_mode = True
 
+        metadata = [
+            msgpack.loads(v) for v in settings.default.database.fetch(self.metadata_key)
+        ]
+        if metadata:
+            latest = sorted(metadata, key=lambda data: data["elapsed_time"])[-1]
+            self.ninputs = latest["ninputs"]
+            self.elapsed_time = latest["elapsed_time"]
+
         # We batch updates, since frequent HTTP posts are slow
         self._last_post_time = self.elapsed_time
+        self._reports: List[Report] = []
 
     def startup(self) -> None:
         """Set up initial state and prepare to replay the saved behaviour."""
-        assert self.ninputs == 0, "already started this FuzzProcess"
-        # Report that we've started this fuzz target, and run zero examples so far
-        self._report_change(self._json_description)
+        if self.ninputs == 0:
+            self._reports.append(self._json_description)
+            self._report_changes()
         # Next, restore progress made in previous runs by loading our saved examples.
         # This is meant to be the minimal set of inputs that exhibits all distinct
         # behaviours we've observed to date.  Replaying takes longer than restoring
@@ -197,7 +206,6 @@ class FuzzProcess:
             self._replay_buffer.extend(self.pool.fetch())
 
         # seen_count = len(self.pool.arc_counts)
-
         # Run the input
         result = self._run_test_on(
             ConjectureData(
@@ -228,9 +236,8 @@ class FuzzProcess:
                     shrinker.shrink_target,
                     collector=record_pytrace(self.nodeid),
                 )
-            UNDELIVERED_REPORTS.append(self._json_description)
-            self._report_change(UNDELIVERED_REPORTS)
-            del UNDELIVERED_REPORTS[:]
+            self._reports.append(self._json_description)
+            self._report_changes()
 
         # Consider switching out of blackbox mode.
         if self.since_new_cov >= 1000 and not self._replay_buffer:
@@ -330,13 +337,12 @@ class FuzzProcess:
             self.since_new_cov = 0
         else:
             self.since_new_cov += 1
-        if 0 in (self.since_new_cov, self.ninputs % 100):
-            UNDELIVERED_REPORTS.append(self._json_description)
+        if 0 in (self.since_new_cov, self.ninputs % 100) and not self._replay_buffer:
+            self._reports.append(self._json_description)
 
         self.elapsed_time += time.perf_counter() - start
-        if UNDELIVERED_REPORTS and (self._last_post_time + 10 < self.elapsed_time):
-            self._report_change(UNDELIVERED_REPORTS)
-            del UNDELIVERED_REPORTS[:]
+        if self._last_post_time + 10 < self.elapsed_time:
+            self._report_changes()
 
         if self.elapsed_time > self.stop_shrinking_at:
             raise HitShrinkTimeoutError
@@ -344,8 +350,18 @@ class FuzzProcess:
         # The shrinker relies on returning the data object to be inspected.
         return data.as_result()
 
-    def _report_change(self, data: Union[Report, List[Report]]) -> None:
-        """Replace this method to send JSON data to the dashboard."""
+    @property
+    def metadata_key(self):
+        return self.database_key + b".hypofuzz.metadata"
+
+    def _report_changes(self) -> None:
+        # don't report while replaying the corpus, since coverage won't be
+        # up to its full value during this process.
+        if self._replay_buffer:
+            return
+        while self._reports:
+            report = self._reports.pop(0)
+            settings.default.database.save(self.metadata_key, msgpack.dumps(report))
 
     @property
     def _json_description(self) -> Report:

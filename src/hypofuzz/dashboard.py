@@ -4,9 +4,10 @@ import atexit
 import datetime
 import os
 import signal
-from typing import List, Tuple
+from typing import List
 
 import black
+import msgpack
 import dash
 import flask
 import plotly.express as px
@@ -14,6 +15,7 @@ import plotly.graph_objects as go
 from dash import dcc, html
 from dash.dependencies import Input, Output
 from hypothesis.configuration import storage_directory
+from hypothesis import settings
 
 from .patching import make_and_save_patches
 
@@ -34,23 +36,25 @@ else:
     flask_cors.CORS(app)
 
 
-@app.route("/", methods=["POST"])  # type: ignore
-def recv_data() -> Tuple[str, int]:
-    data = flask.request.json
-    if not isinstance(data, list):
-        data = [data]
-    for d in data:
-        add_data(d)
-    return "", 200
+def poll_database() -> None:
+    global DATA_TO_PLOT
 
+    data = []
+    for key in settings.default.database.fetch(b"hypofuzz-test-keys"):
+        data += [
+            msgpack.loads(v)
+            for v in settings.default.database.fetch(key + b".hypofuzz.metadata")
+        ]
+    if not data:
+        return
+    data = sorted(data, key=lambda data: data["elapsed_time"])
 
-def add_data(d: dict) -> None:
     if not LAST_UPDATE:
         del DATA_TO_PLOT[0]
-    DATA_TO_PLOT.append(
-        {k: d[k] for k in ["nodeid", "elapsed_time", "ninputs", "branches"]}
-    )
-    LAST_UPDATE[d["nodeid"]] = d
+
+    DATA_TO_PLOT = data
+    for d in data:
+        LAST_UPDATE[d["nodeid"]] = d
 
 
 external_stylesheets = ["https://codepen.io/chriddyp/pen/bWLwgP.css"]
@@ -98,6 +102,8 @@ def try_format(code: str) -> str:
     [Input("url", "pathname")],
 )
 def display_page(pathname: str) -> html.Div:
+    poll_database()
+
     # Main page
     if pathname == "/" or pathname is None:
         return html.Div(
@@ -200,6 +206,8 @@ FIRST_FAILED_AT = {}
     [Input("interval-component", "n_intervals"), Input("xaxis-state", "n_clicks")],
 )
 def update_graph_live(n: int, clicks: int) -> object:
+    poll_database()
+
     fig = px.line(
         DATA_TO_PLOT,
         x="ninputs",

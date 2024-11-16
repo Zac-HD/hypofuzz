@@ -43,6 +43,7 @@ setuptools.setup(
         "psutil >= 3.0.0",
         "pytest >= 6.0.1",
         "requests >= 2.24.0",
+        "msgpack >= 1.1.0",
     ],
     extras_require={
         "pytrace": [
