@@ -25,6 +25,11 @@ import psutil
     help="serve / don't serve a live dashboard page",
 )
 @click.option(
+    "--dashboard-only",
+    is_flag=True,
+    help="serve a live dashboard page without launching associated fuzzing processes",
+)
+@click.option(
     "--port",
     type=click.IntRange(1, 65535),
     default=9999,
@@ -44,6 +49,7 @@ import psutil
 def fuzz(
     numprocesses: int,
     dashboard: bool,
+    dashboard_only: bool,
     port: Optional[int],
     unsafe: bool,
     pytest_args: Tuple[str, ...],
@@ -56,15 +62,26 @@ def fuzz(
 
     This process will run forever unless stopped with e.g. ctrl-C.
     """
-    dash_proc = _fuzz_impl(
+    dash_proc = None
+    if dashboard or dashboard_only:
+        from .dashboard import start_dashboard_process
+
+        dash_proc = Process(
+            target=start_dashboard_process,
+            kwargs={"port": port, "pytest_args": pytest_args},
+        )
+        dash_proc.start()
+
+    if dashboard_only:
+        dash_proc.join()
+        sys.exit(1)
+
+    _fuzz_impl(
         numprocesses=numprocesses,
-        dashboard=dashboard,
-        port=port,
         unsafe=unsafe,
         pytest_args=pytest_args,
     )
     if dash_proc:
-        dash_proc.kill()
         dash_proc.join()
     sys.exit(1)
     raise NotImplementedError("unreachable")
@@ -72,8 +89,6 @@ def fuzz(
 
 def _fuzz_impl(
     numprocesses: int,
-    dashboard: bool,
-    port: Optional[int],
     unsafe: bool,
     pytest_args: Tuple[str, ...],
 ) -> Optional[Process]:
@@ -99,33 +114,18 @@ def _fuzz_impl(
     testnames = "\n    ".join(t.nodeid for t in tests)
     print(f"using up to {numprocesses} processes to fuzz:\n    {testnames}\n")  # noqa
 
-    if dashboard:
-        from .dashboard import start_dashboard_process
-
-        dash_proc = Process(
-            target=start_dashboard_process,
-            kwargs={"port": port, "pytest_args": pytest_args},
-        )
-        dash_proc.start()
-    else:
-        port = None
-        dash_proc = None
-
     if numprocesses <= 1:
-        _fuzz_several(
-            pytest_args=pytest_args, nodeids=[t.nodeid for t in tests], port=port
-        )
+        _fuzz_several(pytest_args=pytest_args, nodeids=[t.nodeid for t in tests])
     else:
         processes = []
         for i in range(numprocesses):
             nodes = {t.nodeid for t in (tests if unsafe else tests[i::numprocesses])}
             p = Process(
                 target=_fuzz_several,
-                kwargs={"pytest_args": pytest_args, "nodeids": nodes, "port": port},
+                kwargs={"pytest_args": pytest_args, "nodeids": nodes},
             )
             p.start()
             processes.append(p)
         for p in processes:
             p.join()
     print("Found a failing input for every test!", file=sys.stderr)  # noqa: T201
-    return dash_proc

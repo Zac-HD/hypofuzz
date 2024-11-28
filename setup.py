@@ -37,13 +37,12 @@ setuptools.setup(
         "black >= 23.3.0",
         "coverage >= 5.2.1",
         "dash >= 2.0.0",
-        "hypothesis[cli] >= 6.103.0",
+        "hypothesis[cli] >= 6.121.0",
         "libcst >= 1.0.0",
         "pandas >= 1.0.0",
         "psutil >= 3.0.0",
         "pytest >= 6.0.1",
         "requests >= 2.24.0",
-        "msgpack >= 1.1.0",
     ],
     extras_require={
         "pytrace": [

@@ -7,7 +7,6 @@ import signal
 from typing import List
 
 import black
-import msgpack
 import dash
 import flask
 import plotly.express as px
@@ -18,6 +17,7 @@ from hypothesis.configuration import storage_directory
 from hypothesis import settings
 
 from .patching import make_and_save_patches
+from .database import db
 
 DATA_TO_PLOT = [{"nodeid": "", "elapsed_time": 0, "ninputs": 0, "branches": 0}]
 LAST_UPDATE: dict = {}
@@ -41,10 +41,7 @@ def poll_database() -> None:
 
     data = []
     for key in settings.default.database.fetch(b"hypofuzz-test-keys"):
-        data += [
-            msgpack.loads(v)
-            for v in settings.default.database.fetch(key + b".hypofuzz.metadata")
-        ]
+        data += db.fetch_metadata(key)
     if not data:
         return
     data = sorted(data, key=lambda data: data["elapsed_time"])
