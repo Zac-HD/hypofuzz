@@ -343,9 +343,6 @@ class FuzzProcess:
     def _report(self, report: Report) -> None:
         db.save_metadata(self.database_key, report)
 
-        # keep only the latest datapoint if nothing has changed.
-        # we may want to extend the notion of "changed" to include e.g. differing
-        # notes in the future.
         if self._last_report is not None and self._should_drop_report(
             self._last_report, report
         ):
