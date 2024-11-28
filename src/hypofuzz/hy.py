@@ -363,7 +363,7 @@ class FuzzProcess:
             and report["note"] == next_report["note"]
             and not self.pool.interesting_examples
             # avoid dropping reports which discovered new coverage
-            and report["since_new_cov"] != 0
+            and report["since new cov"] != 0
         )
 
     @property
