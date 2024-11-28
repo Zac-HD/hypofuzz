@@ -8,7 +8,6 @@ from inspect import signature
 from typing import TYPE_CHECKING, Iterable, List, Tuple, get_type_hints
 
 import pytest
-from hypothesis import settings
 from hypothesis.stateful import RuleBasedStateMachine, run_state_machine_as_test
 
 if TYPE_CHECKING:
@@ -106,7 +105,4 @@ def _fuzz_several(pytest_args: Tuple[str, ...], nodeids: List[str]) -> None:
     tests = [
         t for t in _get_hypothesis_tests_with_pytest(pytest_args) if t.nodeid in nodeids
     ]
-    for t in tests:
-        settings.default.database.save(b"hypofuzz-test-keys", t.database_key)
-
     fuzz_several(*tests)

@@ -30,15 +30,13 @@ from sortedcontainers import SortedKeyList
 
 from .corpus import BlackBoxMutator, CrossOverMutator, HowGenerated, Pool, get_shrinker
 from .cov import CustomCollectionContext
-from .database import db
+from .database import db, Report
 
 record_pytrace: Optional[Callable[..., Any]]
 try:
     from .debugger import record_pytrace
 except ImportError:
     record_pytrace = None
-
-Report = Dict[str, Union[int, float, str, list, Dict[str, int]]]
 
 
 @contextlib.contextmanager
@@ -147,15 +145,15 @@ class FuzzProcess:
 
         metadata = db.fetch_metadata(self.database_key)
         if metadata:
-            latest = sorted(metadata, key=lambda data: data["elapsed_time"])[-1]
+            latest = max(metadata, key=lambda d: d["elapsed_time"])
             self.ninputs = latest["ninputs"]
             self.elapsed_time = latest["elapsed_time"]
 
     def startup(self) -> None:
         """Set up initial state and prepare to replay the saved behaviour."""
-        if self.ninputs == 0:
-            # Report that we've started this fuzz target, and run zero examples so far
-            self._report(self._json_description)
+        db.save(b"hypofuzz-test-keys", self.database_key)
+        # Report that we've started this fuzz target
+        self._report(self._json_description)
         # Next, restore progress made in previous runs by loading our saved examples.
         # This is meant to be the minimal set of inputs that exhibits all distinct
         # behaviours we've observed to date.  Replaying takes longer than restoring
@@ -343,20 +341,30 @@ class FuzzProcess:
         return data.as_result()
 
     def _report(self, report: Report) -> None:
-        db.save_metadata(self.database_key, bytes(json.dumps(report), "ascii"))
+        db.save_metadata(self.database_key, report)
 
         # keep only the latest datapoint if nothing has changed.
         # we may want to extend the notion of "changed" to include e.g. differing
         # notes in the future.
-        if (
-            self._last_report is not None
-            and report["branches"] == self._last_report["branches"]
+        if self._last_report is not None and self._should_drop_report(
+            self._last_report, report
         ):
-            db.delete_metadata(
-                self.database_key, bytes(json.dumps(self._last_report), "ascii")
-            )
+            db.delete_metadata(self.database_key, self._last_report)
 
         self._last_report = report
+
+    def _should_drop_report(self, report, next_report):
+        """
+        Whether we should drop ``report`` from the database, because it e.g. has
+        the same coverage as the next report and no other notable differences.
+        """
+        return (
+            report["branches"] == next_report["branches"]
+            and report["note"] == next_report["note"]
+            and not self.pool.interesting_examples
+            # avoid dropping reports which discovered new coverage
+            and report["since_new_cov"] != 0
+        )
 
     @property
     def _json_description(self) -> Report:

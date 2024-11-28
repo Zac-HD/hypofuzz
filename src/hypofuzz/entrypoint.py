@@ -25,6 +25,7 @@ import psutil
     help="serve / don't serve a live dashboard page",
 )
 @click.option(
+    "-d",
     "--dashboard-only",
     is_flag=True,
     help="serve a live dashboard page without launching associated fuzzing processes",
