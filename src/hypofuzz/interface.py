@@ -66,7 +66,6 @@ class _ItemsCollector:
                 self.fuzz_targets.append(fuzz)
             except Exception as err:
                 print("crashed in", item.nodeid, err)  # noqa
-                raise
 
 
 def _get_hypothesis_tests_with_pytest(args: Iterable[str]) -> List["FuzzProcess"]:

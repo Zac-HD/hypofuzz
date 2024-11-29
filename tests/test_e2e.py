@@ -2,8 +2,10 @@
 
 import pytest
 import requests
+import subprocess
+import os
+import signal
 
-from hypofuzz import entrypoint
 
 TEST_CODE = """
 from hypothesis import given, settings, strategies as st
@@ -31,15 +33,34 @@ def test_end_to_end(numprocesses, tmp_path):
     """An end-to-end test to start the fuzzer and access the dashboard."""
     test_fname = tmp_path / "test_demo2.py"
     test_fname.write_text(TEST_CODE, encoding="utf-8")
-    dash_proc = entrypoint._fuzz_impl(
-        numprocesses=numprocesses,
-        dashboard=True,
-        port=7777,
-        unsafe=False,
-        pytest_args=["-p", "no:dash", str(test_fname)],
+    process = subprocess.Popen(
+        [
+            "hypothesis",
+            "fuzz",
+            "--numprocesses",
+            str(numprocesses),
+            "--port",
+            "7777",
+            "--",
+            "-p",
+            "no:dash",
+            str(test_fname),
+        ],
+        stdout=subprocess.PIPE,
+        start_new_session=True
     )
-    assert dash_proc
-    resp = requests.get("http://localhost:7777", allow_redirects=True, timeout=10)
-    resp.raise_for_status()
-    dash_proc.kill()
-    dash_proc.join()
+    # wait for dashboard to start up
+    for _ in range(100):
+        output = process.stdout.readline()
+        if b"Now serving dashboard at" in output:
+            break
+    else:
+        raise Exception("dashboard took too long to start up")
+
+    try:
+        resp = requests.get("http://localhost:7777", allow_redirects=True, timeout=10)
+        resp.raise_for_status()
+    finally:
+        process.stdout.close()
+        os.killpg(os.getpgid(process.pid), signal.SIGKILL)
+        process.wait()
