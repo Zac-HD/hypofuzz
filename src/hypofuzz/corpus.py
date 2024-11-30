@@ -2,12 +2,12 @@
 
 import abc
 import enum
+from collections import Counter
+from collections.abc import Iterable
 from random import Random
 from typing import (
     Callable,
-    Counter,
     Dict,
-    Iterable,
     List,
     Optional,
     Set,
@@ -249,6 +249,15 @@ class Pool:
         For the purposes of this method, a buffer which we saved to the database
         counts as having been loaded - the idea is to avoid duplicate executions.
         """
+        # TODO: hypothesis uses the bare key only for minimal failing examples;
+        #       we should use the secondary key for unshrunk examples and then
+        #       also the .fuzz key for covering examples.
+        #
+        # Also: consider distinguishing between covers-branch and coverage-fingerprint,
+        #       and between minimal and other examples.  The fingerprint (set of
+        #       branches) isn't currently used because our concept of "branch" is
+        #       too large; should only include interesting files + skip branchless
+        #       lines of code to keep the size manageable.
         saved = sorted(
             set(self._database.fetch(self._key)) - self._loaded_from_database,
             key=sort_key,

@@ -1,11 +1,11 @@
 """Tests for the hypofuzz library."""
 
-import pytest
-import requests
-import subprocess
 import os
 import signal
+import subprocess
 
+import pytest
+import requests
 
 TEST_CODE = """
 from hypothesis import given, settings, strategies as st
@@ -47,7 +47,7 @@ def test_end_to_end(numprocesses, tmp_path):
             str(test_fname),
         ],
         stdout=subprocess.PIPE,
-        start_new_session=True
+        start_new_session=True,
     )
     # wait for dashboard to start up
     for _ in range(100):

@@ -1,8 +1,6 @@
 from datetime import date
 from pathlib import Path
 
-import sphinx_rtd_theme
-
 # See https://www.sphinx-doc.org/en/master/usage/configuration.html
 # -- Project information -----------------------------------------------------
 project = "HypoFuzz"
@@ -52,7 +50,6 @@ bibtex_bibfiles = ["literature.bib"]
 # -- Options for HTML output -------------------------------------------------
 html_title = "HypoFuzz docs"
 html_theme = "sphinx_rtd_theme"
-html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 html_theme_options = {"analytics_id": "UA-176879127-1"}
 # html_favicon = "favicon.ico"
 # html_logo = ""  # path to the project logo, for the top of the sidebar, ~200px

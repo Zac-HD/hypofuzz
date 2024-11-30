@@ -30,7 +30,7 @@ markupsafe==3.0.2         # via jinja2, werkzeug
 mdurl==0.1.2              # via markdown-it-py
 mypy-extensions==1.0.0    # via black
 nest-asyncio==1.6.0       # via dash
-numpy==2.0.2              # via -r /Users/tybug/Desktop/Liam/coding/hypofuzz/deps/test.in, pandas
+numpy==2.0.2              # via -r deps/test.in, pandas
 packaging==24.2           # via black, plotly, pytest
 pandas==2.2.3             # via hypofuzz (setup.py)
 pathspec==0.12.1          # via black
@@ -38,12 +38,12 @@ platformdirs==4.3.6       # via black
 plotly==5.24.1            # via dash
 pluggy==1.5.0             # via pytest
 psutil==6.1.0             # via hypofuzz (setup.py)
-pyarrow==18.1.0           # via -r /Users/tybug/Desktop/Liam/coding/hypofuzz/deps/test.in
+pyarrow==18.1.0           # via -r deps/test.in
 pygments==2.18.0          # via rich
-pytest==7.4.4             # via -r /Users/tybug/Desktop/Liam/coding/hypofuzz/deps/test.in, -r deps/test-old.in, hypofuzz (setup.py), pytest-cov, pytest-xdist
-pytest-cov==6.0.0         # via -r /Users/tybug/Desktop/Liam/coding/hypofuzz/deps/test.in
-pytest-xdist==3.6.1       # via -r /Users/tybug/Desktop/Liam/coding/hypofuzz/deps/test.in
-python-dateutil @ git+https://github.com/dateutil/dateutil.git@296d419fe6bf3b22897f8f210735ac9c4e1cb796  # via -r /Users/tybug/Desktop/Liam/coding/hypofuzz/deps/test.in, pandas
+pytest==7.4.4             # via -r deps/test.in, -r deps/test-old.in, hypofuzz (setup.py), pytest-cov, pytest-xdist
+pytest-cov==6.0.0         # via -r deps/test.in
+pytest-xdist==3.6.1       # via -r deps/test.in
+python-dateutil @ git+https://github.com/dateutil/dateutil.git@296d419fe6bf3b22897f8f210735ac9c4e1cb796  # via -r deps/test.in, pandas
 pytz==2024.2              # via pandas
 pyyaml==6.0.2             # via libcst
 requests==2.32.3          # via dash, hypofuzz (setup.py)

@@ -42,7 +42,6 @@ setuptools.setup(
         "pandas >= 1.0.0",
         "psutil >= 3.0.0",
         "pytest >= 6.0.1",
-        "requests >= 2.24.0",
     ],
     extras_require={
         "pytrace": [
@@ -58,9 +57,11 @@ setuptools.setup(
         "License :: OSI Approved :: GNU Affero General Public License v3",
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
         "Topic :: Software Development :: Testing",
         "Typing :: Typed",
     ],
