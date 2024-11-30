@@ -4,6 +4,7 @@ import atexit
 import datetime
 import os
 import signal
+import time
 from typing import List
 
 import black
@@ -16,8 +17,8 @@ from dash.dependencies import Input, Output
 from hypothesis.configuration import storage_directory
 from hypothesis import settings
 
+from .database import get_db
 from .patching import make_and_save_patches
-from .database import db
 
 DATA_TO_PLOT = [{"nodeid": "", "elapsed_time": 0, "ninputs": 0, "branches": 0}]
 LAST_UPDATE: dict = {}
@@ -39,15 +40,14 @@ else:
 def poll_database() -> None:
     global DATA_TO_PLOT
 
-    data = []
-    for key in settings.default.database.fetch(b"hypofuzz-test-keys"):
-        data += db.fetch_metadata(key)
-    if not data:
-        return
-    data = sorted(data, key=lambda data: data["elapsed_time"])
+    db = get_db()
+    data: list = []
+    for key in settings().database.fetch(b"hypofuzz-test-keys"):
+        data.extend(db.fetch_metadata(key))
+    data.sort(key=lambda d: d.get("ninputs", -1))
 
-    if not LAST_UPDATE:
-        del DATA_TO_PLOT[0]
+    # if not LAST_UPDATE:
+    #     del DATA_TO_PLOT[0]
 
     DATA_TO_PLOT = data
     for d in data:
@@ -204,6 +204,10 @@ FIRST_FAILED_AT = {}
 )
 def update_graph_live(n: int, clicks: int) -> object:
     poll_database()
+
+    while not DATA_TO_PLOT:
+        time.sleep(5)
+        poll_database()
 
     fig = px.line(
         DATA_TO_PLOT,

@@ -1,10 +1,12 @@
 import json
-from typing import Iterable, Union
+from collections.abc import Iterable
+from functools import cache
+from typing import Union
 
 from hypothesis import settings
 from hypothesis.database import BackgroundWriteDatabase, ExampleDatabase
 
-Report = dict[str, Union[int, float, str, list, dict[str, int]]]
+Report = dict[str, Union[int, float, str, list, dict[str, Union[int, str]]]]
 
 
 def metadata_key(key: bytes) -> bytes:
@@ -19,7 +21,7 @@ class HypofuzzDatabase:
         self._db.save(key, value)
 
     def fetch(self, key: bytes) -> Iterable[bytes]:
-        return self._db.fetch(key)
+        return self._db.fetch(key)  # type: ignore
 
     def delete(self, key: bytes, value: bytes) -> None:
         self._db.delete(key, value)
@@ -30,8 +32,13 @@ class HypofuzzDatabase:
     def delete_metadata(self, key: bytes, report: Report) -> None:
         self._db.delete(metadata_key(key), bytes(json.dumps(report), "ascii"))
 
-    def fetch_metadata(self, key: bytes) -> Iterable[bytes]:
-        return [json.loads(v) for v in self._db.fetch(metadata_key(key))]
+    def fetch_metadata(self, key: bytes) -> Iterable[Report]:
+        return map(json.loads, self._db.fetch(metadata_key(key)))
 
 
-db = HypofuzzDatabase(BackgroundWriteDatabase(settings.default.database))
+@cache
+def get_db() -> HypofuzzDatabase:
+    db = settings().database
+    if isinstance(db, BackgroundWriteDatabase):
+        return HypofuzzDatabase(db)
+    return HypofuzzDatabase(BackgroundWriteDatabase(db))

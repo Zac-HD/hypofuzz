@@ -73,26 +73,28 @@ def fuzz(
         )
         dash_proc.start()
 
-    if dashboard_only:
-        dash_proc.join()
-        sys.exit(1)
+        if dashboard_only:
+            dash_proc.join()
+            sys.exit(1)
 
-    _fuzz_impl(
-        numprocesses=numprocesses,
-        unsafe=unsafe,
-        pytest_args=pytest_args,
-    )
-    if dash_proc:
-        dash_proc.join()
+    try:
+        _fuzz_impl(
+            numprocesses=numprocesses,
+            unsafe=unsafe,
+            pytest_args=pytest_args,
+        )
+    except BaseException:
+        if dash_proc:
+            dash_proc.kill()
+        raise
+    finally:
+        if dash_proc:
+            dash_proc.join()
     sys.exit(1)
     raise NotImplementedError("unreachable")
 
 
-def _fuzz_impl(
-    numprocesses: int,
-    unsafe: bool,
-    pytest_args: Tuple[str, ...],
-) -> Optional[Process]:
+def _fuzz_impl(numprocesses: int, unsafe: bool, pytest_args: Tuple[str, ...]) -> None:
     # Before doing anything with our arguments, we'll check that none
     # of HypoFuzz's arguments will be passed on to pytest instead.
     misplaced: set = set(pytest_args) & set().union(*(p.opts for p in fuzz.params))
@@ -109,6 +111,7 @@ def _fuzz_impl(
     tests = _get_hypothesis_tests_with_pytest(pytest_args)
     if not tests:
         raise click.UsageError("No property-based tests were collected")
+    print(f"{tests=}")
     if numprocesses > len(tests) and not unsafe:
         numprocesses = len(tests)
 

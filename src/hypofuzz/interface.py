@@ -2,10 +2,11 @@
 
 import io
 import sys
+from collections.abc import Iterable
 from contextlib import redirect_stdout
 from functools import partial
 from inspect import signature
-from typing import TYPE_CHECKING, Iterable, List, Tuple, get_type_hints
+from typing import TYPE_CHECKING, List, Tuple, get_type_hints
 
 import pytest
 from hypothesis.stateful import RuleBasedStateMachine, run_state_machine_as_test
@@ -47,7 +48,8 @@ class _ItemsCollector:
                 _, all_autouse, _ = manager.getfixtureclosure(
                     tuple(manager._getautousenames(item.nodeid)), item
                 )
-            if set(name2fixturedefs).difference(all_autouse):
+            if names := set(name2fixturedefs).difference(all_autouse):
+                print(f"skipping {item=} because of non-autouse fixtures {names}", flush=True)
                 continue
             # For parametrized tests, we have to pass the parametrized args into
             # wrapped_test.hypothesis.get_strategy() to avoid trivial TypeErrors
@@ -89,6 +91,8 @@ def _get_hypothesis_tests_with_pytest(args: Iterable[str]) -> List["FuzzProcess"
         print(out.getvalue())  # noqa
         print(f"Exiting because pytest returned exit code {ret}")  # noqa
         sys.exit(ret)
+    elif not collector.fuzz_targets:
+        print(out.getvalue())
     return collector.fuzz_targets
 
 

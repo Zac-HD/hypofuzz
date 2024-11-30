@@ -2,6 +2,7 @@
 pytest
 pytest-cov
 pytest-xdist
+requests
 
 pyarrow  # avoid Pandas deprecation warning via plotly/dash
 numpy < 2.1  # drops Python 3.9 support

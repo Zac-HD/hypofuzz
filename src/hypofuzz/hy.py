@@ -2,12 +2,16 @@
 
 import contextlib
 import itertools
+import os
+import socket
 import sys
 import time
 import traceback
+from collections.abc import Generator
+from contextlib import suppress
+from functools import lru_cache
 from random import Random
-from typing import Any, Callable, Dict, Generator, List, Optional, Union
-import json
+from typing import Any, Callable, Dict, List, Optional, Union
 
 from hypothesis import settings
 from hypothesis.core import (
@@ -30,7 +34,7 @@ from sortedcontainers import SortedKeyList
 
 from .corpus import BlackBoxMutator, CrossOverMutator, HowGenerated, Pool, get_shrinker
 from .cov import CustomCollectionContext
-from .database import db, Report
+from .database import Report, get_db
 
 record_pytrace: Optional[Callable[..., Any]]
 try:
@@ -143,17 +147,15 @@ class FuzzProcess:
         self._early_blackbox_mode = True
         self._last_report: Report | None = None
 
-        metadata = db.fetch_metadata(self.database_key)
-        if metadata:
-            latest = max(metadata, key=lambda d: d["elapsed_time"])
-            self.ninputs = latest["ninputs"]
-            self.elapsed_time = latest["elapsed_time"]
-
     def startup(self) -> None:
         """Set up initial state and prepare to replay the saved behaviour."""
-        db.save(b"hypofuzz-test-keys", self.database_key)
+        # If we're continuing to fuzz something we've tested before, load some stats
+        if metadata := list(get_db().fetch_metadata(self.database_key)):
+            latest: Any = max(metadata, key=lambda d: d["elapsed_time"])  # type: ignore
+            self.ninputs = latest["ninputs"]
+            self.elapsed_time = latest["elapsed_time"]
         # Report that we've started this fuzz target
-        self._report(self._json_description)
+        get_db().save(b"hypofuzz-test-keys", self.database_key)
         # Next, restore progress made in previous runs by loading our saved examples.
         # This is meant to be the minimal set of inputs that exhibits all distinct
         # behaviours we've observed to date.  Replaying takes longer than restoring
@@ -259,9 +261,12 @@ class FuzzProcess:
         assert collector is not None
         reports: List[str] = []
         try:
-            with deterministic_PRNG(), BuildContext(
-                data, is_final=True
-            ) as context, constant_stack_depth(), with_reporter(reports.append):
+            with (
+                deterministic_PRNG(),
+                BuildContext(data, is_final=True) as context,
+                constant_stack_depth(),
+                with_reporter(reports.append),
+            ):
                 # Note that the data generation and test execution happen in the same
                 # coverage context.  We may later split this, or tag each separately.
                 with collector:
@@ -341,27 +346,19 @@ class FuzzProcess:
         return data.as_result()
 
     def _report(self, report: Report) -> None:
-        db.save_metadata(self.database_key, report)
+        (db := get_db()).save_metadata(self.database_key, report)
 
-        if self._last_report is not None and self._should_drop_report(
-            self._last_report, report
+        if (
+            self._last_report
+            and self._last_report["branches"] == report["branches"]
+            and self._last_report["note"] == report["note"]
+            and not self.pool.interesting_examples
+            # avoid dropping reports which discovered new coverage
+            and self._last_report["since new cov"] != 0
         ):
             db.delete_metadata(self.database_key, self._last_report)
 
         self._last_report = report
-
-    def _should_drop_report(self, report, next_report):
-        """
-        Whether we should drop ``report`` from the database, because it e.g. has
-        the same coverage as the next report and no other notable differences.
-        """
-        return (
-            report["branches"] == next_report["branches"]
-            and report["note"] == next_report["note"]
-            and not self.pool.interesting_examples
-            # avoid dropping reports which discovered new coverage
-            and report["since new cov"] != 0
-        )
 
     @property
     def _json_description(self) -> Report:
@@ -378,6 +375,7 @@ class FuzzProcess:
             "nodeid": self.nodeid,
             "elapsed_time": self.elapsed_time,
             "timestamp": time.time(),
+            "worker": where_am_i(),
             "ninputs": self.ninputs,
             "branches": len(self.pool.arc_counts),
             "since new cov": self.since_new_cov,
@@ -435,3 +433,33 @@ def fuzz_several(*targets_: FuzzProcess, random_seed: Optional[int] = None) -> N
             if not targets:
                 return
     raise NotImplementedError("unreachable")
+
+
+@lru_cache
+def where_am_i() -> Dict[str, Union[int, str]]:
+    """Return a json blob identifying the machine running this code.
+
+    This is intended to roughly represent the "unit of fuzz worker", so it includes
+    the PID as well as hostname and (if in kubernetes) some pod identifiers.
+
+    Tagging reports with this information makes it possible to tell when multiple
+    runners have each contributed to a fuzzing campaign, more accurately count the
+    total number of inputs, and so on.  In practice we don't care that much about
+    precision here, because the code under test is likely to be changing too.
+    """
+    identifiers: Dict[str, Union[str, int, None]] = {
+        "pid": os.getpid(),
+        "hostname": socket.gethostname(),  # In K8s, this is typically the pod name
+        "pod_name": os.getenv("HOSTNAME"),
+        "pod_namespace": os.getenv("POD_NAMESPACE"),
+        "node_name": os.getenv("NODE_NAME"),
+        "pod_ip": os.getenv("POD_IP"),
+    }
+    with suppress(Exception), open("/proc/self/cgroup") as f:
+        for line in f:
+            if "kubepods" in line:
+                container_id = line.split("/")[-1].strip()
+                identifiers["container_id"] = container_id
+                break
+
+    return {k: v for k, v in identifiers.items() if v is not None}
