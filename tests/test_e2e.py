@@ -3,6 +3,7 @@
 import os
 import signal
 import subprocess
+import time
 
 import pytest
 import requests
@@ -57,6 +58,8 @@ def test_end_to_end(numprocesses, tmp_path):
     else:
         raise Exception("dashboard took too long to start up")
 
+    # ...plus a little more, for slow CI?
+    time.sleep(0.1)
     try:
         resp = requests.get("http://localhost:7777", allow_redirects=True, timeout=10)
         resp.raise_for_status()

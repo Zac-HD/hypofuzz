@@ -14,8 +14,8 @@ import plotly.express as px
 import plotly.graph_objects as go
 from dash import dcc, html
 from dash.dependencies import Input, Output
-from hypothesis.configuration import storage_directory
 from hypothesis import settings
+from hypothesis.configuration import storage_directory
 
 from .database import get_db
 from .patching import make_and_save_patches
@@ -120,11 +120,7 @@ def display_page(pathname: str) -> html.Div:
 
     # Target-specific subpages
     nodeid = pathname[1:]
-    trace = [
-        d
-        for d in DATA_TO_PLOT
-        if d["nodeid"].replace("/", "_") == nodeid  # type: ignore
-    ]
+    trace = [d for d in DATA_TO_PLOT if d["nodeid"].replace("/", "_") == nodeid]
     if not trace:
         return html.Div(
             children=[
