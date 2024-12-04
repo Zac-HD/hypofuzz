@@ -20,7 +20,7 @@ from hypothesis import settings
 from .database import get_db
 from .patching import make_and_save_patches
 
-DATA_TO_PLOT = [{"nodeid": "", "elapsed_time": 0, "ninputs": 0, "branches": 0}]
+DATA_TO_PLOT = []
 LAST_UPDATE: dict = {}
 
 PYTEST_ARGS = None
@@ -45,9 +45,6 @@ def poll_database() -> None:
     for key in settings().database.fetch(b"hypofuzz-test-keys"):
         data.extend(db.fetch_metadata(key))
     data.sort(key=lambda d: d.get("ninputs", -1))
-
-    # if not LAST_UPDATE:
-    #     del DATA_TO_PLOT[0]
 
     DATA_TO_PLOT = data
     for d in data:

@@ -36,6 +36,8 @@ class HypofuzzDatabase:
         return map(json.loads, self._db.fetch(metadata_key(key)))
 
 
+# cache to make the db a singleton. We defer creation until first-usage to ensure
+# that we use the test-time database setting, rather than init-time.
 @cache
 def get_db() -> HypofuzzDatabase:
     db = settings().database

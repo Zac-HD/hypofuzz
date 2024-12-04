@@ -49,7 +49,10 @@ class _ItemsCollector:
                     tuple(manager._getautousenames(item.nodeid)), item
                 )
             if names := set(name2fixturedefs).difference(all_autouse):
-                print(f"skipping {item=} because of non-autouse fixtures {names}", flush=True)
+                print(
+                    f"skipping {item=} because of non-autouse fixtures {names}",
+                    flush=True,
+                )
                 continue
             # For parametrized tests, we have to pass the parametrized args into
             # wrapped_test.hypothesis.get_strategy() to avoid trivial TypeErrors

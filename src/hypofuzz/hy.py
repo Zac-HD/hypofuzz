@@ -346,7 +346,8 @@ class FuzzProcess:
         return data.as_result()
 
     def _report(self, report: Report) -> None:
-        (db := get_db()).save_metadata(self.database_key, report)
+        db = get_db()
+        db.save_metadata(self.database_key, report)
 
         if (
             self._last_report
