@@ -70,7 +70,7 @@ class _ItemsCollector:
                 )
                 self.fuzz_targets.append(fuzz)
             except Exception as err:
-                print("crashed in", item.nodeid, err)  # noqa
+                print("crashed in", item.nodeid, err)
 
 
 def _get_hypothesis_tests_with_pytest(args: Iterable[str]) -> List["FuzzProcess"]:
@@ -91,8 +91,8 @@ def _get_hypothesis_tests_with_pytest(args: Iterable[str]) -> List["FuzzProcess"
             plugins=[collector],
         )
     if ret:
-        print(out.getvalue())  # noqa
-        print(f"Exiting because pytest returned exit code {ret}")  # noqa
+        print(out.getvalue())
+        print(f"Exiting because pytest returned exit code {ret}")
         sys.exit(ret)
     elif not collector.fuzz_targets:
         print(out.getvalue())

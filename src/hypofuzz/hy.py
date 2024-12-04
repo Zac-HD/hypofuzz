@@ -310,7 +310,7 @@ class FuzzProcess:
             )
         except KeyboardInterrupt:
             # If you have a test function which raises KI, this is pretty useful.
-            print(f"Got a KeyboardInterrupt in {self.nodeid}, exiting...")  # noqa
+            print(f"Got a KeyboardInterrupt in {self.nodeid}, exiting...")
             raise
         finally:
             data.extra_information.reports = "\n".join(map(str, reports))
@@ -429,7 +429,7 @@ def fuzz_several(*targets_: FuzzProcess, random_seed: Optional[int] = None) -> N
                 # pay our log-n cost to keep the list sorted
                 targets.add(targets.pop(0))
             elif targets[0].has_found_failure:
-                print(f"found failing example for {targets[0].nodeid}")  # noqa
+                print(f"found failing example for {targets[0].nodeid}")
                 targets.pop(0)
             if not targets:
                 return

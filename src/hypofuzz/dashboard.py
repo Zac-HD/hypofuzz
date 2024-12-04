@@ -361,5 +361,5 @@ def start_dashboard_process(
     old_handler = signal.signal(signal.SIGTERM, signal_handler)
     atexit.register(make_and_save_patches, pytest_args, LAST_UPDATE)
 
-    print(f"\n\tNow serving dashboard at  http://{host}:{port}/\n")  # noqa
+    print(f"\n\tNow serving dashboard at  http://{host}:{port}/\n")
     app.run(host=host, port=port, debug=debug)

@@ -116,7 +116,7 @@ def _fuzz_impl(numprocesses: int, unsafe: bool, pytest_args: Tuple[str, ...]) ->
         numprocesses = len(tests)
 
     testnames = "\n    ".join(t.nodeid for t in tests)
-    print(f"using up to {numprocesses} processes to fuzz:\n    {testnames}\n")  # noqa
+    print(f"using up to {numprocesses} processes to fuzz:\n    {testnames}\n")
 
     if numprocesses <= 1:
         _fuzz_several(pytest_args=pytest_args, nodeids=[t.nodeid for t in tests])
@@ -132,4 +132,4 @@ def _fuzz_impl(numprocesses: int, unsafe: bool, pytest_args: Tuple[str, ...]) ->
             processes.append(p)
         for p in processes:
             p.join()
-    print("Found a failing input for every test!", file=sys.stderr)  # noqa: T201
+    print("Found a failing input for every test!", file=sys.stderr)
