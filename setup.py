@@ -49,7 +49,7 @@ setuptools.setup(
             "pycrunch-trace >= 0.1.6",
         ],
     },
-    python_requires=">=3.8",
+    python_requires=">=3.9",
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Framework :: Hypothesis",
