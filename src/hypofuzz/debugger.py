@@ -1,9 +1,10 @@
 """Adaptive fuzzing for property-based tests using Hypothesis."""
 
 import sys
+from collections.abc import Iterator
 from contextlib import contextmanager
 from functools import lru_cache
-from typing import Callable, Iterator
+from typing import Callable
 
 import _pytest
 import pytest

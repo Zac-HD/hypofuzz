@@ -2,11 +2,16 @@
 
 import contextlib
 import itertools
+import os
+import socket
 import sys
 import time
 import traceback
+from collections.abc import Generator
+from contextlib import suppress
+from functools import lru_cache
 from random import Random
-from typing import Any, Callable, Dict, Generator, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 from hypothesis import settings
 from hypothesis.core import (
@@ -29,16 +34,13 @@ from sortedcontainers import SortedKeyList
 
 from .corpus import BlackBoxMutator, CrossOverMutator, HowGenerated, Pool, get_shrinker
 from .cov import CustomCollectionContext
+from .database import Report, get_db
 
 record_pytrace: Optional[Callable[..., Any]]
 try:
     from .debugger import record_pytrace
 except ImportError:
     record_pytrace = None
-
-Report = Dict[str, Union[int, float, str, list, Dict[str, int]]]
-
-UNDELIVERED_REPORTS: List[Report] = []
 
 
 @contextlib.contextmanager
@@ -122,6 +124,7 @@ class FuzzProcess:
         self._test_fn = test_fn
         self.__stuff = stuff
         self.nodeid = nodeid or test_fn.__qualname__
+        self.database_key = database_key
 
         # The seed pool is responsible for managing all seed state, including saving
         # novel seeds to the database.  This includes tracking how often each branch
@@ -142,15 +145,17 @@ class FuzzProcess:
         # After replay, we stay in blackbox mode for a while, until we've generated
         # 1000 consecutive examples without new coverage, and then switch to mutation.
         self._early_blackbox_mode = True
-
-        # We batch updates, since frequent HTTP posts are slow
-        self._last_post_time = self.elapsed_time
+        self._last_report: Report | None = None
 
     def startup(self) -> None:
         """Set up initial state and prepare to replay the saved behaviour."""
-        assert self.ninputs == 0, "already started this FuzzProcess"
-        # Report that we've started this fuzz target, and run zero examples so far
-        self._report_change(self._json_description)
+        # If we're continuing to fuzz something we've tested before, load some stats
+        if metadata := list(get_db().fetch_metadata(self.database_key)):
+            latest: Any = max(metadata, key=lambda d: d["elapsed_time"])  # type: ignore
+            self.ninputs = latest["ninputs"]
+            self.elapsed_time = latest["elapsed_time"]
+        # Report that we've started this fuzz target
+        get_db().save(b"hypofuzz-test-keys", self.database_key)
         # Next, restore progress made in previous runs by loading our saved examples.
         # This is meant to be the minimal set of inputs that exhibits all distinct
         # behaviours we've observed to date.  Replaying takes longer than restoring
@@ -197,7 +202,6 @@ class FuzzProcess:
             self._replay_buffer.extend(self.pool.fetch())
 
         # seen_count = len(self.pool.arc_counts)
-
         # Run the input
         result = self._run_test_on(
             ConjectureData(
@@ -228,9 +232,7 @@ class FuzzProcess:
                     shrinker.shrink_target,
                     collector=record_pytrace(self.nodeid),
                 )
-            UNDELIVERED_REPORTS.append(self._json_description)
-            self._report_change(UNDELIVERED_REPORTS)
-            del UNDELIVERED_REPORTS[:]
+            self._report(self._json_description)
 
         # Consider switching out of blackbox mode.
         if self.since_new_cov >= 1000 and not self._replay_buffer:
@@ -259,9 +261,12 @@ class FuzzProcess:
         assert collector is not None
         reports: List[str] = []
         try:
-            with deterministic_PRNG(), BuildContext(
-                data, is_final=True
-            ) as context, constant_stack_depth(), with_reporter(reports.append):
+            with (
+                deterministic_PRNG(),
+                BuildContext(data, is_final=True) as context,
+                constant_stack_depth(),
+                with_reporter(reports.append),
+            ):
                 # Note that the data generation and test execution happen in the same
                 # coverage context.  We may later split this, or tag each separately.
                 with collector:
@@ -305,7 +310,7 @@ class FuzzProcess:
             )
         except KeyboardInterrupt:
             # If you have a test function which raises KI, this is pretty useful.
-            print(f"Got a KeyboardInterrupt in {self.nodeid}, exiting...")  # noqa
+            print(f"Got a KeyboardInterrupt in {self.nodeid}, exiting...")
             raise
         finally:
             data.extra_information.reports = "\n".join(map(str, reports))
@@ -331,21 +336,30 @@ class FuzzProcess:
         else:
             self.since_new_cov += 1
         if 0 in (self.since_new_cov, self.ninputs % 100):
-            UNDELIVERED_REPORTS.append(self._json_description)
+            self._report(self._json_description)
 
         self.elapsed_time += time.perf_counter() - start
-        if UNDELIVERED_REPORTS and (self._last_post_time + 10 < self.elapsed_time):
-            self._report_change(UNDELIVERED_REPORTS)
-            del UNDELIVERED_REPORTS[:]
-
         if self.elapsed_time > self.stop_shrinking_at:
             raise HitShrinkTimeoutError
 
         # The shrinker relies on returning the data object to be inspected.
         return data.as_result()
 
-    def _report_change(self, data: Union[Report, List[Report]]) -> None:
-        """Replace this method to send JSON data to the dashboard."""
+    def _report(self, report: Report) -> None:
+        db = get_db()
+        db.save_metadata(self.database_key, report)
+
+        if (
+            self._last_report
+            and self._last_report["branches"] == report["branches"]
+            and self._last_report["note"] == report["note"]
+            and not self.pool.interesting_examples
+            # avoid dropping reports which discovered new coverage
+            and self._last_report["since new cov"] != 0
+        ):
+            db.delete_metadata(self.database_key, self._last_report)
+
+        self._last_report = report
 
     @property
     def _json_description(self) -> Report:
@@ -362,11 +376,12 @@ class FuzzProcess:
             "nodeid": self.nodeid,
             "elapsed_time": self.elapsed_time,
             "timestamp": time.time(),
+            "worker": where_am_i(),
             "ninputs": self.ninputs,
             "branches": len(self.pool.arc_counts),
             "since new cov": self.since_new_cov,
             "loaded_from_db": len(self.pool._loaded_from_database),
-            "status_counts": self.status_counts,
+            "status_counts": dict(self.status_counts),
             "seed_pool": self.pool.json_report,
             "note": (
                 "replaying saved examples"
@@ -414,8 +429,38 @@ def fuzz_several(*targets_: FuzzProcess, random_seed: Optional[int] = None) -> N
                 # pay our log-n cost to keep the list sorted
                 targets.add(targets.pop(0))
             elif targets[0].has_found_failure:
-                print(f"found failing example for {targets[0].nodeid}")  # noqa
+                print(f"found failing example for {targets[0].nodeid}")
                 targets.pop(0)
             if not targets:
                 return
     raise NotImplementedError("unreachable")
+
+
+@lru_cache
+def where_am_i() -> Dict[str, Union[int, str]]:
+    """Return a json blob identifying the machine running this code.
+
+    This is intended to roughly represent the "unit of fuzz worker", so it includes
+    the PID as well as hostname and (if in kubernetes) some pod identifiers.
+
+    Tagging reports with this information makes it possible to tell when multiple
+    runners have each contributed to a fuzzing campaign, more accurately count the
+    total number of inputs, and so on.  In practice we don't care that much about
+    precision here, because the code under test is likely to be changing too.
+    """
+    identifiers: Dict[str, Union[str, int, None]] = {
+        "pid": os.getpid(),
+        "hostname": socket.gethostname(),  # In K8s, this is typically the pod name
+        "pod_name": os.getenv("HOSTNAME"),
+        "pod_namespace": os.getenv("POD_NAMESPACE"),
+        "node_name": os.getenv("NODE_NAME"),
+        "pod_ip": os.getenv("POD_IP"),
+    }
+    with suppress(Exception), open("/proc/self/cgroup") as f:
+        for line in f:
+            if "kubepods" in line:
+                container_id = line.split("/")[-1].strip()
+                identifiers["container_id"] = container_id
+                break
+
+    return {k: v for k, v in identifiers.items() if v is not None}

@@ -2,6 +2,14 @@
 HypoFuzz uses [calendar-based versioning](https://calver.org/), with a
 `YY-MM-patch` format.
 
+## 24.11.1
+The dashboard can now be run independently of fuzzing worker processes, with metadata for
+display stored in Hypothesis' database instead of ephemeral state.  This makes horizontal
+scalability very very easy, if you use e.g. the Redis database backend.
+
+Requires [Hypothesis 6.121](https://hypothesis.readthedocs.io/en/latest/changes.html#v6-121-0)
+or newer, so that those database writes happen in a background thread rather than blocking.
+
 ## 24.09.1
 Fixed compatibility with Pytest 8.1 ([#35](https://github.com/Zac-HD/hypofuzz/issues/35)).
 Requires [Hypothesis 6.103](https://hypothesis.readthedocs.io/en/latest/changes.html#v6-103-0)

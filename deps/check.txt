@@ -5,24 +5,24 @@
 #    pip-compile --annotation-style=line --output-file=deps/check.txt deps/check.in
 #
 attrs==24.2.0             # via flake8-bugbear
-bandit==1.7.10            # via flake8-bandit
-black==24.8.0             # via shed
+bandit==1.8.0             # via flake8-bandit
+black==24.10.0            # via shed
 click==8.1.7              # via black
 com2ann==0.3.0            # via shed
 flake8==7.1.1             # via -r deps/check.in, flake8-bandit, flake8-bugbear, flake8-builtins, flake8-comprehensions, flake8-docstrings, flake8-print, pep8-naming
 flake8-bandit==4.1.1      # via -r deps/check.in
-flake8-bugbear==24.8.19   # via -r deps/check.in
+flake8-bugbear==24.10.31  # via -r deps/check.in
 flake8-builtins==2.5.0    # via -r deps/check.in
-flake8-comprehensions==3.15.0  # via -r deps/check.in
+flake8-comprehensions==3.16.0  # via -r deps/check.in
 flake8-docstrings==1.7.0  # via -r deps/check.in
 flake8-print==5.0.0       # via -r deps/check.in
-libcst==1.4.0             # via shed
+libcst==1.5.1             # via shed
 markdown-it-py==3.0.0     # via rich
 mccabe==0.7.0             # via flake8
 mdurl==0.1.2              # via markdown-it-py
-mypy==1.11.2              # via -r deps/check.in
+mypy==1.13.0              # via -r deps/check.in
 mypy-extensions==1.0.0    # via black, mypy
-packaging==24.1           # via black
+packaging==24.2           # via black
 pathspec==0.12.1          # via black
 pbr==6.1.0                # via stevedore
 pep8-naming==0.14.1       # via -r deps/check.in
@@ -31,15 +31,15 @@ pycodestyle==2.12.1       # via flake8, flake8-print
 pydocstyle==6.3.0         # via flake8-docstrings
 pyflakes==3.2.0           # via flake8
 pygments==2.18.0          # via rich
-pyupgrade==3.17.0         # via shed
+pyupgrade==3.19.0         # via shed
 pyyaml==6.0.2             # via bandit, libcst
-rich==13.8.1              # via bandit
-ruff==0.6.7               # via shed
-shed==2024.3.1            # via -r deps/check.in
+rich==13.9.4              # via bandit
+ruff==0.8.0               # via shed
+shed==2024.10.1           # via -r deps/check.in
 snowballstemmer==2.2.0    # via pydocstyle
-stevedore==5.3.0          # via bandit
-tokenize-rt==6.0.0        # via pyupgrade
-tomli==2.0.1              # via black, mypy
-types-requests==2.32.0.20240914  # via -r deps/check.in
-typing-extensions==4.12.2  # via black, mypy
+stevedore==5.4.0          # via bandit
+tokenize-rt==6.1.0        # via pyupgrade
+tomli==2.2.1              # via black, mypy
+types-requests==2.32.0.20241016  # via -r deps/check.in
+typing-extensions==4.12.2  # via black, mypy, rich
 urllib3==2.2.3            # via types-requests

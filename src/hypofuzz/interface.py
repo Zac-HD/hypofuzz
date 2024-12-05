@@ -2,13 +2,13 @@
 
 import io
 import sys
-from contextlib import redirect_stdout, suppress
+from collections.abc import Iterable
+from contextlib import redirect_stdout
 from functools import partial
 from inspect import signature
-from typing import TYPE_CHECKING, Iterable, List, Optional, Tuple, get_type_hints
+from typing import TYPE_CHECKING, List, Tuple, get_type_hints
 
 import pytest
-import requests
 from hypothesis.stateful import RuleBasedStateMachine, run_state_machine_as_test
 
 if TYPE_CHECKING:
@@ -48,7 +48,11 @@ class _ItemsCollector:
                 _, all_autouse, _ = manager.getfixtureclosure(
                     tuple(manager._getautousenames(item.nodeid)), item
                 )
-            if set(name2fixturedefs).difference(all_autouse):
+            if names := set(name2fixturedefs).difference(all_autouse):
+                print(
+                    f"skipping {item=} because of non-autouse fixtures {names}",
+                    flush=True,
+                )
                 continue
             # For parametrized tests, we have to pass the parametrized args into
             # wrapped_test.hypothesis.get_strategy() to avoid trivial TypeErrors
@@ -65,9 +69,8 @@ class _ItemsCollector:
                     target, nodeid=item.nodeid, extra_kw=extra_kw
                 )
                 self.fuzz_targets.append(fuzz)
-                # print("going to fuzz", item.nodeid)
             except Exception as err:
-                print("crashed in", item.nodeid, err)  # noqa
+                print("crashed in", item.nodeid, err)
 
 
 def _get_hypothesis_tests_with_pytest(args: Iterable[str]) -> List["FuzzProcess"]:
@@ -88,20 +91,15 @@ def _get_hypothesis_tests_with_pytest(args: Iterable[str]) -> List["FuzzProcess"
             plugins=[collector],
         )
     if ret:
-        print(out.getvalue())  # noqa
-        print(f"Exiting because pytest returned exit code {ret}")  # noqa
+        print(out.getvalue())
+        print(f"Exiting because pytest returned exit code {ret}")
         sys.exit(ret)
+    elif not collector.fuzz_targets:
+        print(out.getvalue())
     return collector.fuzz_targets
 
 
-def _post(port: int, data: dict) -> None:
-    with suppress(Exception):
-        requests.post(f"http://localhost:{port}/", json=data, timeout=30)
-
-
-def _fuzz_several(
-    pytest_args: Tuple[str, ...], nodeids: List[str], port: Optional[int] = None
-) -> None:
+def _fuzz_several(pytest_args: Tuple[str, ...], nodeids: List[str]) -> None:
     """Collect and fuzz tests.
 
     Designed to be used inside a multiprocessing.Process started with the spawn()
@@ -113,8 +111,4 @@ def _fuzz_several(
     tests = [
         t for t in _get_hypothesis_tests_with_pytest(pytest_args) if t.nodeid in nodeids
     ]
-    if port is not None:
-        for t in tests:
-            t._report_change = partial(_post, port)  # type: ignore
-
     fuzz_several(*tests)
