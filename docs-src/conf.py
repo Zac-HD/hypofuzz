@@ -4,7 +4,7 @@ from pathlib import Path
 # See https://www.sphinx-doc.org/en/master/usage/configuration.html
 # -- Project information -----------------------------------------------------
 project = "HypoFuzz"
-copyright = f"{date.today().year}, Zac Hatfield-Dodds"  # noqa: A001  # shadows builtin
+copyright = f"{date.today().year}, Zac Hatfield-Dodds"
 author = "Zac Hatfield-Dodds"
 init_file = Path(__file__).parent.parent / "src/hypofuzz/__init__.py"
 for line in init_file.read_text().splitlines():

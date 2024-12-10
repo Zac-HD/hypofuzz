@@ -1,7 +1,7 @@
 import shutil
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 from hypothesis.configuration import storage_directory
 from hypothesis.extra._patching import FAIL_MSG, get_patch_for, make_patch, save_patch
@@ -20,7 +20,7 @@ def get_all_tests(pytest_args: Any) -> list:
 
 def make_and_save_patches(
     pytest_args: Any, last_update: dict, *, canonical: bool = True
-) -> Dict[str, Path]:
+) -> dict[str, Path]:
     triples_all: list = []
     triples_cov: list = []
     triples_fail: list = []
