@@ -2,7 +2,7 @@
 
 import sys
 from multiprocessing import Process
-from typing import NoReturn, Optional, Tuple
+from typing import NoReturn, Optional
 
 import click
 import hypothesis.extra.cli
@@ -53,7 +53,7 @@ def fuzz(
     dashboard_only: bool,
     port: Optional[int],
     unsafe: bool,
-    pytest_args: Tuple[str, ...],
+    pytest_args: tuple[str, ...],
 ) -> NoReturn:
     """[hypofuzz] runs tests with an adaptive coverage-guided fuzzer.
 
@@ -94,7 +94,7 @@ def fuzz(
     raise NotImplementedError("unreachable")
 
 
-def _fuzz_impl(numprocesses: int, unsafe: bool, pytest_args: Tuple[str, ...]) -> None:
+def _fuzz_impl(numprocesses: int, unsafe: bool, pytest_args: tuple[str, ...]) -> None:
     # Before doing anything with our arguments, we'll check that none
     # of HypoFuzz's arguments will be passed on to pytest instead.
     misplaced: set = set(pytest_args) & set().union(*(p.opts for p in fuzz.params))

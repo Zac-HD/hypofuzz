@@ -1,7 +1,7 @@
 """Adaptive fuzzing for property-based tests using Hypothesis."""
 
 import sys
-from typing import Any, Dict, FrozenSet, Optional, Set
+from typing import Any, Optional
 
 import attr
 import coverage
@@ -9,7 +9,7 @@ from hypothesis.internal.escalation import is_hypothesis_file
 
 # The upstream notion of an arc is (int, int) with an implicit filename,
 # but HypoFuzz uses an explicit filename as part of the arc.
-_ARC_CACHE: Dict[str, Dict[int, Dict[int, "Arc"]]] = {}
+_ARC_CACHE: dict[str, dict[int, dict[int, "Arc"]]] = {}
 
 
 @attr.s(frozen=True, slots=True)
@@ -28,7 +28,7 @@ class Arc:
             return self
 
 
-_POSSIBLE_ARCS: Dict[str, FrozenSet[Arc]] = {}
+_POSSIBLE_ARCS: dict[str, frozenset[Arc]] = {}
 
 
 def get_coverage_instance(**kwargs: Any) -> coverage.Coverage:
@@ -44,7 +44,7 @@ def get_coverage_instance(**kwargs: Any) -> coverage.Coverage:
     return c
 
 
-def get_possible_branches(cov: coverage.CoverageData, fname: str) -> FrozenSet[Arc]:
+def get_possible_branches(cov: coverage.CoverageData, fname: str) -> frozenset[Arc]:
     """Return a list of possible branches for the given file."""
     try:
         return _POSSIBLE_ARCS[fname]
@@ -68,7 +68,7 @@ class CollectionContext:
 
     def __init__(self, cov: coverage.CoverageData = None) -> None:
         self.cov = cov or get_coverage_instance()
-        self.branches: Set[Arc] = set()
+        self.branches: set[Arc] = set()
 
     def __enter__(self) -> None:
         self.branches = set()
@@ -121,7 +121,7 @@ class CustomCollectionContext:
 
     def __enter__(self) -> None:
         self.last = None
-        self.branches: Set[tuple] = set()
+        self.branches: set[tuple] = set()
         self.prev_trace = sys.gettrace()
         sys.settrace(self.trace)
 

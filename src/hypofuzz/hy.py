@@ -7,11 +7,11 @@ import socket
 import sys
 import time
 import traceback
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 from contextlib import suppress
 from functools import lru_cache
 from random import Random
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Optional, Union
 
 from hypothesis import settings
 from hypothesis.core import (
@@ -87,7 +87,7 @@ class FuzzProcess:
         wrapped_test: Any,
         *,
         nodeid: Optional[str] = None,
-        extra_kw: Optional[Dict[str, object]] = None,
+        extra_kw: Optional[dict[str, object]] = None,
     ) -> "FuzzProcess":
         """Return a FuzzProcess for an @given-decorated test function."""
         _, _, stuff = process_arguments_to_given(
@@ -141,7 +141,7 @@ class FuzzProcess:
         self.status_counts = {s.name: 0 for s in Status}
         self.shrinking = False
         # Any new examples from the database will be added to this replay buffer
-        self._replay_buffer: List[bytes] = []
+        self._replay_buffer: list[bytes] = []
         # After replay, we stay in blackbox mode for a while, until we've generated
         # 1000 consecutive examples without new coverage, and then switch to mutation.
         self._early_blackbox_mode = True
@@ -259,7 +259,7 @@ class FuzzProcess:
         self.ninputs += 1
         collector = collector or CustomCollectionContext()  # type: ignore
         assert collector is not None
-        reports: List[str] = []
+        reports: list[str] = []
         try:
             with (
                 deterministic_PRNG(),
@@ -437,7 +437,7 @@ def fuzz_several(*targets_: FuzzProcess, random_seed: Optional[int] = None) -> N
 
 
 @lru_cache
-def where_am_i() -> Dict[str, Union[int, str]]:
+def where_am_i() -> dict[str, Union[int, str]]:
     """Return a json blob identifying the machine running this code.
 
     This is intended to roughly represent the "unit of fuzz worker", so it includes
@@ -448,7 +448,7 @@ def where_am_i() -> Dict[str, Union[int, str]]:
     total number of inputs, and so on.  In practice we don't care that much about
     precision here, because the code under test is likely to be changing too.
     """
-    identifiers: Dict[str, Union[str, int, None]] = {
+    identifiers: dict[str, Union[str, int, None]] = {
         "pid": os.getpid(),
         "hostname": socket.gethostname(),  # In K8s, this is typically the pod name
         "pod_name": os.getenv("HOSTNAME"),

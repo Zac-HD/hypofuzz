@@ -3,18 +3,9 @@
 import abc
 import enum
 from collections import Counter
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from random import Random
-from typing import (
-    Callable,
-    Dict,
-    List,
-    Optional,
-    Set,
-    Tuple,
-    Type,
-    Union,
-)
+from typing import Optional, Union
 
 from hypothesis import __version__ as hypothesis_version, settings
 from hypothesis.core import encode_failure
@@ -38,7 +29,7 @@ class HowGenerated(enum.Enum):
     shrinking = "shrinking"
 
 
-def sort_key(buffer: Union[bytes, ConjectureResult]) -> Tuple[int, bytes]:
+def sort_key(buffer: Union[bytes, ConjectureResult]) -> tuple[int, bytes]:
     """Sort our buffers in shortlex order.
 
     See `hypothesis.internal.conjecture.shrinker.sort_key` for details on why we
@@ -89,22 +80,22 @@ class Pool:
         # Our sorted pool of covering examples, ready to be sampled from.
         # TODO: One suggestion to reduce effective pool size/redundancy is to skip
         #       over earlier inputs whose coverage is a subset of later inputs.
-        self.results: Dict[bytes, ConjectureResult] = SortedDict(sort_key)
+        self.results: dict[bytes, ConjectureResult] = SortedDict(sort_key)
 
         # For each arc, what's the minimal covering example?
-        self.covering_buffers: Dict[Arc, bytes] = {}
+        self.covering_buffers: dict[Arc, bytes] = {}
         # How many times have we seen each arc since discovering our latest arc?
         self.arc_counts: Counter[Arc] = Counter()
 
         # And various internal attributes and metadata
-        self.interesting_examples: Dict[
-            Tuple[Type[BaseException], str, int], Tuple[ConjectureResult, List[str]]
+        self.interesting_examples: dict[
+            tuple[type[BaseException], str, int], tuple[ConjectureResult, list[str]]
         ] = {}
-        self._loaded_from_database: Set[bytes] = set()
-        self.__shrunk_to_buffers: Set[bytes] = set()
+        self._loaded_from_database: set[bytes] = set()
+        self.__shrunk_to_buffers: set[bytes] = set()
 
         # To show the current state of the pool in the dashboard
-        self.json_report: List[List[str]] = []
+        self.json_report: list[list[str]] = []
         self._in_distill_phase = False
 
     def __repr__(self) -> str:
@@ -116,7 +107,7 @@ class Pool:
 
     def _check_invariants(self) -> None:
         """Check all invariants of the structure."""
-        seen: Set[Arc] = set()
+        seen: set[Arc] = set()
         for res in self.results.values():
             # Each result in our ordered buffer covers at least one arc not covered
             # by any more-minimal result.
@@ -193,7 +184,7 @@ class Pool:
             self._database.save(self._fuzz_key, buf)
             self._loaded_from_database.add(buf)
             # Clear out any redundant entries
-            seen_branches: Set[Arc] = set()
+            seen_branches: set[Arc] = set()
             self.covering_buffers = {}
             for res in list(self.results.values()):
                 covers = res.extra_information.branches - seen_branches
@@ -350,7 +341,7 @@ class BlackBoxMutator(Mutator):
 
 
 class CrossOverMutator(Mutator):
-    def _get_weights(self) -> List[float]:
+    def _get_weights(self) -> list[float]:
         # (1 / rarest_arc_count) each item in self.results
         # This is related to the AFL-fast trick, but doesn't track the transition
         # probabilities - just node densities in the markov chain.

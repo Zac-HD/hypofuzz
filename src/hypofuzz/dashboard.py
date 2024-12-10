@@ -5,7 +5,6 @@ import datetime
 import os
 import signal
 import time
-from typing import List
 
 import black
 import dash
@@ -135,7 +134,7 @@ def display_page(pathname: str) -> html.Div:
         trace, x="elapsed_time", y="branches", line_shape="hv", hover_data=["ninputs"]
     )
     last_update = LAST_UPDATE[trace[-1]["nodeid"]]
-    add: List[str] = []
+    add: list[str] = []
     if "failures" in last_update:
         for failures in last_update["failures"]:
             failures[0] = try_format(failures[0])

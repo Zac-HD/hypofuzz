@@ -1,12 +1,7 @@
 # Top-level dependencies for `tox -e check`
-flake8
-flake8-bandit
-flake8-bugbear
-flake8-builtins
-flake8-comprehensions
-flake8-docstrings
-flake8-print
+ruff
 mypy
+attrs  # to let mypy pick up on dataclass_transform
 pep8-naming
 shed
 types-requests

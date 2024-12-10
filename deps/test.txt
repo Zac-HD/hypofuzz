@@ -10,7 +10,7 @@ blinker==1.9.0            # via flask
 certifi==2024.8.30        # via requests
 charset-normalizer==3.4.0  # via requests
 click==8.1.7              # via black, flask, hypothesis
-coverage[toml]==7.6.8     # via hypofuzz (setup.py), pytest-cov
+coverage[toml]==7.6.9     # via hypofuzz (setup.py), pytest-cov
 dash==2.18.2              # via hypofuzz (setup.py)
 dash-core-components==2.0.0  # via dash
 dash-html-components==2.0.0  # via dash
@@ -18,7 +18,7 @@ dash-table==5.0.0         # via dash
 exceptiongroup==1.2.2     # via hypothesis, pytest
 execnet==2.1.1            # via pytest-xdist
 flask==3.0.3              # via dash
-hypothesis[cli]==6.121.0  # via hypofuzz (setup.py)
+hypothesis[cli]==6.122.3  # via hypofuzz (setup.py)
 idna==3.10                # via requests
 importlib-metadata==8.5.0  # via dash
 iniconfig==2.0.0          # via pytest
@@ -40,16 +40,16 @@ pluggy==1.5.0             # via pytest
 psutil==6.1.0             # via hypofuzz (setup.py)
 pyarrow==18.1.0           # via -r deps/test.in
 pygments==2.18.0          # via rich
-pytest==8.3.3             # via -r deps/test.in, hypofuzz (setup.py), pytest-cov, pytest-xdist
+pytest==8.3.4             # via -r deps/test.in, hypofuzz (setup.py), pytest-cov, pytest-xdist
 pytest-cov==6.0.0         # via -r deps/test.in
 pytest-xdist==3.6.1       # via -r deps/test.in
 python-dateutil @ git+https://github.com/dateutil/dateutil.git@296d419fe6bf3b22897f8f210735ac9c4e1cb796  # via -r deps/test.in, pandas
 pytz==2024.2              # via pandas
 pyyaml==6.0.2             # via libcst
-requests==2.32.3          # via dash, hypofuzz (setup.py)
+requests==2.32.3          # via -r deps/test.in, dash
 retrying==1.3.4           # via dash
 rich==13.9.4              # via hypothesis
-six==1.16.0               # via python-dateutil, retrying
+six==1.17.0               # via python-dateutil, retrying
 sortedcontainers==2.4.0   # via hypothesis
 tenacity==9.0.0           # via plotly
 tomli==2.2.1              # via black, coverage, pytest

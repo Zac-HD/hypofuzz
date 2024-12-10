@@ -6,7 +6,7 @@ from collections.abc import Iterable
 from contextlib import redirect_stdout
 from functools import partial
 from inspect import signature
-from typing import TYPE_CHECKING, List, Tuple, get_type_hints
+from typing import TYPE_CHECKING, get_type_hints
 
 import pytest
 from hypothesis.stateful import RuleBasedStateMachine, run_state_machine_as_test
@@ -21,7 +21,7 @@ class _ItemsCollector:
     """A pytest plugin which grabs all the fuzzable tests at the end of collection."""
 
     def __init__(self) -> None:
-        self.fuzz_targets: List[FuzzProcess] = []
+        self.fuzz_targets: list[FuzzProcess] = []
 
     def pytest_collection_finish(self, session: pytest.Session) -> None:
         from .hy import FuzzProcess
@@ -73,7 +73,7 @@ class _ItemsCollector:
                 print("crashed in", item.nodeid, err)
 
 
-def _get_hypothesis_tests_with_pytest(args: Iterable[str]) -> List["FuzzProcess"]:
+def _get_hypothesis_tests_with_pytest(args: Iterable[str]) -> list["FuzzProcess"]:
     """Find the hypothesis-only test functions run by pytest.
 
     This basically uses `pytest --collect-only -m hypothesis $args`.
@@ -99,7 +99,7 @@ def _get_hypothesis_tests_with_pytest(args: Iterable[str]) -> List["FuzzProcess"
     return collector.fuzz_targets
 
 
-def _fuzz_several(pytest_args: Tuple[str, ...], nodeids: List[str]) -> None:
+def _fuzz_several(pytest_args: tuple[str, ...], nodeids: list[str]) -> None:
     """Collect and fuzz tests.
 
     Designed to be used inside a multiprocessing.Process started with the spawn()
