@@ -31,6 +31,13 @@ import psutil
     help="serve a live dashboard page without launching associated fuzzing processes",
 )
 @click.option(
+    "--host",
+    type=str,
+    default="localhost",
+    metavar="HOST",
+    help="Optional host for the dashboard",
+)
+@click.option(
     "--port",
     type=click.IntRange(1, 65535),
     default=9999,
@@ -51,6 +58,7 @@ def fuzz(
     numprocesses: int,
     dashboard: bool,
     dashboard_only: bool,
+    host: Optional[str],
     port: Optional[int],
     unsafe: bool,
     pytest_args: tuple[str, ...],
@@ -69,7 +77,7 @@ def fuzz(
 
         dash_proc = Process(
             target=start_dashboard_process,
-            kwargs={"port": port, "pytest_args": pytest_args},
+            kwargs={"host": host, "port": port, "pytest_args": pytest_args},
         )
         dash_proc.start()
 
