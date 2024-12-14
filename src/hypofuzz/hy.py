@@ -379,6 +379,7 @@ class FuzzProcess:
             "worker": where_am_i(),
             "ninputs": self.ninputs,
             "branches": len(self.pool.arc_counts),
+            "est. branches": "",
             "since new cov": self.since_new_cov,
             "loaded_from_db": len(self.pool._loaded_from_database),
             "status_counts": dict(self.status_counts),

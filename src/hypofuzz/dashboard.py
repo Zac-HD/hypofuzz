@@ -24,7 +24,7 @@ LAST_UPDATE: dict = {}
 
 PYTEST_ARGS = None
 
-headings = ["nodeid", "elapsed time", "ninputs", "since new cov", "branches", "note"]
+headings = ["nodeid", "elapsed time", "ninputs", "since new cov", "branches", "est. branches", "note"]
 app = flask.Flask(__name__, static_folder=os.path.abspath("pycrunch-recordings"))
 
 try:
