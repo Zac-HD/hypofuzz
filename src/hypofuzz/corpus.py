@@ -86,6 +86,8 @@ class Pool:
         self.covering_buffers: dict[Arc, bytes] = {}
         # How many times have we seen each arc since discovering our latest arc?
         self.arc_counts: Counter[Arc] = Counter()
+        # How many times have we seen each arc since start of run?
+        self.overall_arc_counts: Counter[Arc] = Counter()
 
         # And various internal attributes and metadata
         self.interesting_examples: dict[
@@ -214,11 +216,13 @@ class Pool:
         # have a different distribution with a new seed pool.
         if branches.issubset(self.arc_counts):
             self.arc_counts.update(branches)
+            self.overall_arc_counts.update(branches)
         else:
             # Reset our seen arc counts.  This is essential because changing our
             # seed pool alters the probability of seeing each arc in future.
             # For details see AFL-fast, esp. the markov-chain trick.
             self.arc_counts = Counter(branches.union(self.arc_counts))
+            self.overall_arc_counts.update(branches)
 
             # Save this buffer as our minimal-known covering example for each new arc.
             if result.buffer not in self.results:
