@@ -135,6 +135,18 @@ class Pool:
     def _fuzz_key(self) -> bytes:
         return self._key + b".fuzz"
 
+    @property
+    def singletons(self) -> int:
+        # Because _every_ arc hit is counted at least once, singletons are those arcs that have that base hit,
+        # and then _one_ more on top of it.
+        singletons = [item for item in self.overall_arc_counts.values() if 2 == item]
+        return len(singletons)
+
+    @property
+    def doubletons(self) -> int:
+        doubletons = [item for item in self.overall_arc_counts.values() if 3 == item]
+        return len(doubletons)
+
     def add(self, result: ConjectureResult, source: HowGenerated) -> Optional[bool]:
         """Update the corpus with the result of running a test.
 
