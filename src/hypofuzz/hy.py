@@ -405,7 +405,7 @@ class FuzzProcess:
             doubletons = self.pool.doubletons
             offset = singletons * (singletons-1) / 2 if 0 == doubletons else singletons * singletons / (2 * doubletons)
             offset = int(offset) + 1
-            report["est. branches"] = report["branches"] + offset
+            report["est. branches"] = int(str(report["branches"])) + offset
         return report
 
     @property
