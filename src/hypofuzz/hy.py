@@ -403,7 +403,11 @@ class FuzzProcess:
         if self.ninputs >= 10 and "" == report["note"]:
             singletons = self.pool.singletons
             doubletons = self.pool.doubletons
-            offset = singletons * (singletons-1) / 2 if 0 == doubletons else singletons * singletons / (2 * doubletons)
+            offset = (
+                singletons * (singletons - 1) / 2
+                if 0 == doubletons
+                else singletons * singletons / (2 * doubletons)
+            )
             offset = int(offset) + 1
             report["est. branches"] = int(str(report["branches"])) + offset
         return report
