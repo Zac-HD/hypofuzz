@@ -50,3 +50,4 @@ You accept and agree to the following terms and conditions for Your present and 
 <!-- Add yourself to the end of the bulleted list below -->
 
 * [Liam DeVoe](https://github.com/tybug)
+* [CyberiaResurrection](https://github.com/CyberiaResurrection)
