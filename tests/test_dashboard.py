@@ -1,8 +1,8 @@
-import requests
 import tempfile
 from pathlib import Path
 
-from common import dashboard, wait_for, fuzz
+import requests
+from common import dashboard, fuzz, wait_for
 
 
 def test_can_launch_dashboard():

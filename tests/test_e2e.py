@@ -7,7 +7,6 @@ import time
 
 import pytest
 import requests
-
 from common import wait_for
 
 TEST_CODE = """

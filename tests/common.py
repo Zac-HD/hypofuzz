@@ -1,13 +1,13 @@
+import re
+import shutil
 import subprocess
 import time
-import re
-import attr
 from contextlib import contextmanager
-import requests
 from pathlib import Path
 from typing import Optional
-import shutil
 
+import attr
+import requests
 from hypothesis.internal.reflection import get_pretty_function_description
 
 

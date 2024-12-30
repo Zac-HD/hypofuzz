@@ -13,7 +13,6 @@ import plotly.express as px
 import plotly.graph_objects as go
 from dash import dcc, html
 from dash.dependencies import Input, Output
-from hypothesis import settings
 from hypothesis.configuration import storage_directory
 
 from .database import get_db
@@ -308,7 +307,7 @@ def download_patch(name: str) -> flask.Response:
 
 
 # api design is in flux and will likely evolve alongside our testing needs.
-@app.route("/api/state")
+@app.route("/api/state")  # type: ignore
 def api_state() -> flask.Response:
     # todo: poll on a fixed interval (even if the page isn't loaded) instead of
     # on every api request.
