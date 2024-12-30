@@ -41,7 +41,7 @@ def poll_database() -> None:
 
     db = get_db()
     data: list = []
-    for key in settings().database.fetch(b"hypofuzz-test-keys"):
+    for key in db.fetch(b"hypofuzz-test-keys"):
         data.extend(db.fetch_metadata(key))
     data.sort(key=lambda d: d.get("ninputs", -1))
 
@@ -345,8 +345,14 @@ def patch_summary() -> flask.Response:
 def start_dashboard_process(
     port: int, *, pytest_args: list, host: str = "localhost", debug: bool = False
 ) -> None:
+    from .interface import _get_hypothesis_tests_with_pytest
+
     global PYTEST_ARGS
     PYTEST_ARGS = pytest_args
+
+    # we run a pytest collection step for the dashboard to pick up on databases
+    # from custom profiles.
+    _get_hypothesis_tests_with_pytest(pytest_args)
 
     # Ensure that we dump whatever patches are ready before shutting down
     def signal_handler(signum, frame):  # type: ignore
@@ -360,5 +366,7 @@ def start_dashboard_process(
     old_handler = signal.signal(signal.SIGTERM, signal_handler)
     atexit.register(make_and_save_patches, pytest_args, LAST_UPDATE)
 
+    # poll once at startup to load existing data
+    poll_database()
     print(f"\n\tNow serving dashboard at  http://{host}:{port}/\n")
     app.run(host=host, port=port, debug=debug)
