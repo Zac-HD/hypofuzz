@@ -39,10 +39,10 @@ import psutil
 )
 @click.option(
     "--port",
-    type=click.IntRange(1, 65535),
+    type=click.IntRange(0, 65535),
     default=9999,
     metavar="PORT",
-    help="Optional port for the dashboard (if any)",
+    help="Optional port for the dashboard (if any). 0 to request an arbitrary open port",
 )
 @click.option(
     "--unsafe",

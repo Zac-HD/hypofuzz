@@ -307,6 +307,16 @@ def download_patch(name: str) -> flask.Response:
     )
 
 
+# api design is in flux and will likely evolve alongside our testing needs.
+@app.route("/api/state")
+def api_state() -> flask.Response:
+    # todo: poll on a fixed interval (even if the page isn't loaded) instead of
+    # on every api request.
+    poll_database()
+    data = {"latest": LAST_UPDATE}
+    return flask.jsonify(data)
+
+
 @app.route("/patches/")  # type: ignore
 def patch_summary() -> flask.Response:
     patches = make_and_save_patches(PYTEST_ARGS, LAST_UPDATE)
