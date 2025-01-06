@@ -2,7 +2,7 @@
 HypoFuzz uses [calendar-based versioning](https://calver.org/), with a
 `YY-MM-patch` format.
 
-## 24.12.1
+## 25.01.1
 
 The dashboard now respects the current setting profile's database when loading fuzzing progress.
 Use `settings.register_profile` and `settings.load_profile` to control the dashboard database.
