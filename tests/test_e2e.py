@@ -7,6 +7,7 @@ import time
 
 import pytest
 import requests
+from common import wait_for
 
 TEST_CODE = """
 from hypothesis import given, settings, strategies as st
@@ -50,18 +51,15 @@ def test_end_to_end(numprocesses, tmp_path):
         stdout=subprocess.PIPE,
         start_new_session=True,
     )
-    # wait for dashboard to start up
-    for _ in range(100):
-        output = process.stdout.readline()
-        if b"Now serving dashboard at" in output:
-            break
-    else:
-        raise Exception("dashboard took too long to start up")
-
+    wait_for(
+        lambda: b"Now serving dashboard at" in process.stdout.readline(),
+        timeout=2,
+        interval=0.01,
+    )
     # ...plus a little more, for slow CI?
     time.sleep(0.1)
     try:
-        resp = requests.get("http://localhost:7777", allow_redirects=True, timeout=10)
+        resp = requests.get("http://localhost:7777", timeout=10)
         resp.raise_for_status()
     finally:
         process.stdout.close()
