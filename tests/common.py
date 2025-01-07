@@ -5,6 +5,7 @@ import time
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Optional
+import tempfile
 
 import attr
 import requests
@@ -96,3 +97,32 @@ def fuzz(*, n=1, dashboard=False, test_dir=None):
     finally:
         process.terminate()
         process.wait()
+
+
+BASIC_TEST_CODE = """
+import json
+
+from hypothesis import given, settings, strategies as st
+from hypothesis.database import DirectoryBasedExampleDatabase
+
+settings.register_profile("testing", settings(database=DirectoryBasedExampleDatabase("{}")))
+settings.load_profile("testing")
+n = st.integers(0, 127)
+
+# some non-trivial test that will exercise a bunch of lines (albeit in the stdlib).
+jsons = st.deferred(lambda: st.none() | st.floats() | st.text() | lists | objects)
+lists = st.lists(jsons)
+objects = st.dictionaries(st.text(), jsons)
+
+@given(jsons)
+def test(x):
+    json.loads(json.dumps(x))
+"""
+
+
+def write_basic_test_code():
+    db_dir = Path(tempfile.mkdtemp())
+    test_dir = Path(tempfile.mkdtemp())
+    test_file = test_dir / "test_a.py"
+    test_file.write_text(BASIC_TEST_CODE.format(str(db_dir)))
+    return (test_dir, db_dir)

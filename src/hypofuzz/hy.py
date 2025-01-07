@@ -356,6 +356,7 @@ class FuzzProcess:
         # We first unconditionally drop the previous report. If we determine we
         # should keep it, we then re-add its reduced version, with the fields we
         # only keep for the latest report removed.
+        # TODO proper typing for Report and ReportReduced
         db.delete_metadata(self.database_key, self._last_report)
         if self._last_report and (
             self._last_report["branches"] != report["branches"]
