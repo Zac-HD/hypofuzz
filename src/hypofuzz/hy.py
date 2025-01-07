@@ -400,7 +400,7 @@ class FuzzProcess:
             ]
             del report["since new cov"]
 
-        if self.ninputs >= 10 and "" == report["note"]:
+        if self.ninputs >= 10000 and "" == report["note"]:
             singletons = self.pool.singletons
             doubletons = self.pool.doubletons
             offset = (
