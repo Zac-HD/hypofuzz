@@ -147,6 +147,16 @@ class Pool:
         doubletons = [item for item in self.overall_arc_counts.values() if 3 == item]
         return len(doubletons)
 
+    @property
+    def tripletons(self) -> int:
+        tripletons = [item for item in self.overall_arc_counts.values() if 4 == item]
+        return len(tripletons)
+
+    @property
+    def quadrupletons(self) -> int:
+        quadrupletons = [item for item in self.overall_arc_counts.values() if 5 == item]
+        return len(quadrupletons)
+
     def add(self, result: ConjectureResult, source: HowGenerated) -> Optional[bool]:
         """Update the corpus with the result of running a test.
 
