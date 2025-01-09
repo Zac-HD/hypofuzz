@@ -349,13 +349,9 @@ class FuzzProcess:
         db = get_db()
         db.save_metadata(self.database_key, report)
 
-        # To avoid large db sizes, we only store some fields for the latest report.
-        # Additionally, if the previous report doesn't add anything relative to
-        # this one, we drop the previous report entirely.
-        #
-        # We first unconditionally drop the previous report. If we determine we
-        # should keep it, we then re-add its reduced version, with the fields we
-        # only keep for the latest report removed.
+        # Having written the latest report, we can avoid bloating the database
+        # by dropping the previous report, and re-adding a trimmed version if
+        # it differs from the latest in more than just runtime.
         # TODO proper typing for Report and ReportReduced
         db.delete_metadata(self.database_key, self._last_report)
         if self._last_report and (
