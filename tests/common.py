@@ -1,11 +1,11 @@
 import re
 import shutil
 import subprocess
+import tempfile
 import time
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Optional
-import tempfile
 
 import attr
 import requests
@@ -29,7 +29,7 @@ def wait_for(condition, *, timeout, interval):
             return
         time.sleep(interval)
     raise Exception(
-        f"timing out after waiting {timeout}s for condition"
+        f"timing out after waiting {timeout}s for condition "
         f"{get_pretty_function_description(condition)}"
     )
 

@@ -18,11 +18,13 @@ def test_database_only_stores_full_entries_in_latest():
         assert len(keys) == 1
         key = list(keys)[0]
 
-        for i in range(10):
-            # wait for db entries to roll in - it's ok if they bunch up and cause
-            # some iterations to check the same thing.
+        previous_size = 0
+        for _ in range(10):
+            # wait for new db entries to roll in
             wait_for(
-                lambda: len(list(db.fetch_metadata(key))) > i, timeout=10, interval=0.05
+                lambda: len(list(db.fetch_metadata(key))) > previous_size,
+                timeout=10,
+                interval=0.05,
             )
             metadata = sorted(db.fetch_metadata(key), key=lambda d: d["elapsed_time"])
             assert "seed_pool" in metadata[-1], metadata
@@ -32,3 +34,5 @@ def test_database_only_stores_full_entries_in_latest():
             for report in metadata[:-2]:
                 assert "nodeid" in report
                 assert "seed_pool" not in report
+
+            previous_size = len(metadata)
