@@ -8,6 +8,10 @@ Hypofuzz now uses [`sys.monitoring`](https://docs.python.org/3/library/sys.monit
 
 Also optimized database disk usage.
 
+
+Requires [Hypothesis 6.123.12](https://hypothesis.readthedocs.io/en/latest/changes.html#v6.123.12)
+or newer, for a race condition fix which Hypofuzz is liable to hit.
+
 ## 25.01.1
 
 The dashboard now respects the current setting profile's database when loading fuzzing progress.
