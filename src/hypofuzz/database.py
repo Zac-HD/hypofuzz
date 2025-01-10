@@ -33,7 +33,7 @@ class HypofuzzDatabase:
         self._db.delete(metadata_key(key), bytes(json.dumps(report), "ascii"))
 
     def fetch_metadata(self, key: bytes) -> Iterable[Report]:
-        return map(json.loads, self._db.fetch(metadata_key(key)))
+        return [json.loads(e) for e in self._db.fetch(metadata_key(key))]
 
 
 # cache to make the db a singleton. We defer creation until first-usage to ensure

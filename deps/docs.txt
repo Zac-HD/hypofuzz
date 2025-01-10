@@ -5,14 +5,14 @@
 #    pip-compile --annotation-style=line --output-file=deps/docs.txt deps/docs.in setup.py
 #
 alabaster==1.0.0          # via sphinx
-attrs==24.2.0             # via hypothesis
+attrs==24.3.0             # via hypothesis
 babel==2.16.0             # via sphinx
 black==24.10.0            # via hypofuzz (setup.py), hypothesis
 blinker==1.9.0            # via flask
-certifi==2024.8.30        # via requests
-charset-normalizer==3.4.0  # via requests
-click==8.1.7              # via black, flask, hypothesis
-coverage==7.6.8           # via hypofuzz (setup.py)
+certifi==2024.12.14       # via requests
+charset-normalizer==3.4.1  # via requests
+click==8.1.8              # via black, flask, hypothesis
+coverage==7.6.10          # via hypofuzz (setup.py)
 dash==2.18.2              # via hypofuzz (setup.py)
 dash-core-components==2.0.0  # via dash
 dash-html-components==2.0.0  # via dash
@@ -20,13 +20,13 @@ dash-table==5.0.0         # via dash
 docutils==0.21.2          # via myst-parser, pybtex-docutils, sphinx, sphinx-rtd-theme, sphinxcontrib-bibtex
 exceptiongroup==1.2.2     # via hypothesis, pytest
 flask==3.0.3              # via dash
-hypothesis[cli]==6.121.0  # via hypofuzz (setup.py)
+hypothesis[cli]==6.123.13  # via hypofuzz (setup.py)
 idna==3.10                # via requests
 imagesize==1.4.1          # via sphinx
 importlib-metadata==8.5.0  # via dash
 iniconfig==2.0.0          # via pytest
 itsdangerous==2.2.0       # via flask
-jinja2==3.1.4             # via flask, myst-parser, sphinx
+jinja2==3.1.5             # via flask, myst-parser, sphinx
 latexcodec==3.0.0         # via pybtex
 libcst==1.5.1             # via hypofuzz (setup.py)
 markdown-it-py==3.0.0     # via mdit-py-plugins, myst-parser, rich
@@ -36,25 +36,25 @@ mdurl==0.1.2              # via markdown-it-py
 mypy-extensions==1.0.0    # via black
 myst-parser==4.0.0        # via -r deps/docs.in
 nest-asyncio==1.6.0       # via dash
-numpy==2.1.3              # via pandas
+numpy==2.2.1              # via pandas
 packaging==24.2           # via black, plotly, pytest, sphinx
 pandas==2.2.3             # via hypofuzz (setup.py)
 pathspec==0.12.1          # via black
 platformdirs==4.3.6       # via black
 plotly==5.24.1            # via dash
 pluggy==1.5.0             # via pytest
-psutil==6.1.0             # via hypofuzz (setup.py)
+psutil==6.1.1             # via hypofuzz (setup.py)
 pybtex==0.24.0            # via pybtex-docutils, sphinxcontrib-bibtex
 pybtex-docutils==1.0.3    # via sphinxcontrib-bibtex
-pygments==2.18.0          # via rich, sphinx
-pytest==8.3.3             # via hypofuzz (setup.py)
+pygments==2.19.1          # via rich, sphinx
+pytest==8.3.4             # via hypofuzz (setup.py)
 python-dateutil==2.9.0.post0  # via pandas
 pytz==2024.2              # via pandas
 pyyaml==6.0.2             # via libcst, myst-parser, pybtex
 requests==2.32.3          # via dash, hypofuzz (setup.py), sphinx
 retrying==1.3.4           # via dash
 rich==13.9.4              # via hypothesis
-six==1.16.0               # via pybtex, python-dateutil, retrying
+six==1.17.0               # via pybtex, python-dateutil, retrying
 snowballstemmer==2.2.0    # via sphinx
 sortedcontainers==2.4.0   # via hypothesis
 sphinx==8.1.3             # via -r deps/docs.in, myst-parser, sphinx-rtd-theme, sphinxcontrib-bibtex, sphinxcontrib-jquery, sphinxcontrib-programoutput
@@ -65,14 +65,14 @@ sphinxcontrib-devhelp==2.0.0  # via sphinx
 sphinxcontrib-htmlhelp==2.1.0  # via sphinx
 sphinxcontrib-jquery==4.1  # via sphinx-rtd-theme
 sphinxcontrib-jsmath==1.0.1  # via sphinx
-sphinxcontrib-programoutput==0.17  # via -r deps/docs.in
+sphinxcontrib-programoutput==0.18  # via -r deps/docs.in
 sphinxcontrib-qthelp==2.0.0  # via sphinx
 sphinxcontrib-serializinghtml==2.0.0  # via sphinx
 tenacity==9.0.0           # via plotly
 tomli==2.2.1              # via black, pytest, sphinx
 typing-extensions==4.12.2  # via black, dash, rich
 tzdata==2024.2            # via pandas
-urllib3==2.2.3            # via requests
+urllib3==2.3.0            # via requests
 werkzeug==3.0.6           # via dash, flask
 zipp==3.21.0              # via importlib-metadata
 

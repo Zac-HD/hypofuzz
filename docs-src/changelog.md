@@ -2,6 +2,16 @@
 HypoFuzz uses [calendar-based versioning](https://calver.org/), with a
 `YY-MM-patch` format.
 
+## 25.01.2
+
+Hypofuzz now uses [`sys.monitoring`](https://docs.python.org/3/library/sys.monitoring.html) for coverage instrumentation on python 3.12+, resulting in considerable speedups for recent python versions.
+
+Also optimized database disk usage.
+
+
+Requires [Hypothesis 6.123.12](https://hypothesis.readthedocs.io/en/latest/changes.html#v6.123.12)
+or newer, for a race condition fix which Hypofuzz is liable to hit.
+
 ## 25.01.1
 
 The dashboard now respects the current setting profile's database when loading fuzzing progress.

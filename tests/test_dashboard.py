@@ -1,8 +1,5 @@
-import tempfile
-from pathlib import Path
-
 import requests
-from common import dashboard, fuzz, wait_for
+from common import dashboard, fuzz, wait_for, write_basic_test_code
 
 
 def test_can_launch_dashboard():
@@ -11,32 +8,8 @@ def test_can_launch_dashboard():
         dash.state()
 
 
-TEST_CODE = """
-import json
-
-from hypothesis import given, settings, strategies as st
-from hypothesis.database import DirectoryBasedExampleDatabase
-
-settings.register_profile("testing", settings(database=DirectoryBasedExampleDatabase("{}")))
-settings.load_profile("testing")
-n = st.integers(0, 127)
-
-# some non-trivial test that will exercise a bunch of lines (albeit in the stdlib).
-jsons = st.deferred(lambda: st.none() | st.floats() | st.text() | lists | objects)
-lists = st.lists(jsons)
-objects = st.dictionaries(st.text(), jsons)
-
-@given(jsons)
-def test(x):
-    json.loads(json.dumps(x))
-"""
-
-
 def test_fuzzing_fills_dashboard():
-    db_dir = Path(tempfile.mkdtemp())
-    test_dir = Path(tempfile.mkdtemp())
-    test_file = test_dir / "test_a.py"
-    test_file.write_text(TEST_CODE.format(str(db_dir)))
+    test_dir, _db_dir = write_basic_test_code()
 
     with dashboard(test_dir=test_dir) as dash:
         # we haven't started any fuzzers yet, so the dashboard is empty

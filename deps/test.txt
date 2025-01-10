@@ -4,13 +4,13 @@
 #
 #    pip-compile --annotation-style=line --output-file=deps/test.txt deps/test.in setup.py
 #
-attrs==24.2.0             # via hypothesis
+attrs==24.3.0             # via hypothesis
 black==24.10.0            # via hypofuzz (setup.py), hypothesis
 blinker==1.9.0            # via flask
-certifi==2024.8.30        # via requests
-charset-normalizer==3.4.0  # via requests
-click==8.1.7              # via black, flask, hypothesis
-coverage[toml]==7.6.9     # via hypofuzz (setup.py), pytest-cov
+certifi==2024.12.14       # via requests
+charset-normalizer==3.4.1  # via requests
+click==8.1.8              # via black, flask, hypothesis
+coverage[toml]==7.6.10    # via hypofuzz (setup.py), pytest-cov
 dash==2.18.2              # via hypofuzz (setup.py)
 dash-core-components==2.0.0  # via dash
 dash-html-components==2.0.0  # via dash
@@ -18,12 +18,12 @@ dash-table==5.0.0         # via dash
 exceptiongroup==1.2.2     # via hypothesis, pytest
 execnet==2.1.1            # via pytest-xdist
 flask==3.0.3              # via dash
-hypothesis[cli]==6.122.3  # via hypofuzz (setup.py)
+hypothesis[cli]==6.123.13  # via hypofuzz (setup.py)
 idna==3.10                # via requests
 importlib-metadata==8.5.0  # via dash
 iniconfig==2.0.0          # via pytest
 itsdangerous==2.2.0       # via flask
-jinja2==3.1.4             # via flask
+jinja2==3.1.5             # via flask
 libcst==1.5.1             # via hypofuzz (setup.py)
 markdown-it-py==3.0.0     # via rich
 markupsafe==3.0.2         # via jinja2, werkzeug
@@ -37,9 +37,9 @@ pathspec==0.12.1          # via black
 platformdirs==4.3.6       # via black
 plotly==5.24.1            # via dash
 pluggy==1.5.0             # via pytest
-psutil==6.1.0             # via hypofuzz (setup.py)
+psutil==6.1.1             # via hypofuzz (setup.py)
 pyarrow==18.1.0           # via -r deps/test.in
-pygments==2.18.0          # via rich
+pygments==2.19.1          # via rich
 pytest==8.3.4             # via -r deps/test.in, hypofuzz (setup.py), pytest-cov, pytest-xdist
 pytest-cov==6.0.0         # via -r deps/test.in
 pytest-xdist==3.6.1       # via -r deps/test.in
@@ -55,7 +55,7 @@ tenacity==9.0.0           # via plotly
 tomli==2.2.1              # via black, coverage, pytest
 typing-extensions==4.12.2  # via black, dash, rich
 tzdata==2024.2            # via pandas
-urllib3==2.2.3            # via requests
+urllib3==2.3.0            # via requests
 werkzeug==3.0.6           # via dash, flask
 zipp==3.21.0              # via importlib-metadata
 

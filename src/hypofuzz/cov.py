@@ -1,11 +1,16 @@
 """Adaptive fuzzing for property-based tests using Hypothesis."""
 
 import sys
+import types
+from functools import cache
 from typing import Any, Optional
 
 import attr
 import coverage
-from hypothesis.internal.escalation import is_hypothesis_file
+import hypothesis
+from hypothesis.internal.escalation import belongs_to
+
+import hypofuzz
 
 # The upstream notion of an arc is (int, int) with an implicit filename,
 # but HypoFuzz uses an explicit filename as part of the arc.
@@ -56,74 +61,74 @@ def get_possible_branches(cov: coverage.CoverageData, fname: str) -> frozenset[A
         return _POSSIBLE_ARCS[fname]
 
 
-class CollectionContext:
-    """Collect coverage data as a context manager.
-
-    The context manager can be reused; each use updates the ``.branches``
-    attribute which will be reset on next use.
-
-    TODO: excluding Hypothesis (and fuzz) files from tracing as well
-            as results would be a small performance upgrade.
-    """
-
-    def __init__(self, cov: coverage.CoverageData = None) -> None:
-        self.cov = cov or get_coverage_instance()
-        self.branches: set[Arc] = set()
-
-    def __enter__(self) -> None:
-        self.branches = set()
-        self.cov.erase()
-        self.cov.start()
-
-    def __exit__(self, _type: Exception, _value: object, _traceback: object) -> None:
-        # The `stop()` line shows up as uncovered because we are always running under
-        # our *internal* coverage, not *selftest* coverage, here and we don't yet have
-        # a way to pass the data back out without breaking pytest-cov's reporting.
-        self.cov.stop()  # pragma: no cover
-        self.cov.save()
-        for f in self.cov._data.measured_files():
-            if not is_hypothesis_file(f):
-                self.branches.update(
-                    Arc.make(f, src, dst) for src, dst in self.cov._data.branches(f)
-                )
-                # For later: we may want to generalise our notion of an arc to include
-                # coverage contexts, for easy Nezha-style differential fuzzing.
-                # See `CoverageData.contexts_by_lineno()` for this.
-
-        # If coverage was already running, e.g. for HypoFuzz' self-tests,
-        # update that previous instance with the data we just collected.
-        # *except* that this pollutes the report with way to much extra data...
-        # This would also need to handle the not-under-coverage case, for both
-        # correctness and performance.
-        # coverage.Coverage.current()._data.update(self.cov._data)
+is_hypothesis_file = belongs_to(hypothesis)
+is_hypofuzz_file = belongs_to(hypofuzz)
 
 
+@cache
+def should_trace(fname: str) -> bool:
+    return not (is_hypothesis_file(fname) or is_hypofuzz_file(fname))
+
+
+# use 3.12's sys.monitoring where possible, and sys.settrace otherwise.
 class CustomCollectionContext:
     """Collect coverage data as a context manager.
 
     The context manager can be reused; each use updates the ``.branches``
     attribute which will be reset on next use.
-
-    TODO: excluding Hypothesis (and fuzz) files from tracing as well
-            as results would be a small performance upgrade.
     """
 
+    # tool_id = 1 is designated for coverage, but we intentionally choose a
+    # non-reserved tool id so we can co-exist with coverage tools.
+    tool_id: int = 3
+    tool_name: str = "hypofuzz"
     last: Optional[tuple]
 
-    def trace(self, frame: Any, event: Any, arg: Any) -> Any:
+    if sys.version_info[:2] >= (3, 12):
+        events = {
+            sys.monitoring.events.LINE: "trace_line",
+        }
+
+    def trace_pre_312(self, frame: Any, event: Any, arg: Any) -> Any:
         if event == "line":
             fname = frame.f_code.co_filename
-            if not is_hypothesis_file(fname):
+            if should_trace(fname):
                 this = (fname, frame.f_lineno)
                 self.branches.add((self.last, this))
                 self.last = this
-        return self.trace
+        return self.trace_pre_312
+
+    def trace_line(self, code: types.CodeType, line_number: int) -> None:
+        fname = code.co_filename
+        if not should_trace(fname):
+            # this function is only called on 3.12+, but we want to avoid an
+            # assertion to that effect for performance.
+            return sys.monitoring.DISABLE  # type: ignore
+
+        this = (fname, line_number)
+        self.branches.add((self.last, this))
+        self.last = this
 
     def __enter__(self) -> None:
         self.last = None
         self.branches: set[tuple] = set()
-        self.prev_trace = sys.gettrace()
-        sys.settrace(self.trace)
+
+        if sys.version_info[:2] < (3, 12):
+            self.prev_trace = sys.gettrace()
+            sys.settrace(self.trace_pre_312)
+            return
+
+        sys.monitoring.use_tool_id(self.tool_id, self.tool_name)
+        for event, callback_name in self.events.items():
+            sys.monitoring.set_events(self.tool_id, event)
+            callback = getattr(self, callback_name)
+            sys.monitoring.register_callback(self.tool_id, event, callback)
 
     def __exit__(self, _type: Exception, _value: object, _traceback: object) -> None:
-        sys.settrace(self.prev_trace)
+        if sys.version_info[:2] < (3, 12):
+            sys.settrace(self.prev_trace)
+            return
+
+        sys.monitoring.free_tool_id(self.tool_id)
+        for event in self.events:
+            sys.monitoring.register_callback(self.tool_id, event, None)

@@ -349,15 +349,32 @@ class FuzzProcess:
         db = get_db()
         db.save_metadata(self.database_key, report)
 
-        if (
-            self._last_report
-            and self._last_report["branches"] == report["branches"]
-            and self._last_report["note"] == report["note"]
-            and not self.pool.interesting_examples
-            # avoid dropping reports which discovered new coverage
-            and self._last_report["since new cov"] != 0
-        ):
+        # Having written the latest report, we can avoid bloating the database
+        # by dropping the previous report, and re-adding a trimmed version if
+        # it differs from the latest in more than just runtime.
+        # TODO proper typing for Report and ReportReduced
+        if self._last_report:
             db.delete_metadata(self.database_key, self._last_report)
+
+        if self._last_report and (
+            self._last_report["branches"] != report["branches"]
+            or self._last_report["note"] != report["note"]
+            or self.pool.interesting_examples
+            # avoid dropping reports which discovered new coverage
+            or self._last_report["since new cov"] == 0
+        ):
+            reduced_report = {
+                k: self._last_report[k]
+                for k in [
+                    "nodeid",
+                    "elapsed_time",
+                    "timestamp",
+                    "worker",
+                    "ninputs",
+                    "branches",
+                ]
+            }
+            db.save_metadata(self.database_key, reduced_report)
 
         self._last_report = report
 
