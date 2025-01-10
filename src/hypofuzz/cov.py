@@ -66,7 +66,7 @@ is_hypofuzz_file = belongs_to(hypofuzz)
 
 
 @cache
-def should_trace(fname):
+def should_trace(fname: str) -> bool:
     return not (is_hypothesis_file(fname) or is_hypofuzz_file(fname))
 
 

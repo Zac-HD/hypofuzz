@@ -353,7 +353,9 @@ class FuzzProcess:
         # by dropping the previous report, and re-adding a trimmed version if
         # it differs from the latest in more than just runtime.
         # TODO proper typing for Report and ReportReduced
-        db.delete_metadata(self.database_key, self._last_report)
+        if self._last_report:
+            db.delete_metadata(self.database_key, self._last_report)
+
         if self._last_report and (
             self._last_report["branches"] != report["branches"]
             or self._last_report["note"] != report["note"]
