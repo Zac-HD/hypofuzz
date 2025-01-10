@@ -4,14 +4,14 @@
 #
 #    pip-compile --annotation-style=line --output-file=deps/check.txt deps/check.in
 #
-attrs==24.2.0             # via -r deps/check.in
+attrs==24.3.0             # via -r deps/check.in
 black==24.10.0            # via shed
-click==8.1.7              # via black
+click==8.1.8              # via black
 com2ann==0.3.0            # via shed
 flake8==7.1.1             # via pep8-naming
 libcst==1.5.1             # via shed
 mccabe==0.7.0             # via flake8
-mypy==1.13.0              # via -r deps/check.in
+mypy==1.14.1              # via -r deps/check.in
 mypy-extensions==1.0.0    # via black, mypy
 packaging==24.2           # via black
 pathspec==0.12.1          # via black
@@ -19,12 +19,12 @@ pep8-naming==0.14.1       # via -r deps/check.in
 platformdirs==4.3.6       # via black
 pycodestyle==2.12.1       # via flake8
 pyflakes==3.2.0           # via flake8
-pyupgrade==3.19.0         # via shed
+pyupgrade==3.19.1         # via shed
 pyyaml==6.0.2             # via libcst
-ruff==0.8.2               # via -r deps/check.in, shed
+ruff==0.9.0               # via -r deps/check.in, shed
 shed==2024.10.1           # via -r deps/check.in
 tokenize-rt==6.1.0        # via pyupgrade
 tomli==2.2.1              # via black, mypy
 types-requests==2.32.0.20241016  # via -r deps/check.in
 typing-extensions==4.12.2  # via black, mypy
-urllib3==2.2.3            # via types-requests
+urllib3==2.3.0            # via types-requests
