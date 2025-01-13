@@ -1,7 +1,7 @@
+from common import fuzz, wait_for, write_basic_test_code
 from hypothesis.database import DirectoryBasedExampleDatabase
 
 from hypofuzz.database import HypofuzzDatabase
-from common import fuzz, wait_for, write_basic_test_code
 
 
 def test_database_only_stores_full_entries_in_latest():
@@ -19,11 +19,14 @@ def test_database_only_stores_full_entries_in_latest():
         key = list(keys)[0]
 
         previous_size = 0
-        for _ in range(10):
+        # we're fuzzing actual json.loads here on relatively slow ci machines,
+        # so keep the iteration count relatively low to avoid the fuzz process
+        # taking longer than our timeout to find new coverage.
+        for _ in range(5):
             # wait for new db entries to roll in
             wait_for(
                 lambda: len(list(db.fetch_metadata(key))) > previous_size,
-                timeout=10,
+                timeout=15,
                 interval=0.05,
             )
             metadata = sorted(db.fetch_metadata(key), key=lambda d: d["elapsed_time"])
