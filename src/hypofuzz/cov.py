@@ -1,8 +1,10 @@
 """Adaptive fuzzing for property-based tests using Hypothesis."""
 
+import os
 import sys
 import types
 from functools import cache
+from pathlib import Path
 from typing import Any, Optional
 
 import attr
@@ -33,9 +35,6 @@ class Arc:
             return self
 
 
-_POSSIBLE_ARCS: dict[str, frozenset[Arc]] = {}
-
-
 def get_coverage_instance(**kwargs: Any) -> coverage.Coverage:
     # See https://coverage.readthedocs.io/en/latest/api_coverage.html
     c = coverage.Coverage(
@@ -49,25 +48,31 @@ def get_coverage_instance(**kwargs: Any) -> coverage.Coverage:
     return c
 
 
-def get_possible_branches(cov: coverage.CoverageData, fname: str) -> frozenset[Arc]:
-    """Return a list of possible branches for the given file."""
-    try:
-        return _POSSIBLE_ARCS[fname]
-    except KeyError:
-        fr = coverage.python.PythonFileReporter(fname, coverage=cov)
-        _POSSIBLE_ARCS[fname] = frozenset(
-            Arc.make(fname, src, dst) for src, dst in fr.arcs()
-        )
-        return _POSSIBLE_ARCS[fname]
-
-
 is_hypothesis_file = belongs_to(hypothesis)
 is_hypofuzz_file = belongs_to(hypofuzz)
+
+stdlib_path = Path(os.__file__).parent
+
+
+def is_stdlib_file(fname: str) -> bool:
+    return fname.startswith(str(stdlib_path))
+
+
+def is_generated_file(fname: str) -> bool:
+    # some examples:
+    # <frozen posixpath>
+    # <attrs generated init hypothesis.internal.conjecture.data.IRNode>
+    return fname.startswith("<") and fname.endswith(">")
 
 
 @cache
 def should_trace(fname: str) -> bool:
-    return not (is_hypothesis_file(fname) or is_hypofuzz_file(fname))
+    return not (
+        is_hypothesis_file(fname)
+        or is_hypofuzz_file(fname)
+        or is_stdlib_file(fname)
+        or is_generated_file(fname)
+    )
 
 
 # use 3.12's sys.monitoring where possible, and sys.settrace otherwise.
@@ -80,7 +85,9 @@ class CustomCollectionContext:
 
     # tool_id = 1 is designated for coverage, but we intentionally choose a
     # non-reserved tool id so we can co-exist with coverage tools.
-    tool_id: int = 3
+    # out of an abundance of caution, we also avoid conflicting with hypothesis'
+    # tool_id = 3, thought we don't expect this to be problematic.s
+    tool_id: int = 4
     tool_name: str = "hypofuzz"
     last: Optional[tuple]
 
