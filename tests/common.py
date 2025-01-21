@@ -101,22 +101,72 @@ def fuzz(*, n=1, dashboard=False, test_dir=None):
 
 BASIC_TEST_CODE = """
 import json
+import time
 
 from hypothesis import given, settings, strategies as st
 from hypothesis.database import DirectoryBasedExampleDatabase
 
 settings.register_profile("testing", settings(database=DirectoryBasedExampleDatabase("{}")))
 settings.load_profile("testing")
-n = st.integers(0, 127)
 
-# some non-trivial test that will exercise a bunch of lines (albeit in the stdlib).
-jsons = st.deferred(lambda: st.none() | st.floats() | st.text() | lists | objects)
+# some non-trivial test that will exercise a bunch of lines
+jsons = st.deferred(lambda: st.none() | st.integers() | st.floats() | st.text() | lists | objects)
 lists = st.lists(jsons)
 objects = st.dictionaries(st.text(), jsons)
 
+def to_jsonable(obj):
+    if isinstance(obj, int):
+        # create a bunch of artificial branches
+        if abs(obj) <= 100:
+            pass
+        elif abs(obj) <= 200:
+            pass
+        elif abs(obj) <= 300:
+            pass
+        elif abs(obj) <= 400:
+            pass
+        elif abs(obj) <= 500:
+            pass
+        elif abs(obj) <= 1000:
+            pass
+        elif abs(obj) <= 2000:
+            pass
+        elif abs(obj) <= 3000:
+            pass
+        elif abs(obj) <= 4000:
+            pass
+        elif abs(obj) <= 5000:
+            pass
+        elif abs(obj) <= 10_000:
+            pass
+        elif abs(obj) <= 20_000:
+            pass
+        elif abs(obj) <= 30_000:
+            pass
+        elif abs(obj) <= 40_000:
+            pass
+        elif abs(obj) <= 50_000:
+            pass
+        return obj
+    if isinstance(obj, float):
+        return obj
+    if isinstance(obj, str):
+        return obj
+    if isinstance(obj, bool):
+        return obj
+    if obj is None:
+        return obj
+    if isinstance(obj, (list, tuple, set, frozenset)):
+        return [to_jsonable(x) for x in obj]
+    if isinstance(obj, dict):
+        return {{str(k): to_jsonable(v) for k, v in obj.items()}}
+
+    time.sleep(0.1)
+    return str(obj)
+
 @given(jsons)
 def test(x):
-    json.loads(json.dumps(x))
+    to_jsonable(x)
 """
 
 
