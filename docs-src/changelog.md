@@ -2,6 +2,10 @@
 HypoFuzz uses [calendar-based versioning](https://calver.org/), with a
 `YY-MM-patch` format.
 
+## 25.01.4
+
+Ignore standard library and dynamically generated code for coverage.
+
 ## 25.01.3
 
 Support collecting tests with a pytest autouse fixture that itself requests a non-autouse fixture.
