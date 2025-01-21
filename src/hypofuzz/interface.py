@@ -30,25 +30,40 @@ class _ItemsCollector:
             # If the test takes a fixture, we skip it - the fuzzer doesn't have
             # pytest scopes, so we just can't support them.  TODO: note skips.
             manager = item._request._fixturemanager
-            name2fixturedefs = manager.getfixtureinfo(
+            fixtureinfo = manager.getfixtureinfo(
                 node=item, func=item.function, cls=None
-            ).name2fixturedefs
+            )
+
+            from _pytest.nodes import Node
+
+            # from pytest 8.3 or thereabouts
+            pytest83 = get_type_hints(manager._getautousenames).get("node") == Node
+            autouse_names = tuple(
+                manager._getautousenames(item if pytest83 else item.nodeid)
+            )
+
             # However, autouse fixtures are ubiquitous enough that we'll skip them;
             # until we get full pytest compatibility it's an expedient approximation.
             # The relevant internals changed in Pytest 8.0, so handle both cases...
-            if "ignore_args" in signature(manager.getfixtureclosure).parameters:
-                from _pytest.nodes import Node
-
-                if get_type_hints(manager._getautousenames).get("node") == Node:
-                    # from pytest 8.3 or thereabouts
-                    all_autouse = set(manager._getautousenames(item))
-                else:
-                    all_autouse = set(manager._getautousenames(item.nodeid))
-            else:
-                _, all_autouse, _ = manager.getfixtureclosure(
-                    tuple(manager._getautousenames(item.nodeid)), item
+            if "fixturenames" not in signature(manager.getfixtureclosure).parameters:
+                # pytest ~8
+                all_autouse, _ = manager.getfixtureclosure(
+                    item, autouse_names, ignore_args=set()
                 )
-            if names := set(name2fixturedefs).difference(all_autouse):
+            else:
+                # pytest ~6-7
+                _, all_autouse, _ = manager.getfixtureclosure(autouse_names, item)
+
+            # Skip any test which:
+            # - directly requests a non autouse fixture, or
+            # - requests any fixture (in its transitive closure) that isn't autouse
+            #
+            # We check both to handle the case where a function directly requests
+            # a non autouse fixture, *and* that same fixture is requested by an
+            # autouse fixture. This function should not be collected.
+            if (names := set(fixtureinfo.initialnames).difference(autouse_names)) or (
+                names := set(fixtureinfo.name2fixturedefs).difference(all_autouse)
+            ):
                 print(
                     f"skipping {item=} because of non-autouse fixtures {names}",
                     flush=True,

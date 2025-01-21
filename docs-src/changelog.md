@@ -2,6 +2,10 @@
 HypoFuzz uses [calendar-based versioning](https://calver.org/), with a
 `YY-MM-patch` format.
 
+## 25.01.3
+
+Support collecting tests with a pytest autouse fixture that itself requests a non-autouse fixture.
+
 ## 25.01.2
 
 Hypofuzz now uses [`sys.monitoring`](https://docs.python.org/3/library/sys.monitoring.html) for coverage instrumentation on python 3.12+, resulting in considerable speedups for recent python versions.
