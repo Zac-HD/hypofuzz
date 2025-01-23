@@ -3,13 +3,14 @@
 import abc
 import enum
 from collections import Counter
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Sequence
 from random import Random
 from typing import Optional, Union
 
 from hypothesis import __version__ as hypothesis_version, settings
 from hypothesis.core import encode_failure
-from hypothesis.database import ExampleDatabase
+from hypothesis.database import ExampleDatabase, ir_to_bytes
+from hypothesis.internal.conjecture.choice import ChoiceT
 from hypothesis.internal.conjecture.data import (
     ConjectureData,
     ConjectureResult,
@@ -41,9 +42,9 @@ def sort_key(buffer: Union[bytes, ConjectureResult]) -> tuple[int, bytes]:
     return (len(buffer), buffer)
 
 
-def reproduction_decorator(buffer: bytes) -> str:
+def reproduction_decorator(choices: Sequence[ChoiceT]) -> str:
     """Return `@reproduce_failure` decorator for the given buffer."""
-    return f"@reproduce_failure({hypothesis_version!r}, {encode_failure(buffer)!r})"
+    return f"@reproduce_failure({hypothesis_version!r}, {encode_failure(choices)!r})"
 
 
 def get_shrinker(
@@ -154,13 +155,13 @@ class Pool:
             if origin not in self.interesting_examples or (
                 sort_key(result) < sort_key(self.interesting_examples[origin][0])
             ):
-                self._database.save(self._key, result.buffer)
+                self._database.save(self._key, ir_to_bytes(result.choices))
                 self.interesting_examples[origin] = (
                     result,
                     [
                         getattr(result.extra_information, "call_repr", "<unknown>"),
                         result.extra_information.reports,
-                        reproduction_decorator(result.buffer),
+                        reproduction_decorator(result.choices),
                         result.extra_information.traceback,
                     ],
                 )
@@ -181,7 +182,7 @@ class Pool:
             # We do this the stupid-but-obviously-correct way: add the new buffer to
             # our tracked corpus, and then run a distillation step.
             self.results[result.buffer] = result
-            self._database.save(self._fuzz_key, buf)
+            self._database.save(self._fuzz_key, ir_to_bytes(result.choices))
             self._loaded_from_database.add(buf)
             # Clear out any redundant entries
             seen_branches: set[Arc] = set()
@@ -202,7 +203,7 @@ class Pool:
             )
             self.json_report = [
                 [
-                    reproduction_decorator(res.buffer),
+                    reproduction_decorator(res.choices),
                     getattr(res.extra_information, "call_repr", "<unknown>"),
                     res.extra_information.reports,
                 ]
@@ -223,7 +224,7 @@ class Pool:
             # Save this buffer as our minimal-known covering example for each new arc.
             if result.buffer not in self.results:
                 self.results[result.buffer] = result
-            self._database.save(self._fuzz_key, buf)
+            self._database.save(self._fuzz_key, ir_to_bytes(result.choices))
             for arc in branches - set(self.covering_buffers):
                 self.covering_buffers[arc] = buf
 
