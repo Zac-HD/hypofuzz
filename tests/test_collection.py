@@ -4,6 +4,8 @@ import inspect
 import tempfile
 from pathlib import Path
 
+import pytest
+
 from hypofuzz import interface
 from hypofuzz.hy import FuzzProcess
 
@@ -67,4 +69,55 @@ def test_does_not_collect_explicit_fixture_even_if_autouse():
     def test_autouse(myfixture, x): ...
     """
 
-    assert collect_names(code) == set()
+    assert not collect_names(code)
+
+
+def test_collects_parameterized_tests():
+    code = """
+    @pytest.mark.parametrize("param", [1, 2, 3])
+    @given(st.integers())
+    def test_parameterized(param, n):
+        pass
+    """
+
+    names = {
+        (fp._test_fn.__name__, tuple(fp._stuff.kwargs.items())) for fp in collect(code)
+    }
+    assert names == {
+        ("test_parameterized", (("param", 1),)),
+        ("test_parameterized", (("param", 2),)),
+        ("test_parameterized", (("param", 3),)),
+    }
+
+
+@pytest.mark.parametrize(
+    "conditions, result",
+    [
+        # true expressions
+        ("True", True),
+        ("not False", True),
+        ("'sys.version_info > (3, 0, 0)'", True),
+        ([True, False], True),
+        # false expressions
+        ("False", False),
+        ("not True", False),
+        ("'sys.version_info < (3, 0, 0)'", False),
+        ([False, False], False),
+    ],
+)
+def test_skipif_collection(conditions, result):
+    if isinstance(conditions, str):
+        conditions = [conditions]
+
+    decorators = "\n    ".join(
+        f"@pytest.mark.skipif({c}, reason='')" for c in conditions
+    )
+    code = f"""
+    {decorators}
+    @given(st.integers())
+    def test_a(n):
+        pass
+    """
+    # if (any of) the skipif evaluated to true, we should not have collected this
+    # test. Otherwise we should have.
+    assert collect_names(code) == (set() if result else {"test_a"})

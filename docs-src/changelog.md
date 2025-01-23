@@ -2,6 +2,10 @@
 HypoFuzz uses [calendar-based versioning](https://calver.org/), with a
 `YY-MM-patch` format.
 
+## 25.01.5
+
+Initial support for `@pytest.mark.parametrize` and `@pytest.mark.skipif`.
+
 ## 25.01.4
 
 Ignore standard library and dynamically generated code for coverage.
