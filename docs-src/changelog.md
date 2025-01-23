@@ -4,7 +4,7 @@ HypoFuzz uses [calendar-based versioning](https://calver.org/), with a
 
 ## 25.01.5
 
-Initial support for `@pytest.mark.parametrize` and `@pytest.mark.skipif`.
+Support for `@pytest.mark.skip` and `@pytest.mark.skipif`, and initial support for `@pytest.mark.parametrize`.
 
 Also bumps Hypothesis to [6.124.0](https://hypothesis.readthedocs.io/en/latest/changes.html#v6.124.0), to support the new database format.
 

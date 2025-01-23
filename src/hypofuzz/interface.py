@@ -38,6 +38,9 @@ class _ItemsCollector:
         from .hy import FuzzProcess
 
         for item in session.items:
+            if list(item.iter_markers("skip")):
+                print(f"skipping {item=} due to an @skip mark")
+                continue
             if has_true_skipif(item):
                 print(f"skipping {item=} due to a true @skipif mark")
                 continue
