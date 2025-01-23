@@ -16,6 +16,7 @@ def collect(code: str) -> list[FuzzProcess]:
             """
             import pytest
             from hypothesis import given, strategies as st
+            from hypothesis.stateful import RuleBasedStateMachine, Bundle, initialize, rule
             """
         )
         + "\n"
@@ -121,3 +122,28 @@ def test_skipif_collection(conditions, result):
     # if (any of) the skipif evaluated to true, we should not have collected this
     # test. Otherwise we should have.
     assert collect_names(code) == (set() if result else {"test_a"})
+
+
+def test_collects_stateful_test():
+    code = """
+    names = st.text(min_size=1).filter(lambda x: "/" not in x)
+
+    class NumberModifier(RuleBasedStateMachine):
+        folders = Bundle("folders")
+        files = Bundle("files")
+
+        @initialize(target=folders)
+        def init_folders(self):
+            return "/"
+
+        @rule(target=folders, parent=folders, name=names)
+        def create_folder(self, parent, name):
+            return f"{parent}/{name}"
+
+        @rule(target=files, parent=folders, name=names)
+        def create_file(self, parent, name):
+            return f"{parent}/{name}"
+
+    NumberModifierTest = NumberModifier.TestCase
+    """
+    assert collect_names(code) == {"run_state_machine"}
