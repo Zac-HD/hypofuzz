@@ -122,7 +122,7 @@ class FuzzProcess:
         # The actual fuzzer implementation
         self.random = Random(random_seed)
         self._test_fn = test_fn
-        self.__stuff = stuff
+        self._stuff = stuff
         self.nodeid = nodeid or test_fn.__qualname__
         self.database_key = database_key
 
@@ -270,13 +270,13 @@ class FuzzProcess:
                 # Note that the data generation and test execution happen in the same
                 # coverage context.  We may later split this, or tag each separately.
                 with collector:
-                    if self.__stuff.selfy is not None:
-                        data.hypothesis_runner = self.__stuff.selfy
+                    if self._stuff.selfy is not None:
+                        data.hypothesis_runner = self._stuff.selfy
                     # Generate all arguments to the test function.
-                    args = self.__stuff.args
-                    kwargs = dict(self.__stuff.kwargs)
+                    args = self._stuff.args
+                    kwargs = dict(self._stuff.kwargs)
                     kw, argslices = context.prep_args_kwargs_from_strategies(
-                        self.__stuff.given_kwargs
+                        self._stuff.given_kwargs
                     )
                     kwargs.update(kw)
 

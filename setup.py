@@ -37,7 +37,7 @@ setuptools.setup(
         "black >= 23.3.0",
         "coverage >= 5.2.1",
         "dash >= 2.0.0",
-        "hypothesis[cli] >= 6.123.12",
+        "hypothesis[cli] >= 6.124.0",
         "libcst >= 1.0.0",
         "pandas >= 1.0.0",
         "psutil >= 3.0.0",
