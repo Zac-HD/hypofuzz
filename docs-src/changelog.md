@@ -2,6 +2,10 @@
 HypoFuzz uses [calendar-based versioning](https://calver.org/), with a
 `YY-MM-patch` format.
 
+## 25.01.6
+
+Pin upper Hypothesis bound for compatibility, until we support new Hypothesis internals.
+
 ## 25.01.5
 
 Support for `@pytest.mark.skip` and `@pytest.mark.skipif`, and initial support for `@pytest.mark.parametrize`.
