@@ -396,6 +396,7 @@ class FuzzProcess:
             "worker": where_am_i(),
             "ninputs": self.ninputs,
             "branches": len(self.pool.arc_counts),
+            "est. branches": "",
             "since new cov": self.since_new_cov,
             "loaded_from_db": len(self.pool._loaded_from_database),
             "status_counts": dict(self.status_counts),
@@ -415,6 +416,13 @@ class FuzzProcess:
                 ls for _, ls in self.pool.interesting_examples.values()
             ]
             del report["since new cov"]
+
+        if self.ninputs >= 10000 and "" == report["note"]:
+            singletons = self.pool.singletons
+            doubletons = self.pool.doubletons
+            offset = 2 * singletons - doubletons
+            offset = max(1, offset)
+            report["est. branches"] = int(str(report["branches"])) + offset
         return report
 
     @property

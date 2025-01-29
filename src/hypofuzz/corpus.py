@@ -87,6 +87,8 @@ class Pool:
         self.covering_buffers: dict[Arc, bytes] = {}
         # How many times have we seen each arc since discovering our latest arc?
         self.arc_counts: Counter[Arc] = Counter()
+        # How many times have we seen each arc since start of run?
+        self.overall_arc_counts: Counter[Arc] = Counter()
 
         # And various internal attributes and metadata
         self.interesting_examples: dict[
@@ -133,6 +135,28 @@ class Pool:
     @property
     def _fuzz_key(self) -> bytes:
         return self._key + b".fuzz"
+
+    @property
+    def singletons(self) -> int:
+        # Because _every_ arc hit is counted at least once, singletons are those arcs that have that base hit,
+        # and then _one_ more on top of it.
+        singletons = [item for item in self.overall_arc_counts.values() if 2 == item]
+        return len(singletons)
+
+    @property
+    def doubletons(self) -> int:
+        doubletons = [item for item in self.overall_arc_counts.values() if 3 == item]
+        return len(doubletons)
+
+    @property
+    def tripletons(self) -> int:
+        tripletons = [item for item in self.overall_arc_counts.values() if 4 == item]
+        return len(tripletons)
+
+    @property
+    def quadrupletons(self) -> int:
+        quadrupletons = [item for item in self.overall_arc_counts.values() if 5 == item]
+        return len(quadrupletons)
 
     def add(self, result: ConjectureResult, source: HowGenerated) -> Optional[bool]:
         """Update the corpus with the result of running a test.
@@ -215,11 +239,13 @@ class Pool:
         # have a different distribution with a new seed pool.
         if branches.issubset(self.arc_counts):
             self.arc_counts.update(branches)
+            self.overall_arc_counts.update(branches)
         else:
             # Reset our seen arc counts.  This is essential because changing our
             # seed pool alters the probability of seeing each arc in future.
             # For details see AFL-fast, esp. the markov-chain trick.
             self.arc_counts = Counter(branches.union(self.arc_counts))
+            self.overall_arc_counts.update(branches)
 
             # Save this buffer as our minimal-known covering example for each new arc.
             if result.buffer not in self.results:
