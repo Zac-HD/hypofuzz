@@ -7,6 +7,7 @@ from functools import cache
 from pathlib import Path
 from typing import Any, Optional
 
+import _pytest
 import attr
 import coverage
 import hypothesis
@@ -50,6 +51,7 @@ def get_coverage_instance(**kwargs: Any) -> coverage.Coverage:
 
 is_hypothesis_file = belongs_to(hypothesis)
 is_hypofuzz_file = belongs_to(hypofuzz)
+is_pytest_file = belongs_to(_pytest)
 
 stdlib_path = Path(os.__file__).parent
 
@@ -72,6 +74,7 @@ def should_trace(fname: str) -> bool:
         or is_hypofuzz_file(fname)
         or is_stdlib_file(fname)
         or is_generated_file(fname)
+        or is_pytest_file(fname)
     )
 
 
