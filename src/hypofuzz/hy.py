@@ -24,17 +24,25 @@ from hypothesis.core import (
 )
 from hypothesis.database import ExampleDatabase
 from hypothesis.errors import StopTest, UnsatisfiedAssumption
+from hypothesis.internal.conjecture.choice import ChoiceTemplate
 from hypothesis.internal.conjecture.data import ConjectureData, Status
-from hypothesis.internal.conjecture.engine import BUFFER_SIZE
 from hypothesis.internal.conjecture.junkdrawer import stack_depth_of_caller
 from hypothesis.internal.reflection import function_digest, get_signature
 from hypothesis.reporting import with_reporter
 from hypothesis.vendor.pretty import RepresentationPrinter
 from sortedcontainers import SortedKeyList
 
-from .corpus import BlackBoxMutator, CrossOverMutator, HowGenerated, Pool, get_shrinker
+from .corpus import (
+    BlackBoxMutator,
+    ChoicesT,
+    CrossOverMutator,
+    HowGenerated,
+    Pool,
+    get_shrinker,
+)
 from .cov import CustomCollectionContext
 from .database import Report, get_db
+from .provider import HypofuzzProvider
 
 record_pytrace: Optional[Callable[..., Any]]
 try:
@@ -140,8 +148,8 @@ class FuzzProcess:
         self.since_new_cov = 0
         self.status_counts = {s.name: 0 for s in Status}
         self.shrinking = False
-        # Any new examples from the database will be added to this replay buffer
-        self._replay_buffer: list[bytes] = []
+        # Any new examples from the database will be added to this replay queue
+        self._replay_queue: list[Union[ChoicesT, ChoiceTemplate]] = []
         # After replay, we stay in blackbox mode for a while, until we've generated
         # 1000 consecutive examples without new coverage, and then switch to mutation.
         self._early_blackbox_mode = True
@@ -160,10 +168,10 @@ class FuzzProcess:
         # This is meant to be the minimal set of inputs that exhibits all distinct
         # behaviours we've observed to date.  Replaying takes longer than restoring
         # our data structures directly, but copes much better with changed behaviour.
-        self._replay_buffer.extend(self.pool.fetch())
-        self._replay_buffer.append(b"\x00" * BUFFER_SIZE)
+        self._replay_queue.extend(self.pool.fetch())
+        self._replay_queue.append([ChoiceTemplate(type="simplest", count=None)])
 
-    def generate_prefix(self) -> bytes:
+    def generate_data(self) -> ConjectureData:
         """Generate a test prefix by mutating previous examples.
 
         This is going to be the method to override when experimenting with
@@ -178,15 +186,22 @@ class FuzzProcess:
         # Start by replaying any previous failures which we've retrieved from the
         # database.  This is useful to recover state at startup, or to share
         # progress made in other processes.
-        if self._replay_buffer:
-            return self._replay_buffer.pop()
+        if self._replay_queue:
+            choices = self._replay_queue.pop()
+            return ConjectureData.for_choices(choices)
 
         # TODO: currently hard-coding a particular mutator; we want to do MOpt-style
         # adaptive weighting of all the different mutators we could use.
         # For now though, we'll just use a hardcoded swapover point
         if self._early_blackbox_mode or self.random.random() < 0.05:
-            return self._mutator_blackbox.generate_buffer()
-        return self._mutator_crossover.generate_buffer()
+            choices = self._mutator_blackbox.generate_choices()
+        else:
+            choices = self._mutator_crossover.generate_choices()
+        return ConjectureData(
+            provider=HypofuzzProvider,
+            provider_kw={"choices": choices},
+            random=self.random,
+        )
 
     def run_one(self) -> None:
         """Run a single input through the fuzz target, or maybe more.
@@ -199,17 +214,11 @@ class FuzzProcess:
         # know of other concurrent runs, there may be e.g. a test process sharing the
         # database.  We do make it infrequent to manage the overhead though.
         if self.ninputs % 1000 == 0 and self.since_new_cov > 1000:
-            self._replay_buffer.extend(self.pool.fetch())
+            self._replay_queue.extend(self.pool.fetch())
 
         # seen_count = len(self.pool.arc_counts)
         # Run the input
-        result = self._run_test_on(
-            ConjectureData(
-                max_length=BUFFER_SIZE,
-                prefix=self.generate_prefix(),
-                random=self.random,
-            )
-        )
+        result = self._run_test_on(self.generate_data())
 
         if result.status is Status.INTERESTING:
             # Shrink to our minimal failing example, since we'll stop after this.
@@ -235,7 +244,7 @@ class FuzzProcess:
             self._report(self._json_description)
 
         # Consider switching out of blackbox mode.
-        if self.since_new_cov >= 1000 and not self._replay_buffer:
+        if self.since_new_cov >= 1000 and not self._replay_queue:
             self._early_blackbox_mode = False
 
         # NOTE: this distillation logic works fine, it's just discovering new coverage
@@ -250,7 +259,7 @@ class FuzzProcess:
         source: HowGenerated = HowGenerated.shrinking,
         collector: Optional[contextlib.AbstractContextManager] = None,
     ) -> ConjectureData:
-        """Run the test_fn on a given buffer of bytes, in a way a Shrinker can handle.
+        """Run the test_fn on a given data, in a way a Shrinker can handle.
 
         In normal operation, it's called via run_one (above), but we might also
         delegate to the shrinker to find minimal covering examples.
@@ -402,7 +411,7 @@ class FuzzProcess:
             "seed_pool": self.pool.json_report,
             "note": (
                 "replaying saved examples"
-                if self._replay_buffer
+                if self._replay_queue
                 else ("shrinking known examples" if self.pool._in_distill_phase else "")
             ),
         }

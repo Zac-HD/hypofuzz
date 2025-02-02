@@ -4,11 +4,9 @@ from types import SimpleNamespace
 
 from hypothesis import given, note, strategies as st
 from hypothesis.database import InMemoryExampleDatabase
-from hypothesis.internal.intervalsets import IntervalSet
+from strategies import nodes
 
 from hypofuzz.corpus import Arc, ConjectureResult, HowGenerated, Pool, Status
-
-st.register_type_strategy(IntervalSet, st.builds(IntervalSet.from_string, st.text()))
 
 
 def branches(
@@ -22,8 +20,6 @@ def results(statuses=st.sampled_from(Status)) -> st.SearchStrategy[ConjectureRes
         ConjectureResult,
         status=statuses,
         interesting_origin=st.none(),
-        buffer=st.binary(),
-        blocks=st.none(),
         output=st.none(),
         extra_information=st.builds(
             SimpleNamespace,
@@ -31,11 +27,11 @@ def results(statuses=st.sampled_from(Status)) -> st.SearchStrategy[ConjectureRes
             call_repr=st.just(""),
             reports=st.builds(list),
         ),
-        has_discards=st.booleans(),
         target_observations=st.dictionaries(st.text(), st.integers() | st.floats()),
-        tags=st.none(),
-        forced_indices=st.frozensets(st.nothing()),
+        tags=st.just(frozenset()),
         examples=st.none(),
+        misaligned_at=st.none(),
+        nodes=st.lists(nodes()).map(tuple),
     )
 
 
@@ -45,7 +41,7 @@ def results(statuses=st.sampled_from(Status)) -> st.SearchStrategy[ConjectureRes
             results(statuses=st.just(Status.VALID)),
             st.sampled_from(HowGenerated),
         ),
-        unique_by=lambda r: r[0].buffer,
+        unique_by=lambda r: r[0].nodes,
     )
 )
 def test_automatic_distillation(ls):
