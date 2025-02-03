@@ -3,7 +3,7 @@
 import abc
 import enum
 from collections import Counter
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Iterator
 from random import Random
 from typing import TYPE_CHECKING, Optional, Union
 
@@ -36,27 +36,28 @@ class Choices:
     A wrapper around e.g. data.choices, suitable for hash-based comparisons as
     in sets or dict keys.
     """
-    def __init__(self, choices: ChoicesT):
+
+    def __init__(self, choices: ChoicesT) -> None:
         self.choices = choices
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(choices_key(self.choices))
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         return choices_key(self.choices) == choices_key(other.choices)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return str(self.choices)
 
     __repr__ = __str__
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.choices)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[ChoiceT]:
         return iter(self.choices)
 
-    def __getitem__(self, i):
+    def __getitem__(self, i: int) -> ChoiceT:
         return self.choices[i]
 
 
@@ -336,8 +337,8 @@ class Pool:
         self._check_invariants()
         minimal_branches = {
             arc
-            for arc, choices in self.covering_nodes.items()
-            if choices in self.__shrunk_to_nodes
+            for arc, nodes in self.covering_nodes.items()
+            if nodes in self.__shrunk_to_nodes
         }
         while set(self.covering_nodes) - minimal_branches:
             # The "largest first" shrinking order is designed to maximise the rate
@@ -409,11 +410,11 @@ class CrossOverMutator(Mutator):
         # Choose two previously-seen choice sequences to form a prefix and postfix,
         # plus some random bytes in the middle to pad it out a bit.
         # TODO: exploit the .examples tracking for structured mutation.
-        prefix, suffix = self.random.choices(  # type: ignore
-            self.pool.results.values(), weights=self._get_weights(), k=2  # type: ignore
+        choices = self.random.choices(
+            list(self.pool.results.values()), weights=self._get_weights(), k=2
         )
-        prefix = prefix.choices
-        suffix = suffix.choices
+        prefix = choices[0].choices
+        suffix = choices[1].choices
         # TODO: structure-aware slicing - we want to align the crossover points
         # with a `start_example()` boundary.  This is tricky to get out of Hypothesis
         # at the moment though, and we don't have any facilities (beyond luck!)

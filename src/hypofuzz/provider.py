@@ -1,7 +1,13 @@
 import math
+from random import Random
 from typing import Optional
 
-from hypothesis.internal.conjecture.choice import choice_permitted
+from hypothesis.internal.conjecture.choice import (
+    ChoiceKwargsT,
+    ChoiceNameT,
+    ChoiceT,
+    choice_permitted,
+)
 from hypothesis.internal.conjecture.data import ConjectureData
 from hypothesis.internal.conjecture.providers import (
     COLLECTION_DEFAULT_MAX_SIZE,
@@ -12,7 +18,9 @@ from hypothesis.internal.intervalsets import IntervalSet
 from .corpus import ChoicesT
 
 
-def fresh_choice(choice_type, kwargs, *, random):
+def fresh_choice(
+    choice_type: ChoiceNameT, kwargs: ChoiceKwargsT, *, random: Random
+) -> ChoiceT:
     cd = ConjectureData(random=random)
     return getattr(cd.provider, f"draw_{choice_type}")(**kwargs)
 
@@ -20,15 +28,17 @@ def fresh_choice(choice_type, kwargs, *, random):
 class HypofuzzProvider(PrimitiveProvider):
     def __init__(
         self, conjecturedata: Optional[ConjectureData], /, *, choices: ChoicesT
-    ):
+    ) -> None:
         super().__init__(conjecturedata)
         self.choices = choices
         self.index = 0
 
-    def _fresh_choice(self, choice_type, kwargs):
+    def _fresh_choice(self, choice_type: ChoiceNameT, kwargs: ChoiceKwargsT) -> ChoiceT:
+        assert self._cd is not None
+        assert self._cd._random is not None
         return fresh_choice(choice_type, kwargs, random=self._cd._random)
 
-    def _pop_choice(self, choice_type, kwargs):
+    def _pop_choice(self, choice_type: ChoiceNameT, kwargs: ChoiceKwargsT) -> ChoiceT:
         if self.index >= len(self.choices):
             # past our prefix. draw a random choice
             return self._fresh_choice(choice_type, kwargs)
@@ -52,7 +62,9 @@ class HypofuzzProvider(PrimitiveProvider):
         self,
         p: float = 0.5,
     ) -> bool:
-        return self._pop_choice("boolean", {"p": p})
+        choice = self._pop_choice("boolean", {"p": p})
+        assert isinstance(choice, bool)
+        return choice
 
     def draw_integer(
         self,
@@ -63,7 +75,7 @@ class HypofuzzProvider(PrimitiveProvider):
         weights: Optional[dict[int, float]] = None,
         shrink_towards: int = 0,
     ) -> int:
-        return self._pop_choice(
+        choice = self._pop_choice(
             "integer",
             {
                 "min_value": min_value,
@@ -72,6 +84,8 @@ class HypofuzzProvider(PrimitiveProvider):
                 "shrink_towards": shrink_towards,
             },
         )
+        assert isinstance(choice, int)
+        return choice
 
     def draw_float(
         self,
@@ -81,7 +95,7 @@ class HypofuzzProvider(PrimitiveProvider):
         allow_nan: bool = True,
         smallest_nonzero_magnitude: float,
     ) -> float:
-        return self._pop_choice(
+        choice = self._pop_choice(
             "float",
             {
                 "min_value": min_value,
@@ -90,6 +104,8 @@ class HypofuzzProvider(PrimitiveProvider):
                 "smallest_nonzero_magnitude": smallest_nonzero_magnitude,
             },
         )
+        assert isinstance(choice, float)
+        return choice
 
     def draw_string(
         self,
@@ -98,14 +114,18 @@ class HypofuzzProvider(PrimitiveProvider):
         min_size: int = 0,
         max_size: int = COLLECTION_DEFAULT_MAX_SIZE,
     ) -> str:
-        return self._pop_choice(
+        choice = self._pop_choice(
             "string",
             {"intervals": intervals, "min_size": min_size, "max_size": max_size},
         )
+        assert isinstance(choice, str)
+        return choice
 
     def draw_bytes(
         self,
         min_size: int = 0,
         max_size: int = COLLECTION_DEFAULT_MAX_SIZE,
     ) -> bytes:
-        return self._pop_choice("bytes", {"min_size": min_size, "max_size": max_size})
+        choice = self._pop_choice("bytes", {"min_size": min_size, "max_size": max_size})
+        assert isinstance(choice, bytes)
+        return choice
