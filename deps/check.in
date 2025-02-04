@@ -5,3 +5,4 @@ attrs  # to let mypy pick up on dataclass_transform
 pep8-naming
 shed
 types-requests
+hypothesis
