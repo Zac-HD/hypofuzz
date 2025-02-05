@@ -60,7 +60,6 @@ def test_misaligned_kwargs(data):
 @given(st.data())
 def test_changed_kwargs_pops_if_still_permitted(data):
     # changing kwargs to something that still permits the value still pops the value
-    # misaligning in permitted kwargs gives us random values
     node = data.draw(nodes())
     kwargs = data.draw(kwargs_strategy(node.ir_type))
     assume(choice_permitted(node.value, kwargs))

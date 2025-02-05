@@ -6,6 +6,8 @@ HypoFuzz uses [calendar-based versioning](https://calver.org/), with a
 
 Use a new mutator based on the typed choice sequence (https://github.com/HypothesisWorks/hypothesis/issues/3921), bringing back compatibility with new Hypothesis versions.
 
+We also now ignore the `pytest` and `_pytest` during coverage collection.
+
 ## 25.01.6
 
 Pin upper Hypothesis bound for compatibility, until we support new Hypothesis internals.

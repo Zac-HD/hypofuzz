@@ -15,11 +15,12 @@ from hypothesis.internal.conjecture.data import (
     ConjectureData,
     ConjectureResult,
     IRNode,
-    Overrun,
     Status,
+    _Overrun,
 )
 from hypothesis.internal.conjecture.engine import ConjectureRunner
 from hypothesis.internal.conjecture.shrinker import Shrinker, sort_key as _sort_key
+from hypothesis.internal.escalation import InterestingOrigin
 from sortedcontainers import SortedDict
 
 from .cov import Arc
@@ -43,7 +44,9 @@ class Choices:
     def __hash__(self) -> int:
         return hash(choices_key(self.choices))
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Choices):
+            return NotImplemented
         return choices_key(self.choices) == choices_key(other.choices)
 
     def __str__(self) -> str:
@@ -67,7 +70,7 @@ class HowGenerated(enum.Enum):
     shrinking = "shrinking"
 
 
-def sort_key(nodes: Union[NodesT, ConjectureResult]) -> tuple[int, ChoicesT]:
+def sort_key(nodes: Union[NodesT, ConjectureResult]) -> tuple[int, tuple[int, ...]]:
     """Sort choice nodes in shortlex order.
 
     See `hypothesis.internal.conjecture.engine.sort_key` for details on why we
@@ -86,7 +89,7 @@ def reproduction_decorator(choices: ChoicesT) -> str:
 
 def get_shrinker(
     pool: "Pool",
-    fn: Callable[[bytes], ConjectureData],
+    fn: Callable[[ConjectureData], None],
     *,
     initial: Union[ConjectureData, ConjectureResult],
     predicate: Callable[..., bool],
@@ -118,7 +121,7 @@ class Pool:
         # Our sorted pool of covering examples, ready to be sampled from.
         # TODO: One suggestion to reduce effective pool size/redundancy is to skip
         #       over earlier inputs whose coverage is a subset of later inputs.
-        self.results: dict[ChoicesT, ConjectureResult] = SortedDict(sort_key)
+        self.results: dict[NodesT, ConjectureResult] = SortedDict(sort_key)
 
         # For each arc, what's the minimal covering example?
         self.covering_nodes: dict[Arc, NodesT] = {}
@@ -127,7 +130,7 @@ class Pool:
 
         # And various internal attributes and metadata
         self.interesting_examples: dict[
-            tuple[type[BaseException], str, int], tuple[ConjectureResult, list[str]]
+            InterestingOrigin, tuple[ConjectureResult, list[str]]
         ] = {}
         self._loaded_from_database: set[Choices] = set()
         self.__shrunk_to_nodes: set[NodesT] = set()
@@ -137,7 +140,7 @@ class Pool:
         self._in_distill_phase = False
 
     def __repr__(self) -> str:
-        rs = {b: r.extra_information.branches for b, r in self.results.items()}
+        rs = {b: r.extra_information.branches for b, r in self.results.items()}  # type: ignore
         return (
             f"<Pool\n    results={rs}\n    arc_counts={self.arc_counts}\n    "
             f"covering_nodes={self.covering_nodes}\n>"
@@ -149,12 +152,12 @@ class Pool:
         for res in self.results.values():
             # Each result in our ordered choices covers at least one arc not covered
             # by any more-minimal result.
-            not_previously_covered = res.extra_information.branches - seen
+            not_previously_covered = res.extra_information.branches - seen  # type: ignore
             assert not_previously_covered
             # And our covering_choices map points back the correct (minimal) choices
             for arc in not_previously_covered:
                 assert self.covering_nodes[arc] == res.nodes
-            seen.update(res.extra_information.branches)
+            seen.update(res.extra_information.branches)  # type: ignore
 
         # And the union of those branches is exactly covered by our counters.
         assert seen == set(self.covering_nodes), seen.symmetric_difference(
@@ -175,25 +178,28 @@ class Pool:
     def _fuzz_key(self) -> bytes:
         return self._key + b".fuzz"
 
-    def add(self, result: ConjectureResult, source: HowGenerated) -> Optional[bool]:
+    def add(
+        self, result: Union[ConjectureResult, _Overrun], source: HowGenerated
+    ) -> Optional[bool]:
         """Update the corpus with the result of running a test.
 
         Returns None for invalid examples, False if no change, True if changed.
         """
-        assert result is Overrun or isinstance(result, ConjectureResult), result
         if result.status < Status.VALID:
             return None
+        assert isinstance(result, ConjectureResult)
 
         assert result.extra_information is not None
         # We now know that we have a ConjectureResult representing a valid test
         # execution, either passing or possibly failing.
-        branches = result.extra_information.branches
+        branches = result.extra_information.branches  # type: ignore
         nodes = result.nodes
 
         # If the example is "interesting", i.e. the test failed, add the choices to
         # the database under Hypothesis' default key so it will be reproduced.
         if result.status == Status.INTERESTING:
             origin = result.interesting_origin
+            assert origin is not None
             if origin not in self.interesting_examples or (
                 sort_key(result) < sort_key(self.interesting_examples[origin][0])
             ):
@@ -202,9 +208,9 @@ class Pool:
                     result,
                     [
                         getattr(result.extra_information, "call_repr", "<unknown>"),
-                        result.extra_information.reports,
+                        result.extra_information.reports,  # type: ignore
                         reproduction_decorator(result.choices),
-                        result.extra_information.traceback,
+                        result.extra_information.traceback,  # type: ignore
                     ],
                 )
                 return True
@@ -216,8 +222,8 @@ class Pool:
             and sort_key(result.nodes)
             < sort_key(self.results.keys()[-1])  # type: ignore
             and any(
-                sort_key(nodes) < sort_key(known_choices)
-                for arc, known_choices in self.covering_nodes.items()
+                sort_key(nodes) < sort_key(known_nodes)
+                for arc, known_nodes in self.covering_nodes.items()
                 if arc in branches
             )
         ):
@@ -231,8 +237,8 @@ class Pool:
             self.covering_nodes = {}
             for res in list(self.results.values()):
                 assert res.extra_information is not None
-                covers = res.extra_information.branches - seen_branches
-                seen_branches.update(res.extra_information.branches)
+                covers = res.extra_information.branches - seen_branches  # type: ignore
+                seen_branches.update(res.extra_information.branches)  # type: ignore
                 if not covers:
                     del self.results[res.nodes]
                     self._database.delete(self._fuzz_key, choices_to_bytes(res.choices))
@@ -248,7 +254,7 @@ class Pool:
                 [
                     reproduction_decorator(res.choices),
                     getattr(res.extra_information, "call_repr", "<unknown>"),
-                    res.extra_information.reports,
+                    res.extra_information.reports,  # type: ignore
                 ]
                 for res in self.results.values()
             ]
@@ -319,7 +325,7 @@ class Pool:
         yield from (choices.choices for choices in saved)
         self._check_invariants()
 
-    def distill(self, fn: Callable[[bytes], ConjectureData], random: Random) -> None:
+    def distill(self, fn: Callable[[ConjectureData], None], random: Random) -> None:
         """Shrink to a pool of *minimal* covering examples.
 
         We have a couple of unusual structures here.
@@ -393,7 +399,7 @@ class CrossOverMutator(Mutator):
         # This is related to the AFL-fast trick, but doesn't track the transition
         # probabilities - just node densities in the markov chain.
         weights = [
-            1 / min(self.pool.arc_counts[arc] for arc in res.extra_information.branches)
+            1 / min(self.pool.arc_counts[arc] for arc in res.extra_information.branches)  # type: ignore
             for res in self.pool.results.values()
         ]
         total = sum(weights)

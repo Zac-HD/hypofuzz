@@ -14,19 +14,24 @@ from random import Random
 from typing import Any, Optional, Union
 
 from hypothesis import settings
+from hypothesis.control import BuildContext
 from hypothesis.core import (
-    BuildContext,
     Stuff,
-    deterministic_PRNG,
     failure_exceptions_to_catch,
-    get_trimmed_traceback,
     process_arguments_to_given,
 )
 from hypothesis.database import ExampleDatabase
 from hypothesis.errors import StopTest, UnsatisfiedAssumption
-from hypothesis.internal.conjecture.choice import ChoiceTemplate
-from hypothesis.internal.conjecture.data import ConjectureData, Status
+from hypothesis.internal.conjecture.choice import ChoiceT, ChoiceTemplate
+from hypothesis.internal.conjecture.data import (
+    ConjectureData,
+    ConjectureResult,
+    Status,
+    _Overrun,
+)
 from hypothesis.internal.conjecture.junkdrawer import stack_depth_of_caller
+from hypothesis.internal.entropy import deterministic_PRNG
+from hypothesis.internal.escalation import InterestingOrigin, get_trimmed_traceback
 from hypothesis.internal.reflection import function_digest, get_signature
 from hypothesis.reporting import with_reporter
 from hypothesis.vendor.pretty import RepresentationPrinter
@@ -34,7 +39,6 @@ from sortedcontainers import SortedKeyList
 
 from .corpus import (
     BlackBoxMutator,
-    ChoicesT,
     CrossOverMutator,
     HowGenerated,
     Pool,
@@ -105,6 +109,7 @@ class FuzzProcess:
             given_kwargs=wrapped_test.hypothesis._given_kwargs,
             params=get_signature(wrapped_test).parameters,
         )
+        assert settings.default is not None
         return cls(
             test_fn=wrapped_test.hypothesis.inner_test,
             stuff=stuff,
@@ -149,7 +154,7 @@ class FuzzProcess:
         self.status_counts = {s.name: 0 for s in Status}
         self.shrinking = False
         # Any new examples from the database will be added to this replay queue
-        self._replay_queue: list[Union[ChoicesT, ChoiceTemplate]] = []
+        self._replay_queue: list[tuple[Union[ChoiceT, ChoiceTemplate], ...]] = []
         # After replay, we stay in blackbox mode for a while, until we've generated
         # 1000 consecutive examples without new coverage, and then switch to mutation.
         self._early_blackbox_mode = True
@@ -169,7 +174,7 @@ class FuzzProcess:
         # behaviours we've observed to date.  Replaying takes longer than restoring
         # our data structures directly, but copes much better with changed behaviour.
         self._replay_queue.extend(self.pool.fetch())
-        self._replay_queue.append([ChoiceTemplate(type="simplest", count=None)])
+        self._replay_queue.append((ChoiceTemplate(type="simplest", count=None),))
 
     def generate_data(self) -> ConjectureData:
         """Generate a test prefix by mutating previous examples.
@@ -221,11 +226,12 @@ class FuzzProcess:
         result = self._run_test_on(self.generate_data())
 
         if result.status is Status.INTERESTING:
+            assert result is not _Overrun
             # Shrink to our minimal failing example, since we'll stop after this.
             self.shrinking = True
             shrinker = get_shrinker(
                 self.pool,
-                self._run_test_on,
+                self._run_test_on,  # type: ignore
                 initial=result,
                 predicate=lambda d: d.status is Status.INTERESTING,
                 random=self.random,
@@ -238,7 +244,7 @@ class FuzzProcess:
             if record_pytrace:
                 # Replay minimal example under our time-travelling debug tracer
                 self._run_test_on(
-                    shrinker.shrink_target,
+                    ConjectureData.for_choices(shrinker.choices),
                     collector=record_pytrace(self.nodeid),
                 )
             self._report(self._json_description)
@@ -258,7 +264,7 @@ class FuzzProcess:
         *,
         source: HowGenerated = HowGenerated.shrinking,
         collector: Optional[contextlib.AbstractContextManager] = None,
-    ) -> ConjectureData:
+    ) -> Union[ConjectureResult, _Overrun]:
         """Run the test_fn on a given data, in a way a Shrinker can handle.
 
         In normal operation, it's called via run_one (above), but we might also
@@ -268,7 +274,7 @@ class FuzzProcess:
         self.ninputs += 1
         collector = collector or CustomCollectionContext()  # type: ignore
         assert collector is not None
-        reports: list[str] = []
+        reports: list[object] = []
         try:
             with (
                 deterministic_PRNG(),
@@ -280,7 +286,7 @@ class FuzzProcess:
                 # coverage context.  We may later split this, or tag each separately.
                 with collector:
                     if self._stuff.selfy is not None:
-                        data.hypothesis_runner = self._stuff.selfy
+                        data.hypothesis_runner = self._stuff.selfy  # type: ignore
                     # Generate all arguments to the test function.
                     args = self._stuff.args
                     kwargs = dict(self._stuff.kwargs)
@@ -302,7 +308,7 @@ class FuzzProcess:
                             else None
                         ),
                     )
-                    data.extra_information.call_repr = printer.getvalue()
+                    data.extra_information.call_repr = printer.getvalue()  # type: ignore
 
                     self._test_fn(*args, **kwargs)
         except StopTest:
@@ -312,9 +318,8 @@ class FuzzProcess:
         except failure_exceptions_to_catch() as e:
             data.status = Status.INTERESTING
             tb = get_trimmed_traceback()
-            filename, lineno, *_ = traceback.extract_tb(tb)[-1]
-            data.interesting_origin = (type(e), filename, lineno)
-            data.extra_information.traceback = "".join(
+            data.interesting_origin = InterestingOrigin.from_exception(e)
+            data.extra_information.traceback = "".join(  # type: ignore
                 traceback.format_exception(type(e), value=e, tb=tb)
             )
         except KeyboardInterrupt:
@@ -322,13 +327,13 @@ class FuzzProcess:
             print(f"Got a KeyboardInterrupt in {self.nodeid}, exiting...")
             raise
         finally:
-            data.extra_information.reports = "\n".join(map(str, reports))
+            data.extra_information.reports = "\n".join(map(str, reports))  # type: ignore
 
         # In addition to coverage branches, use psudeo-coverage information provided via
         # the `hypothesis.event()` function - exploiting user-defined partitions
         # designed for diagnostic output to guide generation.  See
         # https://hypothesis.readthedocs.io/en/latest/details.html#hypothesis.event
-        data.extra_information.branches = frozenset(
+        data.extra_information.branches = frozenset(  # type: ignore
             getattr(collector, "branches", ())  # might be a debug tracer instead
         ).union(
             f"event:{k}:{v}"
