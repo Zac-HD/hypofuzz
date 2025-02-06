@@ -2,9 +2,19 @@
 HypoFuzz uses [calendar-based versioning](https://calver.org/), with a
 `YY-MM-patch` format.
 
+## 25.02.1
+
+Use a new mutator based on the typed choice sequence (https://github.com/HypothesisWorks/hypothesis/issues/3921), bringing back compatibility with new Hypothesis versions.
+
+We also now ignore code coverage inside the `pytest` and `_pytest` modules, which is unhelpful to fuzz.
+
+## 25.01.6
+
+Pin upper Hypothesis bound for compatibility, until we support new Hypothesis internals.
+
 ## 25.01.5
 
-Initial support for `@pytest.mark.parametrize` and `@pytest.mark.skipif`.
+Support for `@pytest.mark.skip` and `@pytest.mark.skipif`, and initial support for `@pytest.mark.parametrize`.
 
 Also bumps Hypothesis to [6.124.0](https://hypothesis.readthedocs.io/en/latest/changes.html#v6.124.0), to support the new database format.
 

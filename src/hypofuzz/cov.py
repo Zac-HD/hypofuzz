@@ -7,9 +7,11 @@ from functools import cache
 from pathlib import Path
 from typing import Any, Optional
 
+import _pytest
 import attr
 import coverage
 import hypothesis
+import pytest
 from hypothesis.internal.escalation import belongs_to
 
 import hypofuzz
@@ -19,7 +21,7 @@ import hypofuzz
 _ARC_CACHE: dict[str, dict[int, dict[int, "Arc"]]] = {}
 
 
-@attr.s(frozen=True, slots=True)
+@attr.s(frozen=True, slots=True, repr=False)
 class Arc:
     fname: str = attr.ib()
     start_line: int = attr.ib()
@@ -33,6 +35,11 @@ class Arc:
             self = Arc(fname, start, end)
             _ARC_CACHE.setdefault(fname, {}).setdefault(start, {})[end] = self
             return self
+
+    def __str__(self) -> str:
+        return f"{self.fname}:{self.start_line}::{self.end_line}"
+
+    __repr__ = __str__
 
 
 def get_coverage_instance(**kwargs: Any) -> coverage.Coverage:
@@ -50,6 +57,8 @@ def get_coverage_instance(**kwargs: Any) -> coverage.Coverage:
 
 is_hypothesis_file = belongs_to(hypothesis)
 is_hypofuzz_file = belongs_to(hypofuzz)
+is_pytest_file = belongs_to(pytest)
+is__pytest_file = belongs_to(_pytest)
 
 stdlib_path = Path(os.__file__).parent
 
@@ -72,6 +81,8 @@ def should_trace(fname: str) -> bool:
         or is_hypofuzz_file(fname)
         or is_stdlib_file(fname)
         or is_generated_file(fname)
+        or is_pytest_file(fname)
+        or is__pytest_file(fname)
     )
 
 

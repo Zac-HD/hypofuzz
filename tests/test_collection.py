@@ -123,6 +123,37 @@ def test_skipif_collection(conditions, result):
     # test. Otherwise we should have.
     assert collect_names(code) == (set() if result else {"test_a"})
 
+    # same for a module-level mark
+    decorators = ", ".join(f"pytest.mark.skipif({c}, reason='')" for c in conditions)
+    code = f"""
+    pytestmark = {f'[{decorators}]' if len(conditions) > 1 else decorators}
+
+    @given(st.integers())
+    def test_a(n):
+        pass
+    """
+    assert collect_names(code) == (set() if result else {"test_a"})
+
+
+def test_skip_not_collected():
+    code = """
+    @pytest.mark.skip
+    @given(st.integers())
+    def test_a(n):
+        pass
+    """
+    assert not collect_names(code)
+
+    # same for a module-level mark
+    code = """
+    pytestmark = pytest.mark.skip
+
+    @given(st.integers())
+    def test_a(n):
+        pass
+    """
+    assert not collect_names(code)
+
 
 def test_collects_stateful_test():
     code = """
