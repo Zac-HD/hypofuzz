@@ -1,6 +1,6 @@
 import math
 from random import Random
-from typing import Optional
+from typing import Optional, cast
 
 from hypothesis.internal.conjecture.choice import (
     ChoiceKwargsT,
@@ -22,7 +22,8 @@ def fresh_choice(
     choice_type: ChoiceNameT, kwargs: ChoiceKwargsT, *, random: Random
 ) -> ChoiceT:
     cd = ConjectureData(random=random)
-    return getattr(cd.provider, f"draw_{choice_type}")(**kwargs)
+    choice = getattr(cd.provider, f"draw_{choice_type}")(**kwargs)
+    return cast(ChoiceT, choice)
 
 
 class HypofuzzProvider(PrimitiveProvider):

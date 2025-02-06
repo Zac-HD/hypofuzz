@@ -8,26 +8,29 @@ attrs==25.1.0             # via -r deps/check.in, hypothesis
 black==25.1.0             # via shed
 click==8.1.8              # via black
 com2ann==0.3.0            # via shed
-exceptiongroup==1.2.2     # via hypothesis
+exceptiongroup==1.2.2     # via hypothesis, pytest
 flake8==7.1.1             # via pep8-naming
 hypothesis==6.125.2       # via -r deps/check.in
+iniconfig==2.0.0          # via pytest
 libcst==1.6.0             # via shed
 mccabe==0.7.0             # via flake8
-mypy==1.14.1              # via -r deps/check.in
+mypy==1.15.0              # via -r deps/check.in
 mypy-extensions==1.0.0    # via black, mypy
-packaging==24.2           # via black
+packaging==24.2           # via black, pytest
 pathspec==0.12.1          # via black
 pep8-naming==0.14.1       # via -r deps/check.in
 platformdirs==4.3.6       # via black
+pluggy==1.5.0             # via pytest
 pycodestyle==2.12.1       # via flake8
 pyflakes==3.2.0           # via flake8
+pytest==8.3.4             # via -r deps/check.in
 pyupgrade==3.19.1         # via shed
 pyyaml==6.0.2             # via libcst
 ruff==0.9.4               # via -r deps/check.in, shed
 shed==2024.10.1           # via -r deps/check.in
 sortedcontainers==2.4.0   # via hypothesis
 tokenize-rt==6.1.0        # via pyupgrade
-tomli==2.2.1              # via black, mypy
+tomli==2.2.1              # via black, mypy, pytest
 types-requests==2.32.0.20241016  # via -r deps/check.in
 typing-extensions==4.12.2  # via black, mypy
 urllib3==2.3.0            # via types-requests

@@ -102,7 +102,7 @@ class FuzzProcess:
         extra_kw: Optional[dict[str, object]] = None,
     ) -> "FuzzProcess":
         """Return a FuzzProcess for an @given-decorated test function."""
-        _, _, stuff = process_arguments_to_given(
+        _, _, stuff = process_arguments_to_given(  # type: ignore
             wrapped_test,
             arguments=(),
             kwargs=extra_kw or {},
@@ -226,7 +226,7 @@ class FuzzProcess:
         result = self._run_test_on(self.generate_data())
 
         if result.status is Status.INTERESTING:
-            assert result is not _Overrun
+            assert not isinstance(result, _Overrun)
             # Shrink to our minimal failing example, since we'll stop after this.
             self.shrinking = True
             shrinker = get_shrinker(

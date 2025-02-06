@@ -50,7 +50,7 @@ class Choices:
         return choices_key(self.choices) == choices_key(other.choices)
 
     def __str__(self) -> str:
-        return str(self.choices)
+        return f"Choices({self.choices!r})"
 
     __repr__ = __str__
 
