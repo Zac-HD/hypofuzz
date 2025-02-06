@@ -21,7 +21,7 @@ class HypofuzzDatabase:
         self._db.save(key, value)
 
     def fetch(self, key: bytes) -> Iterable[bytes]:
-        return self._db.fetch(key)  # type: ignore
+        return self._db.fetch(key)
 
     def delete(self, key: bytes, value: bytes) -> None:
         self._db.delete(key, value)

@@ -9,7 +9,7 @@ from inspect import signature
 from typing import TYPE_CHECKING, get_type_hints
 
 import pytest
-from _pytest.nodes import Node
+from _pytest.nodes import Item, Node
 from _pytest.skipping import evaluate_condition
 from hypothesis.stateful import RuleBasedStateMachine, run_state_machine_as_test
 
@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     from .hy import FuzzProcess
 
 
-def has_true_skipif(item: Node) -> bool:
+def has_true_skipif(item: Item) -> bool:
     # multiple @skipif decorators are treated as an OR.
     for mark in item.iter_markers("skipif"):
         result, _reason = evaluate_condition(item, mark, condition=mark.args[0])
@@ -38,6 +38,9 @@ class _ItemsCollector:
         from .hy import FuzzProcess
 
         for item in session.items:
+            if not isinstance(item, pytest.Function):
+                print(f"skipping non-pytest.Function item {item=}")
+                continue
             if list(item.iter_markers("skip")):
                 print(f"skipping {item=} due to an @skip mark")
                 continue
@@ -54,7 +57,7 @@ class _ItemsCollector:
             # from pytest 8.3 or thereabouts
             pytest83 = get_type_hints(manager._getautousenames).get("node") == Node
             autouse_names = set(
-                manager._getautousenames(item if pytest83 else item.nodeid)
+                manager._getautousenames(item if pytest83 else item.nodeid)  # type: ignore
             )
 
             # However, autouse fixtures are ubiquitous enough that we'll skip them;
@@ -62,14 +65,14 @@ class _ItemsCollector:
             # The relevant internals changed in Pytest 8.0, so handle both cases...
             if "fixturenames" not in signature(manager.getfixtureclosure).parameters:
                 # pytest ~8
-                all_autouse, _ = manager.getfixtureclosure(
-                    item, autouse_names, ignore_args=set()
+                all_autouse_, _ = manager.getfixtureclosure(
+                    item, autouse_names, ignore_args=set()  # type: ignore
                 )
             else:
                 # pytest ~6-7
-                _, all_autouse, _ = manager.getfixtureclosure(autouse_names, item)
+                _, all_autouse_, _ = manager.getfixtureclosure(autouse_names, item)  # type: ignore
 
-            all_autouse = set(all_autouse)
+            all_autouse = set(all_autouse_)
             # from @pytest.mark.parametrize. Pytest gives us the params and their
             # values directly, so we can pass them as extra kwargs to FuzzProcess.
             params = item.callspec.params if hasattr(item, "callspec") else {}

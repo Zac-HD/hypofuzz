@@ -3,25 +3,65 @@
 import abc
 import enum
 from collections import Counter
-from collections.abc import Callable, Iterable, Sequence
+from collections.abc import Callable, Iterable, Iterator
 from random import Random
-from typing import Optional, Union
+from typing import TYPE_CHECKING, Optional, Union
 
 from hypothesis import __version__ as hypothesis_version, settings
 from hypothesis.core import encode_failure
-from hypothesis.database import ExampleDatabase, ir_to_bytes
-from hypothesis.internal.conjecture.choice import ChoiceT
+from hypothesis.database import ExampleDatabase, choices_from_bytes, choices_to_bytes
+from hypothesis.internal.conjecture.choice import ChoiceT, choices_key
 from hypothesis.internal.conjecture.data import (
     ConjectureData,
     ConjectureResult,
-    Overrun,
+    IRNode,
     Status,
+    _Overrun,
 )
 from hypothesis.internal.conjecture.engine import ConjectureRunner
-from hypothesis.internal.conjecture.shrinker import Shrinker
+from hypothesis.internal.conjecture.shrinker import Shrinker, sort_key as _sort_key
+from hypothesis.internal.escalation import InterestingOrigin
 from sortedcontainers import SortedDict
 
 from .cov import Arc
+
+if TYPE_CHECKING:
+    from typing import TypeAlias
+
+ChoicesT: "TypeAlias" = tuple[ChoiceT, ...]
+NodesT: "TypeAlias" = tuple[IRNode, ...]
+
+
+class Choices:
+    """
+    A wrapper around e.g. data.choices, suitable for hash-based comparisons as
+    in sets or dict keys.
+    """
+
+    def __init__(self, choices: ChoicesT) -> None:
+        self.choices = choices
+
+    def __hash__(self) -> int:
+        return hash(choices_key(self.choices))
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Choices):
+            return NotImplemented
+        return choices_key(self.choices) == choices_key(other.choices)
+
+    def __str__(self) -> str:
+        return f"Choices({self.choices!r})"
+
+    __repr__ = __str__
+
+    def __len__(self) -> int:
+        return len(self.choices)
+
+    def __iter__(self) -> Iterator[ChoiceT]:
+        return iter(self.choices)
+
+    def __getitem__(self, i: int) -> ChoiceT:
+        return self.choices[i]
 
 
 class HowGenerated(enum.Enum):
@@ -30,26 +70,26 @@ class HowGenerated(enum.Enum):
     shrinking = "shrinking"
 
 
-def sort_key(buffer: Union[bytes, ConjectureResult]) -> tuple[int, bytes]:
-    """Sort our buffers in shortlex order.
+def sort_key(nodes: Union[NodesT, ConjectureResult]) -> tuple[int, tuple[int, ...]]:
+    """Sort choice nodes in shortlex order.
 
-    See `hypothesis.internal.conjecture.shrinker.sort_key` for details on why we
+    See `hypothesis.internal.conjecture.engine.sort_key` for details on why we
     use shortlex order in particular.  This tweaked version is identical except
     for handling ConjectureResult objects too.
     """
-    if isinstance(buffer, ConjectureResult):
-        buffer = buffer.buffer
-    return (len(buffer), buffer)
+    if isinstance(nodes, ConjectureResult):
+        nodes = nodes.nodes
+    return _sort_key(nodes)
 
 
-def reproduction_decorator(choices: Sequence[ChoiceT]) -> str:
-    """Return `@reproduce_failure` decorator for the given buffer."""
+def reproduction_decorator(choices: ChoicesT) -> str:
+    """Return `@reproduce_failure` decorator for the given choices."""
     return f"@reproduce_failure({hypothesis_version!r}, {encode_failure(choices)!r})"
 
 
 def get_shrinker(
     pool: "Pool",
-    fn: Callable[[bytes], ConjectureData],
+    fn: Callable[[ConjectureData], None],
     *,
     initial: Union[ConjectureData, ConjectureResult],
     predicate: Callable[..., bool],
@@ -81,88 +121,96 @@ class Pool:
         # Our sorted pool of covering examples, ready to be sampled from.
         # TODO: One suggestion to reduce effective pool size/redundancy is to skip
         #       over earlier inputs whose coverage is a subset of later inputs.
-        self.results: dict[bytes, ConjectureResult] = SortedDict(sort_key)
+        self.results: dict[NodesT, ConjectureResult] = SortedDict(sort_key)
 
         # For each arc, what's the minimal covering example?
-        self.covering_buffers: dict[Arc, bytes] = {}
+        self.covering_nodes: dict[Arc, NodesT] = {}
         # How many times have we seen each arc since discovering our latest arc?
         self.arc_counts: Counter[Arc] = Counter()
 
         # And various internal attributes and metadata
         self.interesting_examples: dict[
-            tuple[type[BaseException], str, int], tuple[ConjectureResult, list[str]]
+            InterestingOrigin, tuple[ConjectureResult, list[str]]
         ] = {}
-        self._loaded_from_database: set[bytes] = set()
-        self.__shrunk_to_buffers: set[bytes] = set()
+        self._loaded_from_database: set[Choices] = set()
+        self.__shrunk_to_nodes: set[NodesT] = set()
 
         # To show the current state of the pool in the dashboard
         self.json_report: list[list[str]] = []
         self._in_distill_phase = False
 
     def __repr__(self) -> str:
-        rs = {b: r.extra_information.branches for b, r in self.results.items()}
+        rs = {b: r.extra_information.branches for b, r in self.results.items()}  # type: ignore
         return (
             f"<Pool\n    results={rs}\n    arc_counts={self.arc_counts}\n    "
-            f"covering_buffers={self.covering_buffers}\n>"
+            f"covering_nodes={self.covering_nodes}\n>"
         )
 
     def _check_invariants(self) -> None:
         """Check all invariants of the structure."""
         seen: set[Arc] = set()
         for res in self.results.values():
-            # Each result in our ordered buffer covers at least one arc not covered
+            # Each result in our ordered choices covers at least one arc not covered
             # by any more-minimal result.
-            not_previously_covered = res.extra_information.branches - seen
+            not_previously_covered = res.extra_information.branches - seen  # type: ignore
             assert not_previously_covered
-            # And our covering_buffers map points back the correct (minimal) buffer
+            # And our covering_choices map points back the correct (minimal) choices
             for arc in not_previously_covered:
-                assert self.covering_buffers[arc] == res.buffer
-            seen.update(res.extra_information.branches)
+                assert self.covering_nodes[arc] == res.nodes
+            seen.update(res.extra_information.branches)  # type: ignore
 
         # And the union of those branches is exactly covered by our counters.
-        assert seen == set(self.covering_buffers), seen.symmetric_difference(
-            self.covering_buffers
+        assert seen == set(self.covering_nodes), seen.symmetric_difference(
+            self.covering_nodes
         )
-        assert seen == set(self.covering_buffers), seen.symmetric_difference(
+        assert seen == set(self.covering_nodes), seen.symmetric_difference(
             self.arc_counts
         )
 
-        # Every covering buffer was either read from the database, or saved to it.
-        assert self._loaded_from_database.issuperset(self.covering_buffers.values())
+        # Every covering choice was either read from the database, or saved to it.
+        covering_choices = {
+            Choices(tuple(node.value for node in nodes))
+            for nodes in self.covering_nodes.values()
+        }
+        assert self._loaded_from_database.issuperset(covering_choices)
 
     @property
     def _fuzz_key(self) -> bytes:
         return self._key + b".fuzz"
 
-    def add(self, result: ConjectureResult, source: HowGenerated) -> Optional[bool]:
+    def add(
+        self, result: Union[ConjectureResult, _Overrun], source: HowGenerated
+    ) -> Optional[bool]:
         """Update the corpus with the result of running a test.
 
         Returns None for invalid examples, False if no change, True if changed.
         """
-        assert result is Overrun or isinstance(result, ConjectureResult), result
         if result.status < Status.VALID:
             return None
+        assert isinstance(result, ConjectureResult)
 
+        assert result.extra_information is not None
         # We now know that we have a ConjectureResult representing a valid test
         # execution, either passing or possibly failing.
-        branches = result.extra_information.branches
-        buf = result.buffer
+        branches = result.extra_information.branches  # type: ignore
+        nodes = result.nodes
 
-        # If the example is "interesting", i.e. the test failed, add the buffer to
+        # If the example is "interesting", i.e. the test failed, add the choices to
         # the database under Hypothesis' default key so it will be reproduced.
         if result.status == Status.INTERESTING:
             origin = result.interesting_origin
+            assert origin is not None
             if origin not in self.interesting_examples or (
                 sort_key(result) < sort_key(self.interesting_examples[origin][0])
             ):
-                self._database.save(self._key, ir_to_bytes(result.choices))
+                self._database.save(self._key, choices_to_bytes(result.choices))
                 self.interesting_examples[origin] = (
                     result,
                     [
                         getattr(result.extra_information, "call_repr", "<unknown>"),
-                        result.extra_information.reports,
+                        result.extra_information.reports,  # type: ignore
                         reproduction_decorator(result.choices),
-                        result.extra_information.traceback,
+                        result.extra_information.traceback,  # type: ignore
                     ],
                 )
                 return True
@@ -171,31 +219,32 @@ class Pool:
         # current largest minimal example, we can skip the expensive calculation.
         if (not branches.issubset(self.arc_counts)) or (
             self.results
-            and sort_key(result.buffer)
+            and sort_key(result.nodes)
             < sort_key(self.results.keys()[-1])  # type: ignore
             and any(
-                sort_key(buf) < sort_key(known_buf)
-                for arc, known_buf in self.covering_buffers.items()
+                sort_key(nodes) < sort_key(known_nodes)
+                for arc, known_nodes in self.covering_nodes.items()
                 if arc in branches
             )
         ):
-            # We do this the stupid-but-obviously-correct way: add the new buffer to
+            # We do this the stupid-but-obviously-correct way: add the new choices to
             # our tracked corpus, and then run a distillation step.
-            self.results[result.buffer] = result
-            self._database.save(self._fuzz_key, ir_to_bytes(result.choices))
-            self._loaded_from_database.add(buf)
+            self.results[result.nodes] = result
+            self._database.save(self._fuzz_key, choices_to_bytes(result.choices))
+            self._loaded_from_database.add(Choices(result.choices))
             # Clear out any redundant entries
             seen_branches: set[Arc] = set()
-            self.covering_buffers = {}
+            self.covering_nodes = {}
             for res in list(self.results.values()):
-                covers = res.extra_information.branches - seen_branches
-                seen_branches.update(res.extra_information.branches)
+                assert res.extra_information is not None
+                covers = res.extra_information.branches - seen_branches  # type: ignore
+                seen_branches.update(res.extra_information.branches)  # type: ignore
                 if not covers:
-                    del self.results[res.buffer]
-                    self._database.delete(self._fuzz_key, res.buffer)
+                    del self.results[res.nodes]
+                    self._database.delete(self._fuzz_key, choices_to_bytes(res.choices))
                 else:
                     for arc in covers:
-                        self.covering_buffers[arc] = res.buffer
+                        self.covering_nodes[arc] = res.nodes
             # We add newly-discovered branches to the counter later; so here our only
             # unseen branches should be the newly discovered branches.
             assert seen_branches - set(self.arc_counts) == branches - set(
@@ -205,7 +254,7 @@ class Pool:
                 [
                     reproduction_decorator(res.choices),
                     getattr(res.extra_information, "call_repr", "<unknown>"),
-                    res.extra_information.reports,
+                    res.extra_information.reports,  # type: ignore
                 ]
                 for res in self.results.values()
             ]
@@ -221,12 +270,12 @@ class Pool:
             # For details see AFL-fast, esp. the markov-chain trick.
             self.arc_counts = Counter(branches.union(self.arc_counts))
 
-            # Save this buffer as our minimal-known covering example for each new arc.
-            if result.buffer not in self.results:
-                self.results[result.buffer] = result
-            self._database.save(self._fuzz_key, ir_to_bytes(result.choices))
-            for arc in branches - set(self.covering_buffers):
-                self.covering_buffers[arc] = buf
+            # Save this choices as our minimal-known covering example for each new arc.
+            if result.nodes not in self.results:
+                self.results[result.nodes] = result
+            self._database.save(self._fuzz_key, choices_to_bytes(result.choices))
+            for arc in branches - set(self.covering_nodes):
+                self.covering_nodes[arc] = nodes
 
             # We've just finished making some tricky changes, so this is a good time
             # to assert that all our invariants have been upheld.
@@ -235,10 +284,17 @@ class Pool:
 
         return False
 
-    def fetch(self) -> Iterable[bytes]:
-        """Yield all buffers from the database which have not been loaded before.
+    def _choices_for_key(self, key: bytes) -> set[Choices]:
+        return {
+            Choices(choices)
+            for b in self._database.fetch(key)
+            if (choices := choices_from_bytes(b)) is not None
+        }
 
-        For the purposes of this method, a buffer which we saved to the database
+    def fetch(self) -> Iterable[ChoicesT]:
+        """Yield all choice sequences from the database which have not been loaded before.
+
+        For the purposes of this method, a choice sequence which we saved to the database
         counts as having been loaded - the idea is to avoid duplicate executions.
         """
         # TODO: hypothesis uses the bare key only for minimal failing examples;
@@ -251,26 +307,25 @@ class Pool:
         #       too large; should only include interesting files + skip branchless
         #       lines of code to keep the size manageable.
         saved = sorted(
-            set(self._database.fetch(self._key)) - self._loaded_from_database,
-            key=sort_key,
+            self._choices_for_key(self._key) - self._loaded_from_database,
+            key=len,
             reverse=True,
         )
         self._loaded_from_database.update(saved)
         for idx in (0, -1):
             if saved:
-                yield saved.pop(idx)
+                yield saved.pop(idx).choices
         seeds = sorted(
-            set(self._database.fetch(self._key + b".fuzz"))
-            - self._loaded_from_database,
-            key=sort_key,
+            self._choices_for_key(self._key + b".fuzz") - self._loaded_from_database,
+            key=len,
             reverse=True,
         )
         self._loaded_from_database.update(seeds)
-        yield from seeds
-        yield from saved
+        yield from (choices.choices for choices in seeds)
+        yield from (choices.choices for choices in saved)
         self._check_invariants()
 
-    def distill(self, fn: Callable[[bytes], ConjectureData], random: Random) -> None:
+    def distill(self, fn: Callable[[ConjectureData], None], random: Random) -> None:
         """Shrink to a pool of *minimal* covering examples.
 
         We have a couple of unusual structures here.
@@ -278,7 +333,7 @@ class Pool:
         1. We exploit the fact that each successful shrink calls self.add(result)
            to let us skip a lot of work.  Because any "fully shrunk" example is
            a local fixpoint of all our reduction passes, there's no point trying
-           to shrink a buffer for arc A if it's already minimal for arc B.
+           to shrink a choice sequence for arc A if it's already minimal for arc B.
            (because we'd have updated the best known for A while shrinking for B)
         2. All of the loops are designed to make some amount of progress, and then
            try again if they did not reach a fixpoint.  Almost all of the structures
@@ -288,30 +343,30 @@ class Pool:
         self._check_invariants()
         minimal_branches = {
             arc
-            for arc, buf in self.covering_buffers.items()
-            if buf in self.__shrunk_to_buffers
+            for arc, nodes in self.covering_nodes.items()
+            if nodes in self.__shrunk_to_nodes
         }
-        while set(self.covering_buffers) - minimal_branches:
+        while set(self.covering_nodes) - minimal_branches:
             # The "largest first" shrinking order is designed to maximise the rate
             # of incidental progress, where shrinking hard problems stumbles over
             # smaller starting points for the easy ones.
             arc_to_shrink = max(
-                set(self.covering_buffers) - minimal_branches,
-                key=lambda a: sort_key(self.covering_buffers[a]),
+                set(self.covering_nodes) - minimal_branches,
+                key=lambda a: sort_key(self.covering_nodes[a]),
             )
             shrinker = get_shrinker(
                 self,
                 fn,
-                initial=self.results[self.covering_buffers[arc_to_shrink]],
+                initial=self.results[self.covering_nodes[arc_to_shrink]],
                 predicate=lambda d, a=arc_to_shrink: a in d.extra_information.branches,
                 random=random,
             )
             shrinker.shrink()
-            self.__shrunk_to_buffers.add(shrinker.shrink_target.buffer)
+            self.__shrunk_to_nodes.add(shrinker.shrink_target.nodes)
             minimal_branches |= {
                 arc
-                for arc, buf in self.covering_buffers.items()
-                if buf == shrinker.shrink_target.buffer
+                for arc, choices in self.covering_nodes.items()
+                if choices == shrinker.shrink_target.choices
             }
             self._check_invariants()
         self._in_distill_phase = False
@@ -322,23 +377,20 @@ class Mutator(abc.ABC):
         self.pool = pool
         self.random = random
 
-    def _random_bytes(self, n: int) -> bytes:
-        return bytes(self.random.randint(0, 255) for _ in range(n))
-
     @abc.abstractmethod
-    def generate_buffer(self) -> bytes:
-        """Generate a buffer, usually by choosing and mutating examples from pool."""
+    def generate_choices(self) -> ChoicesT:
+        """Generate a choice sequence, usually by choosing and mutating examples from pool."""
         raise NotImplementedError
 
 
 class BlackBoxMutator(Mutator):
-    def generate_buffer(self) -> bytes:
+    def generate_choices(self) -> ChoicesT:
         """Return an empty prefix, triggering blackbox random generation.
 
         This 'null mutator' is sometimes useful because - doing no work - it's very
         fast, and it provides a good baseline for comparisons.
         """
-        return b""
+        return ()
 
 
 class CrossOverMutator(Mutator):
@@ -347,37 +399,36 @@ class CrossOverMutator(Mutator):
         # This is related to the AFL-fast trick, but doesn't track the transition
         # probabilities - just node densities in the markov chain.
         weights = [
-            1 / min(self.pool.arc_counts[arc] for arc in res.extra_information.branches)
+            1 / min(self.pool.arc_counts[arc] for arc in res.extra_information.branches)  # type: ignore
             for res in self.pool.results.values()
         ]
         total = sum(weights)
         return [x / total for x in weights]
 
-    def generate_buffer(self) -> bytes:
-        """Splice together two known valid buffers with some random infill.
+    def generate_choices(self) -> ChoicesT:
+        """Splice together two known valid choice sequences.
 
         This is a pretty poor mutator, and not structure-aware, but works better than
         the blackbox one already.
         """
         if not self.pool.results:
-            return b""
-        # Choose two previously-seen buffers to form a prefix and postfix,
+            return ()
+        # Choose two previously-seen choice sequences to form a prefix and postfix,
         # plus some random bytes in the middle to pad it out a bit.
         # TODO: exploit the .examples tracking for structured mutation.
-        prefix, postfix = self.random.choices(  # type: ignore
-            self.pool.results.keys(), weights=self._get_weights(), k=2  # type: ignore
+        choices = self.random.choices(
+            list(self.pool.results.values()), weights=self._get_weights(), k=2
         )
+        prefix = choices[0].choices
+        suffix = choices[1].choices
         # TODO: structure-aware slicing - we want to align the crossover points
         # with a `start_example()` boundary.  This is tricky to get out of Hypothesis
         # at the moment though, and we don't have any facilities (beyond luck!)
         # to line up the postfix boundary correctly.  Requires upstream changes.
-        buffer = (
+        return (
             prefix[: self.random.randint(0, len(prefix))]
-            + self._random_bytes(self.random.randint(0, 9))
-            + postfix[: self.random.randint(0, len(postfix))]
+            + suffix[: self.random.randint(0, len(suffix))]
         )
-        assert isinstance(buffer, bytes)
-        return buffer
 
 
 class RadamsaMutator(Mutator):

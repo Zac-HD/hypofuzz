@@ -22,7 +22,7 @@ def is_hypofuzz_file() -> Callable:
     # Layer of indirection to avoid import cycles
     import hypofuzz
 
-    return belongs_to(hypofuzz)  # type: ignore
+    return belongs_to(hypofuzz)
 
 
 class HypofuzzFileFilter(CustomFileFilter):
