@@ -10,7 +10,7 @@ click==8.1.8              # via black
 com2ann==0.3.0            # via shed
 exceptiongroup==1.2.2     # via hypothesis
 flake8==7.1.1             # via pep8-naming
-hypothesis==6.124.9       # via -r deps/check.in
+hypothesis==6.125.2       # via -r deps/check.in
 libcst==1.6.0             # via shed
 mccabe==0.7.0             # via flake8
 mypy==1.14.1              # via -r deps/check.in

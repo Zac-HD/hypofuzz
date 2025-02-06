@@ -18,7 +18,7 @@ dash-table==5.0.0         # via dash
 exceptiongroup==1.2.2     # via hypothesis, pytest
 execnet==2.1.1            # via pytest-xdist
 flask==3.0.3              # via dash
-hypothesis[cli]==6.124.9  # via hypofuzz (setup.py)
+hypothesis[cli]==6.125.2  # via hypofuzz (setup.py)
 idna==3.10                # via requests
 importlib-metadata==8.6.1  # via dash
 iniconfig==2.0.0          # via pytest

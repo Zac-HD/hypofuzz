@@ -20,7 +20,7 @@ dash-table==5.0.0         # via dash
 docutils==0.21.2          # via myst-parser, pybtex-docutils, sphinx, sphinx-rtd-theme, sphinxcontrib-bibtex
 exceptiongroup==1.2.2     # via hypothesis, pytest
 flask==3.0.3              # via dash
-hypothesis[cli]==6.124.9  # via hypofuzz (setup.py)
+hypothesis[cli]==6.125.2  # via hypofuzz (setup.py)
 idna==3.10                # via requests
 imagesize==1.4.1          # via sphinx
 importlib-metadata==8.6.1  # via dash
