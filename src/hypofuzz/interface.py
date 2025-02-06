@@ -65,14 +65,14 @@ class _ItemsCollector:
             # The relevant internals changed in Pytest 8.0, so handle both cases...
             if "fixturenames" not in signature(manager.getfixtureclosure).parameters:
                 # pytest ~8
-                all_autouse, _ = manager.getfixtureclosure(
+                all_autouse_, _ = manager.getfixtureclosure(
                     item, autouse_names, ignore_args=set()  # type: ignore
                 )
             else:
                 # pytest ~6-7
-                _, all_autouse, _ = manager.getfixtureclosure(autouse_names, item)  # type: ignore
+                _, all_autouse_, _ = manager.getfixtureclosure(autouse_names, item)  # type: ignore
 
-            all_autouse = set(all_autouse)
+            all_autouse = set(all_autouse_)
             # from @pytest.mark.parametrize. Pytest gives us the params and their
             # values directly, so we can pass them as extra kwargs to FuzzProcess.
             params = item.callspec.params if hasattr(item, "callspec") else {}
