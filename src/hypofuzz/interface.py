@@ -104,13 +104,12 @@ class _ItemsCollector:
             # Wrap it up in a FuzzTarget and we're done!
             try:
                 if hasattr(item.obj, "_hypothesis_state_machine_class"):
-                    # I guess it's conceivable this is possible...I just don't see how!
                     assert (
                         extra_kw == {}
-                    ), "Not possible for RuleBasedStateMachine.TestCase to be parametrized (we think?)"
+                    ), "Not possible for RuleBasedStateMachine.TestCase to be parametrized"
                     runTest = item.obj
                     StateMachineClass = runTest._hypothesis_state_machine_class
-                    target = get_state_machine_test(
+                    target = get_state_machine_test(  # type: ignore
                         StateMachineClass, settings=runTest.__self__.settings
                     )
                     extra_kw = {"factory": StateMachineClass}
