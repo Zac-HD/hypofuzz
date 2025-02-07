@@ -2,6 +2,10 @@
 HypoFuzz uses [calendar-based versioning](https://calver.org/), with a
 `YY-MM-patch` format.
 
+## 25.02.2
+
+Initial support for [stateful tests](https://hypothesis.readthedocs.io/en/latest/stateful.html).
+
 ## 25.02.1
 
 Use a new mutator based on the typed choice sequence (https://github.com/HypothesisWorks/hypothesis/issues/3921), bringing back compatibility with new Hypothesis versions.

@@ -4,19 +4,21 @@ import io
 import sys
 from collections.abc import Iterable
 from contextlib import redirect_stdout
-from functools import partial
 from inspect import signature
 from typing import TYPE_CHECKING, get_type_hints
 
 import pytest
 from _pytest.nodes import Item, Node
 from _pytest.skipping import evaluate_condition
-from hypothesis.stateful import RuleBasedStateMachine, run_state_machine_as_test
+from hypothesis.stateful import get_state_machine_test
+from packaging import version
 
 if TYPE_CHECKING:
     # We have to defer imports to within functions here, because this module
     # is a Hypothesis entry point and is thus imported earlier than the others.
     from .hy import FuzzProcess
+
+pytest8 = version.parse(pytest.__version__) >= version.parse("8.0.0")
 
 
 def has_true_skipif(item: Item) -> bool:
@@ -77,6 +79,7 @@ class _ItemsCollector:
             # values directly, so we can pass them as extra kwargs to FuzzProcess.
             params = item.callspec.params if hasattr(item, "callspec") else {}
             param_names = set(params)
+            extra_kw = params
 
             # Skip any test which:
             # - directly requests a non autouse fixture, or
@@ -101,16 +104,32 @@ class _ItemsCollector:
                     flush=True,
                 )
                 continue
-
             # Wrap it up in a FuzzTarget and we're done!
             try:
-                # Skip state-machine classes, since they're not
-                if isinstance(item.obj, RuleBasedStateMachine.TestCase):
-                    target = partial(run_state_machine_as_test, item.obj)
+                if hasattr(item.obj, "_hypothesis_state_machine_class"):
+                    assert (
+                        extra_kw == {}
+                    ), "Not possible for RuleBasedStateMachine.TestCase to be parametrized"
+                    runTest = item.obj
+                    StateMachineClass = runTest._hypothesis_state_machine_class
+                    target = get_state_machine_test(  # type: ignore
+                        StateMachineClass,
+                        # runTest is a function, not a bound method, under pyest7.
+                        # I wonder if something about TestCase instantiation order
+                        # changed in pytest 8? Either way, we can't access
+                        # __self__.settings under pytest 7.
+                        #
+                        # I am going to call this an acceptably rare bug for now,
+                        # because it should only manifest if the user sets a custom
+                        # database on a stateful test under pytest 7 (all non-db
+                        # settings are ignored by hypofuzz).
+                        settings=runTest.__self__.settings if pytest8 else None,
+                    )
+                    extra_kw = {"factory": StateMachineClass}
                 else:
                     target = item.obj
                 fuzz = FuzzProcess.from_hypothesis_test(
-                    target, nodeid=item.nodeid, extra_kw=params
+                    target, nodeid=item.nodeid, extra_kw=extra_kw
                 )
                 self.fuzz_targets.append(fuzz)
             except Exception as err:
