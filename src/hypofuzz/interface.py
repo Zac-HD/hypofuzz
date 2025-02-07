@@ -117,7 +117,7 @@ class _ItemsCollector:
                         # runTest is a function, not a bound method, under pyest7.
                         # I wonder if something about TestCase instantiation order
                         # changed in pytest 8? Either way, we can't access
-                        # __self__.settings uder pytest 7.
+                        # __self__.settings under pytest 7.
                         #
                         # I am going to call this an acceptably rare bug for now,
                         # because it should only manifest if the user sets a custom
