@@ -2,6 +2,10 @@
 HypoFuzz uses [calendar-based versioning](https://calver.org/), with a
 `YY-MM-patch` format.
 
+## 25.02.3
+
+Overhaul of the dashboard UI.
+
 ## 25.02.2
 
 Initial support for [stateful tests](https://hypothesis.readthedocs.io/en/latest/stateful.html).

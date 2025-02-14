@@ -26,7 +26,8 @@ def make_and_save_patches(
     triples_fail: list = []
 
     tests = {t.nodeid: t._test_fn for t in get_all_tests(pytest_args)}
-    for nodeid, data in last_update.items():
+    for nodeid, test_fn in tests.items():
+        data = last_update[nodeid]
         # for each func
         #   - only strip_via if replay is complete
         #   - only add failing if not currently shrinking
@@ -44,9 +45,7 @@ def make_and_save_patches(
             (triples_all, failing_examples + covering_examples, (COV_MSG,)),
         ]:
             if examples:
-                xs = get_patch_for_cached(
-                    tests[nodeid], tuple(examples), strip_via=strip_via
-                )
+                xs = get_patch_for_cached(test_fn, tuple(examples), strip_via=strip_via)
                 if xs:
                     out.append(xs)
 

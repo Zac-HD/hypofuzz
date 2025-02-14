@@ -1,5 +1,5 @@
 import requests
-from common import dashboard, fuzz, wait_for, write_basic_test_code
+from common import BASIC_TEST_CODE, dashboard, fuzz, wait_for, write_test_code
 
 
 def test_can_launch_dashboard():
@@ -9,12 +9,12 @@ def test_can_launch_dashboard():
 
 
 def test_fuzzing_fills_dashboard():
-    test_dir, _db_dir = write_basic_test_code()
+    test_dir, _db_dir = write_test_code(BASIC_TEST_CODE)
 
-    with dashboard(test_dir=test_dir) as dash:
+    with dashboard(test_path=test_dir) as dash:
         # we haven't started any fuzzers yet, so the dashboard is empty
-        assert dash.state()["latest"] == {}
+        assert dash.state() == {}
 
         # now launch a fuzzer, and check that it eventually updates the dashboard state
-        with fuzz(n=1, dashboard=False, test_dir=test_dir):
-            wait_for(lambda: len(dash.state()["latest"]) > 0, timeout=10, interval=0.25)
+        with fuzz(n=1, dashboard=False, test_path=test_dir):
+            wait_for(lambda: len(dash.state()) > 0, timeout=10, interval=0.25)
