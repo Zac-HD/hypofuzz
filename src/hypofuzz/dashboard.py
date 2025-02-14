@@ -12,8 +12,8 @@ from hypercorn.config import Config
 from hypercorn.trio import serve
 from hypothesis.configuration import storage_directory
 from starlette.applications import Starlette
-from starlette.responses import FileResponse, HTMLResponse, JSONResponse, Response
 from starlette.requests import Request
+from starlette.responses import FileResponse, HTMLResponse, JSONResponse, Response
 from starlette.routing import Mount, Route, WebSocketRoute
 from starlette.staticfiles import StaticFiles
 from starlette.websockets import WebSocket, WebSocketDisconnect

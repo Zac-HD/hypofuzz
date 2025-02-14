@@ -16,7 +16,7 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
   const [patches, setPatches] = useState<Record<string, string>>({})
 
   useEffect(() => {
-    fetch('/api/tests')
+    fetch('/api/tests/')
       .then(response => response.json())
       .then(initialData => {
         setData(initialData)
