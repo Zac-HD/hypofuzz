@@ -145,7 +145,7 @@ async def poll_database() -> None:
     data: list = []
     for key in db.fetch(b"hypofuzz-test-keys"):
         data.extend(db.fetch_metadata(key))
-    data.sort(key=lambda d: d.get("ninputs", -1))
+    data.sort(key=lambda d: d["elapsed_time"])
 
     DATA_TO_PLOT = defaultdict(list)
     for d in data:

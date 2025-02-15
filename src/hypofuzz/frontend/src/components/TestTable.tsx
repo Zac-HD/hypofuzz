@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { TestRecord } from '../types/dashboard';
+import { getTestStats } from '../utils/testStats';
 
 interface Props {
   data: Record<string, TestRecord[]>;
@@ -11,7 +12,7 @@ interface GroupedTests {
   notStarted: Array<[string, TestRecord[]]>;
 }
 
-function groupAndSortTests(data: Record<string, TestRecord[]>): GroupedTests {
+function groupTests(data: Record<string, TestRecord[]>): GroupedTests {
   const entries = Object.entries(data);
   const grouped = entries.reduce((acc: GroupedTests, entry) => {
     const [_, results] = entry;
@@ -54,29 +55,28 @@ function formatTime(seconds: number): string {
   }
 }
 
-function TestTableRow({ testId, results }: { testId: string, results: TestRecord[] }) {
+function Row({ testId, results }: { testId: string, results: TestRecord[] }) {
   const latest = results[results.length - 1];
-  const testsPerSecond = latest.elapsed_time > 0
-    ? Math.round(latest.ninputs / latest.elapsed_time)
-    : 0;
+  const stats = getTestStats(latest);
 
   return (
     <tr>
       <td>
-        <Link to={`/test/${encodeURIComponent(testId)}`} className="test__link">
+        <Link to={`/tests/${encodeURIComponent(testId)}`} className="test__link">
           {testId}
         </Link>
       </td>
-      <td>{latest.ninputs.toLocaleString()}</td>
-      <td>{latest.branches}</td>
-      <td>{testsPerSecond.toLocaleString()}/s</td>
-      <td>{formatTime(latest.elapsed_time)}</td>
+      <td>{stats.inputs}</td>
+      <td>{stats.branches}</td>
+      <td>{stats.executions}</td>
+      <td>{stats.inputsSinceBranch}</td>
+      <td>{stats.timeSpent}</td>
     </tr>
   );
 }
 
 export function TestTable({ data }: Props) {
-  const { failing, running, notStarted } = groupAndSortTests(data);
+  const { failing, running, notStarted } = groupTests(data);
 
   return (
     <table className="test-table">
@@ -85,38 +85,39 @@ export function TestTable({ data }: Props) {
           <th>Test</th>
           <th>Inputs</th>
           <th>Branches</th>
-          <th>Speed</th>
-          <th>Time Spent</th>
+          <th>Executions</th>
+          <th>Inputs since branch</th>
+          <th>Time spent</th>
         </tr>
       </thead>
       <tbody>
         {failing.length > 0 && (
           <>
             <tr className="test-table__section">
-              <td colSpan={5}>Failing</td>
+              <td colSpan={6}>Failing</td>
             </tr>
             {failing.map(([testId, results]) => (
-              <TestTableRow key={testId} testId={testId} results={results} />
+              <Row key={testId} testId={testId} results={results} />
             ))}
           </>
         )}
         {running.length > 0 && (
           <>
             <tr className="test-table__section">
-              <td colSpan={5}>Started Executing</td>
+              <td colSpan={6}>Started Executing</td>
             </tr>
             {running.map(([testId, results]) => (
-              <TestTableRow key={testId} testId={testId} results={results} />
+              <Row key={testId} testId={testId} results={results} />
             ))}
           </>
         )}
         {notStarted.length > 0 && (
           <>
             <tr className="test-table__section">
-              <td colSpan={5}>Collected</td>
+              <td colSpan={6}>Collected</td>
             </tr>
             {notStarted.map(([testId, results]) => (
-              <TestTableRow key={testId} testId={testId} results={results} />
+              <Row key={testId} testId={testId} results={results} />
             ))}
           </>
         )}

@@ -6,15 +6,16 @@ interface Props {
 
 export function Layout() {
   const location = useLocation();
+  const isTestsActive = location.pathname === '/' || location.pathname.startsWith('/tests/');
 
   return (
     <div className="layout">
-      <aside className="sidebar">
+      <div className="sidebar">
         <Link to="/" className="sidebar__title">HypoFuzz</Link>
         <nav className="sidebar__nav">
           <Link
             to="/"
-            className={`sidebar__link ${location.pathname === '/' ? 'sidebar__link--active' : ''}`}
+            className={`sidebar__link ${isTestsActive ? 'sidebar__link--active' : ''}`}
           >
             Tests
           </Link>
@@ -25,10 +26,10 @@ export function Layout() {
             Patches
           </Link>
         </nav>
-      </aside>
-      <main className="main-content">
+      </div>
+      <div className="main-content">
         <Outlet />
-      </main>
+      </div>
     </div>
   );
 }

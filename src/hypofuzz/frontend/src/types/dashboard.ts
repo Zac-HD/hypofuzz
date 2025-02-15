@@ -4,7 +4,7 @@ export interface TestRecord {
   timestamp: number;
   ninputs: number;
   branches: number;
-  since_new_cov?: number;
+  since_new_cov: number | null;
   loaded_from_db: number;
   status_counts: Record<string, number>;
   seed_pool: any;

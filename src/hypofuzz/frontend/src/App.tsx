@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import { TestDetailsPage } from './pages/TestDetails'
-import { Dashboard } from './pages/Dashboard'
+import { TestPage } from './pages/Test'
+import { TestsPage } from './pages/Tests'
 import { PatchesPage } from './pages/Patches'
 import { WebSocketProvider } from './context/WebSocketContext'
 import { Layout } from './components/Layout'
@@ -11,9 +11,9 @@ export function App() {
       <BrowserRouter>
         <Routes>
           <Route element={<Layout />}>
-            <Route path="/" element={<Dashboard />} />
+            <Route path="/" element={<TestsPage />} />
             <Route path="/patches" element={<PatchesPage />} />
-            <Route path="/test/:testId" element={<TestDetailsPage />} />
+            <Route path="/tests/:testId" element={<TestPage />} />
           </Route>
         </Routes>
       </BrowserRouter>

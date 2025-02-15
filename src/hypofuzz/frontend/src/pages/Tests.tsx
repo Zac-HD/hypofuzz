@@ -1,13 +1,13 @@
 import { TestTable } from '../components/TestTable'
-import { AggregateGraph } from '../components/AggregateGraph'
+import { CoverageGraph } from '../components/CoverageGraph'
 import { useWebSocket } from '../context/WebSocketContext'
 
-export function Dashboard() {
+export function TestsPage() {
   const { data } = useWebSocket()
 
   return (
     <div className="dashboard">
-      <AggregateGraph data={data} />
+      <CoverageGraph data={data} />
       <h2>Tests</h2>
       <TestTable data={data} />
     </div>
