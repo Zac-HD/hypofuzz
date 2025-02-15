@@ -113,10 +113,8 @@ export function CoverageGraph({ data }: Props) {
           tooltip.style('display', 'none');
         }
       })
-      .on('mouseleave', function() {
-        // Reset all lines
-        g.selectAll('path').attr('coverage-line__selected', false);
-        tooltip.style('display', 'none');
+      .on('mouseout', function() {
+        tooltip.html('');
       });
 
 
@@ -209,6 +207,12 @@ export function CoverageGraph({ data }: Props) {
         .style('font-size', '12px');
     });
 
+    // remove tooltip when cleaning up
+    return () => {
+      if (tooltip) {
+        tooltip.remove();
+      }
+    };
   }, [data, isLog, axisOption]);
 
   return (

@@ -1,12 +1,13 @@
 import json
 from collections.abc import Iterable
 from functools import cache
-from typing import Union
+from typing import Any
 
 from hypothesis import settings
 from hypothesis.database import BackgroundWriteDatabase, ExampleDatabase
 
-Report = dict[str, Union[int, float, str, list, dict[str, Union[int, str]]]]
+# TODO TypedDict
+Report = dict[str, Any]
 
 
 def metadata_key(key: bytes) -> bytes:

@@ -10,11 +10,10 @@ from typing import TYPE_CHECKING, Optional, Union
 from hypothesis import __version__ as hypothesis_version, settings
 from hypothesis.core import encode_failure
 from hypothesis.database import ExampleDatabase, choices_from_bytes, choices_to_bytes
-from hypothesis.internal.conjecture.choice import ChoiceT, choices_key
+from hypothesis.internal.conjecture.choice import ChoiceNode, ChoiceT, choices_key
 from hypothesis.internal.conjecture.data import (
     ConjectureData,
     ConjectureResult,
-    IRNode,
     Status,
     _Overrun,
 )
@@ -29,7 +28,7 @@ if TYPE_CHECKING:
     from typing import TypeAlias
 
 ChoicesT: "TypeAlias" = tuple[ChoiceT, ...]
-NodesT: "TypeAlias" = tuple[IRNode, ...]
+NodesT: "TypeAlias" = tuple[ChoiceNode, ...]
 
 
 class Choices:

@@ -4,7 +4,7 @@ import atexit
 import signal
 from collections import defaultdict
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 import black
 import trio
@@ -172,7 +172,7 @@ routes = [
 app = Starlette(routes=routes)
 
 
-async def serve_app(app, host, port):
+async def serve_app(app: Any, host: str, port: str) -> None:
     config = Config()
     config.bind = [f"{host}:{port}"]
     await serve(app, config)

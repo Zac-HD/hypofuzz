@@ -6,7 +6,8 @@ from random import Random
 from hypothesis import assume, strategies as st
 from hypothesis.control import current_build_context
 from hypothesis.errors import InvalidArgument
-from hypothesis.internal.conjecture.data import ConjectureData, IRNode
+from hypothesis.internal.conjecture.choice import ChoiceNode
+from hypothesis.internal.conjecture.data import ConjectureData
 from hypothesis.internal.conjecture.providers import COLLECTION_DEFAULT_MAX_SIZE
 from hypothesis.internal.floats import SMALLEST_SUBNORMAL, sign_aware_lte
 from hypothesis.internal.intervalsets import IntervalSet
@@ -335,4 +336,4 @@ def nodes(draw, *, was_forced=None, ir_types=None):
     value = draw_value(ir_type, kwargs)
     was_forced = draw(st.booleans()) if was_forced is None else was_forced
 
-    return IRNode(ir_type=ir_type, value=value, kwargs=kwargs, was_forced=was_forced)
+    return ChoiceNode(type=ir_type, value=value, kwargs=kwargs, was_forced=was_forced)

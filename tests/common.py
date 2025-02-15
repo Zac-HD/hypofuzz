@@ -1,6 +1,8 @@
 import inspect
+import os
 import re
 import shutil
+import signal
 import subprocess
 import tempfile
 import time
@@ -51,7 +53,9 @@ def dashboard(
     args = ["hypothesis", "fuzz", "--dashboard-only", "--port", str(port)]
     if test_path is not None:
         args += ["--", str(test_path)]
-    process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    process = subprocess.Popen(
+        args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True
+    )
     assert process.stdout is not None
     assert process.stderr is not None
     port = None
@@ -76,19 +80,21 @@ def dashboard(
             f"stdout:\n{process.stdout}\nstderr:\n{process.stderr}"
         )
 
-    # ...plus a little more, for slow CI?
-    time.sleep(0.1)
+    wait_for(
+        lambda: requests.get(f"http://localhost:{port}").status_code == 200,
+        timeout=2,
+        interval=0.01,
+    )
     dashboard = Dashboard(port=port, process=process)
 
     try:
         yield dashboard
     finally:
-        assert dashboard.process.stdout is not None
-        assert dashboard.process.stderr is not None
-        dashboard.process.stdout.close()
-        dashboard.process.stderr.close()
-        dashboard.process.kill()
-        dashboard.process.wait()
+        process.stdout.close()
+        process.stderr.close()
+        os.killpg(os.getpgid(process.pid), signal.SIGINT)
+        process.wait()
+
         if test_path is not None:
             if test_path.is_dir():
                 shutil.rmtree(test_path)

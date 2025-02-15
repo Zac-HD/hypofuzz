@@ -12,7 +12,7 @@ export function PatchesPage() {
     return (
       <div className="patches-page">
         <h1>Patches</h1>
-        <p>Waiting for examples, please wait a moment...</p>
+        <p>Waiting for examples...</p>
       </div>
     )
   }

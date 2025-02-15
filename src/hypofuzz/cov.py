@@ -70,7 +70,7 @@ def is_stdlib_file(fname: str) -> bool:
 def is_generated_file(fname: str) -> bool:
     # some examples:
     # <frozen posixpath>
-    # <attrs generated init hypothesis.internal.conjecture.data.IRNode>
+    # <attrs generated init hypothesis.internal.conjecture.choice.ChoiceNode>
     return fname.startswith("<") and fname.endswith(">")
 
 

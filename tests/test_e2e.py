@@ -48,11 +48,11 @@ def test_end_to_end(numprocesses, tmp_path):
             "no:dash",
             str(test_fname),
         ],
-        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
         start_new_session=True,
     )
     wait_for(
-        lambda: b"Now serving dashboard at" in process.stdout.readline(),
+        lambda: b"Running on http://127.0.0.1" in process.stderr.readline(),
         timeout=2,
         interval=0.01,
     )
@@ -62,6 +62,6 @@ def test_end_to_end(numprocesses, tmp_path):
         resp = requests.get("http://localhost:7777", timeout=10)
         resp.raise_for_status()
     finally:
-        process.stdout.close()
-        os.killpg(os.getpgid(process.pid), signal.SIGKILL)
+        process.stderr.close()
+        os.killpg(os.getpgid(process.pid), signal.SIGINT)
         process.wait()

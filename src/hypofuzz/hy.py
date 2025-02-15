@@ -102,12 +102,12 @@ class FuzzProcess:
         extra_kw: Optional[dict[str, object]] = None,
     ) -> "FuzzProcess":
         """Return a FuzzProcess for an @given-decorated test function."""
-        _, _, stuff = process_arguments_to_given(  # type: ignore
+        _, _, stuff = process_arguments_to_given(
             wrapped_test,
             arguments=(),
             kwargs=extra_kw or {},
             given_kwargs=wrapped_test.hypothesis._given_kwargs,
-            params=get_signature(wrapped_test).parameters,
+            params=get_signature(wrapped_test).parameters,  # type: ignore
         )
         assert settings.default is not None
         return cls(
@@ -164,7 +164,7 @@ class FuzzProcess:
         """Set up initial state and prepare to replay the saved behaviour."""
         # If we're continuing to fuzz something we've tested before, load some stats
         if metadata := list(get_db().fetch_metadata(self.database_key)):
-            latest: Any = max(metadata, key=lambda d: d["elapsed_time"])  # type: ignore
+            latest: Any = max(metadata, key=lambda d: d["elapsed_time"])
             self.ninputs = latest["ninputs"]
             self.elapsed_time = latest["elapsed_time"]
         # Report that we've started this fuzz target
@@ -272,7 +272,7 @@ class FuzzProcess:
         """
         start = time.perf_counter()
         self.ninputs += 1
-        collector = collector or CustomCollectionContext()  # type: ignore
+        collector = collector or CustomCollectionContext()
         assert collector is not None
         reports: list[object] = []
         try:
@@ -375,7 +375,7 @@ class FuzzProcess:
             or self._last_report["note"] != report["note"]
             or self.pool.interesting_examples
             # avoid dropping reports which discovered new coverage
-            or self._last_report["since new cov"] == 0
+            or self._last_report["since_new_cov"] == 0
         ):
             reduced_report = {
                 k: self._last_report[k]
@@ -402,6 +402,7 @@ class FuzzProcess:
                 "ninputs": 0,
                 "branches": 0,
                 "elapsed_time": 0,
+                "since_new_cov": None,
             }
         report: Report = {
             "nodeid": self.nodeid,
@@ -410,7 +411,7 @@ class FuzzProcess:
             "worker": where_am_i(),
             "ninputs": self.ninputs,
             "branches": len(self.pool.arc_counts),
-            "since new cov": self.since_new_cov,
+            "since_new_cov": self.since_new_cov,
             "loaded_from_db": len(self.pool._loaded_from_database),
             "status_counts": dict(self.status_counts),
             "seed_pool": self.pool.json_report,
@@ -428,7 +429,7 @@ class FuzzProcess:
             report["failures"] = [
                 ls for _, ls in self.pool.interesting_examples.values()
             ]
-            del report["since new cov"]
+            del report["since_new_cov"]
         return report
 
     @property
