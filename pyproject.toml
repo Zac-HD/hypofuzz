@@ -51,7 +51,6 @@ changelog = "https://hypofuzz.com/docs/changelog.html"
 
 [project.optional-dependencies]
 pytrace = [
-    "flask-cors>=3.0.10",
     "pycrunch-trace>=0.1.6",
 ]
 

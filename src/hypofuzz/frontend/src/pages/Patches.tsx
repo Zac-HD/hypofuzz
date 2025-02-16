@@ -1,12 +1,30 @@
-import { useEffect } from 'react'
-import { useWebSocket } from '../context/WebSocketContext'
+import { useEffect, useState } from 'react'
 
 export function PatchesPage() {
-  const { patches, requestPatches } = useWebSocket()
+  const [patches, setPatches] = useState<Record<string, string>>({})
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    requestPatches()
+    fetch('/api/patches/')
+      .then(response => response.json())
+      .then(data => {
+        setPatches(data)
+        setLoading(false)
+      })
+      .catch(error => {
+        console.error('Failed to fetch patches:', error)
+        setLoading(false)
+      })
   }, [])
+
+  if (loading) {
+    return (
+      <div className="patches-page">
+        <h1>Patches</h1>
+        <p>Loading patches...</p>
+      </div>
+    )
+  }
 
   if (!Object.keys(patches).length) {
     return (

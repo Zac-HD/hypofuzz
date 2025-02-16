@@ -3,8 +3,6 @@ import { TestRecord } from '../types/dashboard'
 
 interface WebSocketContextType {
   data: Record<string, TestRecord[]>;
-  patches: Record<string, string>;
-  requestPatches: () => void;
   requestNodeState: (nodeId: string) => void;
 }
 
@@ -13,7 +11,6 @@ const WebSocketContext = createContext<WebSocketContextType | null>(null)
 export function WebSocketProvider({ children }: { children: React.ReactNode }) {
   const [socket, setSocket] = useState<WebSocket | null>(null)
   const [data, setData] = useState<Record<string, TestRecord[]> | null>(null)
-  const [patches, setPatches] = useState<Record<string, string>>({})
 
   useEffect(() => {
     fetch('/api/tests/')
@@ -32,12 +29,7 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
     const ws = new WebSocket(websocketURL)
 
     ws.onmessage = (event) => {
-      const message = JSON.parse(event.data)
-      if (message.type === 'patches') {
-        setPatches(message.data)
-      } else {
-        setData(message)
-      }
+      setData(JSON.parse(event.data))
     }
 
     setSocket(ws)
@@ -46,10 +38,6 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
       ws.close()
     }
   }, [])
-
-  const requestPatches = useCallback(() => {
-    socket?.send(JSON.stringify({ type: 'patches' }))
-  }, [socket])
 
   const requestNodeState = useCallback((nodeId: string) => {
     fetch(`/api/tests/${nodeId}`)
@@ -70,7 +58,7 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <WebSocketContext.Provider value={{ data, patches, requestPatches, requestNodeState }}>
+    <WebSocketContext.Provider value={{ data, requestNodeState }}>
       {children}
     </WebSocketContext.Provider>
   )

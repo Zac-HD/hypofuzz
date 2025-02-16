@@ -57,10 +57,12 @@ export function TestPage() {
       {latest.failures && latest.failures.length > 0 && (
         <div className="test-failure">
           <h2>Failure</h2>
-          {latest.failures.map(([callRepr, _, __, traceback], index) => (
+          {latest.failures.map(([callRepr, _, reproductionDecorator, traceback], index) => (
             <div key={index} className="test-failure__item">
               <h3>Call</h3>
-              <pre><code>{callRepr}</code></pre>
+              <pre>
+                <code>{reproductionDecorator + '\n\n' + callRepr}</code>
+              </pre>
               <h3>Traceback</h3>
               <pre><code>{traceback}</code></pre>
             </div>
