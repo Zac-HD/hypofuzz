@@ -71,7 +71,7 @@ async def api_patches(request: Request) -> Response:
     )
 
 
-def pycrunch_path(node_id):
+def pycrunch_path(node_id: str) -> Path:
     node_id = "".join(c if c.isalnum() else "_" for c in node_id).rstrip("_")
     return Path("pycrunch-recordings") / node_id / "session.chunked.pycrunch-trace"
 
