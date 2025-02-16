@@ -11,6 +11,8 @@ import trio
 from hypercorn.config import Config
 from hypercorn.trio import serve
 from starlette.applications import Starlette
+from starlette.middleware import Middleware
+from starlette.middleware.cors import CORSMiddleware
 from starlette.requests import Request
 from starlette.responses import FileResponse, JSONResponse, Response
 from starlette.routing import Mount, Route, WebSocketRoute
@@ -69,9 +71,22 @@ async def api_patches(request: Request) -> Response:
     )
 
 
-async def pycrunch_file(request: Request) -> Response:
-    name = request.path_params["name"]
-    return FileResponse(Path("pycrunch-recordings") / name)
+def pycrunch_path(node_id):
+    node_id = "".join(c if c.isalnum() else "_" for c in node_id).rstrip("_")
+    return Path("pycrunch-recordings") / node_id / "session.chunked.pycrunch-trace"
+
+
+async def api_pycrunch_available(request: Request) -> Response:
+    path = pycrunch_path(request.path_params["node_id"])
+    return JSONResponse({"available": path.exists()})
+
+
+async def api_pycrunch_file(request: Request) -> Response:
+    path = pycrunch_path(request.path_params["node_id"])
+    if not path.exists():
+        return Response(status_code=404)
+
+    return FileResponse(path=path, media_type="application/octet-stream")
 
 
 async def poll_database_forever() -> None:
@@ -108,13 +123,24 @@ routes = [
     Route("/api/tests/", api_tests),
     Route("/api/tests/{node_id:path}", api_test),
     Route("/api/patches/", api_patches),
+    Route(
+        "/api/pycrunch/{node_id:path}/session.chunked.pycrunch-trace", api_pycrunch_file
+    ),
+    Route("/api/pycrunch/{node_id:path}", api_pycrunch_available),
     Mount("/assets", StaticFiles(directory=dist / "assets")),
     # catchall fallback. react will handle the routing of dynamic urls here,
     # such as to a node id.
     Route("/{path:path}", FileResponse(dist / "index.html")),
 ]
 
-app = Starlette(routes=routes)
+middleware = [
+    # allow pytrace to request pycrunch recordings for the web interface
+    Middleware(
+        CORSMiddleware,
+        allow_origins=["https://app.pytrace.com"],
+    )
+]
+app = Starlette(routes=routes, middleware=middleware)
 
 
 async def serve_app(app: Any, host: str, port: str) -> None:

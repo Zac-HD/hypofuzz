@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { CoverageGraph } from '../components/CoverageGraph';
 import { useWebSocket } from '../context/WebSocketContext';
@@ -8,12 +8,22 @@ import { CoveringExamples } from '../components/CoveringExamples';
 export function TestPage() {
   const { testId } = useParams<{ testId: string }>();
   const { data, requestNodeState } = useWebSocket();
+  const [pycrunchAvailable, setPycrunchAvailable] = useState<boolean>(false);
 
   useEffect(() => {
     if (testId) {
       requestNodeState(testId);
+      fetch(`/api/pycrunch/${testId}`)
+        .then(response => response.json())
+        .then(data => {
+          setPycrunchAvailable(data.available);
+        })
+        .catch(error => {
+          console.error('Failed to check PyCrunch availability:', error);
+          setPycrunchAvailable(false);
+        });
     }
-  }, [testId, requestNodeState]);
+  }, [testId]);
 
   if (!testId || !data[testId]) {
     return <div>Test not found</div>;
@@ -25,9 +35,20 @@ export function TestPage() {
   const stats = getTestStats(latest);
 
   return (
-    <div>
+    <div className="test-details">
       <Link to="/" className="back-link">← Back to all tests</Link>
       <h1>{testId}</h1>
+      {pycrunchAvailable && (
+        <div className="pycrunch-link">
+          <a
+            href={`https://app.pytrace.com/?open=http://${window.location.host}/api/pycrunch/${testId}/session.chunked`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Open in Pytrace
+          </a>
+        </div>
+      )}
       <div className="test-info">
         <div className="info-grid">
           <div className="info-item">
