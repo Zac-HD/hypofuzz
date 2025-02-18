@@ -30,11 +30,10 @@ Direct dependencies
 
 HypoFuzz's direct dependencies are:
 
-.. literalinclude:: ../setup.py
-   :prepend: install_requires = [
-   :start-after: install_requires=[
-   :end-before: ],
-   :append: ]
+.. literalinclude:: ../pyproject.toml
+   :prepend: dependencies = [
+   :start-after: dependencies = [
+   :end-before: classifiers =
 
 
 API deprecation policy

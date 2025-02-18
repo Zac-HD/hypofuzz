@@ -1,15 +1,15 @@
-from common import fuzz, wait_for, write_basic_test_code
+from common import BASIC_TEST_CODE, fuzz, wait_for, write_test_code
 from hypothesis.database import DirectoryBasedExampleDatabase
 
 from hypofuzz.database import HypofuzzDatabase
 
 
 def test_database_only_stores_full_entries_in_latest():
-    test_dir, db_dir = write_basic_test_code()
+    test_dir, db_dir = write_test_code(BASIC_TEST_CODE)
     db = HypofuzzDatabase(DirectoryBasedExampleDatabase(db_dir))
     assert not list(db.fetch(b"hypofuzz-test-keys"))
 
-    with fuzz(test_dir=test_dir):
+    with fuzz(test_path=test_dir):
         wait_for(
             lambda: list(db.fetch(b"hypofuzz-test-keys")), timeout=10, interval=0.1
         )

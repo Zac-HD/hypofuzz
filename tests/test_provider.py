@@ -15,7 +15,7 @@ def test_drawing_prefix_exactly(nodes):
         provider_kw={"choices": tuple(n.value for n in nodes)},
     )
     for node in nodes:
-        choice = getattr(cd, f"draw_{node.ir_type}")(**node.kwargs)
+        choice = getattr(cd, f"draw_{node.type}")(**node.kwargs)
         assert choice_equal(node.value, choice)
 
 
@@ -34,7 +34,7 @@ def test_draw_past_prefix(ir_type_and_kwargs, random):
 def test_misaligned_type(node, ir_type_kwargs, random):
     # misaligning in type gives us random values
     ir_type, kwargs = ir_type_kwargs
-    assume(ir_type != node.ir_type)
+    assume(ir_type != node.type)
     cd = ConjectureData(
         random=random, provider=HypofuzzProvider, provider_kw={"choices": (node.value,)}
     )
@@ -46,14 +46,14 @@ def test_misaligned_type(node, ir_type_kwargs, random):
 def test_misaligned_kwargs(data):
     # misaligning in permitted kwargs gives us random values
     node = data.draw(nodes())
-    kwargs = data.draw(kwargs_strategy(node.ir_type))
+    kwargs = data.draw(kwargs_strategy(node.type))
     assume(not choice_permitted(node.value, kwargs))
     cd = ConjectureData(
         random=data.draw(st.randoms()),
         provider=HypofuzzProvider,
         provider_kw={"choices": (node.value,)},
     )
-    choice = getattr(cd, f"draw_{node.ir_type}")(**kwargs)
+    choice = getattr(cd, f"draw_{node.type}")(**kwargs)
     assert choice_permitted(choice, kwargs)
 
 
@@ -61,12 +61,12 @@ def test_misaligned_kwargs(data):
 def test_changed_kwargs_pops_if_still_permitted(data):
     # changing kwargs to something that still permits the value still pops the value
     node = data.draw(nodes())
-    kwargs = data.draw(kwargs_strategy(node.ir_type))
+    kwargs = data.draw(kwargs_strategy(node.type))
     assume(choice_permitted(node.value, kwargs))
     cd = ConjectureData(
         random=data.draw(st.randoms()),
         provider=HypofuzzProvider,
         provider_kw={"choices": (node.value,)},
     )
-    choice = getattr(cd, f"draw_{node.ir_type}")(**kwargs)
+    choice = getattr(cd, f"draw_{node.type}")(**kwargs)
     assert choice_equal(choice, node.value)
