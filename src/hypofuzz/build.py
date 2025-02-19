@@ -14,20 +14,20 @@ def build_frontend() -> None:
             "Install npm and add it to your path."
         )
 
-    frontend_dir = Path(__file__).resolve().parent / "frontend"
-    subprocess.run(["npm", "install"], cwd=frontend_dir, check=True)
-    subprocess.run(["npm", "run", "build"], cwd=frontend_dir, check=True)
+    frontend_dir = Path(__file__).parent / "frontend"
+    subprocess.check_call(["npm", "install"], cwd=frontend_dir)
+    subprocess.check_call(["npm", "run", "build"], cwd=frontend_dir)
 
 
 # runs via pip install .
 class HypofuzzBuildPy(build_py):
     def run(self) -> None:
-        build_frontend()
         super().run()
+        build_frontend()
 
 
 # runs via pip install -e . (iff PEP 660 behavior is enabled?)
 class HypofuzzEditableWheel(editable_wheel):
     def run(self) -> None:
-        build_frontend()
         super().run()
+        build_frontend()
