@@ -59,7 +59,14 @@ pytrace = [
 
 [tool.setuptools.package-data]
 hypofuzz = [
-    "frontend/dist/**/*",
+    # including /dist, for bdist. ideally we wouldn't include /dist in sdist because we epxect
+    # that to be build from source anyway, but I think such a rule requires MANIFEST.in.
+    "frontend/**/*",
+]
+
+[tool.setuptools.exclude-package-data]
+hypofuzz = [
+    "frontend/node_modules/**/*"
 ]
 
 [tool.setuptools.cmdclass]
