@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "hypofuzz"
-# read from __version__
+# see [tool.setuptools.dynamic]
 dynamic = ["version"]
 description = "Adaptive fuzzing for property-based tests"
 readme = "README.md"
@@ -68,6 +68,9 @@ hypofuzz = [
 hypofuzz = [
     "frontend/node_modules/**/*"
 ]
+
+[tool.setuptools.dynamic]
+version = {attr = "hypofuzz.__version__"}
 
 [tool.setuptools.cmdclass]
 "build_py" = "hypofuzz.build.HypofuzzBuildPy"
