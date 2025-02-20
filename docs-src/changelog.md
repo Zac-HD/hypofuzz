@@ -2,6 +2,10 @@
 HypoFuzz uses [calendar-based versioning](https://calver.org/), with a
 `YY-MM-patch` format.
 
+## 25.02.4
+
+Fix dashboard not getting properly built for pypi releases.
+
 ## 25.02.3
 
 Overhaul of the dashboard UI.
