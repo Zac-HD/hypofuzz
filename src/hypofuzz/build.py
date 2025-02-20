@@ -22,12 +22,14 @@ def build_frontend() -> None:
 # runs via pip install .
 class HypofuzzBuildPy(build_py):
     def run(self) -> None:
-        super().run()
+        # super().run() copies files over to the final sdist/bdist, so building
+        # the frontend html files has to come first.
         build_frontend()
+        super().run()
 
 
 # runs via pip install -e . (iff PEP 660 behavior is enabled?)
 class HypofuzzEditableWheel(editable_wheel):
     def run(self) -> None:
-        super().run()
         build_frontend()
+        super().run()
