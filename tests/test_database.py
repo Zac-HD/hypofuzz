@@ -4,7 +4,10 @@ from hypothesis.database import DirectoryBasedExampleDatabase
 from hypofuzz.database import HypofuzzDatabase
 
 
-def test_database_only_stores_full_entries_in_latest():
+def test_database_stores_reports_and_metadata_correctly():
+    # test that things of type Report are saved to reports_key, and things of type
+    # Metadata are saved to metadata_key.
+
     test_dir, db_dir = write_test_code(BASIC_TEST_CODE)
     db = HypofuzzDatabase(DirectoryBasedExampleDatabase(db_dir))
     assert not list(db.fetch(b"hypofuzz-test-keys"))
@@ -22,17 +25,11 @@ def test_database_only_stores_full_entries_in_latest():
         for _ in range(5):
             # wait for new db entries to roll in
             wait_for(
-                lambda: len(list(db.fetch_metadata(key))) > previous_size,
+                lambda: len(list(db.fetch_reports(key))) > previous_size,
                 timeout=15,
                 interval=0.05,
             )
-            metadata = sorted(db.fetch_metadata(key), key=lambda d: d["elapsed_time"])
-            assert "seed_pool" in metadata[-1], metadata
-            # allow a leeway of one report due to race conditions: we might save the
-            # latest full report before paring the previously-latest (now second)
-            # report down to reduced.
-            for report in metadata[:-2]:
-                assert "nodeid" in report
-                assert "seed_pool" not in report
-
-            previous_size = len(metadata)
+            reports = list(db.fetch_reports(key))
+            metadatas = list(db.fetch_metadata(key))
+            assert all("seed_pool" not in report for report in reports)
+            assert all("seed_pool" in metadata for metadata in metadatas)

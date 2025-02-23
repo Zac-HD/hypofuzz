@@ -1,35 +1,74 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react'
-import { TestRecord } from '../types/dashboard'
+import { Report, Metadata } from '../types/dashboard'
+
+export interface WebSocketRequest {
+  page: 'overview' | 'test';
+  node_id?: string;
+}
 
 interface WebSocketContextType {
-  data: Record<string, TestRecord[]>;
-  requestNodeState: (nodeId: string) => void;
+  reports: Record<string, Report[]>;
+  metadata: Record<string, Metadata>;
+  socket: WebSocket | null;
+}
+
+interface WebSocketEvent {
+  type: 'save' | 'initial' | 'metadata';
+  data: unknown;
+  reports?: unknown
+  metadata?: unknown
 }
 
 const WebSocketContext = createContext<WebSocketContextType | null>(null)
 
-export function WebSocketProvider({ children }: { children: React.ReactNode }) {
+interface WebSocketProviderProps {
+  children: React.ReactNode;
+  nodeId?: string;
+}
+
+export function WebSocketProvider({ children, nodeId }: WebSocketProviderProps) {
   const [socket, setSocket] = useState<WebSocket | null>(null)
-  const [data, setData] = useState<Record<string, TestRecord[]> | null>(null)
+  const [reports, setReports] = useState<Record<string, Report[]> | null>(null)
+  const [metadata, setMetadata] = useState<Record<string, Metadata> | null>(null)
 
   useEffect(() => {
-    fetch('/api/tests/')
-      .then(response => response.json())
-      .then(initialData => {
-        setData(initialData)
-      })
-      .catch(error => {
-        console.error('Failed to fetch initial state:', error)
-      })
+    const url = new URL(`ws${window.location.protocol === 'https:' ? 's' : ''}://${window.location.host}/ws`);
+    if (nodeId) {
+      url.searchParams.set('node_id', nodeId);
+    }
 
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const host = window.location.host;
-    const websocketURL = `${protocol}//${host}/ws`;
-
-    const ws = new WebSocket(websocketURL)
+    const ws = new WebSocket(url);
 
     ws.onmessage = (event) => {
-      setData(JSON.parse(event.data))
+      const message = JSON.parse(event.data) as WebSocketEvent;
+
+      switch (message.type) {
+        case 'initial':
+          setReports(message.reports as Record<string, Report[]>);
+          setMetadata(message.metadata as Record<string, Metadata>);
+          break;
+        case 'save':
+          setReports(currentReports => {
+            const newReports = { ...(currentReports ?? {}) };
+            const report = message.data as Report;
+            const nodeid = report.nodeid;
+            if (!newReports[nodeid]) {
+              newReports[nodeid] = [];
+            }
+            newReports[nodeid] = [...newReports[nodeid], report];
+            newReports[nodeid].sort((a, b) => a.elapsed_time - b.elapsed_time);
+            return newReports;
+          });
+          break;
+        case 'metadata':
+          setMetadata(currentMetadata => {
+            const newMetadata = { ...(currentMetadata ?? {}) };
+            const metadata = message.data as Metadata;
+            newMetadata[metadata.nodeid] = metadata;
+            return newMetadata;
+          });
+          break;
+      }
     }
 
     setSocket(ws)
@@ -37,28 +76,14 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
     return () => {
       ws.close()
     }
-  }, [])
+  }, [nodeId])
 
-  const requestNodeState = useCallback((nodeId: string) => {
-    fetch(`/api/tests/${nodeId}`)
-      .then(response => response.json())
-      .then(nodeData => {
-        setData(current => current ? {
-          ...current,
-          [nodeId]: nodeData
-        } : null)
-      })
-      .catch(error => {
-        console.error('Failed to fetch node state:', error)
-      })
-  }, [])
-
-  if (data === null) {
+  if (reports === null || metadata === null) {
     return null // Don't render anything until we have initial data
   }
 
   return (
-    <WebSocketContext.Provider value={{ data, requestNodeState }}>
+    <WebSocketContext.Provider value={{ reports, metadata, socket }}>
       {children}
     </WebSocketContext.Provider>
   )

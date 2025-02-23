@@ -1,4 +1,4 @@
-import { TestRecord } from '../types/dashboard';
+import { Report } from '../types/dashboard';
 
 export interface TestStats {
   inputs: string;
@@ -15,9 +15,7 @@ function formatTime(seconds: number): string {
   return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
 };
 
-export function getTestStats(latest: TestRecord): TestStats {
-
-
+export function getTestStats(latest: Report): TestStats {
   const perSecond = latest.elapsed_time > 0
     ? Math.round((latest.loaded_from_db + latest.ninputs) / latest.elapsed_time)
     : 0;

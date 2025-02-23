@@ -19,7 +19,7 @@ def get_all_tests(pytest_args: Any) -> list:
 
 
 def make_and_save_patches(
-    pytest_args: Any, last_update: dict, *, canonical: bool = True
+    pytest_args: Any, reports: dict, metadata: dict, *, canonical: bool = True
 ) -> dict[str, Path]:
     triples_all: list = []
     triples_cov: list = []
@@ -27,17 +27,28 @@ def make_and_save_patches(
 
     tests = {t.nodeid: t._test_fn for t in get_all_tests(pytest_args)}
     for nodeid, test_fn in tests.items():
-        data = last_update[nodeid]
+        report = reports[nodeid][-1]
+        node_metadata = metadata[nodeid]
         # for each func
         #   - only strip_via if replay is complete
         #   - only add failing if not currently shrinking
         #   - tag covering examples with covering-via
         failing_examples = []
         covering_examples = []
-        if data.get("failures") and data.get("note") != "shrinking known examples":
-            failing_examples = [(ex, FAIL_MSG) for ex, _, _, _ in data["failures"]]
-        if data.get("seed_pool") and data.get("note") != "replaying saved examples":
-            covering_examples = [(ex, COV_MSG) for _, ex, _ in data["seed_pool"]]
+        if (
+            node_metadata.get("failures")
+            and report.get("note") != "shrinking known examples"
+        ):
+            failing_examples = [
+                (ex, FAIL_MSG) for ex, _, _, _ in node_metadata["failures"]
+            ]
+        if (
+            node_metadata.get("seed_pool")
+            and report.get("note") != "replaying saved examples"
+        ):
+            covering_examples = [
+                (ex, COV_MSG) for _, ex, _ in node_metadata["seed_pool"]
+            ]
 
         for out, examples, strip_via in [
             (triples_fail, failing_examples, ()),

@@ -1,28 +1,28 @@
 import { useEffect, useRef } from 'react';
 import * as d3 from 'd3';
-import { TestRecord } from '../types/dashboard';
+import { Report } from '../types/dashboard';
 import { Toggle } from './Toggle';
 import { usePreference } from '../hooks/usePreference';
 
 interface Props {
-  data: Record<string, TestRecord[]>;
+  reports: Record<string, Report[]>;
 }
 
 
 // in pixels
 const distanceThreshold = 15;
 
-export function CoverageGraph({ data }: Props) {
+export function CoverageGraph({ reports }: Props) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [isLog, setIsLog] = usePreference<boolean>('graph_scale', false);
   const [axisOption, setAxisOption] = usePreference<string>('graph_x_axis', "time");
 
-  function xValue(d: TestRecord) {
+  function xValue(d: Report) {
     return axisOption == "time" ? d.elapsed_time : d.ninputs
   }
 
   useEffect(() => {
-    if (!svgRef.current || Object.keys(data).length === 0) {
+    if (!svgRef.current || Object.keys(reports).length === 0) {
       return;
     }
 
@@ -44,9 +44,9 @@ export function CoverageGraph({ data }: Props) {
       .attr('transform', `translate(${margin.left},${margin.top})`);
 
     // Create color scale
-    const nodeIds = Array.from(Object.keys(data));
+    const nodeIds = Array.from(Object.keys(reports));
     const color = d3.scaleOrdinal(d3.schemeCategory10).domain(nodeIds);
-    const latests = Object.entries(data).map(([nodeid, points]) => points[points.length - 1])
+    const latests = Object.entries(reports).map(([nodeid, points]) => points[points.length - 1])
 
     const x = isLog
       ? d3.scaleLog()
@@ -60,7 +60,7 @@ export function CoverageGraph({ data }: Props) {
       .domain([0, d3.max(latests, d => d.branches) || 0])
       .range([height, 0]);
 
-    const line = d3.line<TestRecord>()
+    const line = d3.line<Report>()
       .x(d => x(Math.max(1, xValue(d))))
       .y(d => y(d.branches));
 
@@ -74,10 +74,10 @@ export function CoverageGraph({ data }: Props) {
         const [mouseX, mouseY] = d3.pointer(event);
 
         // https://stackoverflow.com/a/71632002
-        let closestPoint = null as TestRecord | null;
+        let closestPoint = null as Report | null;
         let closestDistance = Infinity;
 
-        Object.values(data).forEach(points => {
+        Object.values(reports).forEach(points => {
           if (!points || points.length === 0) return;
 
           const sortedPoints = points.sort((a, b) => xValue(a) - xValue(b));
@@ -96,7 +96,7 @@ export function CoverageGraph({ data }: Props) {
           // Reset all lines
           g.selectAll('path').classed('coverage-line__selected', false);
 
-          g.selectAll<SVGPathElement, TestRecord[]>('path')
+          g.selectAll<SVGPathElement, Report[]>('path')
             .filter(points => Array.isArray(points) && points.length > 0 && points[0].nodeid === closestPoint!.nodeid)
             .classed('coverage-line__selected', true);
 
@@ -119,7 +119,7 @@ export function CoverageGraph({ data }: Props) {
 
 
     // draw a line for each test
-    Object.entries(data).forEach(([nodeid, points]) => {
+    Object.entries(reports).forEach(([nodeid, points]) => {
       g.append('path')
         .datum(points)
         .attr('fill', 'none')
@@ -178,7 +178,7 @@ export function CoverageGraph({ data }: Props) {
         .style('cursor', 'pointer')
         .on('mouseover', function() {
           // Highlight corresponding line
-          g.selectAll<SVGPathElement, TestRecord[]>('path')
+          g.selectAll<SVGPathElement, Report[]>('path')
             .filter(d => Array.isArray(d) && d.length > 0 && d[0].nodeid === nodeid)
             .classed('coverage-line__selected', true);
 
@@ -213,7 +213,7 @@ export function CoverageGraph({ data }: Props) {
         tooltip.remove();
       }
     };
-  }, [data, isLog, axisOption]);
+  }, [reports, isLog, axisOption]);
 
   return (
     <div className="aggregate-graph">
