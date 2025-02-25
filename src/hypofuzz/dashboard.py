@@ -259,7 +259,7 @@ async def serve_app(app: Any, host: str, port: str) -> None:
 
 async def run_dashboard(port: int, host: str) -> None:
     async with trio.open_nursery() as nursery:
-        nursery.start_soon(serve_app, app, host, port)
+        nursery.start_soon(serve_app, app, host, port)  # type: ignore
 
 
 def start_dashboard_process(
