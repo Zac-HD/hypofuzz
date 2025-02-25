@@ -177,7 +177,7 @@ def to_jsonable(obj):
     if isinstance(obj, (list, tuple, set, frozenset)):
         return [to_jsonable(x) for x in obj]
     if isinstance(obj, dict):
-        return {{str(k): to_jsonable(v) for k, v in obj.items()}}
+        return {str(k): to_jsonable(v) for k, v in obj.items()}
 
     return str(obj)
 
