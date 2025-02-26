@@ -18,7 +18,7 @@ h2==4.2.0                 # via hypercorn
 hpack==4.1.0              # via h2
 hypercorn==0.17.3         # via hypofuzz (pyproject.toml)
 hyperframe==6.1.0         # via h2
-hypothesis[cli]==6.127.2  # via hypofuzz (pyproject.toml)
+hypothesis[cli,watchdog]==6.127.2  # via hypofuzz (pyproject.toml)
 idna==3.10                # via anyio, requests, trio
 iniconfig==2.0.0          # via pytest
 libcst==1.6.0             # via hypofuzz (pyproject.toml)
@@ -47,4 +47,5 @@ tomli==2.2.1              # via black, coverage, hypercorn, pytest
 trio==0.29.0              # via hypofuzz (pyproject.toml)
 typing-extensions==4.12.2  # via anyio, black, hypercorn, rich, taskgroup
 urllib3==2.3.0            # via requests
+watchdog==6.0.0           # via hypothesis
 wsproto==1.2.0            # via hypercorn
