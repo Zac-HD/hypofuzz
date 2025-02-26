@@ -54,7 +54,11 @@ def dashboard(
     if test_path is not None:
         args += ["--", str(test_path)]
     process = subprocess.Popen(
-        args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True
+        args,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        start_new_session=True,
+        text=True,
     )
     assert process.stdout is not None
     assert process.stderr is not None
@@ -63,15 +67,14 @@ def dashboard(
     for _ in range(100):
         time.sleep(0.05)
         if process.poll() is not None:
-            stdout = b"".join(process.stdout.readlines())
-            stderr = b"".join(process.stderr.readlines())
+            stdout, stderr = process.communicate()
             raise Exception(
                 f"dashboard invocation exited with return code {process.returncode}. "
                 f"stdout:\n{stdout!r}\nstderr:\n{stderr!r}"
             )
 
         output = process.stderr.readline()
-        if m := re.search(rb"Running on http://127.0.0.1:(\d+)", output):
+        if m := re.search(r"Running on http://127.0.0.1:(\d+)", output):
             port = int(m.group(1))
             break
     else:
@@ -90,10 +93,12 @@ def dashboard(
     try:
         yield dashboard
     finally:
-        process.stdout.close()
-        process.stderr.close()
         os.killpg(os.getpgid(process.pid), signal.SIGINT)
         process.wait()
+        stdout, stderr = process.communicate()
+        process.stdout.close()
+        process.stderr.close()
+        print(f"dashboard stdout:\n{stdout!r}\ndashboard stderr:\n{stderr!r}")
 
         if test_path is not None:
             if test_path.is_dir():
