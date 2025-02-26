@@ -70,6 +70,7 @@ def dashboard(
             stdout, stderr = process.communicate()
             raise Exception(
                 f"dashboard invocation exited with return code {process.returncode}. "
+                f"args: {args}, cwd: {os.getcwd()}\n"
                 f"stdout:\n{stdout!r}\nstderr:\n{stderr!r}"
             )
 
