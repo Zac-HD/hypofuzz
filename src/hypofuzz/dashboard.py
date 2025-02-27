@@ -260,18 +260,21 @@ async def handle_event(receive_channel: MemoryReceiveChannel) -> None:
 
 async def run_dashboard(port: int, host: str) -> None:
     send_channel, receive_channel = trio.open_memory_channel[ListenerEventT](math.inf)
+    token = trio.lowlevel.current_trio_token()
+
+    def send_nowait_from_anywhere(msg: object) -> None:
+        # DirectoryBasedExampleDatabase sends events from a background thread (via watchdog),
+        # so we need to support sending from anywhere, i.e. whether or not the calling thread
+        # has any Trio state.  We can do that with the following branch: 
+        try:
+            trio.lowlevel.current_task()
+        except RuntimeError:
+            trio.from_thread.run_sync(send_channel.send_nowait, msg, trio_token=token)
+        else:
+            send_channel.send_nowait(msg)
+
     db = get_db()
-    db._db.add_listener(
-        # DirectoryBasedExampleDatabase sends events from a background thread (via watchdog).
-        partial(
-            trio.from_thread.run_sync,
-            send_channel.send_nowait,  # type: ignore
-            trio_token=trio.lowlevel.current_trio_token(),
-        )
-        # two layers of unwrapping: db is a HypofuzzDatabase(BackgroundWriteDatabse(<actual database here>))
-        if isinstance(db._db._db, DirectoryBasedExampleDatabase)  # type: ignore
-        else send_channel.send_nowait
-    )
+    db._db.add_listener(send_nowait_from_anywhere)
     async with trio.open_nursery() as nursery:
         nursery.start_soon(serve_app, app, host, port)  # type: ignore
         nursery.start_soon(handle_event, receive_channel)
