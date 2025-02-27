@@ -3,7 +3,9 @@ from common import BASIC_TEST_CODE, dashboard, fuzz, wait_for, write_test_code
 
 
 def test_can_launch_dashboard():
-    with dashboard() as dash:
+    test_dir, _db_dir = write_test_code(BASIC_TEST_CODE)
+
+    with dashboard(test_path=test_dir) as dash:
         requests.get(f"http://localhost:{dash.port}", timeout=10).raise_for_status()
         dash.state()
 

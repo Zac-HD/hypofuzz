@@ -20,7 +20,7 @@ h2==4.2.0                 # via hypercorn
 hpack==4.1.0              # via h2
 hypercorn==0.17.3         # via hypofuzz (pyproject.toml)
 hyperframe==6.1.0         # via h2
-hypothesis[cli]==6.125.3  # via hypofuzz (pyproject.toml)
+hypothesis[cli,watchdog]==6.127.2  # via hypofuzz (pyproject.toml)
 idna==3.10                # via anyio, requests, trio
 imagesize==1.4.1          # via sphinx
 iniconfig==2.0.0          # via pytest
@@ -62,10 +62,11 @@ sphinxcontrib-jsmath==1.0.1  # via sphinx
 sphinxcontrib-programoutput==0.18  # via -r deps/docs.in
 sphinxcontrib-qthelp==2.0.0  # via sphinx
 sphinxcontrib-serializinghtml==2.0.0  # via sphinx
-starlette==0.45.3         # via hypofuzz (pyproject.toml)
+starlette==0.46.0         # via hypofuzz (pyproject.toml)
 taskgroup==0.2.2          # via hypercorn
 tomli==2.2.1              # via black, hypercorn, pytest, sphinx
 trio==0.29.0              # via hypofuzz (pyproject.toml)
 typing-extensions==4.12.2  # via anyio, black, hypercorn, rich, taskgroup
 urllib3==2.3.0            # via requests
+watchdog==6.0.0           # via hypothesis
 wsproto==1.2.0            # via hypercorn

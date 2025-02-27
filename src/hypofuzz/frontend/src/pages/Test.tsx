@@ -4,15 +4,25 @@ import { CoverageGraph } from '../components/CoverageGraph';
 import { useWebSocket } from '../context/WebSocketContext';
 import { getTestStats } from '../utils/testStats';
 import { CoveringExamples } from '../components/CoveringExamples';
+import { WebSocketProvider } from '../context/WebSocketContext';
 
 export function TestPage() {
   const { testId } = useParams<{ testId: string }>();
-  const { data, requestNodeState } = useWebSocket();
+
+  return (
+    <WebSocketProvider nodeId={testId}>
+      <_TestPage />
+    </WebSocketProvider>
+  );
+}
+
+function _TestPage() {
+  const { testId } = useParams<{ testId: string }>();
+  const { reports, metadata } = useWebSocket();
   const [pycrunchAvailable, setPycrunchAvailable] = useState<boolean>(false);
 
   useEffect(() => {
     if (testId) {
-      requestNodeState(testId);
       fetch(`/api/pycrunch/${testId}`)
         .then(response => response.json())
         .then(data => {
@@ -25,14 +35,13 @@ export function TestPage() {
     }
   }, [testId]);
 
-  if (!testId || !data[testId]) {
+  if (!testId || !reports[testId]) {
     return <div>Test not found</div>;
   }
 
-  const results = data[testId];
-  const latest = results[results.length - 1];
-
-  const stats = getTestStats(latest);
+  const testReports = reports[testId];
+  const testMetadata = metadata[testId];
+  const stats = getTestStats(testReports[testReports.length - 1]);
 
   return (
     <div className="test-details">
@@ -73,12 +82,12 @@ export function TestPage() {
           </div>
         </div>
       </div>
-      <CoverageGraph data={{[testId]: results}} />
+      <CoverageGraph reports={{[testId]: testReports}} />
 
-      {latest.failures && latest.failures.length > 0 && (
+      {testMetadata.failures && testMetadata.failures.length > 0 && (
         <div className="test-failure">
           <h2>Failure</h2>
-          {latest.failures.map(([callRepr, _, reproductionDecorator, traceback], index) => (
+          {testMetadata.failures.map(([callRepr, _, reproductionDecorator, traceback], index) => (
             <div key={index} className="test-failure__item">
               <h3>Call</h3>
               <pre>
@@ -91,8 +100,8 @@ export function TestPage() {
         </div>
       )}
 
-      {latest.seed_pool && (
-        <CoveringExamples seedPool={latest.seed_pool} />
+      {testMetadata.seed_pool && (
+        <CoveringExamples seedPool={testMetadata.seed_pool} />
       )}
     </div>
   );

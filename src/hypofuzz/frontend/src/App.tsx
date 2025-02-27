@@ -7,16 +7,21 @@ import { Layout } from './components/Layout'
 
 export function App() {
   return (
-    <WebSocketProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route element={<Layout />}>
-            <Route path="/" element={<TestsPage />} />
-            <Route path="/patches" element={<PatchesPage />} />
-            <Route path="/tests/:testId" element={<TestPage />} />
-          </Route>
-        </Routes>
-      </BrowserRouter>
-    </WebSocketProvider>
+    <BrowserRouter>
+      <Routes>
+        <Route element={<Layout />}>
+          <Route
+            path="/"
+            element={
+              <WebSocketProvider>
+                <TestsPage />
+              </WebSocketProvider>
+            }
+          />
+          <Route path="/patches" element={<PatchesPage />}/>
+          <Route path="/tests/:testId" element={<TestPage />}/>
+        </Route>
+      </Routes>
+    </BrowserRouter>
   )
 }

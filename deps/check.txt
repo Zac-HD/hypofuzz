@@ -4,33 +4,48 @@
 #
 #    pip-compile --annotation-style=line --output-file=deps/check.txt deps/check.in
 #
-attrs==25.1.0             # via -r deps/check.in, hypothesis
+anyio==4.8.0              # via starlette
+attrs==25.1.0             # via -r deps/check.in, hypothesis, outcome, trio
 black==25.1.0             # via shed
 click==8.1.8              # via black
 com2ann==0.3.0            # via shed
-exceptiongroup==1.2.2     # via hypothesis, pytest
-flake8==7.1.1             # via pep8-naming
-hypothesis==6.125.3       # via -r deps/check.in
+exceptiongroup==1.2.2     # via anyio, hypercorn, hypothesis, pytest, taskgroup, trio
+flake8==7.1.2             # via pep8-naming
+h11==0.14.0               # via hypercorn, wsproto
+h2==4.2.0                 # via hypercorn
+hpack==4.1.0              # via h2
+hypercorn==0.17.3         # via -r deps/check.in
+hyperframe==6.1.0         # via h2
+hypothesis==6.127.2       # via -r deps/check.in
+idna==3.10                # via anyio, trio
 iniconfig==2.0.0          # via pytest
 libcst==1.6.0             # via shed
 mccabe==0.7.0             # via flake8
 mypy==1.15.0              # via -r deps/check.in
 mypy-extensions==1.0.0    # via black, mypy
+outcome==1.3.0.post0      # via trio
 packaging==24.2           # via black, pytest
 pathspec==0.12.1          # via black
 pep8-naming==0.14.1       # via -r deps/check.in
 platformdirs==4.3.6       # via black
 pluggy==1.5.0             # via pytest
+priority==2.0.0           # via hypercorn
+psutil==7.0.0             # via -r deps/check.in
 pycodestyle==2.12.1       # via flake8
 pyflakes==3.2.0           # via flake8
 pytest==8.3.4             # via -r deps/check.in
 pyupgrade==3.19.1         # via shed
 pyyaml==6.0.2             # via libcst
-ruff==0.9.6               # via -r deps/check.in, shed
+ruff==0.9.7               # via -r deps/check.in, shed
 shed==2024.10.1           # via -r deps/check.in
-sortedcontainers==2.4.0   # via hypothesis
+sniffio==1.3.1            # via anyio, trio
+sortedcontainers==2.4.0   # via hypothesis, trio
+starlette==0.46.0         # via -r deps/check.in
+taskgroup==0.2.2          # via hypercorn
 tokenize-rt==6.1.0        # via pyupgrade
-tomli==2.2.1              # via black, mypy, pytest
+tomli==2.2.1              # via black, hypercorn, mypy, pytest
+trio==0.29.0              # via -r deps/check.in
 types-requests==2.32.0.20241016  # via -r deps/check.in
-typing-extensions==4.12.2  # via black, mypy
+typing-extensions==4.12.2  # via anyio, black, hypercorn, mypy, taskgroup
 urllib3==2.3.0            # via types-requests
+wsproto==1.2.0            # via hypercorn

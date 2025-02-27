@@ -118,8 +118,11 @@ def _fuzz_impl(numprocesses: int, unsafe: bool, pytest_args: tuple[str, ...]) ->
     # With our arguments validated, it's time to actually do the work.
     tests = _get_hypothesis_tests_with_pytest(pytest_args)
     if not tests:
-        raise click.UsageError("No property-based tests were collected")
-    print(f"{tests=}")
+        raise click.UsageError(
+            f"No property-based tests were collected. args: {pytest_args}"
+        )
+
+    print(f"collected {len(tests)} property-based tests")
     if numprocesses > len(tests) and not unsafe:
         numprocesses = len(tests)
 

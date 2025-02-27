@@ -1,7 +1,9 @@
 """Live web dashboard for a fuzzing run."""
 
-import atexit
-import signal
+import abc
+import json
+import math
+import time
 from collections import defaultdict
 from pathlib import Path
 from typing import Any, Optional
@@ -10,6 +12,8 @@ import black
 import trio
 from hypercorn.config import Config
 from hypercorn.trio import serve
+from hypothesis.database import ListenerEventT
+from sortedcontainers import SortedList
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
@@ -18,33 +22,120 @@ from starlette.responses import FileResponse, JSONResponse, Response
 from starlette.routing import Mount, Route, WebSocketRoute
 from starlette.staticfiles import StaticFiles
 from starlette.websockets import WebSocket, WebSocketDisconnect
+from trio import MemoryReceiveChannel
 
-from .database import get_db
+from .database import Metadata, Report, get_db, metadata_key, reports_key
 from .patching import make_and_save_patches
 
-DATA_TO_PLOT: dict = {}
-LAST_UPDATE: dict = {}
+
+class HypofuzzEncoder(json.JSONEncoder):
+    def default(self, obj: object) -> object:
+        if isinstance(obj, SortedList):
+            return list(obj)
+        return super().default(obj)
+
+
+class HypofuzzWebsocket(abc.ABC):
+    def __init__(self, websocket: WebSocket) -> None:
+        self.websocket = websocket
+
+    async def accept(self) -> None:
+        await self.websocket.accept()
+
+    async def receive_json(self) -> None:
+        await self.websocket.receive_json()
+
+    async def send_json(self, data: Any) -> None:
+        await self.websocket.send_text(json.dumps(data, cls=HypofuzzEncoder))
+
+    @abc.abstractmethod
+    async def initial(
+        self, reports: dict[str, list[Report]], metadata: dict[str, Metadata]
+    ) -> None:
+        pass
+
+    @abc.abstractmethod
+    async def on_event(self, event_type: str, data: Any) -> None:
+        pass
+
+
+class OverviewWebsocket(HypofuzzWebsocket):
+    async def initial(
+        self, reports: dict[str, list[Report]], metadata: dict[str, Metadata]
+    ) -> None:
+        await self.send_json(
+            {"type": "initial", "reports": reports, "metadata": metadata}
+        )
+
+    async def on_event(self, event_type: str, data: Any) -> None:
+        if event_type == "save":
+            await self.send_json({"type": "save", "data": data})
+
+
+class TestWebsocket(HypofuzzWebsocket):
+    def __init__(self, websocket: WebSocket, node_id: str) -> None:
+        super().__init__(websocket)
+        self.node_id = node_id
+
+    async def initial(
+        self, reports: dict[str, list[Report]], metadata: dict[str, Metadata]
+    ) -> None:
+        # match same shape as overview for now (mapping of node id to data)
+        # TODO refactor this, drop the nesting and fix the types typescript-side
+        await self.send_json(
+            {
+                "type": "initial",
+                "reports": {self.node_id: reports[self.node_id]},
+                "metadata": {self.node_id: metadata[self.node_id]},
+            }
+        )
+
+    async def on_event(self, event_type: str, data: Any) -> None:
+        if event_type == "save":
+            node_id = data["nodeid"]
+            if node_id != self.node_id:
+                return
+            await self.send_json({"type": "save", "data": data})
+
+        if event_type == "metadata":
+            node_id = data["nodeid"]
+            if node_id != self.node_id:
+                return
+            await self.send_json({"type": "metadata", "data": data})
+
+        # TODO handle delete and refresh events
+
+
+REPORTS: dict[str, SortedList[Report]] = defaultdict(
+    lambda: SortedList(key=lambda r: r["elapsed_time"])
+)
+METADATA: dict[str, Metadata] = {}
 PYTEST_ARGS: Optional[list[str]] = None
-active_connections: set[WebSocket] = set()
+websockets: set[HypofuzzWebsocket] = set()
+delete_debounce = 300
+refreshed_at: dict[bytes, float] = defaultdict(int)
 
 
 async def websocket(websocket: WebSocket) -> None:
+    websocket = (
+        TestWebsocket(websocket, node_id)
+        if (node_id := websocket.query_params.get("node_id"))
+        else OverviewWebsocket(websocket)
+    )
     await websocket.accept()
-    active_connections.add(websocket)
+    websockets.add(websocket)
+    await websocket.initial(REPORTS, METADATA)
+
     try:
         while True:
             await websocket.receive_json()
     except WebSocketDisconnect:
-        active_connections.remove(websocket)
+        websockets.remove(websocket)
 
 
-async def broadcast_update(data: dict) -> None:
-    # copy since we might modify it
-    for connection in set(active_connections):
-        try:
-            await connection.send_json(data)
-        except WebSocketDisconnect:
-            active_connections.remove(connection)
+async def broadcast_event(event_type: str, data: dict) -> None:
+    for websocket in websockets:
+        await websocket.on_event(event_type, data)
 
 
 def try_format(code: str) -> str:
@@ -55,16 +146,18 @@ def try_format(code: str) -> str:
 
 
 async def api_tests(request: Request) -> Response:
-    return JSONResponse(DATA_TO_PLOT)
+    # ideally we'd use HypofuzzEncoder here, but JSONResponse doesn't accept an encoder
+    reports = {node_id: list(reports) for node_id, reports in REPORTS.items()}
+    return JSONResponse(reports)
 
 
 async def api_test(request: Request) -> Response:
     node_id = request.path_params["node_id"]
-    return JSONResponse(DATA_TO_PLOT[node_id])
+    return JSONResponse(list(REPORTS[node_id]))
 
 
 async def api_patches(request: Request) -> Response:
-    patches = make_and_save_patches(PYTEST_ARGS, LAST_UPDATE)
+    patches = make_and_save_patches(PYTEST_ARGS, REPORTS, METADATA)
 
     return JSONResponse(
         {name: str(patch_path.read_text()) for name, patch_path in patches.items()}
@@ -87,33 +180,6 @@ async def api_pycrunch_file(request: Request) -> Response:
         return Response(status_code=404)
 
     return FileResponse(path=path, media_type="application/octet-stream")
-
-
-async def poll_database_forever() -> None:
-    previous_data = None
-    while True:
-        await poll_database()
-        # TODO use hypothesis db listening
-        if DATA_TO_PLOT != previous_data:
-            await broadcast_update(DATA_TO_PLOT)
-            previous_data = dict(DATA_TO_PLOT)
-        await trio.sleep(1)
-
-
-async def poll_database() -> None:
-    global DATA_TO_PLOT
-
-    db = get_db()
-    data: list = []
-    for key in db.fetch(b"hypofuzz-test-keys"):
-        data.extend(db.fetch_metadata(key))
-    data.sort(key=lambda d: d["elapsed_time"])
-
-    DATA_TO_PLOT = defaultdict(list)
-    for d in data:
-        DATA_TO_PLOT[d["nodeid"]].append(d)
-        LAST_UPDATE[d["nodeid"]] = d
-    DATA_TO_PLOT = dict(DATA_TO_PLOT)
 
 
 dist = Path(__file__).parent / "frontend" / "dist"
@@ -149,10 +215,68 @@ async def serve_app(app: Any, host: str, port: str) -> None:
     await serve(app, config)
 
 
+async def handle_event(receive_channel: MemoryReceiveChannel) -> None:
+    async for event_type, args in receive_channel:
+        if event_type == "save":
+            key, value = args
+            assert value is not None
+            if key.endswith(reports_key):
+                report = json.loads(value)
+                REPORTS[report["nodeid"]].add(report)
+                await broadcast_event("save", report)
+            if key.endswith(metadata_key):
+                metadata = json.loads(value)
+                METADATA[metadata["nodeid"]] = metadata
+                await broadcast_event("metadata", metadata)
+
+        if event_type == "delete":
+            key, value = args
+
+            if key.endswith(reports_key):
+                key = key.rstrip(reports_key)
+                if value is not None:
+                    report = json.loads(value)
+                    REPORTS[report["nodeid"]].remove(report)
+                    await broadcast_event("delete", report)
+                else:
+                    # debounce each key, to relieve db read pressure for this expensive
+                    # re-scan. Deletions aren't important for correctness, just
+                    # performance / memory.
+                    if time.time() - refreshed_at[key] > delete_debounce:
+                        reports = SortedList(
+                            list(get_db().fetch_reports(key)),
+                            key=lambda r: r["elapsed_time"],
+                        )
+                        if reports:
+                            node_id = reports[0]["nodeid"]
+                            REPORTS[node_id] = reports
+                            await broadcast_event("refresh", reports)
+                        refreshed_at[key] = time.time()
+
+            # We're only keeping a reference to the latest metadata, so we don't need
+            # to bother handling deletion events for it, just save.
+
+
 async def run_dashboard(port: int, host: str) -> None:
+    send_channel, receive_channel = trio.open_memory_channel[ListenerEventT](math.inf)
+    token = trio.lowlevel.current_trio_token()
+
+    def send_nowait_from_anywhere(msg: ListenerEventT) -> None:
+        # DirectoryBasedExampleDatabase sends events from a background thread (via watchdog),
+        # so we need to support sending from anywhere, i.e. whether or not the calling thread
+        # has any Trio state.  We can do that with the following branch:
+        try:
+            trio.lowlevel.current_task()
+        except RuntimeError:
+            trio.from_thread.run_sync(send_channel.send_nowait, msg, trio_token=token)
+        else:
+            send_channel.send_nowait(msg)
+
+    db = get_db()
+    db._db.add_listener(send_nowait_from_anywhere)
     async with trio.open_nursery() as nursery:
-        nursery.start_soon(poll_database_forever)
-        nursery.start_soon(serve_app, app, host, port)
+        nursery.start_soon(serve_app, app, host, port)  # type: ignore
+        nursery.start_soon(handle_event, receive_channel)
 
 
 def start_dashboard_process(
@@ -166,18 +290,6 @@ def start_dashboard_process(
     # we run a pytest collection step for the dashboard to pick up on databases
     # from custom profiles.
     _get_hypothesis_tests_with_pytest(pytest_args)
-
-    # Ensure that we dump whatever patches are ready before shutting down
-    def signal_handler(signum, frame):  # type: ignore
-        make_and_save_patches(pytest_args, LAST_UPDATE)
-        if old_handler in (signal.SIG_DFL, None):
-            return old_handler
-        elif old_handler is not signal.SIG_IGN:
-            return old_handler(signum, frame)
-        raise NotImplementedError("Unreachable")
-
-    old_handler = signal.signal(signal.SIGTERM, signal_handler)
-    atexit.register(make_and_save_patches, pytest_args, LAST_UPDATE)
 
     print(f"\n\tNow serving dashboard at  http://{host}:{port}/\n")
     trio.run(run_dashboard, port, host)

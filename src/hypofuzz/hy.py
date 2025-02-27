@@ -11,7 +11,7 @@ from collections.abc import Callable, Generator
 from contextlib import suppress
 from functools import lru_cache
 from random import Random
-from typing import Any, Optional, Union
+from typing import Any, Optional, Union, cast
 
 from hypothesis import settings
 from hypothesis.control import BuildContext
@@ -45,7 +45,7 @@ from .corpus import (
     get_shrinker,
 )
 from .cov import CustomCollectionContext
-from .database import Report, get_db
+from .database import Metadata, Report, WorkerT, get_db
 from .provider import HypofuzzProvider
 
 record_pytrace: Optional[Callable[..., Any]]
@@ -163,8 +163,8 @@ class FuzzProcess:
     def startup(self) -> None:
         """Set up initial state and prepare to replay the saved behaviour."""
         # If we're continuing to fuzz something we've tested before, load some stats
-        if metadata := list(get_db().fetch_metadata(self.database_key)):
-            latest: Any = max(metadata, key=lambda d: d["elapsed_time"])
+        if reports := list(get_db().fetch_reports(self.database_key)):
+            latest: Any = max(reports, key=lambda d: d["elapsed_time"])
             self.ninputs = latest["ninputs"]
             self.elapsed_time = latest["elapsed_time"]
         # Report that we've started this fuzz target
@@ -247,7 +247,8 @@ class FuzzProcess:
                     ConjectureData.for_choices(shrinker.choices),
                     collector=record_pytrace(self.nodeid),
                 )
-            self._report(self._json_description)
+            self._save_report(self._report)
+            self._replace_metadata(self._metadata)
 
         # Consider switching out of blackbox mode.
         if self.since_new_cov >= 1000 and not self._replay_queue:
@@ -350,7 +351,8 @@ class FuzzProcess:
         else:
             self.since_new_cov += 1
         if 0 in (self.since_new_cov, self.ninputs % 100):
-            self._report(self._json_description)
+            self._save_report(self._report)
+            self._replace_metadata(self._metadata)
 
         self.elapsed_time += time.perf_counter() - start
         if self.elapsed_time > self.stop_shrinking_at:
@@ -359,51 +361,31 @@ class FuzzProcess:
         # The shrinker relies on returning the data object to be inspected.
         return data.as_result()
 
-    def _report(self, report: Report) -> None:
+    def _save_report(self, report: Report) -> None:
         db = get_db()
-        db.save_metadata(self.database_key, report)
+        db.save_report(self.database_key, report)
 
         # Having written the latest report, we can avoid bloating the database
-        # by dropping the previous report, and re-adding a trimmed version if
-        # it differs from the latest in more than just runtime.
-        # TODO proper typing for Report and ReportReduced
-        if self._last_report:
-            db.delete_metadata(self.database_key, self._last_report)
-
+        # by dropping the previous report if it differs from the latest in more
+        # than just runtime.
         if self._last_report and (
             self._last_report["branches"] != report["branches"]
             or self._last_report["note"] != report["note"]
             or self.pool.interesting_examples
-            # avoid dropping reports which discovered new coverage
+            # always keep reports which discovered new coverage
             or self._last_report["since_new_cov"] == 0
         ):
-            reduced_report = {
-                k: self._last_report[k]
-                for k in [
-                    "nodeid",
-                    "elapsed_time",
-                    "timestamp",
-                    "worker",
-                    "ninputs",
-                    "branches",
-                ]
-            }
-            db.save_metadata(self.database_key, reduced_report)
+            db.delete_report(self.database_key, self._last_report)
 
         self._last_report = report
 
+    def _replace_metadata(self, metadata: Metadata) -> None:
+        db = get_db()
+        db.replace_metadata(self.database_key, metadata)
+
     @property
-    def _json_description(self) -> Report:
+    def _report(self) -> Report:
         """Summarise current state to send to dashboard."""
-        if self.ninputs == 0:
-            return {
-                "nodeid": self.nodeid,
-                "note": "starting up...",
-                "ninputs": 0,
-                "branches": 0,
-                "elapsed_time": 0,
-                "since_new_cov": None,
-            }
         report: Report = {
             "nodeid": self.nodeid,
             "elapsed_time": self.elapsed_time,
@@ -411,26 +393,39 @@ class FuzzProcess:
             "worker": where_am_i(),
             "ninputs": self.ninputs,
             "branches": len(self.pool.arc_counts),
-            "since_new_cov": self.since_new_cov,
+            "since_new_cov": None if self.ninputs == 0 else self.since_new_cov,
             "loaded_from_db": len(self.pool._loaded_from_database),
-            "status_counts": dict(self.status_counts),
-            "seed_pool": self.pool.json_report,
             "note": (
-                "replaying saved examples"
-                if self._replay_queue
-                else ("shrinking known examples" if self.pool._in_distill_phase else "")
+                "starting up..."
+                if self.ninputs == 0
+                else (
+                    "replaying saved examples"
+                    if self._replay_queue
+                    else (
+                        "shrinking known examples"
+                        if self.pool._in_distill_phase
+                        else ""
+                    )
+                )
             ),
         }
+
         if self.pool.interesting_examples:
             report["note"] = (
                 f"raised {list(self.pool.interesting_examples)[0][0].__name__} "
                 f"({'shrinking...' if self.shrinking else 'finished'})"
             )
-            report["failures"] = [
-                ls for _, ls in self.pool.interesting_examples.values()
-            ]
-            del report["since_new_cov"]
+            report["since_new_cov"] = None
         return report
+
+    @property
+    def _metadata(self) -> Metadata:
+        return {
+            "nodeid": self.nodeid,
+            "seed_pool": self.pool.json_report,
+            "failures": [ls for _, ls in self.pool.interesting_examples.values()],
+            "status_counts": dict(self.status_counts),
+        }
 
     @property
     def has_found_failure(self) -> bool:
@@ -469,7 +464,7 @@ def fuzz_several(*targets_: FuzzProcess, random_seed: Optional[int] = None) -> N
 
 
 @lru_cache
-def where_am_i() -> dict[str, Union[int, str]]:
+def where_am_i() -> WorkerT:
     """Return a json blob identifying the machine running this code.
 
     This is intended to roughly represent the "unit of fuzz worker", so it includes
@@ -480,13 +475,14 @@ def where_am_i() -> dict[str, Union[int, str]]:
     total number of inputs, and so on.  In practice we don't care that much about
     precision here, because the code under test is likely to be changing too.
     """
-    identifiers: dict[str, Union[str, int, None]] = {
+    identifiers: WorkerT = {
         "pid": os.getpid(),
         "hostname": socket.gethostname(),  # In K8s, this is typically the pod name
         "pod_name": os.getenv("HOSTNAME"),
         "pod_namespace": os.getenv("POD_NAMESPACE"),
         "node_name": os.getenv("NODE_NAME"),
         "pod_ip": os.getenv("POD_IP"),
+        "container_id": None,
     }
     with suppress(Exception), open("/proc/self/cgroup") as f:
         for line in f:
@@ -495,4 +491,4 @@ def where_am_i() -> dict[str, Union[int, str]]:
                 identifiers["container_id"] = container_id
                 break
 
-    return {k: v for k, v in identifiers.items() if v is not None}
+    return cast(WorkerT, {k: v for k, v in identifiers.items() if v is not None})

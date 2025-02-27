@@ -3,13 +3,13 @@ import { CoverageGraph } from '../components/CoverageGraph'
 import { useWebSocket } from '../context/WebSocketContext'
 
 export function TestsPage() {
-  const { data } = useWebSocket()
+  const { reports, metadata } = useWebSocket()
 
   return (
     <div className="dashboard">
-      <CoverageGraph data={data} />
+      <CoverageGraph reports={reports}/>
       <h2>Tests</h2>
-      <TestTable data={data} />
+      <TestTable reports={reports} metadata={metadata} />
     </div>
   )
 }

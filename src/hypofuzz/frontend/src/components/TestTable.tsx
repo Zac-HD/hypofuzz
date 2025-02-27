@@ -1,24 +1,25 @@
 import { Link } from 'react-router-dom';
-import { TestRecord } from '../types/dashboard';
+import { Report, Metadata } from '../types/dashboard';
 import { getTestStats } from '../utils/testStats';
 
 interface Props {
-  data: Record<string, TestRecord[]>;
+  reports: Record<string, Report[]>;
+  metadata: Record<string, Metadata>;
 }
 
 interface GroupedTests {
-  failing: Array<[string, TestRecord[]]>;
-  running: Array<[string, TestRecord[]]>;
-  notStarted: Array<[string, TestRecord[]]>;
+  failing: Array<[string, Report[]]>;
+  running: Array<[string, Report[]]>;
+  notStarted: Array<[string, Report[]]>;
 }
 
-function groupTests(data: Record<string, TestRecord[]>): GroupedTests {
-  const entries = Object.entries(data);
-  const grouped = entries.reduce((acc: GroupedTests, entry) => {
+function groupTests(reports: Record<string, Report[]>, metadata: Record<string, Metadata>): GroupedTests {
+  const grouped = Object.entries(reports).reduce((acc: GroupedTests, entry) => {
     const [_, results] = entry;
     const latest = results[results.length - 1];
+    const testMetadata = metadata[latest.nodeid];
 
-    if (latest.failures?.length) {
+    if (testMetadata.failures?.length) {
       acc.failing.push(entry);
     } else if (latest.ninputs === 0) {
       acc.notStarted.push(entry);
@@ -28,7 +29,7 @@ function groupTests(data: Record<string, TestRecord[]>): GroupedTests {
     return acc;
   }, { failing: [], running: [], notStarted: [] });
 
-  const sortByInputs = (a: [string, TestRecord[]], b: [string, TestRecord[]]) => {
+  const sortByInputs = (a: [string, Report[]], b: [string, Report[]]) => {
     const aInputs = a[1][a[1].length - 1].ninputs;
     const bInputs = b[1][b[1].length - 1].ninputs;
     return bInputs - aInputs;
@@ -55,7 +56,7 @@ function formatTime(seconds: number): string {
   }
 }
 
-function Row({ testId, results }: { testId: string, results: TestRecord[] }) {
+function Row({ testId, results }: { testId: string, results: Report[] }) {
   const latest = results[results.length - 1];
   const stats = getTestStats(latest);
 
@@ -75,8 +76,8 @@ function Row({ testId, results }: { testId: string, results: TestRecord[] }) {
   );
 }
 
-export function TestTable({ data }: Props) {
-  const { failing, running, notStarted } = groupTests(data);
+export function TestTable({ reports, metadata }: Props) {
+  const { failing, running, notStarted } = groupTests(reports, metadata);
 
   return (
     <table className="test-table">
