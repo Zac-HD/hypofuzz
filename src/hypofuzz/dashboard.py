@@ -5,7 +5,6 @@ import json
 import math
 import time
 from collections import defaultdict
-from functools import partial
 from pathlib import Path
 from typing import Any, Optional
 
@@ -13,7 +12,7 @@ import black
 import trio
 from hypercorn.config import Config
 from hypercorn.trio import serve
-from hypothesis.database import DirectoryBasedExampleDatabase, ListenerEventT
+from hypothesis.database import ListenerEventT
 from sortedcontainers import SortedList
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
@@ -265,7 +264,7 @@ async def run_dashboard(port: int, host: str) -> None:
     def send_nowait_from_anywhere(msg: ListenerEventT) -> None:
         # DirectoryBasedExampleDatabase sends events from a background thread (via watchdog),
         # so we need to support sending from anywhere, i.e. whether or not the calling thread
-        # has any Trio state.  We can do that with the following branch: 
+        # has any Trio state.  We can do that with the following branch:
         try:
             trio.lowlevel.current_task()
         except RuntimeError:
