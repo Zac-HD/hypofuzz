@@ -20,7 +20,7 @@ class WorkerT(TypedDict):
 # Conceptually:
 # * A report is an incremental progress marker which we don't want to delete,
 #   because seeing intermediary stages in e.g. a graph is useful information
-# * Ketadata is the latest status of a test, which we might update to something
+# * Metadata is the latest status of a test, which we might update to something
 #   different if new information comes along. Intermediate metadata steps are
 #   not saved because they are not interesting.
 class Report(TypedDict):
@@ -50,6 +50,11 @@ metadata_key = b".hypofuzz.metadata"
 class HypofuzzDatabase:
     def __init__(self, db: ExampleDatabase) -> None:
         self._db = db
+
+    def __str__(self) -> str:
+        return f"HypofuzzDatabase({self._db!r})"
+
+    __repr__ = __str__
 
     def _encode(self, data: Any) -> bytes:
         return bytes(json.dumps(data), "ascii")
