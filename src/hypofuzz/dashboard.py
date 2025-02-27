@@ -262,7 +262,7 @@ async def run_dashboard(port: int, host: str) -> None:
     send_channel, receive_channel = trio.open_memory_channel[ListenerEventT](math.inf)
     token = trio.lowlevel.current_trio_token()
 
-    def send_nowait_from_anywhere(msg: object) -> None:
+    def send_nowait_from_anywhere(msg: ListenerEventT) -> None:
         # DirectoryBasedExampleDatabase sends events from a background thread (via watchdog),
         # so we need to support sending from anywhere, i.e. whether or not the calling thread
         # has any Trio state.  We can do that with the following branch: 
