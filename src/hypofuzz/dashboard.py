@@ -1,11 +1,11 @@
 """Live web dashboard for a fuzzing run."""
 
 import abc
-import atexit
 import json
-import signal
+import math
 import time
 from collections import defaultdict
+from functools import partial
 from pathlib import Path
 from typing import Any, Optional
 
@@ -13,7 +13,7 @@ import black
 import trio
 from hypercorn.config import Config
 from hypercorn.trio import serve
-from hypothesis.database import ListenerEventT
+from hypothesis.database import DirectoryBasedExampleDatabase, ListenerEventT
 from sortedcontainers import SortedList
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
@@ -23,6 +23,7 @@ from starlette.responses import FileResponse, JSONResponse, Response
 from starlette.routing import Mount, Route, WebSocketRoute
 from starlette.staticfiles import StaticFiles
 from starlette.websockets import WebSocket, WebSocketDisconnect
+from trio import MemoryReceiveChannel
 
 from .database import Metadata, Report, get_db, metadata_key, reports_key
 from .patching import make_and_save_patches
@@ -138,48 +139,6 @@ async def broadcast_event(event_type: str, data: dict) -> None:
         await websocket.on_event(event_type, data)
 
 
-def database_listener(event: ListenerEventT) -> None:
-    event_type, args = event
-    if event_type == "save":
-        key, value = args
-        assert value is not None
-        if key.endswith(reports_key):
-            report = json.loads(value)
-            REPORTS[report["nodeid"]].add(report)
-            trio.run(broadcast_event, "save", report)
-        if key.endswith(metadata_key):
-            metadata = json.loads(value)
-            METADATA[metadata["nodeid"]] = metadata
-            trio.run(broadcast_event, "metadata", metadata)
-
-    if event_type == "delete":
-        key, value = args
-
-        if key.endswith(reports_key):
-            key = key.rstrip(reports_key)
-            if value is not None:
-                report = json.loads(value)
-                REPORTS[report["nodeid"]].remove(report)
-                trio.run(broadcast_event, "delete", report)
-            else:
-                # debounce each key, to relieve db read pressure for this expensive
-                # re-scan. Deletions aren't important for correctness, just
-                # performance / memory.
-                if time.time() - refreshed_at[key] > delete_debounce:
-                    reports = SortedList(
-                        list(get_db().fetch_reports(key)),
-                        key=lambda r: r["elapsed_time"],
-                    )
-                    if reports:
-                        node_id = reports[0]["nodeid"]
-                        REPORTS[node_id] = reports
-                        trio.run(broadcast_event, "refresh", reports)
-                    refreshed_at[key] = time.time()
-
-        # We're only keeping a reference to the latest metadata, so we don't need
-        # to bother handling deletion events for it, just save.
-
-
 def try_format(code: str) -> str:
     try:
         return black.format_str(code, mode=black.FileMode())
@@ -257,9 +216,65 @@ async def serve_app(app: Any, host: str, port: str) -> None:
     await serve(app, config)
 
 
+async def handle_event(receive_channel: MemoryReceiveChannel) -> None:
+    async for event_type, args in receive_channel:
+        if event_type == "save":
+            key, value = args
+            assert value is not None
+            if key.endswith(reports_key):
+                report = json.loads(value)
+                REPORTS[report["nodeid"]].add(report)
+                await broadcast_event("save", report)
+            if key.endswith(metadata_key):
+                metadata = json.loads(value)
+                METADATA[metadata["nodeid"]] = metadata
+                await broadcast_event("metadata", metadata)
+
+        if event_type == "delete":
+            key, value = args
+
+            if key.endswith(reports_key):
+                key = key.rstrip(reports_key)
+                if value is not None:
+                    report = json.loads(value)
+                    REPORTS[report["nodeid"]].remove(report)
+                    await broadcast_event("delete", report)
+                else:
+                    # debounce each key, to relieve db read pressure for this expensive
+                    # re-scan. Deletions aren't important for correctness, just
+                    # performance / memory.
+                    if time.time() - refreshed_at[key] > delete_debounce:
+                        reports = SortedList(
+                            list(get_db().fetch_reports(key)),
+                            key=lambda r: r["elapsed_time"],
+                        )
+                        if reports:
+                            node_id = reports[0]["nodeid"]
+                            REPORTS[node_id] = reports
+                            await broadcast_event("refresh", reports)
+                        refreshed_at[key] = time.time()
+
+            # We're only keeping a reference to the latest metadata, so we don't need
+            # to bother handling deletion events for it, just save.
+
+
 async def run_dashboard(port: int, host: str) -> None:
+    send_channel, receive_channel = trio.open_memory_channel[ListenerEventT](math.inf)
+    db = get_db()
+    db._db.add_listener(
+        # DirectoryBasedExampleDatabase sends events from a background thread (via watchdog).
+        partial(
+            trio.from_thread.run_sync,
+            send_channel.send_nowait,  # type: ignore
+            trio_token=trio.lowlevel.current_trio_token(),
+        )
+        # two layers of unwrapping: db is a HypofuzzDatabase(BackgroundWriteDatabse(<actual database here>))
+        if isinstance(db._db._db, DirectoryBasedExampleDatabase)  # type: ignore
+        else send_channel.send_nowait
+    )
     async with trio.open_nursery() as nursery:
         nursery.start_soon(serve_app, app, host, port)  # type: ignore
+        nursery.start_soon(handle_event, receive_channel)
 
 
 def start_dashboard_process(
@@ -273,19 +288,6 @@ def start_dashboard_process(
     # we run a pytest collection step for the dashboard to pick up on databases
     # from custom profiles.
     _get_hypothesis_tests_with_pytest(pytest_args)
-    get_db()._db.add_listener(database_listener)
-
-    # Ensure that we dump whatever patches are ready before shutting down
-    def signal_handler(signum, frame):  # type: ignore
-        make_and_save_patches(pytest_args, REPORTS, METADATA)
-        if old_handler in (signal.SIG_DFL, None):
-            return old_handler
-        elif old_handler is not signal.SIG_IGN:
-            return old_handler(signum, frame)
-        raise NotImplementedError("Unreachable")
-
-    old_handler = signal.signal(signal.SIGTERM, signal_handler)
-    atexit.register(make_and_save_patches, pytest_args, REPORTS, METADATA)
 
     print(f"\n\tNow serving dashboard at  http://{host}:{port}/\n")
     trio.run(run_dashboard, port, host)
