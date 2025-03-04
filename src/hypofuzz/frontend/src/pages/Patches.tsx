@@ -1,18 +1,18 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState } from "react"
 
 export function PatchesPage() {
   const [patches, setPatches] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch('/api/patches/')
+    fetch("/api/patches/")
       .then(response => response.json())
       .then(data => {
         setPatches(data)
         setLoading(false)
       })
       .catch(error => {
-        console.error('Failed to fetch patches:', error)
+        console.error("Failed to fetch patches:", error)
         setLoading(false)
       })
   }, [])

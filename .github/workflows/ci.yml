@@ -15,12 +15,19 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: "3.11"
+    - name: Set up Node 20
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
     - name: Install dependencies
-      run: python -m pip install --upgrade pip setuptools tox
+      run: |
+        python -m pip install --upgrade pip setuptools tox
+        npm ci --prefix src/hypofuzz/frontend
     - name: Run checks
       run: |
         python -m tox --recreate -e check
         git diff --exit-code
+        npm run format:check --prefix src/hypofuzz/frontend
 
   docs:
     runs-on: ubuntu-latest

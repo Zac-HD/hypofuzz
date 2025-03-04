@@ -2,6 +2,10 @@
 HypoFuzz uses [calendar-based versioning](https://calver.org/), with a
 `YY-MM-patch` format.
 
+## 25.03.1
+
+Internal code formatting with no behavioral changes.
+
 ## 25.02.5
 
 We now use the new [pub-sub database interface in Hypothesis](https://hypothesis.readthedocs.io/en/latest/changes.html#v6-126-0) to update the dashboard. Dashboard updates should be significantly more responsive and use less resources.
