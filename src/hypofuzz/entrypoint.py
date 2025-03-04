@@ -73,7 +73,7 @@ def fuzz(
     """
     dash_proc = None
     if dashboard or dashboard_only:
-        from .dashboard import start_dashboard_process
+        from hypofuzz.dashboard import start_dashboard_process
 
         dash_proc = Process(
             target=start_dashboard_process,
@@ -113,7 +113,7 @@ def _fuzz_impl(numprocesses: int, unsafe: bool, pytest_args: tuple[str, ...]) ->
             f"fuzzer option{plural} {names} would be passed to pytest instead"
         )
 
-    from .interface import _fuzz_several, _get_hypothesis_tests_with_pytest
+    from hypofuzz.interface import _fuzz_several, _get_hypothesis_tests_with_pytest
 
     # With our arguments validated, it's time to actually do the work.
     tests = _get_hypothesis_tests_with_pytest(pytest_args)

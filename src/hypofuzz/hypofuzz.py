@@ -37,20 +37,20 @@ from hypothesis.reporting import with_reporter
 from hypothesis.vendor.pretty import RepresentationPrinter
 from sortedcontainers import SortedKeyList
 
-from .corpus import (
+from hypofuzz.corpus import (
     BlackBoxMutator,
     CrossOverMutator,
     HowGenerated,
     Pool,
     get_shrinker,
 )
-from .cov import CustomCollectionContext
-from .database import Metadata, Report, WorkerT, get_db
-from .provider import HypofuzzProvider
+from hypofuzz.coverage import CustomCollectionContext
+from hypofuzz.database import Metadata, Report, WorkerT, get_db
+from hypofuzz.provider import HypofuzzProvider
 
 record_pytrace: Optional[Callable[..., Any]]
 try:
-    from .debugger import record_pytrace
+    from hypofuzz.pytrace import record_pytrace
 except ImportError:
     record_pytrace = None
 

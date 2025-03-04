@@ -24,8 +24,8 @@ from starlette.staticfiles import StaticFiles
 from starlette.websockets import WebSocket, WebSocketDisconnect
 from trio import MemoryReceiveChannel
 
-from .database import Metadata, Report, get_db, metadata_key, reports_key
-from .patching import make_and_save_patches
+from hypofuzz.database import Metadata, Report, get_db, metadata_key, reports_key
+from hypofuzz.patching import make_and_save_patches
 
 
 class HypofuzzEncoder(json.JSONEncoder):
@@ -282,7 +282,7 @@ async def run_dashboard(port: int, host: str) -> None:
 def start_dashboard_process(
     port: int, *, pytest_args: list, host: str = "localhost"
 ) -> None:
-    from .interface import _get_hypothesis_tests_with_pytest
+    from hypofuzz.interface import _get_hypothesis_tests_with_pytest
 
     global PYTEST_ARGS
     PYTEST_ARGS = pytest_args

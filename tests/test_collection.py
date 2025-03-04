@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from hypofuzz import interface
-from hypofuzz.hy import FuzzProcess
+from hypofuzz.hypofuzz import FuzzProcess
 
 
 def collect(code: str) -> list[FuzzProcess]:
