@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "format": "prettier --write src",
+    "format:check": "prettier --check src"
   },
   "dependencies": {
     "d3": "^7.8.5",
@@ -20,8 +22,21 @@
     "@types/react-dom": "^18.2.17",
     "@types/react-router-dom": "^5.3.3",
     "@vitejs/plugin-react": "^4.2.1",
+    "prettier": "^3.2.5",
     "sass": "^1.84.0",
     "typescript": "^5.2.2",
     "vite": "^5.0.8"
+  },
+  "prettier": {
+    "semi": false,
+    "arrowParens": "avoid",
+    "overrides": [
+      {
+        "files": "*.scss",
+        "options": {
+          "tabWidth": 4
+        }
+      }
+    ]
   }
 }
