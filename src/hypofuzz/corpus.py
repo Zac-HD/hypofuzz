@@ -22,7 +22,7 @@ from hypothesis.internal.conjecture.shrinker import Shrinker, sort_key as _sort_
 from hypothesis.internal.escalation import InterestingOrigin
 from sortedcontainers import SortedDict
 
-from .cov import Arc
+from hypofuzz.coverage import Arc
 
 if TYPE_CHECKING:
     from typing import TypeAlias

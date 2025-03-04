@@ -3,7 +3,7 @@
 from hypothesis import given, strategies as st
 from hypothesis.internal.conjecture.data import Status
 
-from hypofuzz.hy import FuzzProcess
+from hypofuzz.hypofuzz import FuzzProcess
 
 
 @given(st.integers())

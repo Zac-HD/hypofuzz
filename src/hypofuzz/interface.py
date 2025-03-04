@@ -16,7 +16,7 @@ from packaging import version
 if TYPE_CHECKING:
     # We have to defer imports to within functions here, because this module
     # is a Hypothesis entry point and is thus imported earlier than the others.
-    from .hy import FuzzProcess
+    from hypofuzz.hypofuzz import FuzzProcess
 
 pytest8 = version.parse(pytest.__version__) >= version.parse("8.0.0")
 
@@ -37,7 +37,7 @@ class _ItemsCollector:
         self.fuzz_targets: list[FuzzProcess] = []
 
     def pytest_collection_finish(self, session: pytest.Session) -> None:
-        from .hy import FuzzProcess
+        from hypofuzz.hypofuzz import FuzzProcess
 
         for item in session.items:
             if not isinstance(item, pytest.Function):
@@ -169,7 +169,7 @@ def _fuzz_several(pytest_args: tuple[str, ...], nodeids: list[str]) -> None:
     method - requires picklable arguments but works on Windows too.
     """
     # Import within the function to break an import cycle when used as an entry point.
-    from .hy import fuzz_several
+    from hypofuzz.hypofuzz import fuzz_several
 
     tests = [
         t for t in _get_hypothesis_tests_with_pytest(pytest_args) if t.nodeid in nodeids
