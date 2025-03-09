@@ -30,7 +30,7 @@ export function Layout() {
           </Link>
         </nav>
       </div>
-      <div className="main-content">
+      <div className="content">
         <Outlet />
       </div>
     </div>

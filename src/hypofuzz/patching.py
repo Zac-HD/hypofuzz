@@ -27,6 +27,8 @@ def make_and_save_patches(
 
     tests = {t.nodeid: t._test_fn for t in get_all_tests(pytest_args)}
     for nodeid, test_fn in tests.items():
+        if nodeid not in reports or nodeid not in metadata or not reports[nodeid]:
+            continue
         report = reports[nodeid][-1]
         node_metadata = metadata[nodeid]
         # for each func

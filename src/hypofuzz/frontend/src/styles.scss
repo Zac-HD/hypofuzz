@@ -26,7 +26,6 @@ select {
 // actual styles
 
 .test-details {
-    margin: 20px;
     padding: 20px;
     background: white;
     border-radius: 8px;
@@ -39,12 +38,6 @@ select {
     background: white;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.dashboard {
-    h2 {
-        margin: 20px 0;
-    }
 }
 
 .test-table {
@@ -165,7 +158,7 @@ select {
     }
 }
 
-.main-content {
+.content {
     flex: 1;
     padding: 20px 30px;
 }
@@ -225,63 +218,24 @@ select {
     }
 }
 
-.coverage-progress {
+.card {
     background: white;
     padding: 20px;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 
+    // .card + .card, adds spacing between consecutive siblings
+    & + & {
+        margin-top: 30px;
+    }
+
     &__header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 10px;
-    }
-
-    &__controls {
-        display: flex;
-        gap: 10px;
-        align-items: center;
-    }
-
-    svg {
-        background: white;
-
-        .domain {
-            stroke: #ccc;
-        }
-
-        .tick {
-            line {
-                stroke: #eee;
-            }
-
-            text {
-                fill: #666;
-                font-size: 12px;
-            }
-        }
-
-        path {
-            transition: stroke-width 0.2s ease;
-        }
-
-        circle {
-            transition: r 0.2s ease;
-
-            &:hover {
-                r: 5;
-            }
-        }
+        font-size: 1.8rem;
+        font-weight: 600;
     }
 }
 
-.aggregate-graph {
-    background: white;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-
+.coverage-graph {
     &__header {
         display: flex;
         justify-content: space-between;
@@ -293,6 +247,7 @@ select {
         display: flex;
         gap: 10px;
         align-items: center;
+        justify-content: flex-end;
     }
 
     &__tooltip {
@@ -307,29 +262,29 @@ select {
         display: none;
     }
 
-    svg {
+    &__svg {
         background: white;
-    }
 
-    .domain {
-        stroke: #ccc;
-    }
+        .domain {
+            stroke: #ccc;
+        }
 
-    .tick line {
-        stroke: #eee;
-    }
+        .tick line {
+            stroke: #eee;
+        }
 
-    .tick text {
-        fill: #666;
-        font-size: 12px;
-    }
+        .tick text {
+            fill: #666;
+            font-size: 12px;
+        }
 
-    .coverage-line {
-        transition: stroke-width 0.2s ease;
-        stroke-width: 2;
+        .coverage-line {
+            transition: stroke-width 0.2s ease;
+            stroke-width: 2;
 
-        &__selected {
-            stroke-width: 4;
+            &__selected {
+                stroke-width: 4;
+            }
         }
     }
 }
@@ -340,7 +295,6 @@ select {
     background: #eee;
     padding: 2px;
     border-radius: 4px;
-    margin-bottom: 10px;
 
     &__button {
         border: none;
