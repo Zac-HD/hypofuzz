@@ -74,10 +74,10 @@ class HypofuzzDatabase:
     def delete_report(self, key: bytes, report: Report) -> None:
         self.delete(key + reports_key, self._encode(report))
 
-    def fetch_reports(self, key: bytes) -> Iterable[Report]:
+    def fetch_reports(self, key: bytes) -> list[Report]:
         return [json.loads(e) for e in self.fetch(key + reports_key)]
 
-    def fetch_metadata(self, key: bytes) -> Iterable[Metadata]:
+    def fetch_metadata(self, key: bytes) -> list[Metadata]:
         return [json.loads(e) for e in self.fetch(key + metadata_key)]
 
     def replace_metadata(self, key: bytes, metadata: Metadata) -> None:
