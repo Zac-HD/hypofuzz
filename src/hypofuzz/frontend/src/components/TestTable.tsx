@@ -21,6 +21,10 @@ function groupTests(
     (acc: GroupedTests, entry) => {
       const [_, results] = entry
       const latest = results[results.length - 1]
+      // TODO look into how this is possible and what we should do in this case
+      if (!(latest.nodeid in metadata)) {
+        return acc
+      }
       const testMetadata = metadata[latest.nodeid]
 
       if (testMetadata.failures?.length) {
