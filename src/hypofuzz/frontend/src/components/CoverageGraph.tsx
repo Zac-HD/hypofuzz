@@ -105,7 +105,7 @@ class Graph {
       .attr("pointer-events", "all")
 
     const zoom = d3
-      .zoom<SVGSVGElement, unknown>()
+      .zoom<SVGGElement, unknown>()
       .extent([
         [0, 0],
         [this.width, this.height],
@@ -114,12 +114,14 @@ class Graph {
         [0, -Infinity],
         [Infinity, this.height],
       ])
+      .scaleExtent([1, Infinity])
       .on("zoom", event => this.onZoom(event))
-    d3.select(svg).call(zoom as any)
+
+    this.chartArea.call(zoom as any)
 
     // reset to original on doubleclick
-    d3.select(svg).on("dblclick.zoom", () => {
-      d3.select(svg)
+    this.chartArea.on("dblclick.zoom", () => {
+      this.chartArea
         .transition()
         .duration(500)
         .call(zoom.transform, d3.zoomIdentity)
@@ -219,7 +221,6 @@ class Graph {
   onZoom(event: d3.D3ZoomEvent<SVGGElement, unknown>) {
     const transform = event.transform
     const newX = transform.rescaleX(this.x)
-    const newY = transform.rescaleY(this.y)
 
     this.xAxis.call(
       d3
@@ -227,14 +228,13 @@ class Graph {
         .ticks(5)
         .tickFormat(d => d.toLocaleString()),
     )
-    this.yAxis.call(d3.axisLeft(newY).ticks(5))
 
     this.g.selectAll<SVGPathElement, Report[]>(".chart-area path").attr(
       "d",
       d3
         .line<Report>()
         .x(d => newX(Math.max(1, this.xValue(d))))
-        .y(d => newY(d.branches)),
+        .y(d => this.y(d.branches)),
     )
   }
 
