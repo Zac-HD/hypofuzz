@@ -281,7 +281,12 @@ async def run_dashboard(port: int, host: str) -> None:
             # TODO we should really add the node id to hypofuzz-test-keys entries
             node_id = reports[0]["nodeid"]
             REPORTS[node_id] = SortedList(reports, key=lambda r: r["elapsed_time"])
-            METADATA[node_id] = metadata
+        if metadata:
+            node_id = metadata[0]["nodeid"]
+            # there is usually only a single metadata, unless we updated right
+            # as the db is inserting a new one. TODO take latest by
+            # elapsed_time, when we have Metadata extend Report
+            METADATA[node_id] = metadata[0]
 
     db._db.add_listener(send_nowait_from_anywhere)
     async with trio.open_nursery() as nursery:

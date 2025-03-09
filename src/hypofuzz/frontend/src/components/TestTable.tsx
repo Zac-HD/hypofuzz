@@ -89,49 +89,52 @@ export function TestTable({ reports, metadata }: Props) {
   const { failing, running, notStarted } = groupTests(reports, metadata)
 
   return (
-    <table className="test-table">
-      <thead>
-        <tr>
-          <th>Test</th>
-          <th>Inputs</th>
-          <th>Branches</th>
-          <th>Executions</th>
-          <th>Inputs since branch</th>
-          <th>Time spent</th>
-        </tr>
-      </thead>
-      <tbody>
-        {failing.length > 0 && (
-          <>
-            <tr className="test-table__section">
-              <td colSpan={6}>Failing</td>
-            </tr>
-            {failing.map(([testId, results]) => (
-              <Row key={testId} testId={testId} results={results} />
-            ))}
-          </>
-        )}
-        {running.length > 0 && (
-          <>
-            <tr className="test-table__section">
-              <td colSpan={6}>Started Executing</td>
-            </tr>
-            {running.map(([testId, results]) => (
-              <Row key={testId} testId={testId} results={results} />
-            ))}
-          </>
-        )}
-        {notStarted.length > 0 && (
-          <>
-            <tr className="test-table__section">
-              <td colSpan={6}>Collected</td>
-            </tr>
-            {notStarted.map(([testId, results]) => (
-              <Row key={testId} testId={testId} results={results} />
-            ))}
-          </>
-        )}
-      </tbody>
-    </table>
+    <div className="card">
+      <div className="card__header">Tests</div>
+      <table className="test-table">
+        <thead>
+          <tr>
+            <th>Test</th>
+            <th>Inputs</th>
+            <th>Branches</th>
+            <th>Executions</th>
+            <th>Inputs since branch</th>
+            <th>Time spent</th>
+          </tr>
+        </thead>
+        <tbody>
+          {failing.length > 0 && (
+            <>
+              <tr className="test-table__section">
+                <td colSpan={6}>Failing</td>
+              </tr>
+              {failing.map(([testId, results]) => (
+                <Row key={testId} testId={testId} results={results} />
+              ))}
+            </>
+          )}
+          {running.length > 0 && (
+            <>
+              <tr className="test-table__section">
+                <td colSpan={6}>Started Executing</td>
+              </tr>
+              {running.map(([testId, results]) => (
+                <Row key={testId} testId={testId} results={results} />
+              ))}
+            </>
+          )}
+          {notStarted.length > 0 && (
+            <>
+              <tr className="test-table__section">
+                <td colSpan={6}>Collected</td>
+              </tr>
+              {notStarted.map(([testId, results]) => (
+                <Row key={testId} testId={testId} results={results} />
+              ))}
+            </>
+          )}
+        </tbody>
+      </table>
+    </div>
   )
 }

@@ -8,7 +8,6 @@ export function TestsPage() {
   return (
     <div className="dashboard">
       <CoverageGraph reports={reports} />
-      <h2>Tests</h2>
       <TestTable reports={reports} metadata={metadata} />
     </div>
   )
