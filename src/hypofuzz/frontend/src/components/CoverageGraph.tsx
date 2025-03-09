@@ -201,8 +201,8 @@ class Graph {
             .style("left", `${event.pageX + 10}px`)
             .style("top", `${event.pageY - 10}px`).html(`
               <strong>${closestPoint.nodeid.split("::").pop() || closestPoint.nodeid}</strong><br/>
-              ${closestPoint.branches.toLocaleString()} branches
-              (@ ${this.xValue(closestPoint).toLocaleString()} ${this.axisSetting == "time" ? "seconds" : "inputs"})
+              ${closestPoint.branches.toLocaleString()} branches<br/>
+              ${closestPoint.ninputs.toLocaleString()} inputs / ${closestPoint.elapsed_time.toFixed(1)} seconds
             `)
         } else {
           this.tooltip.style("display", "none")
