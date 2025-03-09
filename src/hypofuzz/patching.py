@@ -27,7 +27,10 @@ def make_and_save_patches(
 
     tests = {t.nodeid: t._test_fn for t in get_all_tests(pytest_args)}
     for nodeid, test_fn in tests.items():
-        report = reports[nodeid][-1]
+        reports = reports[nodeid]
+        if not reports:
+            continue
+        report = reports[-1]
         node_metadata = metadata[nodeid]
         # for each func
         #   - only strip_via if replay is complete
