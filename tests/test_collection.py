@@ -24,7 +24,9 @@ def collect(code: str) -> list[FuzzProcess]:
     )
     p = Path(tempfile.mkstemp(prefix="test_", suffix=".py")[1])
     p.write_text(code)
-    fps = interface._get_hypothesis_tests_with_pytest([str(p), "-p", "no:dash"])
+    fps = interface._get_hypothesis_tests_with_pytest(
+        [str(p), "-p", "no:dash"]
+    ).fuzz_targets
     p.unlink()
     return fps
 

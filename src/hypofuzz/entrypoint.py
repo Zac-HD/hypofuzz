@@ -116,7 +116,7 @@ def _fuzz_impl(numprocesses: int, unsafe: bool, pytest_args: tuple[str, ...]) ->
     from hypofuzz.interface import _fuzz_several, _get_hypothesis_tests_with_pytest
 
     # With our arguments validated, it's time to actually do the work.
-    tests = _get_hypothesis_tests_with_pytest(pytest_args)
+    tests = _get_hypothesis_tests_with_pytest(pytest_args).fuzz_targets
     if not tests:
         raise click.UsageError(
             f"No property-based tests were collected. args: {pytest_args}"

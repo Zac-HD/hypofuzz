@@ -15,7 +15,7 @@ make_patch_cached = lru_cache(maxsize=1024)(make_patch)
 def get_all_tests(pytest_args: Any) -> list:
     from hypofuzz.interface import _get_hypothesis_tests_with_pytest
 
-    return _get_hypothesis_tests_with_pytest(pytest_args)
+    return _get_hypothesis_tests_with_pytest(pytest_args).fuzz_targets
 
 
 def make_and_save_patches(

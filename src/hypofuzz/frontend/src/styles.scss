@@ -40,7 +40,7 @@ select {
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.test-table {
+.segmented-table {
     width: 100%;
     border-collapse: collapse;
     background: white;
@@ -65,7 +65,7 @@ select {
         border-bottom: none;
     }
 
-    &__section {
+    &__segment {
         background: #f8f9fa;
         font-weight: 500;
         color: #2c3e50;
