@@ -250,6 +250,24 @@ select {
         justify-content: flex-end;
     }
 
+    &__icon {
+        cursor: pointer;
+        opacity: 0.4;
+        transition: opacity 0.15s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0px 4px;
+
+        &:hover {
+            opacity: 1;
+        }
+
+        &--active {
+            opacity: 1;
+        }
+    }
+
     &__tooltip {
         position: absolute;
         padding: 8px;
@@ -291,7 +309,7 @@ select {
 
 .scale-toggle {
     display: flex;
-    gap: 1px;
+    gap: 2px;
     background: #eee;
     padding: 2px;
     border-radius: 4px;
@@ -299,18 +317,18 @@ select {
     &__button {
         border: none;
         background: none;
-        padding: 4px 12px;
+        padding: 4px 8px;
         cursor: pointer;
         border-radius: 3px;
         font-size: 0.9em;
         color: #666;
 
         &:hover {
-            background: rgba(0, 0, 0, 0.05);
+            background: rgba(255, 255, 255, 0.6);
         }
 
         &--active {
-            background: white;
+            background: #fff;
             color: #2c3e50;
             box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
         }

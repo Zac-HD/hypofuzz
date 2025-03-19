@@ -29,6 +29,7 @@ from hypothesis.internal.conjecture.data import (
     Status,
     _Overrun,
 )
+from hypothesis.internal.conjecture.engine import RunIsComplete
 from hypothesis.internal.conjecture.junkdrawer import stack_depth_of_caller
 from hypothesis.internal.entropy import deterministic_PRNG
 from hypothesis.internal.escalation import InterestingOrigin, get_trimmed_traceback
@@ -238,7 +239,7 @@ class FuzzProcess:
                 explain=True,
             )
             self.stop_shrinking_at = self.elapsed_time + 300
-            with contextlib.suppress(HitShrinkTimeoutError):
+            with contextlib.suppress(HitShrinkTimeoutError, RunIsComplete):
                 shrinker.shrink()
             self.shrinking = False
             if record_pytrace:
@@ -368,7 +369,7 @@ class FuzzProcess:
         # Having written the latest report, we can avoid bloating the database
         # by dropping the previous report if it differs from the latest in more
         # than just runtime.
-        if self._last_report and (
+        if self._last_report and not (
             self._last_report["branches"] != report["branches"]
             or self._last_report["note"] != report["note"]
             or self.pool.interesting_examples
