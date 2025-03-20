@@ -65,6 +65,8 @@ class Graph {
       ([_, points]) => points[points.length - 1],
     )
 
+    // symlog is like log but defined linearly in the range [0, 1].
+    // https://d3js.org/d3-scale/symlog
     this.x = (scaleSetting === "log" ? d3.scaleSymlog() : d3.scaleLinear())
       .domain([0, d3.max(latests, d => this.xValue(d)) || 1])
       .range([0, this.width])
