@@ -65,16 +65,9 @@ class Graph {
       ([_, points]) => points[points.length - 1],
     )
 
-    this.x =
-      scaleSetting === "log"
-        ? d3
-            .scaleLog()
-            .domain([1, d3.max(latests, d => this.xValue(d)) || 1])
-            .range([0, this.width])
-        : d3
-            .scaleLinear()
-            .domain([0, d3.max(latests, d => this.xValue(d)) || 0])
-            .range([0, this.width])
+    this.x = (scaleSetting === "log" ? d3.scaleSymlog() : d3.scaleLinear())
+      .domain([0, d3.max(latests, d => this.xValue(d)) || 1])
+      .range([0, this.width])
 
     this.y = d3
       .scaleLinear()
@@ -231,7 +224,7 @@ class Graph {
       "d",
       d3
         .line<Report>()
-        .x(d => x(Math.max(1, this.xValue(d))))
+        .x(d => x(this.xValue(d)))
         .y(d => y(d.branches)),
     )
   }
@@ -283,7 +276,7 @@ class Graph {
   drawLines() {
     const line = d3
       .line<Report>()
-      .x(d => this.x(Math.max(1, this.xValue(d))))
+      .x(d => this.x(this.xValue(d)))
       .y(d => this.y(d.branches))
 
     Object.entries(this.reports).forEach(([nodeid, points]) => {
