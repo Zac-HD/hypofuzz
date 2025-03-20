@@ -3,6 +3,7 @@ import * as d3 from "d3"
 import { Report } from "../types/dashboard"
 import { Toggle } from "./Toggle"
 import { useSetting } from "../hooks/useSetting"
+// import BoxSelect from "../assets/box-select.svg?react"
 
 const mousePosition = { x: 0, y: 0 }
 if (typeof window !== "undefined") {
@@ -17,7 +18,7 @@ interface Props {
 }
 
 // in pixels
-const distanceThreshold = 15
+const distanceThreshold = 10
 
 class Graph {
   reports: Record<string, Report[]>
@@ -29,13 +30,19 @@ class Graph {
   margin: { top: number; right: number; bottom: number; left: number }
   x: d3.ScaleContinuousNumeric<number, number>
   y: d3.ScaleContinuousNumeric<number, number>
-  color: d3.ScaleOrdinal<string, string>
   g: d3.Selection<SVGGElement, unknown, null, undefined>
-  xAxis: d3.Selection<SVGGElement, unknown, null, undefined>
-  yAxis: d3.Selection<SVGGElement, unknown, null, undefined>
+  zoom: d3.ZoomBehavior<SVGGElement, unknown>
+  chartArea: d3.Selection<SVGGElement, unknown, null, undefined>
 
   private tooltip: d3.Selection<HTMLDivElement, unknown, HTMLElement, any>
-  private chartArea: d3.Selection<SVGGElement, unknown, null, undefined>
+  private brush: d3.BrushBehavior<unknown> | null = null
+  private eventListeners: Record<string, Array<() => void>> = {}
+  private xAxis: d3.Selection<SVGGElement, unknown, null, undefined>
+  private yAxis: d3.Selection<SVGGElement, unknown, null, undefined>
+  private color: d3.ScaleOrdinal<string, string>
+  private viewportX: d3.ScaleContinuousNumeric<number, number>
+  private viewportY: d3.ScaleContinuousNumeric<number, number>
+
   constructor(
     svg: SVGSVGElement,
     reports: Record<string, Report[]>,
@@ -74,6 +81,12 @@ class Graph {
       .domain([0, d3.max(latests, d => d.branches) || 0])
       .range([this.height, 0])
 
+    // this.x and this.y are the full axes which encompass all of the points.
+    // this.viewportX and this.viewportY are the current visible axes, because
+    // e.g. the axis has been zoomed. We set this in zoomTo.
+    this.viewportX = this.x
+    this.viewportY = this.y
+
     this.g = d3
       .select(svg)
       .append("g")
@@ -104,25 +117,18 @@ class Graph {
       .attr("fill", "none")
       .attr("pointer-events", "all")
 
-    const zoom = d3
-      .zoom<SVGSVGElement, unknown>()
-      .extent([
-        [0, 0],
-        [this.width, this.height],
-      ])
-      .translateExtent([
-        [0, -Infinity],
-        [Infinity, this.height],
-      ])
-      .on("zoom", event => this.onZoom(event))
-    d3.select(svg).call(zoom as any)
+    this.zoom = d3
+      .zoom<SVGGElement, unknown>()
+      .scaleExtent([1, Infinity])
+      .on("zoom", event => this.zoomTo(event.transform, false))
+    this.chartArea.call(this.zoom as any)
 
-    // reset to original on doubleclick
-    d3.select(svg).on("dblclick.zoom", () => {
-      d3.select(svg)
+    // reset to original viewport on doubleclick
+    this.chartArea.on("dblclick.zoom", () => {
+      this.chartArea
         .transition()
         .duration(500)
-        .call(zoom.transform, d3.zoomIdentity)
+        .call(this.zoom.transform, d3.zoomIdentity)
     })
 
     this.tooltip = d3.select(".coverage-graph__tooltip")
@@ -159,7 +165,6 @@ class Graph {
     this.chartArea
       .on("mousemove", event => {
         const [mouseX, mouseY] = d3.pointer(event)
-
         let closestPoint = null as Report | null
         let closestDistance = Infinity
 
@@ -172,8 +177,8 @@ class Graph {
 
           sortedPoints.forEach(point => {
             const distance = Math.sqrt(
-              (this.x(this.xValue(point)) - mouseX) ** 2 +
-                (this.y(point.branches) - mouseY) ** 2,
+              (this.viewportX(this.xValue(point)) - mouseX) ** 2 +
+                (this.viewportY(point.branches) - mouseY) ** 2,
             )
 
             if (distance < closestDistance && distance < distanceThreshold) {
@@ -184,25 +189,13 @@ class Graph {
         })
 
         if (closestPoint) {
-          this.g.selectAll("path").classed("coverage-line__selected", false)
-
-          this.g
-            .selectAll<SVGPathElement, Report[]>("path")
-            .filter(
-              points =>
-                Array.isArray(points) &&
-                points.length > 0 &&
-                points[0].nodeid === closestPoint!.nodeid,
-            )
-            .classed("coverage-line__selected", true)
-
           this.tooltip
             .style("display", "block")
             .style("left", `${event.pageX + 10}px`)
             .style("top", `${event.pageY - 10}px`).html(`
               <strong>${closestPoint.nodeid.split("::").pop() || closestPoint.nodeid}</strong><br/>
-              ${closestPoint.branches.toLocaleString()} branches
-              (@ ${this.xValue(closestPoint).toLocaleString()} ${this.axisSetting == "time" ? "seconds" : "inputs"})
+              ${closestPoint.branches.toLocaleString()} branches<br/>
+              ${closestPoint.ninputs.toLocaleString()} inputs / ${closestPoint.elapsed_time.toFixed(1)} seconds
             `)
         } else {
           this.tooltip.style("display", "none")
@@ -216,25 +209,30 @@ class Graph {
     this.drawLegend()
   }
 
-  onZoom(event: d3.D3ZoomEvent<SVGGElement, unknown>) {
-    const transform = event.transform
-    const newX = transform.rescaleX(this.x)
-    const newY = transform.rescaleY(this.y)
+  zoomTo(transform: d3.ZoomTransform, zoomY: boolean) {
+    const x = transform.rescaleX(this.x)
+    const y = zoomY ? transform.rescaleY(this.y) : this.y
+
+    this.viewportX = x
+    this.viewportY = y
 
     this.xAxis.call(
       d3
-        .axisBottom(newX)
+        .axisBottom(x)
         .ticks(5)
         .tickFormat(d => d.toLocaleString()),
     )
-    this.yAxis.call(d3.axisLeft(newY).ticks(5))
+
+    if (zoomY) {
+      this.yAxis.call(d3.axisLeft(y).ticks(5))
+    }
 
     this.g.selectAll<SVGPathElement, Report[]>(".chart-area path").attr(
       "d",
       d3
         .line<Report>()
-        .x(d => newX(Math.max(1, this.xValue(d))))
-        .y(d => newY(d.branches)),
+        .x(d => x(Math.max(1, this.xValue(d))))
+        .y(d => y(d.branches)),
     )
   }
 
@@ -309,8 +307,85 @@ class Graph {
     })
   }
 
+  enableBoxBrush() {
+    // disable regular zoom behavior so it doesn't steal our mousedowns.
+    // make sure not to disable the entire .zoom namespace, which also
+    // disables dblclick.zoom
+    for (const event of ["wheel", "mousedown", "mousemove", "mouseup"]) {
+      this.chartArea.on(`${event}.zoom`, null)
+    }
+
+    this.brush = d3
+      .brush()
+      .extent([
+        [0, 0],
+        [this.width, this.height],
+      ])
+      .on("end", event => {
+        if (!event.selection) {
+          return
+        }
+        const [[x0, y0], [x1, y1]] = event.selection as [
+          [number, number],
+          [number, number],
+        ]
+        this.chartArea.call(this.brush!.clear)
+        this.chartArea.call(this.zoom as any)
+
+        // ignore selections which are too small
+        if (Math.abs(x1 - x0) < 5 || Math.abs(y1 - y0) < 5) {
+          this.emit("boxSelectEnd")
+          return
+        }
+
+        const xScale = this.width / (x1 - x0)
+        const yScale = this.height / (y1 - y0)
+        // change to Math.min to avoid cropping data when aspect ratio doesn't match
+        // TODO we should just lock the brush aspect ratio when drawing
+        const scale = Math.max(xScale, yScale)
+        const transform = d3.zoomIdentity
+          .translate(this.width / 2, this.height / 2)
+          .scale(scale)
+          .translate(-(x0 + x1) / 2, -(y0 + y1) / 2)
+
+        this.chartArea
+          .transition()
+          .duration(250)
+          .call(this.zoom.transform, transform)
+          .on("end", () => {
+            this.emit("boxSelectEnd")
+          })
+      })
+
+    this.chartArea.style("cursor", "crosshair").call(this.brush)
+  }
+
   cleanup() {
     this.tooltip.style("display", "none")
+    this.g.selectAll("path").classed("coverage-line__selected", false)
+  }
+
+  // handroll a small event system
+
+  on(eventName: string, callback: () => void): void {
+    if (!this.eventListeners[eventName]) {
+      this.eventListeners[eventName] = []
+    }
+    this.eventListeners[eventName].push(callback)
+  }
+
+  off(eventName: string, callback: () => void): void {
+    if (!this.eventListeners[eventName]) return
+    this.eventListeners[eventName] = this.eventListeners[eventName].filter(
+      cb => cb !== callback,
+    )
+  }
+
+  emit(eventName: string): void {
+    if (!this.eventListeners[eventName]) {
+      return
+    }
+    this.eventListeners[eventName].forEach(callback => callback())
   }
 }
 
@@ -324,9 +399,12 @@ export function CoverageGraph({ reports }: Props) {
     "graph_x_axis",
     "time",
   )
-  // start true so we always update on page load, even if the cursor starts over
-  // the graph
   const [forceUpdate, setForceUpdate] = useState(true)
+  const [zoomTransform, setZoomTransform] = useState<{
+    transform: d3.ZoomTransform | null
+    zoomY: boolean
+  }>({ transform: null, zoomY: false })
+  const [boxSelectEnabled, setBoxSelectEnabled] = useState(false)
 
   useEffect(() => {
     if (!svgRef.current || Object.keys(reports).length === 0) {
@@ -359,15 +437,49 @@ export function CoverageGraph({ reports }: Props) {
     d3.select(svgRef.current).selectAll("*").remove()
     const graph = new Graph(svgRef.current, reports, scaleSetting, axisSetting)
 
+    if (zoomTransform.transform) {
+      graph.zoom.transform(graph.chartArea, zoomTransform.transform)
+    }
+
+    graph.zoomTo(
+      zoomTransform.transform ?? d3.zoomIdentity,
+      zoomTransform.zoomY,
+    )
+
+    graph.zoom.on(
+      "zoom.saveTransform",
+      (event: d3.D3ZoomEvent<SVGGElement, unknown>) => {
+        setZoomTransform({ transform: event.transform, zoomY: false })
+      },
+    )
+
+    if (boxSelectEnabled) {
+      graph.enableBoxBrush()
+    }
+
+    graph.on("boxSelectEnd", toggleBoxSelect)
+
     return () => {
       graph.cleanup()
     }
-  }, [reports, scaleSetting, axisSetting, forceUpdate])
+  }, [reports, scaleSetting, axisSetting, forceUpdate, boxSelectEnabled])
+
+  const toggleBoxSelect = () => {
+    setBoxSelectEnabled(!boxSelectEnabled)
+    setForceUpdate(true)
+  }
 
   return (
     <div className="card">
       <div className="card__header">Coverage</div>
       <div className="coverage-graph__controls">
+        {/* box selection has issues with zoom viewport, temporarily disabling
+        <div
+          className={`coverage-graph__icon ${boxSelectEnabled ? "coverage-graph__icon--active" : ""}`}
+          onClick={toggleBoxSelect}
+        >
+          <BoxSelect width="16" height="16" />
+        </div> */}
         <Toggle
           value={axisSetting}
           onChange={setAxisSetting}
