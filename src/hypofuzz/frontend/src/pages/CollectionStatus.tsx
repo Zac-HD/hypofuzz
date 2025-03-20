@@ -67,22 +67,22 @@ export function CollectionStatusPage() {
           </tr>
         </thead>
         <tbody>
-          {collected.length > 0 && (
-            <>
-              <tr className="segmented-table__segment">
-                <td colSpan={2}>Collected</td>
-              </tr>
-              {collected.map(result => (
-                <CollectionRow key={result.node_id} result={result} />
-              ))}
-            </>
-          )}
           {notCollected.length > 0 && (
             <>
               <tr className="segmented-table__segment">
                 <td colSpan={2}>Not collected</td>
               </tr>
               {notCollected.map(result => (
+                <CollectionRow key={result.node_id} result={result} />
+              ))}
+            </>
+          )}
+          {collected.length > 0 && (
+            <>
+              <tr className="segmented-table__segment">
+                <td colSpan={2}>Collected</td>
+              </tr>
+              {collected.map(result => (
                 <CollectionRow key={result.node_id} result={result} />
               ))}
             </>
