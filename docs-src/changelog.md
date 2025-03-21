@@ -4,8 +4,7 @@ HypoFuzz uses [calendar-based versioning](https://calver.org/), with a
 
 ## 25.03.3
 
-* Add ability to zoom coverage graphs on the dashboard by scrolling. Double click to reset.
-* Fix initial database state not being loaded when starting the dashboard.
+* Add a new `/collected` page, which shows which tests were skipped during pytest collection, and why.
 
 ## 25.03.2
 
