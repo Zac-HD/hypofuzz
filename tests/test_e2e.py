@@ -44,8 +44,6 @@ def test_end_to_end(numprocesses, tmp_path):
             "--port",
             "7777",
             "--",
-            "-p",
-            "no:dash",
             str(test_fname),
         ],
         stderr=subprocess.PIPE,
