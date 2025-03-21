@@ -76,6 +76,7 @@ function Row({ testId, results }: { testId: string; results: Report[] }) {
         <Link
           to={`/tests/${encodeURIComponent(testId)}`}
           className="test__link"
+          style={{ wordBreak: "break-all" }}
         >
           {testId}
         </Link>
@@ -95,7 +96,7 @@ export function TestTable({ reports, metadata }: Props) {
   return (
     <div className="card">
       <div className="card__header">Tests</div>
-      <table className="test-table">
+      <table className="segmented-table">
         <thead>
           <tr>
             <th>Test</th>
@@ -109,7 +110,7 @@ export function TestTable({ reports, metadata }: Props) {
         <tbody>
           {failing.length > 0 && (
             <>
-              <tr className="test-table__section">
+              <tr className="segmented-table__segment">
                 <td colSpan={6}>Failing</td>
               </tr>
               {failing.map(([testId, results]) => (
@@ -119,7 +120,7 @@ export function TestTable({ reports, metadata }: Props) {
           )}
           {running.length > 0 && (
             <>
-              <tr className="test-table__section">
+              <tr className="segmented-table__segment">
                 <td colSpan={6}>Started Executing</td>
               </tr>
               {running.map(([testId, results]) => (
@@ -129,7 +130,7 @@ export function TestTable({ reports, metadata }: Props) {
           )}
           {notStarted.length > 0 && (
             <>
-              <tr className="test-table__section">
+              <tr className="segmented-table__segment">
                 <td colSpan={6}>Collected</td>
               </tr>
               {notStarted.map(([testId, results]) => (

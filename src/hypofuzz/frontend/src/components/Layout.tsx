@@ -28,6 +28,12 @@ export function Layout() {
           >
             Patches
           </Link>
+          <Link
+            to="/collected"
+            className={`sidebar__link ${location.pathname === "/collected" ? "sidebar__link--active" : ""}`}
+          >
+            Collection
+          </Link>
         </nav>
       </div>
       <div className="content">

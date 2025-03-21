@@ -25,6 +25,7 @@ from starlette.websockets import WebSocket, WebSocketDisconnect
 from trio import MemoryReceiveChannel
 
 from hypofuzz.database import Metadata, Report, get_db, metadata_key, reports_key
+from hypofuzz.interface import CollectionResult
 from hypofuzz.patching import make_and_save_patches
 
 
@@ -110,6 +111,7 @@ REPORTS: dict[str, SortedList[Report]] = defaultdict(
     lambda: SortedList(key=lambda r: r["elapsed_time"])
 )
 METADATA: dict[str, Metadata] = {}
+COLLECTION_RESULT: Optional[CollectionResult] = None
 PYTEST_ARGS: Optional[list[str]] = None
 websockets: set[HypofuzzWebsocket] = set()
 delete_debounce = 300
@@ -164,6 +166,25 @@ async def api_patches(request: Request) -> Response:
     )
 
 
+async def api_collected_tests(request: Request) -> Response:
+    assert COLLECTION_RESULT is not None
+
+    collection_status = [
+        {"node_id": target.nodeid, "status": "collected"}
+        for target in COLLECTION_RESULT.fuzz_targets
+    ]
+    for node_id, item in COLLECTION_RESULT.not_collected.items():
+        collection_status.append(
+            {
+                "node_id": node_id,
+                "status": "not_collected",
+                "status_reason": item["status_reason"],
+            }
+        )
+
+    return JSONResponse({"collection_status": collection_status})
+
+
 def pycrunch_path(node_id: str) -> Path:
     node_id = "".join(c if c.isalnum() else "_" for c in node_id).rstrip("_")
     return Path("pycrunch-recordings") / node_id / "session.chunked.pycrunch-trace"
@@ -189,6 +210,7 @@ routes = [
     Route("/api/tests/", api_tests),
     Route("/api/tests/{node_id:path}", api_test),
     Route("/api/patches/", api_patches),
+    Route("/api/collected_tests/", api_collected_tests),
     Route(
         "/api/pycrunch/{node_id:path}/session.chunked.pycrunch-trace", api_pycrunch_file
     ),
@@ -300,11 +322,12 @@ def start_dashboard_process(
     from hypofuzz.interface import _get_hypothesis_tests_with_pytest
 
     global PYTEST_ARGS
+    global COLLECTION_RESULT
     PYTEST_ARGS = pytest_args
 
     # we run a pytest collection step for the dashboard to pick up on databases
-    # from custom profiles.
-    _get_hypothesis_tests_with_pytest(pytest_args)
+    # from custom profiles, and to figure out what tests are available.
+    COLLECTION_RESULT = _get_hypothesis_tests_with_pytest(pytest_args)
 
     print(f"\n\tNow serving dashboard at  http://{host}:{port}/\n")
     trio.run(run_dashboard, port, host)

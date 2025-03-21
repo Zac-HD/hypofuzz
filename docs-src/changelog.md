@@ -2,6 +2,10 @@
 HypoFuzz uses [calendar-based versioning](https://calver.org/), with a
 `YY-MM-patch` format.
 
+## 25.03.3
+
+* Add a new `/collected` page, which shows which tests were skipped during pytest collection, and why.
+
 ## 25.03.2
 
 * Add ability to zoom coverage graphs on the dashboard by scrolling. Double click to reset.
