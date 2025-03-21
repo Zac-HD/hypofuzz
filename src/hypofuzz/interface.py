@@ -23,13 +23,13 @@ if TYPE_CHECKING:
 pytest8 = version.parse(pytest.__version__) >= version.parse("8.0.0")
 
 
-def has_true_skipif(item: Item) -> bool:
+def has_true_skipif(item: Item) -> tuple[bool, Optional[str]]:
     # multiple @skipif decorators are treated as an OR.
     for mark in item.iter_markers("skipif"):
-        result, _reason = evaluate_condition(item, mark, condition=mark.args[0])
+        result, reason = evaluate_condition(item, mark, condition=mark.args[0])
         if result:
-            return True
-    return False
+            return (True, reason)
+    return (False, None)
 
 
 @dataclass
@@ -60,11 +60,24 @@ class _ItemsCollector:
             if not isinstance(item, pytest.Function):
                 self._skip_because("not_a_function", item.nodeid)
                 continue
-            if list(item.iter_markers("skip")):
-                self._skip_because("skip", item.nodeid)
+            # we're only noting the reason for the first skip and skipifs for
+            # now, not all of them. Be careful that this matches pytest semantics;
+            # pytest might not evaluate conditions beyond the first true one,
+            # which could cause side effects.
+            if skips := list(item.iter_markers("skip")):
+                # reason is in either args or kwargs depending on how it was
+                # passed to the mark. all 3 are valid:
+                # * @pytest.mark.skip()
+                # * @pytest.mark.skip("myreason")
+                # * @pytest.mark.skip(reason="myreason")
+                reason = (
+                    skips[0].args[0] if skips[0].args else skips[0].kwargs.get("reason")
+                )
+                self._skip_because("skip", item.nodeid, {"reason": reason})
                 continue
-            if has_true_skipif(item):
-                self._skip_because("skipif", item.nodeid)
+            (true_skipif, skipif_reason) = has_true_skipif(item)
+            if true_skipif:
+                self._skip_because("skipif", item.nodeid, {"reason": skipif_reason})
                 continue
             # If the test takes a fixture, we skip it - the fuzzer doesn't have
             # pytest scopes, so we just can't support them.  TODO: note skips.
