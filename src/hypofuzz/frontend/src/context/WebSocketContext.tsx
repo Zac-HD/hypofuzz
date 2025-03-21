@@ -69,7 +69,6 @@ export function WebSocketProvider({
               newReports[nodeid] = []
             }
             newReports[nodeid] = [...newReports[nodeid], report]
-            newReports[nodeid].sort((a, b) => a.elapsed_time - b.elapsed_time)
             return newReports
           })
           break
@@ -82,6 +81,14 @@ export function WebSocketProvider({
           })
           break
       }
+      // sort reports every time. a bit inefficient, and we may want to remove this
+      // when the backend or websocket events make stronger ordering guarantees.
+      setReports(currentReports => {
+        for (const nodeid in currentReports) {
+          currentReports[nodeid].sort((a, b) => a.elapsed_time - b.elapsed_time)
+        }
+        return currentReports
+      })
     }
 
     setSocket(ws)

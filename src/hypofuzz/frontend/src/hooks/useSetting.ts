@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 
-export function usePreference<T>(
+export function useSetting<T>(
   key: string,
   defaultValue: T,
 ): [T, (value: T) => void] {
