@@ -294,7 +294,7 @@ async def handle_event(receive_channel: MemoryReceiveChannel) -> None:
             # to bother handling deletion events for it, just save.
 
 
-async def load_initial_data():
+async def load_initial_data() -> None:
     global REPORTS
     global METADATA
     if BACKING_JSON_FILE is not None:
