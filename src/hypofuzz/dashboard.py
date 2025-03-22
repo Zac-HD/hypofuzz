@@ -205,10 +205,10 @@ async def api_pycrunch_file(request: Request) -> Response:
 
 
 async def api_backing_state(request: Request) -> Response:
-    # get the backing state of the dashboard, suitable for use.
-    # The data returned here looks very similar to other endpoints for now, but
-    # I'm keeping it separate because the data required to back a dashboard may
-    # change over time.
+    # get the backing state of the dashboard, suitable for use by
+    # --internal-backing-json-file. The data returned here looks very similar
+    # to other endpoints for now, but I'm keeping it separate because the data
+    # required to back a dashboard may change over time.
     return JSONResponse(
         {
             "reports": {node_id: list(reports) for node_id, reports in REPORTS.items()},
