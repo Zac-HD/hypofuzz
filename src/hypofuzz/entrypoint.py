@@ -2,6 +2,7 @@
 
 import sys
 from multiprocessing import Process
+from pathlib import Path
 from typing import NoReturn, Optional
 
 import click
@@ -54,6 +55,12 @@ import psutil
     nargs=-1,
     metavar="[-- PYTEST_ARGS]",
 )
+@click.option(
+    "--internal-backing-json-file",
+    type=click.Path(exists=True),
+    help="Back the dashboard display using a static json file. Written for the "
+    "example dashboard on hypofuzz.com. This option implies --dashboard-only.",
+)
 def fuzz(
     numprocesses: int,
     dashboard: bool,
@@ -62,6 +69,7 @@ def fuzz(
     port: Optional[int],
     unsafe: bool,
     pytest_args: tuple[str, ...],
+    internal_backing_json_file: Optional[str],
 ) -> NoReturn:
     """[hypofuzz] runs tests with an adaptive coverage-guided fuzzer.
 
@@ -71,13 +79,26 @@ def fuzz(
 
     This process will run forever unless stopped with e.g. ctrl-C.
     """
+    if internal_backing_json_file is not None and not dashboard_only:
+        raise click.UsageError(
+            "--internal-backing-json-file must be combined with --dashboard-only"
+        )
+
     dash_proc = None
+    if internal_backing_json_file is not None:
+        internal_backing_json_file = Path(internal_backing_json_file)
+
     if dashboard or dashboard_only:
         from hypofuzz.dashboard import start_dashboard_process
 
         dash_proc = Process(
             target=start_dashboard_process,
-            kwargs={"host": host, "port": port, "pytest_args": pytest_args},
+            kwargs={
+                "host": host,
+                "port": port,
+                "pytest_args": pytest_args,
+                "backing_json_file": internal_backing_json_file,
+            },
         )
         dash_proc.start()
 

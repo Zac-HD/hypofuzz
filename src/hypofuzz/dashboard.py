@@ -113,6 +113,7 @@ REPORTS: dict[str, SortedList[Report]] = defaultdict(
 METADATA: dict[str, Metadata] = {}
 COLLECTION_RESULT: Optional[CollectionResult] = None
 PYTEST_ARGS: Optional[list[str]] = None
+BACKING_JSON_FILE: Optional[Path] = None
 websockets: set[HypofuzzWebsocket] = set()
 delete_debounce = 300
 refreshed_at: dict[bytes, float] = defaultdict(int)
@@ -203,6 +204,19 @@ async def api_pycrunch_file(request: Request) -> Response:
     return FileResponse(path=path, media_type="application/octet-stream")
 
 
+async def api_backing_state(request: Request) -> Response:
+    # get the backing state of the dashboard, suitable for use.
+    # The data returned here looks very similar to other endpoints for now, but
+    # I'm keeping it separate because the data required to back a dashboard may
+    # change over time.
+    return JSONResponse(
+        {
+            "reports": {node_id: list(reports) for node_id, reports in REPORTS.items()},
+            "metadata": METADATA,
+        },
+    )
+
+
 dist = Path(__file__).parent / "frontend" / "dist"
 dist.mkdir(exist_ok=True)
 routes = [
@@ -215,6 +229,7 @@ routes = [
         "/api/pycrunch/{node_id:path}/session.chunked.pycrunch-trace", api_pycrunch_file
     ),
     Route("/api/pycrunch/{node_id:path}", api_pycrunch_available),
+    Route("/api/backing_state/", api_backing_state),
     Mount("/assets", StaticFiles(directory=dist / "assets")),
     # catchall fallback. react will handle the routing of dynamic urls here,
     # such as to a node id.
@@ -279,6 +294,30 @@ async def handle_event(receive_channel: MemoryReceiveChannel) -> None:
             # to bother handling deletion events for it, just save.
 
 
+async def load_initial_data():
+    global REPORTS
+    global METADATA
+    if BACKING_JSON_FILE is not None:
+        data = json.loads(BACKING_JSON_FILE.read_text())
+        REPORTS = data["reports"]
+        METADATA = data["metadata"]
+    else:
+        db = get_db()
+        for key in db.fetch(b"hypofuzz-test-keys"):
+            reports = db.fetch_reports(key)
+            metadata = db.fetch_metadata(key)
+            if reports:
+                # TODO we should really add the node id to hypofuzz-test-keys entries
+                node_id = reports[0]["nodeid"]
+                REPORTS[node_id] = SortedList(reports, key=lambda r: r["elapsed_time"])
+            if metadata:
+                node_id = metadata[0]["nodeid"]
+                # there is usually only a single metadata, unless we updated right
+                # as the db is inserting a new one. TODO take latest by
+                # elapsed_time, when we have Metadata extend Report
+                METADATA[node_id] = metadata[0]
+
+
 async def run_dashboard(port: int, host: str) -> None:
     send_channel, receive_channel = trio.open_memory_channel[ListenerEventT](math.inf)
     token = trio.lowlevel.current_trio_token()
@@ -294,36 +333,29 @@ async def run_dashboard(port: int, host: str) -> None:
         else:
             send_channel.send_nowait(msg)
 
-    db = get_db()
     # load initial database state before starting dashboard
-    for key in db.fetch(b"hypofuzz-test-keys"):
-        reports = db.fetch_reports(key)
-        metadata = db.fetch_metadata(key)
-        if reports:
-            # TODO we should really add the node id to hypofuzz-test-keys entries
-            node_id = reports[0]["nodeid"]
-            REPORTS[node_id] = SortedList(reports, key=lambda r: r["elapsed_time"])
-        if metadata:
-            node_id = metadata[0]["nodeid"]
-            # there is usually only a single metadata, unless we updated right
-            # as the db is inserting a new one. TODO take latest by
-            # elapsed_time, when we have Metadata extend Report
-            METADATA[node_id] = metadata[0]
+    await load_initial_data()
 
-    db._db.add_listener(send_nowait_from_anywhere)
+    get_db()._db.add_listener(send_nowait_from_anywhere)
     async with trio.open_nursery() as nursery:
         nursery.start_soon(serve_app, app, host, port)  # type: ignore
         nursery.start_soon(handle_event, receive_channel)
 
 
 def start_dashboard_process(
-    port: int, *, pytest_args: list, host: str = "localhost"
+    port: int,
+    *,
+    pytest_args: list,
+    host: str = "localhost",
+    backing_json_file: Optional[Path],
 ) -> None:
     from hypofuzz.interface import _get_hypothesis_tests_with_pytest
 
     global PYTEST_ARGS
     global COLLECTION_RESULT
+    global BACKING_JSON_FILE
     PYTEST_ARGS = pytest_args
+    BACKING_JSON_FILE = backing_json_file
 
     # we run a pytest collection step for the dashboard to pick up on databases
     # from custom profiles, and to figure out what tests are available.
