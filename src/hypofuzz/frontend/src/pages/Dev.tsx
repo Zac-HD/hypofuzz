@@ -6,7 +6,7 @@ export function DevPage() {
   const handleDownload = async () => {
     setIsLoading(true)
     try {
-      const response = await fetch("/api/dashboard_state/")
+      const response = await fetch("/api/backing_state/")
       const data = await response.json()
       const blob = new Blob([JSON.stringify(data, null, 2)], {
         type: "application/json",
