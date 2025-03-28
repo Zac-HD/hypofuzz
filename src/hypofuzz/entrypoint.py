@@ -85,9 +85,6 @@ def fuzz(
         )
 
     dash_proc = None
-    if internal_backing_json_file is not None:
-        internal_backing_json_file = Path(internal_backing_json_file)
-
     if dashboard or dashboard_only:
         from hypofuzz.dashboard import start_dashboard_process
 
@@ -97,7 +94,11 @@ def fuzz(
                 "host": host,
                 "port": port,
                 "pytest_args": pytest_args,
-                "backing_json_file": internal_backing_json_file,
+                "backing_json_file": (
+                    Path(internal_backing_json_file)
+                    if internal_backing_json_file
+                    else None
+                ),
             },
         )
         dash_proc.start()
