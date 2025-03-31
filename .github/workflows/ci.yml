@@ -32,7 +32,7 @@ jobs:
   docs:
     # whitelist preview build authors to prevent arbitrary pushes to hypofuzz.com via PRs
     if: >
-      github.repository == 'tybug/hypofuzz' && (
+      github.repository == 'Zac-HD/hypofuzz' && (
         github.ref == 'refs/heads/master' ||
         (
           github.event_name == 'pull_request' && (
