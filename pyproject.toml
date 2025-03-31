@@ -55,7 +55,7 @@ pytrace = [
 ]
 
 [project.entry-points.hypothesis]
-"_" = "hypofuzz.entrypoint"
+_ = "hypofuzz.entrypoint"
 
 [tool.setuptools.package-data]
 hypofuzz = [
