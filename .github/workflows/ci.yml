@@ -30,10 +30,10 @@ jobs:
         npm run format:check --prefix src/hypofuzz/frontend
 
   docs:
+    # whitelist preview build authors to prevent arbitrary pushes to hypofuzz.com via PRs
     if: >
-      github.repository == 'Zac-HD/hypofuzz' && (
+      github.repository == 'tybug/hypofuzz' && (
         github.ref == 'refs/heads/master' ||
-        # whitelist preview build authors to prevent arbitrary pushes to hypofuzz.com via PRs
         (
           github.event_name == 'pull_request' && (
             github.event.pull_request.user.login == 'tybug' ||
@@ -63,8 +63,10 @@ jobs:
       run: |
         HYPOFUZZ_DOCS_OUTPUT_DIR=docs/${BASE}/docs python -m tox --recreate -e docs
         npm run build --prefix src/hypofuzz/frontend -- --base=${BASE}/example-dashboard
+
         rm -rf docs/${BASE}/example-dashboard
-        cp -r src/hypofuzz/frontend/dist docs/${BASE}/example-dashboard
+        mkdir -p docs/${BASE}/example-dashboard
+        cp -r src/hypofuzz/frontend/dist/* docs/${BASE}/example-dashboard
         cp docs-src/dashboard_state.json docs/${BASE}/example-dashboard/assets/dashboard_state.json
     - name: Commit docs and example dashboard
       run: |
