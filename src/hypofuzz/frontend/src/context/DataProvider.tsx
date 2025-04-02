@@ -28,7 +28,7 @@ export function DataProvider({ children, nodeId }: DataProviderProps) {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    fetch("/assets/dashboard_state.json")
+    fetch(`${import.meta.env.BASE_URL}/assets/dashboard_state.json`)
       .then(response => response.json())
       .then(data => {
         if (data) {
