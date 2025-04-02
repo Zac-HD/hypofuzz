@@ -336,4 +336,6 @@ def nodes(draw, *, was_forced=None, ir_types=None):
     value = draw_value(ir_type, kwargs)
     was_forced = draw(st.booleans()) if was_forced is None else was_forced
 
-    return ChoiceNode(type=ir_type, value=value, kwargs=kwargs, was_forced=was_forced)
+    return ChoiceNode(
+        type=ir_type, value=value, constraints=kwargs, was_forced=was_forced
+    )
