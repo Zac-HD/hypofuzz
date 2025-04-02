@@ -255,7 +255,7 @@ class Graph {
           d3.select(legendItem.node()).style("font-weight", "normal")
         })
         .on("click", () => {
-          window.location.href = `/tests/${encodeURIComponent(nodeid)}`
+          window.location.href = `${import.meta.env.BASE_URL}/tests/${encodeURIComponent(nodeid)}`
         })
 
       legendItem
@@ -297,7 +297,7 @@ class Graph {
           d3.select(this).classed("coverage-line__selected", false)
         })
         .on("click", () => {
-          window.location.href = `/tests/${encodeURIComponent(nodeid)}`
+          window.location.href = `${import.meta.env.BASE_URL}/tests/${encodeURIComponent(nodeid)}`
         })
     })
   }
