@@ -3,7 +3,7 @@ from random import Random
 from typing import Optional, cast
 
 from hypothesis.internal.conjecture.choice import (
-    ChoiceKwargsT,
+    ChoiceConstraintsT,
     ChoiceT,
     ChoiceTypeT,
     choice_permitted,
@@ -19,7 +19,7 @@ from hypofuzz.corpus import ChoicesT
 
 
 def fresh_choice(
-    choice_type: ChoiceTypeT, kwargs: ChoiceKwargsT, *, random: Random
+    choice_type: ChoiceTypeT, kwargs: ChoiceConstraintsT, *, random: Random
 ) -> ChoiceT:
     cd = ConjectureData(random=random)
     choice = getattr(cd.provider, f"draw_{choice_type}")(**kwargs)
@@ -34,12 +34,16 @@ class HypofuzzProvider(PrimitiveProvider):
         self.choices = choices
         self.index = 0
 
-    def _fresh_choice(self, choice_type: ChoiceTypeT, kwargs: ChoiceKwargsT) -> ChoiceT:
+    def _fresh_choice(
+        self, choice_type: ChoiceTypeT, kwargs: ChoiceConstraintsT
+    ) -> ChoiceT:
         assert self._cd is not None
         assert self._cd._random is not None
         return fresh_choice(choice_type, kwargs, random=self._cd._random)
 
-    def _pop_choice(self, choice_type: ChoiceTypeT, kwargs: ChoiceKwargsT) -> ChoiceT:
+    def _pop_choice(
+        self, choice_type: ChoiceTypeT, kwargs: ChoiceConstraintsT
+    ) -> ChoiceT:
         if self.index >= len(self.choices):
             # past our prefix. draw a random choice
             return self._fresh_choice(choice_type, kwargs)
