@@ -65,7 +65,7 @@ jobs:
     - name: Build docs
       run: |
         HYPOFUZZ_DOCS_OUTPUT_DIR=docs/${BASE}/docs python -m tox --recreate -e docs
-        npm run build --prefix src/hypofuzz/frontend -- --base=${BASE}/example-dashboard
+        VITE_ROUTER_TYPE=hash npm run build --prefix src/hypofuzz/frontend -- --base=${BASE}/example-dashboard
 
         rm -rf docs/${BASE}/example-dashboard
         mkdir -p docs/${BASE}/example-dashboard

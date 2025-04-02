@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom"
+import { HashRouter, BrowserRouter, Routes, Route } from "react-router-dom"
 import { TestPage } from "./pages/Test"
 import { TestsPage } from "./pages/Tests"
 import { PatchesPage } from "./pages/Patches"
@@ -10,8 +10,11 @@ import { Layout } from "./components/Layout"
 import React from "react"
 
 export function App() {
+  const Router =
+    import.meta.env.VITE_ROUTER_TYPE === "hash" ? HashRouter : BrowserRouter
+
   return (
-    <BrowserRouter basename={import.meta.env.BASE_URL}>
+    <Router basename={import.meta.env.BASE_URL}>
       <Routes>
         <Route element={<Layout />}>
           <Route
@@ -29,6 +32,6 @@ export function App() {
           <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Routes>
-    </BrowserRouter>
+    </Router>
   )
 }
