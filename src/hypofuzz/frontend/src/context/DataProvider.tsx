@@ -28,6 +28,7 @@ export function DataProvider({ children, nodeId }: DataProviderProps) {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
+    console.log("fetch data 1")
     fetch(`${import.meta.env.BASE_URL}/assets/dashboard_state.json`)
       .then(response => response.json())
       .then(data => {
@@ -35,11 +36,14 @@ export function DataProvider({ children, nodeId }: DataProviderProps) {
           setReports(data.reports || {})
           setMetadata(data.metadata || {})
           setIsLoading(false)
+          console.log("fetch data 1.5")
           return
         }
+        console.log("fetch data 2")
         setupWebSocket()
       })
       .catch(() => {
+        console.log("fetch data 3")
         setupWebSocket()
       })
 
