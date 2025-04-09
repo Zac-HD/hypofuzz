@@ -76,6 +76,7 @@ jobs:
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
+        git add --force docs/docs/
         git add --force docs/${BASE}/docs/
         git commit -m "build docs"
         git add --force docs/${BASE}/example-dashboard
