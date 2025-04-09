@@ -15,7 +15,7 @@ def test_drawing_prefix_exactly(nodes):
         provider_kw={"choices": tuple(n.value for n in nodes)},
     )
     for node in nodes:
-        choice = getattr(cd, f"draw_{node.type}")(**node.kwargs)
+        choice = getattr(cd, f"draw_{node.type}")(**node.constraints)
         assert choice_equal(node.value, choice)
 
 

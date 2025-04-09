@@ -1,24 +1,23 @@
 import { useEffect, useState } from "react"
 import { useParams, Link } from "react-router-dom"
 import { CoverageGraph } from "../components/CoverageGraph"
-import { useWebSocket } from "../context/WebSocketContext"
+import { useData, DataProvider } from "../context/DataProvider"
 import { getTestStats } from "../utils/testStats"
 import { CoveringExamples } from "../components/CoveringExamples"
-import { WebSocketProvider } from "../context/WebSocketContext"
 
 export function TestPage() {
   const { testId } = useParams<{ testId: string }>()
 
   return (
-    <WebSocketProvider nodeId={testId}>
+    <DataProvider nodeId={testId}>
       <_TestPage />
-    </WebSocketProvider>
+    </DataProvider>
   )
 }
 
 function _TestPage() {
   const { testId } = useParams<{ testId: string }>()
-  const { reports, metadata } = useWebSocket()
+  const { reports, metadata } = useData()
   const [pycrunchAvailable, setPycrunchAvailable] = useState<boolean>(false)
 
   useEffect(() => {

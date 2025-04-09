@@ -3,6 +3,7 @@ import * as d3 from "d3"
 import { Report } from "../types/dashboard"
 import { Toggle } from "./Toggle"
 import { useSetting } from "../hooks/useSetting"
+import { useNavigate } from "react-router-dom"
 // import BoxSelect from "../assets/box-select.svg?react"
 
 const mousePosition = { x: 0, y: 0 }
@@ -33,6 +34,7 @@ class Graph {
   g: d3.Selection<SVGGElement, unknown, null, undefined>
   zoom: d3.ZoomBehavior<SVGGElement, unknown>
   chartArea: d3.Selection<SVGGElement, unknown, null, undefined>
+  navigate: (path: string) => void
 
   private tooltip: d3.Selection<HTMLDivElement, unknown, HTMLElement, any>
   private brush: d3.BrushBehavior<unknown> | null = null
@@ -48,10 +50,12 @@ class Graph {
     reports: Record<string, Report[]>,
     scaleSetting: string,
     axisSetting: string,
+    navigate: (path: string) => void,
   ) {
     this.reports = reports
     this.scaleSetting = scaleSetting
     this.axisSetting = axisSetting
+    this.navigate = navigate
     this.xValue = (d: Report) =>
       axisSetting == "time" ? d.elapsed_time : d.ninputs
 
@@ -255,7 +259,7 @@ class Graph {
           d3.select(legendItem.node()).style("font-weight", "normal")
         })
         .on("click", () => {
-          window.location.href = `/tests/${encodeURIComponent(nodeid)}`
+          this.navigate(`/tests/${encodeURIComponent(nodeid)}`)
         })
 
       legendItem
@@ -297,7 +301,7 @@ class Graph {
           d3.select(this).classed("coverage-line__selected", false)
         })
         .on("click", () => {
-          window.location.href = `/tests/${encodeURIComponent(nodeid)}`
+          this.navigate(`/tests/${encodeURIComponent(nodeid)}`)
         })
     })
   }
@@ -400,6 +404,7 @@ export function CoverageGraph({ reports }: Props) {
     zoomY: boolean
   }>({ transform: null, zoomY: false })
   const [boxSelectEnabled, setBoxSelectEnabled] = useState(false)
+  const navigate = useNavigate()
 
   useEffect(() => {
     if (!svgRef.current || Object.keys(reports).length === 0) {
@@ -430,7 +435,13 @@ export function CoverageGraph({ reports }: Props) {
     }
 
     d3.select(svgRef.current).selectAll("*").remove()
-    const graph = new Graph(svgRef.current, reports, scaleSetting, axisSetting)
+    const graph = new Graph(
+      svgRef.current,
+      reports,
+      scaleSetting,
+      axisSetting,
+      navigate,
+    )
 
     if (zoomTransform.transform) {
       graph.zoom.transform(graph.chartArea, zoomTransform.transform)
@@ -457,7 +468,14 @@ export function CoverageGraph({ reports }: Props) {
     return () => {
       graph.cleanup()
     }
-  }, [reports, scaleSetting, axisSetting, forceUpdate, boxSelectEnabled])
+  }, [
+    reports,
+    scaleSetting,
+    axisSetting,
+    forceUpdate,
+    boxSelectEnabled,
+    navigate,
+  ])
 
   const toggleBoxSelect = () => {
     setBoxSelectEnabled(!boxSelectEnabled)

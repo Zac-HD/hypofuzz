@@ -1,0 +1,5183 @@
+{
+  "reports": {
+    "tests/test_provider.py::test_misaligned_type": [
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_type",
+        "elapsed_time": 0.05053025018423796,
+        "timestamp": 1743053975.622566,
+        "worker": {
+          "pid": 24756,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 2,
+        "branches": 96,
+        "since_new_cov": 0,
+        "loaded_from_db": 1,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_type",
+        "elapsed_time": 0.08842370938509703,
+        "timestamp": 1743053975.66001,
+        "worker": {
+          "pid": 24756,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 4,
+        "branches": 153,
+        "since_new_cov": 0,
+        "loaded_from_db": 2,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_type",
+        "elapsed_time": 0.09810520987957716,
+        "timestamp": 1743053975.669017,
+        "worker": {
+          "pid": 24756,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 5,
+        "branches": 165,
+        "since_new_cov": 0,
+        "loaded_from_db": 3,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_type",
+        "elapsed_time": 0.11159737687557936,
+        "timestamp": 1743053975.6837919,
+        "worker": {
+          "pid": 24756,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 7,
+        "branches": 171,
+        "since_new_cov": 0,
+        "loaded_from_db": 4,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_type",
+        "elapsed_time": 0.12172721046954393,
+        "timestamp": 1743053975.691762,
+        "worker": {
+          "pid": 24756,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 8,
+        "branches": 175,
+        "since_new_cov": 0,
+        "loaded_from_db": 5,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_type",
+        "elapsed_time": 0.12890366837382317,
+        "timestamp": 1743053975.701986,
+        "worker": {
+          "pid": 24756,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 9,
+        "branches": 177,
+        "since_new_cov": 0,
+        "loaded_from_db": 6,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_type",
+        "elapsed_time": 0.1391414189711213,
+        "timestamp": 1743053975.7164109,
+        "worker": {
+          "pid": 24756,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 10,
+        "branches": 179,
+        "since_new_cov": 0,
+        "loaded_from_db": 7,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_type",
+        "elapsed_time": 0.15583008527755737,
+        "timestamp": 1743053975.729536,
+        "worker": {
+          "pid": 24756,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 11,
+        "branches": 183,
+        "since_new_cov": 0,
+        "loaded_from_db": 8,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_type",
+        "elapsed_time": 0.17636520974338055,
+        "timestamp": 1743053975.7551098,
+        "worker": {
+          "pid": 24756,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 13,
+        "branches": 185,
+        "since_new_cov": 0,
+        "loaded_from_db": 10,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_type",
+        "elapsed_time": 0.2124902931973338,
+        "timestamp": 1743053975.786342,
+        "worker": {
+          "pid": 24756,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 15,
+        "branches": 206,
+        "since_new_cov": 0,
+        "loaded_from_db": 12,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_type",
+        "elapsed_time": 0.2264701258391142,
+        "timestamp": 1743053975.800278,
+        "worker": {
+          "pid": 24756,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 16,
+        "branches": 208,
+        "since_new_cov": 0,
+        "loaded_from_db": 13,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_type",
+        "elapsed_time": 0.38120533153414726,
+        "timestamp": 1743053975.961161,
+        "worker": {
+          "pid": 24756,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 35,
+        "branches": 210,
+        "since_new_cov": 0,
+        "loaded_from_db": 19,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_type",
+        "elapsed_time": 0.5397517532110214,
+        "timestamp": 1743053976.1172202,
+        "worker": {
+          "pid": 24756,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 62,
+        "branches": 212,
+        "since_new_cov": 0,
+        "loaded_from_db": 21,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_type",
+        "elapsed_time": 1.198754096403718,
+        "timestamp": 1743053976.770595,
+        "worker": {
+          "pid": 24756,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 200,
+        "branches": 212,
+        "since_new_cov": 138,
+        "loaded_from_db": 43,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_type",
+        "elapsed_time": 1.2893273886293173,
+        "timestamp": 1743053976.877028,
+        "worker": {
+          "pid": 24756,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 222,
+        "branches": 247,
+        "since_new_cov": 0,
+        "loaded_from_db": 45,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_type",
+        "elapsed_time": 3.1230989452451468,
+        "timestamp": 1743053978.703988,
+        "worker": {
+          "pid": 24756,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 500,
+        "branches": 247,
+        "since_new_cov": 278,
+        "loaded_from_db": 69,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_type",
+        "elapsed_time": 3.537140605971217,
+        "timestamp": 1743053979.1328902,
+        "worker": {
+          "pid": 24756,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 555,
+        "branches": 248,
+        "since_new_cov": 0,
+        "loaded_from_db": 72,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_type",
+        "elapsed_time": 3.849055769853294,
+        "timestamp": 1743053979.434467,
+        "worker": {
+          "pid": 24756,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 600,
+        "branches": 248,
+        "since_new_cov": 45,
+        "loaded_from_db": 74,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_type",
+        "elapsed_time": 3.919353686273098,
+        "timestamp": 1743053982.025488,
+        "worker": {
+          "pid": 24790,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 602,
+        "branches": 62,
+        "since_new_cov": 0,
+        "loaded_from_db": 20,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_type",
+        "elapsed_time": 3.9260326866060495,
+        "timestamp": 1743053982.0327501,
+        "worker": {
+          "pid": 24790,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 603,
+        "branches": 66,
+        "since_new_cov": 0,
+        "loaded_from_db": 20,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_type",
+        "elapsed_time": 3.930059228092432,
+        "timestamp": 1743053982.038777,
+        "worker": {
+          "pid": 24790,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 604,
+        "branches": 70,
+        "since_new_cov": 0,
+        "loaded_from_db": 20,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_type",
+        "elapsed_time": 3.9365876028314233,
+        "timestamp": 1743053982.0426838,
+        "worker": {
+          "pid": 24790,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 605,
+        "branches": 95,
+        "since_new_cov": 0,
+        "loaded_from_db": 20,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_type",
+        "elapsed_time": 3.940751852467656,
+        "timestamp": 1743053982.0478761,
+        "worker": {
+          "pid": 24790,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 606,
+        "branches": 102,
+        "since_new_cov": 0,
+        "loaded_from_db": 20,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_type",
+        "elapsed_time": 3.9459296446293592,
+        "timestamp": 1743053982.051926,
+        "worker": {
+          "pid": 24790,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 607,
+        "branches": 104,
+        "since_new_cov": 0,
+        "loaded_from_db": 20,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_type",
+        "elapsed_time": 3.9547798950225115,
+        "timestamp": 1743053982.061915,
+        "worker": {
+          "pid": 24790,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 608,
+        "branches": 110,
+        "since_new_cov": 0,
+        "loaded_from_db": 20,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_type",
+        "elapsed_time": 3.959236810915172,
+        "timestamp": 1743053982.068505,
+        "worker": {
+          "pid": 24790,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 609,
+        "branches": 112,
+        "since_new_cov": 0,
+        "loaded_from_db": 20,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_type",
+        "elapsed_time": 3.9656346440315247,
+        "timestamp": 1743053982.072457,
+        "worker": {
+          "pid": 24790,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 610,
+        "branches": 114,
+        "since_new_cov": 0,
+        "loaded_from_db": 20,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_type",
+        "elapsed_time": 3.969786936417222,
+        "timestamp": 1743053982.0771399,
+        "worker": {
+          "pid": 24790,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 611,
+        "branches": 149,
+        "since_new_cov": 0,
+        "loaded_from_db": 20,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_type",
+        "elapsed_time": 3.975610519759357,
+        "timestamp": 1743053982.083906,
+        "worker": {
+          "pid": 24790,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 612,
+        "branches": 150,
+        "since_new_cov": 0,
+        "loaded_from_db": 20,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_type",
+        "elapsed_time": 3.9822788536548615,
+        "timestamp": 1743053982.089751,
+        "worker": {
+          "pid": 24790,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 613,
+        "branches": 152,
+        "since_new_cov": 0,
+        "loaded_from_db": 20,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_type",
+        "elapsed_time": 3.986989812925458,
+        "timestamp": 1743053982.0941849,
+        "worker": {
+          "pid": 24790,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 614,
+        "branches": 154,
+        "since_new_cov": 0,
+        "loaded_from_db": 20,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_type",
+        "elapsed_time": 3.991865521296859,
+        "timestamp": 1743053982.099963,
+        "worker": {
+          "pid": 24790,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 615,
+        "branches": 156,
+        "since_new_cov": 0,
+        "loaded_from_db": 20,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_type",
+        "elapsed_time": 3.9970178958028555,
+        "timestamp": 1743053982.1118531,
+        "worker": {
+          "pid": 24790,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 616,
+        "branches": 187,
+        "since_new_cov": 0,
+        "loaded_from_db": 20,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_type",
+        "elapsed_time": 4.009404978714883,
+        "timestamp": 1743053982.124084,
+        "worker": {
+          "pid": 24790,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 617,
+        "branches": 188,
+        "since_new_cov": 0,
+        "loaded_from_db": 20,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_type",
+        "elapsed_time": 4.026025478728116,
+        "timestamp": 1743053982.136513,
+        "worker": {
+          "pid": 24790,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 618,
+        "branches": 190,
+        "since_new_cov": 0,
+        "loaded_from_db": 20,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_type",
+        "elapsed_time": 4.033365186303854,
+        "timestamp": 1743053982.146461,
+        "worker": {
+          "pid": 24790,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 619,
+        "branches": 192,
+        "since_new_cov": 0,
+        "loaded_from_db": 20,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_type",
+        "elapsed_time": 4.0446689780801535,
+        "timestamp": 1743053982.155482,
+        "worker": {
+          "pid": 24790,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 620,
+        "branches": 213,
+        "since_new_cov": 0,
+        "loaded_from_db": 20,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_type",
+        "elapsed_time": 4.05571526940912,
+        "timestamp": 1743053982.172218,
+        "worker": {
+          "pid": 24790,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 621,
+        "branches": 248,
+        "since_new_cov": 0,
+        "loaded_from_db": 20,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_type",
+        "elapsed_time": 5.201228399761021,
+        "timestamp": 1743053983.320065,
+        "worker": {
+          "pid": 24790,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 800,
+        "branches": 248,
+        "since_new_cov": 179,
+        "loaded_from_db": 20,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_type",
+        "elapsed_time": 5.74007502105087,
+        "timestamp": 1743053983.860317,
+        "worker": {
+          "pid": 24790,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 900,
+        "branches": 248,
+        "since_new_cov": 279,
+        "loaded_from_db": 20,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_type",
+        "elapsed_time": 6.208959645591676,
+        "timestamp": 1743053984.334795,
+        "worker": {
+          "pid": 24790,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 1000,
+        "branches": 248,
+        "since_new_cov": 379,
+        "loaded_from_db": 20,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_type",
+        "elapsed_time": 6.740103731863201,
+        "timestamp": 1743053984.858577,
+        "worker": {
+          "pid": 24790,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 1100,
+        "branches": 248,
+        "since_new_cov": 479,
+        "loaded_from_db": 20,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_type",
+        "elapsed_time": 7.25939672999084,
+        "timestamp": 1743053985.380091,
+        "worker": {
+          "pid": 24790,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 1200,
+        "branches": 248,
+        "since_new_cov": 579,
+        "loaded_from_db": 20,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_type",
+        "elapsed_time": 7.781036648899317,
+        "timestamp": 1743053985.905814,
+        "worker": {
+          "pid": 24790,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 1300,
+        "branches": 248,
+        "since_new_cov": 679,
+        "loaded_from_db": 21,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_type",
+        "elapsed_time": 8.314523813314736,
+        "timestamp": 1743053986.440052,
+        "worker": {
+          "pid": 24790,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 1400,
+        "branches": 248,
+        "since_new_cov": 779,
+        "loaded_from_db": 25,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_type",
+        "elapsed_time": 8.846586106345057,
+        "timestamp": 1743053986.978938,
+        "worker": {
+          "pid": 24790,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 1500,
+        "branches": 248,
+        "since_new_cov": 879,
+        "loaded_from_db": 28,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_type",
+        "elapsed_time": 9.345788144506514,
+        "timestamp": 1743053987.478112,
+        "worker": {
+          "pid": 24790,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 1600,
+        "branches": 248,
+        "since_new_cov": 979,
+        "loaded_from_db": 32,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_type",
+        "elapsed_time": 9.799841391853988,
+        "timestamp": 1743053987.998972,
+        "worker": {
+          "pid": 24790,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 1700,
+        "branches": 248,
+        "since_new_cov": 1079,
+        "loaded_from_db": 36,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_type",
+        "elapsed_time": 10.187308564782143,
+        "timestamp": 1743053988.473323,
+        "worker": {
+          "pid": 24790,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 1800,
+        "branches": 248,
+        "since_new_cov": 1179,
+        "loaded_from_db": 46,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_type",
+        "elapsed_time": 10.588133732788265,
+        "timestamp": 1743053988.965421,
+        "worker": {
+          "pid": 24790,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 1900,
+        "branches": 248,
+        "since_new_cov": 1279,
+        "loaded_from_db": 58,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_type",
+        "elapsed_time": 10.978776480071247,
+        "timestamp": 1743053989.44328,
+        "worker": {
+          "pid": 24790,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 2000,
+        "branches": 248,
+        "since_new_cov": 1379,
+        "loaded_from_db": 62,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_type",
+        "elapsed_time": 11.345411316491663,
+        "timestamp": 1743053989.9133928,
+        "worker": {
+          "pid": 24790,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 2100,
+        "branches": 248,
+        "since_new_cov": 1479,
+        "loaded_from_db": 66,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_type",
+        "elapsed_time": 11.736641445197165,
+        "timestamp": 1743053990.388371,
+        "worker": {
+          "pid": 24790,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 2200,
+        "branches": 248,
+        "since_new_cov": 1579,
+        "loaded_from_db": 72,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_type",
+        "elapsed_time": 12.07866898458451,
+        "timestamp": 1743053990.8196611,
+        "worker": {
+          "pid": 24790,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 2300,
+        "branches": 248,
+        "since_new_cov": 1679,
+        "loaded_from_db": 74,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_type",
+        "elapsed_time": 12.393381690606475,
+        "timestamp": 1743053991.213634,
+        "worker": {
+          "pid": 24790,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 2400,
+        "branches": 248,
+        "since_new_cov": 1779,
+        "loaded_from_db": 78,
+        "note": ""
+      }
+    ],
+    "tests/test_corpus.py::test_interesting_results_are_added_to_database": [
+      {
+        "nodeid": "tests/test_corpus.py::test_interesting_results_are_added_to_database",
+        "elapsed_time": 0,
+        "timestamp": 1743053975.592097,
+        "worker": {
+          "pid": 24753,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 1,
+        "branches": 62,
+        "since_new_cov": 0,
+        "loaded_from_db": 1,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_corpus.py::test_interesting_results_are_added_to_database",
+        "elapsed_time": 0.0525907501578331,
+        "timestamp": 1743053975.63623,
+        "worker": {
+          "pid": 24753,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 3,
+        "branches": 62,
+        "since_new_cov": null,
+        "loaded_from_db": 1,
+        "note": "raised TypeError (finished)"
+      },
+      {
+        "nodeid": "tests/test_corpus.py::test_interesting_results_are_added_to_database",
+        "elapsed_time": 0.08713329210877419,
+        "timestamp": 1743053975.648224,
+        "worker": {
+          "pid": 24753,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 4,
+        "branches": 62,
+        "since_new_cov": null,
+        "loaded_from_db": 1,
+        "note": "raised TypeError (shrinking...)"
+      },
+      {
+        "nodeid": "tests/test_corpus.py::test_interesting_results_are_added_to_database",
+        "elapsed_time": 0.09758175071328878,
+        "timestamp": 1743053975.663855,
+        "worker": {
+          "pid": 24753,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 5,
+        "branches": 62,
+        "since_new_cov": null,
+        "loaded_from_db": 1,
+        "note": "raised TypeError (shrinking...)"
+      },
+      {
+        "nodeid": "tests/test_corpus.py::test_interesting_results_are_added_to_database",
+        "elapsed_time": 0.11222683358937502,
+        "timestamp": 1743053975.6894,
+        "worker": {
+          "pid": 24753,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 6,
+        "branches": 62,
+        "since_new_cov": null,
+        "loaded_from_db": 1,
+        "note": "raised TypeError (shrinking...)"
+      },
+      {
+        "nodeid": "tests/test_corpus.py::test_interesting_results_are_added_to_database",
+        "elapsed_time": 0.13075241725891829,
+        "timestamp": 1743053975.706999,
+        "worker": {
+          "pid": 24753,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 7,
+        "branches": 62,
+        "since_new_cov": null,
+        "loaded_from_db": 1,
+        "note": "raised TypeError (shrinking...)"
+      },
+      {
+        "nodeid": "tests/test_corpus.py::test_interesting_results_are_added_to_database",
+        "elapsed_time": 0.14698062650859356,
+        "timestamp": 1743053975.737462,
+        "worker": {
+          "pid": 24753,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 8,
+        "branches": 62,
+        "since_new_cov": null,
+        "loaded_from_db": 1,
+        "note": "raised TypeError (shrinking...)"
+      },
+      {
+        "nodeid": "tests/test_corpus.py::test_interesting_results_are_added_to_database",
+        "elapsed_time": 0.16969712637364864,
+        "timestamp": 1743053975.751014,
+        "worker": {
+          "pid": 24753,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 9,
+        "branches": 62,
+        "since_new_cov": null,
+        "loaded_from_db": 1,
+        "note": "raised TypeError (shrinking...)"
+      },
+      {
+        "nodeid": "tests/test_corpus.py::test_interesting_results_are_added_to_database",
+        "elapsed_time": 0.18325091805309057,
+        "timestamp": 1743053975.764611,
+        "worker": {
+          "pid": 24753,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 10,
+        "branches": 62,
+        "since_new_cov": null,
+        "loaded_from_db": 1,
+        "note": "raised TypeError (shrinking...)"
+      },
+      {
+        "nodeid": "tests/test_corpus.py::test_interesting_results_are_added_to_database",
+        "elapsed_time": 0.20747845899313688,
+        "timestamp": 1743053975.795192,
+        "worker": {
+          "pid": 24753,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 12,
+        "branches": 62,
+        "since_new_cov": null,
+        "loaded_from_db": 1,
+        "note": "raised TypeError (shrinking...)"
+      },
+      {
+        "nodeid": "tests/test_corpus.py::test_interesting_results_are_added_to_database",
+        "elapsed_time": 0.21712716668844223,
+        "timestamp": 1743053975.807744,
+        "worker": {
+          "pid": 24753,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 13,
+        "branches": 62,
+        "since_new_cov": null,
+        "loaded_from_db": 1,
+        "note": "raised TypeError (shrinking...)"
+      },
+      {
+        "nodeid": "tests/test_corpus.py::test_interesting_results_are_added_to_database",
+        "elapsed_time": 0.23017716594040394,
+        "timestamp": 1743053975.824074,
+        "worker": {
+          "pid": 24753,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 14,
+        "branches": 62,
+        "since_new_cov": null,
+        "loaded_from_db": 1,
+        "note": "raised TypeError (shrinking...)"
+      },
+      {
+        "nodeid": "tests/test_corpus.py::test_interesting_results_are_added_to_database",
+        "elapsed_time": 0.24126599915325642,
+        "timestamp": 1743053975.842679,
+        "worker": {
+          "pid": 24753,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 15,
+        "branches": 62,
+        "since_new_cov": null,
+        "loaded_from_db": 1,
+        "note": "raised TypeError (shrinking...)"
+      },
+      {
+        "nodeid": "tests/test_corpus.py::test_interesting_results_are_added_to_database",
+        "elapsed_time": 0.2579915402457118,
+        "timestamp": 1743053975.857632,
+        "worker": {
+          "pid": 24753,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 16,
+        "branches": 62,
+        "since_new_cov": null,
+        "loaded_from_db": 1,
+        "note": "raised TypeError (shrinking...)"
+      },
+      {
+        "nodeid": "tests/test_corpus.py::test_interesting_results_are_added_to_database",
+        "elapsed_time": 0.2655481640249491,
+        "timestamp": 1743053975.918944,
+        "worker": {
+          "pid": 24753,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 17,
+        "branches": 62,
+        "since_new_cov": null,
+        "loaded_from_db": 1,
+        "note": "raised TypeError (finished)"
+      },
+      {
+        "nodeid": "tests/test_corpus.py::test_interesting_results_are_added_to_database",
+        "elapsed_time": 0.2655481640249491,
+        "timestamp": 1743053981.983724,
+        "worker": {
+          "pid": 24787,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 18,
+        "branches": 62,
+        "since_new_cov": 0,
+        "loaded_from_db": 3,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_corpus.py::test_interesting_results_are_added_to_database",
+        "elapsed_time": 0.31150928884744644,
+        "timestamp": 1743053982.018453,
+        "worker": {
+          "pid": 24787,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 20,
+        "branches": 62,
+        "since_new_cov": null,
+        "loaded_from_db": 3,
+        "note": "raised TypeError (finished)"
+      },
+      {
+        "nodeid": "tests/test_corpus.py::test_interesting_results_are_added_to_database",
+        "elapsed_time": 0.45060849748551846,
+        "timestamp": 1743053982.14726,
+        "worker": {
+          "pid": 24787,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 89,
+        "branches": 62,
+        "since_new_cov": null,
+        "loaded_from_db": 3,
+        "note": "raised TypeError (finished)"
+      }
+    ],
+    "tests/test_provider.py::test_misaligned_kwargs": [
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_kwargs",
+        "elapsed_time": 0.058848125860095024,
+        "timestamp": 1743053975.662393,
+        "worker": {
+          "pid": 24757,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 2,
+        "branches": 75,
+        "since_new_cov": 0,
+        "loaded_from_db": 1,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_kwargs",
+        "elapsed_time": 0.0679103760048747,
+        "timestamp": 1743053975.6729841,
+        "worker": {
+          "pid": 24757,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 3,
+        "branches": 110,
+        "since_new_cov": 0,
+        "loaded_from_db": 2,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_kwargs",
+        "elapsed_time": 0.08294720947742462,
+        "timestamp": 1743053975.709339,
+        "worker": {
+          "pid": 24757,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 4,
+        "branches": 145,
+        "since_new_cov": 0,
+        "loaded_from_db": 3,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_kwargs",
+        "elapsed_time": 0.13704041857272387,
+        "timestamp": 1743053975.744975,
+        "worker": {
+          "pid": 24757,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 9,
+        "branches": 147,
+        "since_new_cov": 0,
+        "loaded_from_db": 5,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_kwargs",
+        "elapsed_time": 0.15322166867554188,
+        "timestamp": 1743053975.760152,
+        "worker": {
+          "pid": 24757,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 10,
+        "branches": 170,
+        "since_new_cov": 0,
+        "loaded_from_db": 6,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_kwargs",
+        "elapsed_time": 0.18479358684271574,
+        "timestamp": 1743053975.794177,
+        "worker": {
+          "pid": 24757,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 13,
+        "branches": 209,
+        "since_new_cov": 0,
+        "loaded_from_db": 7,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_kwargs",
+        "elapsed_time": 0.2144563365727663,
+        "timestamp": 1743053975.832375,
+        "worker": {
+          "pid": 24757,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 20,
+        "branches": 210,
+        "since_new_cov": 0,
+        "loaded_from_db": 8,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_kwargs",
+        "elapsed_time": 0.3714327896013856,
+        "timestamp": 1743053975.981233,
+        "worker": {
+          "pid": 24757,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 40,
+        "branches": 228,
+        "since_new_cov": 0,
+        "loaded_from_db": 13,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_kwargs",
+        "elapsed_time": 0.6028398741036654,
+        "timestamp": 1743053976.218708,
+        "worker": {
+          "pid": 24757,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 100,
+        "branches": 228,
+        "since_new_cov": 60,
+        "loaded_from_db": 22,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_kwargs",
+        "elapsed_time": 0.7791987014934421,
+        "timestamp": 1743053976.3900201,
+        "worker": {
+          "pid": 24757,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 152,
+        "branches": 234,
+        "since_new_cov": 0,
+        "loaded_from_db": 27,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_kwargs",
+        "elapsed_time": 1.3654741188511252,
+        "timestamp": 1743053976.9728,
+        "worker": {
+          "pid": 24757,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 300,
+        "branches": 234,
+        "since_new_cov": 148,
+        "loaded_from_db": 36,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_kwargs",
+        "elapsed_time": 1.4060762040317059,
+        "timestamp": 1743053977.021311,
+        "worker": {
+          "pid": 24757,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 311,
+        "branches": 251,
+        "since_new_cov": 0,
+        "loaded_from_db": 37,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_kwargs",
+        "elapsed_time": 3.8596000224351883,
+        "timestamp": 1743053979.480292,
+        "worker": {
+          "pid": 24757,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 900,
+        "branches": 251,
+        "since_new_cov": 589,
+        "loaded_from_db": 52,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_kwargs",
+        "elapsed_time": 3.899840106256306,
+        "timestamp": 1743053982.03855,
+        "worker": {
+          "pid": 24791,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 902,
+        "branches": 50,
+        "since_new_cov": 0,
+        "loaded_from_db": 14,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_kwargs",
+        "elapsed_time": 3.903044148348272,
+        "timestamp": 1743053982.044379,
+        "worker": {
+          "pid": 24791,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 903,
+        "branches": 84,
+        "since_new_cov": 0,
+        "loaded_from_db": 14,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_kwargs",
+        "elapsed_time": 3.9103706059977412,
+        "timestamp": 1743053982.0498931,
+        "worker": {
+          "pid": 24791,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 904,
+        "branches": 119,
+        "since_new_cov": 0,
+        "loaded_from_db": 14,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_kwargs",
+        "elapsed_time": 3.9190551061183214,
+        "timestamp": 1743053982.062699,
+        "worker": {
+          "pid": 24791,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 905,
+        "branches": 150,
+        "since_new_cov": 0,
+        "loaded_from_db": 14,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_kwargs",
+        "elapsed_time": 3.9279220225289464,
+        "timestamp": 1743053982.0710962,
+        "worker": {
+          "pid": 24791,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 906,
+        "branches": 154,
+        "since_new_cov": 0,
+        "loaded_from_db": 14,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_kwargs",
+        "elapsed_time": 3.939456397667527,
+        "timestamp": 1743053982.0849211,
+        "worker": {
+          "pid": 24791,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 908,
+        "branches": 158,
+        "since_new_cov": 0,
+        "loaded_from_db": 14,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_kwargs",
+        "elapsed_time": 3.9490578146651387,
+        "timestamp": 1743053982.097297,
+        "worker": {
+          "pid": 24791,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 909,
+        "branches": 160,
+        "since_new_cov": 0,
+        "loaded_from_db": 14,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_kwargs",
+        "elapsed_time": 3.9662418561056256,
+        "timestamp": 1743053982.112243,
+        "worker": {
+          "pid": 24791,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 910,
+        "branches": 181,
+        "since_new_cov": 0,
+        "loaded_from_db": 14,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_kwargs",
+        "elapsed_time": 3.9759599808603525,
+        "timestamp": 1743053982.120827,
+        "worker": {
+          "pid": 24791,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 911,
+        "branches": 199,
+        "since_new_cov": 0,
+        "loaded_from_db": 14,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_kwargs",
+        "elapsed_time": 3.985221021808684,
+        "timestamp": 1743053982.133163,
+        "worker": {
+          "pid": 24791,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 912,
+        "branches": 232,
+        "since_new_cov": 0,
+        "loaded_from_db": 14,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_kwargs",
+        "elapsed_time": 3.9967827294021845,
+        "timestamp": 1743053982.140362,
+        "worker": {
+          "pid": 24791,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 913,
+        "branches": 247,
+        "since_new_cov": 0,
+        "loaded_from_db": 14,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_kwargs",
+        "elapsed_time": 4.005198521539569,
+        "timestamp": 1743053982.155406,
+        "worker": {
+          "pid": 24791,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 914,
+        "branches": 249,
+        "since_new_cov": 0,
+        "loaded_from_db": 14,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_kwargs",
+        "elapsed_time": 4.0211445633322,
+        "timestamp": 1743053982.171978,
+        "worker": {
+          "pid": 24791,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 915,
+        "branches": 251,
+        "since_new_cov": 0,
+        "loaded_from_db": 14,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_kwargs",
+        "elapsed_time": 4.760041217319667,
+        "timestamp": 1743053982.9023192,
+        "worker": {
+          "pid": 24791,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 1100,
+        "branches": 251,
+        "since_new_cov": 185,
+        "loaded_from_db": 14,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_kwargs",
+        "elapsed_time": 5.0652186796069145,
+        "timestamp": 1743053983.209548,
+        "worker": {
+          "pid": 24791,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 1200,
+        "branches": 251,
+        "since_new_cov": 285,
+        "loaded_from_db": 14,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_kwargs",
+        "elapsed_time": 5.400829509831965,
+        "timestamp": 1743053983.54729,
+        "worker": {
+          "pid": 24791,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 1300,
+        "branches": 251,
+        "since_new_cov": 385,
+        "loaded_from_db": 14,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_kwargs",
+        "elapsed_time": 5.777846182696521,
+        "timestamp": 1743053983.926636,
+        "worker": {
+          "pid": 24791,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 1400,
+        "branches": 251,
+        "since_new_cov": 485,
+        "loaded_from_db": 14,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_kwargs",
+        "elapsed_time": 6.060755561105907,
+        "timestamp": 1743053984.211427,
+        "worker": {
+          "pid": 24791,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 1500,
+        "branches": 251,
+        "since_new_cov": 585,
+        "loaded_from_db": 14,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_kwargs",
+        "elapsed_time": 6.388454767875373,
+        "timestamp": 1743053984.547669,
+        "worker": {
+          "pid": 24791,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 1600,
+        "branches": 251,
+        "since_new_cov": 685,
+        "loaded_from_db": 14,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_kwargs",
+        "elapsed_time": 6.674560813233256,
+        "timestamp": 1743053984.831212,
+        "worker": {
+          "pid": 24791,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 1700,
+        "branches": 251,
+        "since_new_cov": 785,
+        "loaded_from_db": 14,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_kwargs",
+        "elapsed_time": 6.996303244493902,
+        "timestamp": 1743053985.150298,
+        "worker": {
+          "pid": 24791,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 1800,
+        "branches": 251,
+        "since_new_cov": 885,
+        "loaded_from_db": 14,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_kwargs",
+        "elapsed_time": 7.2979816198349,
+        "timestamp": 1743053985.45696,
+        "worker": {
+          "pid": 24791,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 1900,
+        "branches": 251,
+        "since_new_cov": 985,
+        "loaded_from_db": 15,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_kwargs",
+        "elapsed_time": 7.629645450040698,
+        "timestamp": 1743053985.843754,
+        "worker": {
+          "pid": 24791,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 2000,
+        "branches": 251,
+        "since_new_cov": 1085,
+        "loaded_from_db": 30,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_kwargs",
+        "elapsed_time": 7.9051657896488905,
+        "timestamp": 1743053986.1889532,
+        "worker": {
+          "pid": 24791,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 2100,
+        "branches": 251,
+        "since_new_cov": 1185,
+        "loaded_from_db": 37,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_kwargs",
+        "elapsed_time": 8.192081047222018,
+        "timestamp": 1743053986.5430021,
+        "worker": {
+          "pid": 24791,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 2200,
+        "branches": 251,
+        "since_new_cov": 1285,
+        "loaded_from_db": 43,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_kwargs",
+        "elapsed_time": 8.535718745552003,
+        "timestamp": 1743053986.958239,
+        "worker": {
+          "pid": 24791,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 2300,
+        "branches": 251,
+        "since_new_cov": 1385,
+        "loaded_from_db": 51,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_kwargs",
+        "elapsed_time": 8.888468868099153,
+        "timestamp": 1743053987.4089248,
+        "worker": {
+          "pid": 24791,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 2400,
+        "branches": 251,
+        "since_new_cov": 1485,
+        "loaded_from_db": 57,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_kwargs",
+        "elapsed_time": 9.218654482625425,
+        "timestamp": 1743053987.823124,
+        "worker": {
+          "pid": 24791,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 2500,
+        "branches": 251,
+        "since_new_cov": 1585,
+        "loaded_from_db": 62,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_kwargs",
+        "elapsed_time": 9.507350439205766,
+        "timestamp": 1743053988.180629,
+        "worker": {
+          "pid": 24791,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 2600,
+        "branches": 251,
+        "since_new_cov": 1685,
+        "loaded_from_db": 69,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_kwargs",
+        "elapsed_time": 9.806303398683667,
+        "timestamp": 1743053988.55207,
+        "worker": {
+          "pid": 24791,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 2700,
+        "branches": 251,
+        "since_new_cov": 1785,
+        "loaded_from_db": 72,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_kwargs",
+        "elapsed_time": 10.177509516477585,
+        "timestamp": 1743053988.997205,
+        "worker": {
+          "pid": 24791,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 2800,
+        "branches": 251,
+        "since_new_cov": 1885,
+        "loaded_from_db": 76,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_kwargs",
+        "elapsed_time": 10.461785768158734,
+        "timestamp": 1743053989.3549829,
+        "worker": {
+          "pid": 24791,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 2900,
+        "branches": 251,
+        "since_new_cov": 1985,
+        "loaded_from_db": 84,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_kwargs",
+        "elapsed_time": 10.74936225824058,
+        "timestamp": 1743053989.719334,
+        "worker": {
+          "pid": 24791,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 3000,
+        "branches": 251,
+        "since_new_cov": 2085,
+        "loaded_from_db": 87,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_kwargs",
+        "elapsed_time": 11.089187660254538,
+        "timestamp": 1743053990.139967,
+        "worker": {
+          "pid": 24791,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 3100,
+        "branches": 251,
+        "since_new_cov": 2185,
+        "loaded_from_db": 90,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_kwargs",
+        "elapsed_time": 11.366321289911866,
+        "timestamp": 1743053990.4861708,
+        "worker": {
+          "pid": 24791,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 3200,
+        "branches": 251,
+        "since_new_cov": 2285,
+        "loaded_from_db": 98,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_kwargs",
+        "elapsed_time": 11.649769634008408,
+        "timestamp": 1743053990.841496,
+        "worker": {
+          "pid": 24791,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 3300,
+        "branches": 251,
+        "since_new_cov": 2385,
+        "loaded_from_db": 104,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_kwargs",
+        "elapsed_time": 11.94368638470769,
+        "timestamp": 1743053991.1985679,
+        "worker": {
+          "pid": 24791,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 3400,
+        "branches": 251,
+        "since_new_cov": 2485,
+        "loaded_from_db": 110,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_misaligned_kwargs",
+        "elapsed_time": 12.209773171693087,
+        "timestamp": 1743053991.5308669,
+        "worker": {
+          "pid": 24791,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 3500,
+        "branches": 251,
+        "since_new_cov": 2585,
+        "loaded_from_db": 110,
+        "note": ""
+      }
+    ],
+    "tests/test_provider.py::test_draw_past_prefix": [
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 0,
+        "timestamp": 1743053975.592936,
+        "worker": {
+          "pid": 24755,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 1,
+        "branches": 9,
+        "since_new_cov": 0,
+        "loaded_from_db": 1,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 0.05930916778743267,
+        "timestamp": 1743053975.605984,
+        "worker": {
+          "pid": 24755,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 2,
+        "branches": 33,
+        "since_new_cov": 0,
+        "loaded_from_db": 2,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 0.06942162569612265,
+        "timestamp": 1743053975.624568,
+        "worker": {
+          "pid": 24755,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 3,
+        "branches": 69,
+        "since_new_cov": 0,
+        "loaded_from_db": 3,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 0.08505683485418558,
+        "timestamp": 1743053975.630293,
+        "worker": {
+          "pid": 24755,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 4,
+        "branches": 95,
+        "since_new_cov": 0,
+        "loaded_from_db": 4,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 0.09314808435738087,
+        "timestamp": 1743053975.639372,
+        "worker": {
+          "pid": 24755,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 6,
+        "branches": 102,
+        "since_new_cov": 0,
+        "loaded_from_db": 6,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 0.10038775112479925,
+        "timestamp": 1743053975.6496,
+        "worker": {
+          "pid": 24755,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 7,
+        "branches": 125,
+        "since_new_cov": 0,
+        "loaded_from_db": 7,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 0.1144283339381218,
+        "timestamp": 1743053975.671895,
+        "worker": {
+          "pid": 24755,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 9,
+        "branches": 127,
+        "since_new_cov": 0,
+        "loaded_from_db": 9,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 0.15451854187995195,
+        "timestamp": 1743053975.699656,
+        "worker": {
+          "pid": 24755,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 15,
+        "branches": 160,
+        "since_new_cov": 0,
+        "loaded_from_db": 11,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 0.1760708335787058,
+        "timestamp": 1743053975.733689,
+        "worker": {
+          "pid": 24755,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 18,
+        "branches": 165,
+        "since_new_cov": 0,
+        "loaded_from_db": 13,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 0.22476658411324024,
+        "timestamp": 1743053975.782389,
+        "worker": {
+          "pid": 24755,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 24,
+        "branches": 167,
+        "since_new_cov": 0,
+        "loaded_from_db": 16,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 0.48129041213542223,
+        "timestamp": 1743053976.0292659,
+        "worker": {
+          "pid": 24755,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 100,
+        "branches": 167,
+        "since_new_cov": 76,
+        "loaded_from_db": 29,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 0.5867820763960481,
+        "timestamp": 1743053976.1392472,
+        "worker": {
+          "pid": 24755,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 145,
+        "branches": 202,
+        "since_new_cov": 0,
+        "loaded_from_db": 34,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 1.9835465857759118,
+        "timestamp": 1743053977.544461,
+        "worker": {
+          "pid": 24755,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 700,
+        "branches": 202,
+        "since_new_cov": 555,
+        "loaded_from_db": 54,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 2.1462926287204027,
+        "timestamp": 1743053977.71105,
+        "worker": {
+          "pid": 24755,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 771,
+        "branches": 203,
+        "since_new_cov": 0,
+        "loaded_from_db": 59,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 4.025563802570105,
+        "timestamp": 1743053979.606441,
+        "worker": {
+          "pid": 24755,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 1600,
+        "branches": 203,
+        "since_new_cov": 829,
+        "loaded_from_db": 70,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 4.025563802570105,
+        "timestamp": 1743053982.125184,
+        "worker": {
+          "pid": 24789,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 1601,
+        "branches": 9,
+        "since_new_cov": 0,
+        "loaded_from_db": 19,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 4.10480088647455,
+        "timestamp": 1743053982.137841,
+        "worker": {
+          "pid": 24789,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 1603,
+        "branches": 27,
+        "since_new_cov": 0,
+        "loaded_from_db": 19,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 4.1151237189769745,
+        "timestamp": 1743053982.141543,
+        "worker": {
+          "pid": 24789,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 1604,
+        "branches": 34,
+        "since_new_cov": 0,
+        "loaded_from_db": 19,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 4.11767371930182,
+        "timestamp": 1743053982.14405,
+        "worker": {
+          "pid": 24789,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 1605,
+        "branches": 38,
+        "since_new_cov": 0,
+        "loaded_from_db": 19,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 4.12012751121074,
+        "timestamp": 1743053982.147743,
+        "worker": {
+          "pid": 24789,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 1606,
+        "branches": 63,
+        "since_new_cov": 0,
+        "loaded_from_db": 19,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 4.124759052880108,
+        "timestamp": 1743053982.152145,
+        "worker": {
+          "pid": 24789,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 1607,
+        "branches": 95,
+        "since_new_cov": 0,
+        "loaded_from_db": 19,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 4.131350344978273,
+        "timestamp": 1743053982.163379,
+        "worker": {
+          "pid": 24789,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 1608,
+        "branches": 97,
+        "since_new_cov": 0,
+        "loaded_from_db": 19,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 4.1392870945855975,
+        "timestamp": 1743053982.167936,
+        "worker": {
+          "pid": 24789,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 1609,
+        "branches": 99,
+        "since_new_cov": 0,
+        "loaded_from_db": 19,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 4.144016887061298,
+        "timestamp": 1743053982.1726432,
+        "worker": {
+          "pid": 24789,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 1610,
+        "branches": 105,
+        "since_new_cov": 0,
+        "loaded_from_db": 19,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 4.148080719634891,
+        "timestamp": 1743053982.17585,
+        "worker": {
+          "pid": 24789,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 1611,
+        "branches": 109,
+        "since_new_cov": 0,
+        "loaded_from_db": 19,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 4.1511533027514815,
+        "timestamp": 1743053982.1802309,
+        "worker": {
+          "pid": 24789,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 1612,
+        "branches": 111,
+        "since_new_cov": 0,
+        "loaded_from_db": 19,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 4.155481178313494,
+        "timestamp": 1743053982.183299,
+        "worker": {
+          "pid": 24789,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 1613,
+        "branches": 113,
+        "since_new_cov": 0,
+        "loaded_from_db": 19,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 4.159924844279885,
+        "timestamp": 1743053982.188262,
+        "worker": {
+          "pid": 24789,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 1614,
+        "branches": 114,
+        "since_new_cov": 0,
+        "loaded_from_db": 19,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 4.163571594282985,
+        "timestamp": 1743053982.1969569,
+        "worker": {
+          "pid": 24789,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 1615,
+        "branches": 145,
+        "since_new_cov": 0,
+        "loaded_from_db": 19,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 4.172136344015598,
+        "timestamp": 1743053982.206756,
+        "worker": {
+          "pid": 24789,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 1616,
+        "branches": 147,
+        "since_new_cov": 0,
+        "loaded_from_db": 19,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 4.184006719850004,
+        "timestamp": 1743053982.2147992,
+        "worker": {
+          "pid": 24789,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 1617,
+        "branches": 168,
+        "since_new_cov": 0,
+        "loaded_from_db": 19,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 4.189962553791702,
+        "timestamp": 1743053982.230923,
+        "worker": {
+          "pid": 24789,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 1618,
+        "branches": 186,
+        "since_new_cov": 0,
+        "loaded_from_db": 19,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 4.206423137336969,
+        "timestamp": 1743053982.239391,
+        "worker": {
+          "pid": 24789,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 1619,
+        "branches": 201,
+        "since_new_cov": 0,
+        "loaded_from_db": 19,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 4.214582512155175,
+        "timestamp": 1743053982.248676,
+        "worker": {
+          "pid": 24789,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 1620,
+        "branches": 203,
+        "since_new_cov": 0,
+        "loaded_from_db": 19,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 4.6030139261856675,
+        "timestamp": 1743053982.635776,
+        "worker": {
+          "pid": 24789,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 1800,
+        "branches": 203,
+        "since_new_cov": 180,
+        "loaded_from_db": 19,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 4.759908138774335,
+        "timestamp": 1743053982.7970161,
+        "worker": {
+          "pid": 24789,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 1900,
+        "branches": 203,
+        "since_new_cov": 280,
+        "loaded_from_db": 19,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 4.962205179966986,
+        "timestamp": 1743053982.9977589,
+        "worker": {
+          "pid": 24789,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 2000,
+        "branches": 203,
+        "since_new_cov": 380,
+        "loaded_from_db": 19,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 5.122593253850937,
+        "timestamp": 1743053983.1600142,
+        "worker": {
+          "pid": 24789,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 2100,
+        "branches": 203,
+        "since_new_cov": 480,
+        "loaded_from_db": 19,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 5.296242584474385,
+        "timestamp": 1743053983.335275,
+        "worker": {
+          "pid": 24789,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 2200,
+        "branches": 203,
+        "since_new_cov": 580,
+        "loaded_from_db": 19,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 5.4664565827697515,
+        "timestamp": 1743053983.506863,
+        "worker": {
+          "pid": 24789,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 2300,
+        "branches": 203,
+        "since_new_cov": 680,
+        "loaded_from_db": 19,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 5.635710631497204,
+        "timestamp": 1743053983.677839,
+        "worker": {
+          "pid": 24789,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 2400,
+        "branches": 203,
+        "since_new_cov": 780,
+        "loaded_from_db": 19,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 5.802475204691291,
+        "timestamp": 1743053983.84599,
+        "worker": {
+          "pid": 24789,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 2500,
+        "branches": 203,
+        "since_new_cov": 880,
+        "loaded_from_db": 19,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 5.969286001287401,
+        "timestamp": 1743053984.0146098,
+        "worker": {
+          "pid": 24789,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 2600,
+        "branches": 203,
+        "since_new_cov": 980,
+        "loaded_from_db": 19,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 6.138923349790275,
+        "timestamp": 1743053984.218213,
+        "worker": {
+          "pid": 24789,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 2700,
+        "branches": 203,
+        "since_new_cov": 1080,
+        "loaded_from_db": 24,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 6.304626342840493,
+        "timestamp": 1743053984.425281,
+        "worker": {
+          "pid": 24789,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 2800,
+        "branches": 203,
+        "since_new_cov": 1180,
+        "loaded_from_db": 34,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 6.447212967090309,
+        "timestamp": 1743053984.60919,
+        "worker": {
+          "pid": 24789,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 2900,
+        "branches": 203,
+        "since_new_cov": 1280,
+        "loaded_from_db": 38,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 6.587325047701597,
+        "timestamp": 1743053984.791745,
+        "worker": {
+          "pid": 24789,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 3000,
+        "branches": 203,
+        "since_new_cov": 1380,
+        "loaded_from_db": 42,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 6.7433168748393655,
+        "timestamp": 1743053984.999042,
+        "worker": {
+          "pid": 24789,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 3100,
+        "branches": 203,
+        "since_new_cov": 1480,
+        "loaded_from_db": 47,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 6.895120861008763,
+        "timestamp": 1743053985.191944,
+        "worker": {
+          "pid": 24789,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 3200,
+        "branches": 203,
+        "since_new_cov": 1580,
+        "loaded_from_db": 49,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 7.045623069629073,
+        "timestamp": 1743053985.382612,
+        "worker": {
+          "pid": 24789,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 3300,
+        "branches": 203,
+        "since_new_cov": 1680,
+        "loaded_from_db": 54,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 7.201445904560387,
+        "timestamp": 1743053985.5836318,
+        "worker": {
+          "pid": 24789,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 3400,
+        "branches": 203,
+        "since_new_cov": 1780,
+        "loaded_from_db": 58,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 7.365516065619886,
+        "timestamp": 1743053985.792664,
+        "worker": {
+          "pid": 24789,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 3500,
+        "branches": 203,
+        "since_new_cov": 1880,
+        "loaded_from_db": 66,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 7.546257609501481,
+        "timestamp": 1743053986.0191329,
+        "worker": {
+          "pid": 24789,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 3600,
+        "branches": 203,
+        "since_new_cov": 1980,
+        "loaded_from_db": 70,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 7.715611937455833,
+        "timestamp": 1743053986.230384,
+        "worker": {
+          "pid": 24789,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 3700,
+        "branches": 203,
+        "since_new_cov": 2080,
+        "loaded_from_db": 74,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 7.8835024777799845,
+        "timestamp": 1743053986.445753,
+        "worker": {
+          "pid": 24789,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 3800,
+        "branches": 203,
+        "since_new_cov": 2180,
+        "loaded_from_db": 76,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 8.036592856049538,
+        "timestamp": 1743053986.641672,
+        "worker": {
+          "pid": 24789,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 3900,
+        "branches": 203,
+        "since_new_cov": 2280,
+        "loaded_from_db": 77,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 8.231372187845409,
+        "timestamp": 1743053986.887091,
+        "worker": {
+          "pid": 24789,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 4000,
+        "branches": 203,
+        "since_new_cov": 2380,
+        "loaded_from_db": 80,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 8.437788068316877,
+        "timestamp": 1743053987.1601799,
+        "worker": {
+          "pid": 24789,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 4100,
+        "branches": 203,
+        "since_new_cov": 2480,
+        "loaded_from_db": 82,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 8.58565706666559,
+        "timestamp": 1743053987.3516319,
+        "worker": {
+          "pid": 24789,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 4200,
+        "branches": 203,
+        "since_new_cov": 2580,
+        "loaded_from_db": 87,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 8.786094646900892,
+        "timestamp": 1743053987.605076,
+        "worker": {
+          "pid": 24789,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 4300,
+        "branches": 203,
+        "since_new_cov": 2680,
+        "loaded_from_db": 90,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 8.938925731927156,
+        "timestamp": 1743053987.800422,
+        "worker": {
+          "pid": 24789,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 4400,
+        "branches": 203,
+        "since_new_cov": 2780,
+        "loaded_from_db": 91,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 9.098251063376665,
+        "timestamp": 1743053988.004649,
+        "worker": {
+          "pid": 24789,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 4500,
+        "branches": 203,
+        "since_new_cov": 2880,
+        "loaded_from_db": 93,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 9.243080724962056,
+        "timestamp": 1743053988.192205,
+        "worker": {
+          "pid": 24789,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 4600,
+        "branches": 203,
+        "since_new_cov": 2980,
+        "loaded_from_db": 96,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 9.393461265601218,
+        "timestamp": 1743053988.38875,
+        "worker": {
+          "pid": 24789,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 4700,
+        "branches": 203,
+        "since_new_cov": 3080,
+        "loaded_from_db": 96,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 9.555460643954575,
+        "timestamp": 1743053988.593926,
+        "worker": {
+          "pid": 24789,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 4800,
+        "branches": 203,
+        "since_new_cov": 3180,
+        "loaded_from_db": 96,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 9.72765226662159,
+        "timestamp": 1743053988.809866,
+        "worker": {
+          "pid": 24789,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 4900,
+        "branches": 203,
+        "since_new_cov": 3280,
+        "loaded_from_db": 96,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 9.88997722696513,
+        "timestamp": 1743053989.0175219,
+        "worker": {
+          "pid": 24789,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 5000,
+        "branches": 203,
+        "since_new_cov": 3380,
+        "loaded_from_db": 96,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 10.05483331438154,
+        "timestamp": 1743053989.23193,
+        "worker": {
+          "pid": 24789,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 5100,
+        "branches": 203,
+        "since_new_cov": 3480,
+        "loaded_from_db": 96,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 10.21564431488514,
+        "timestamp": 1743053989.4380789,
+        "worker": {
+          "pid": 24789,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 5200,
+        "branches": 203,
+        "since_new_cov": 3580,
+        "loaded_from_db": 98,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 10.375889064744115,
+        "timestamp": 1743053989.64299,
+        "worker": {
+          "pid": 24789,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 5300,
+        "branches": 203,
+        "since_new_cov": 3680,
+        "loaded_from_db": 99,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 10.527277647517622,
+        "timestamp": 1743053989.8415859,
+        "worker": {
+          "pid": 24789,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 5400,
+        "branches": 203,
+        "since_new_cov": 3780,
+        "loaded_from_db": 100,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 10.70424605999142,
+        "timestamp": 1743053990.067337,
+        "worker": {
+          "pid": 24789,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 5500,
+        "branches": 203,
+        "since_new_cov": 3880,
+        "loaded_from_db": 100,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 10.895264524035156,
+        "timestamp": 1743053990.304673,
+        "worker": {
+          "pid": 24789,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 5600,
+        "branches": 203,
+        "since_new_cov": 3980,
+        "loaded_from_db": 100,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 11.051695018075407,
+        "timestamp": 1743053990.5041122,
+        "worker": {
+          "pid": 24789,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 5700,
+        "branches": 203,
+        "since_new_cov": 4080,
+        "loaded_from_db": 100,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 11.226723689585924,
+        "timestamp": 1743053990.7216299,
+        "worker": {
+          "pid": 24789,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 5800,
+        "branches": 203,
+        "since_new_cov": 4180,
+        "loaded_from_db": 101,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 11.3900384362787,
+        "timestamp": 1743053990.929722,
+        "worker": {
+          "pid": 24789,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 5900,
+        "branches": 203,
+        "since_new_cov": 4280,
+        "loaded_from_db": 101,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 11.532016553916037,
+        "timestamp": 1743053991.117667,
+        "worker": {
+          "pid": 24789,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 6000,
+        "branches": 203,
+        "since_new_cov": 4380,
+        "loaded_from_db": 102,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 11.682373927906156,
+        "timestamp": 1743053991.310821,
+        "worker": {
+          "pid": 24789,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 6100,
+        "branches": 203,
+        "since_new_cov": 4480,
+        "loaded_from_db": 102,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+        "elapsed_time": 11.841804303228855,
+        "timestamp": 1743053991.5137842,
+        "worker": {
+          "pid": 24789,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 6200,
+        "branches": 203,
+        "since_new_cov": 4580,
+        "loaded_from_db": 102,
+        "note": ""
+      }
+    ],
+    "tests/test_provider.py::test_changed_kwargs_pops_if_still_permitted": [
+      {
+        "nodeid": "tests/test_provider.py::test_changed_kwargs_pops_if_still_permitted",
+        "elapsed_time": 0,
+        "timestamp": 1743053975.5797482,
+        "worker": {
+          "pid": 24758,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 1,
+        "branches": 50,
+        "since_new_cov": 0,
+        "loaded_from_db": 1,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_changed_kwargs_pops_if_still_permitted",
+        "elapsed_time": 0.07401179149746895,
+        "timestamp": 1743053975.610877,
+        "worker": {
+          "pid": 24758,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 5,
+        "branches": 85,
+        "since_new_cov": 0,
+        "loaded_from_db": 2,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_changed_kwargs_pops_if_still_permitted",
+        "elapsed_time": 0.0885527916252613,
+        "timestamp": 1743053975.62377,
+        "worker": {
+          "pid": 24758,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 7,
+        "branches": 112,
+        "since_new_cov": 0,
+        "loaded_from_db": 3,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_changed_kwargs_pops_if_still_permitted",
+        "elapsed_time": 0.09618420712649822,
+        "timestamp": 1743053975.639315,
+        "worker": {
+          "pid": 24758,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 9,
+        "branches": 147,
+        "since_new_cov": 0,
+        "loaded_from_db": 4,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_changed_kwargs_pops_if_still_permitted",
+        "elapsed_time": 0.11886466573923826,
+        "timestamp": 1743053975.656401,
+        "worker": {
+          "pid": 24758,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 13,
+        "branches": 183,
+        "since_new_cov": 0,
+        "loaded_from_db": 5,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_changed_kwargs_pops_if_still_permitted",
+        "elapsed_time": 0.1721848351880908,
+        "timestamp": 1743053975.7174919,
+        "worker": {
+          "pid": 24758,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 21,
+        "branches": 187,
+        "since_new_cov": 0,
+        "loaded_from_db": 6,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_changed_kwargs_pops_if_still_permitted",
+        "elapsed_time": 0.20349308662116528,
+        "timestamp": 1743053975.744854,
+        "worker": {
+          "pid": 24758,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 26,
+        "branches": 189,
+        "since_new_cov": 0,
+        "loaded_from_db": 7,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_changed_kwargs_pops_if_still_permitted",
+        "elapsed_time": 0.24271204508841038,
+        "timestamp": 1743053975.780813,
+        "worker": {
+          "pid": 24758,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 34,
+        "branches": 193,
+        "since_new_cov": 0,
+        "loaded_from_db": 9,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_changed_kwargs_pops_if_still_permitted",
+        "elapsed_time": 0.2580656288191676,
+        "timestamp": 1743053975.796052,
+        "worker": {
+          "pid": 24758,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 38,
+        "branches": 195,
+        "since_new_cov": 0,
+        "loaded_from_db": 11,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_changed_kwargs_pops_if_still_permitted",
+        "elapsed_time": 0.36188121140003204,
+        "timestamp": 1743053975.901469,
+        "worker": {
+          "pid": 24758,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 63,
+        "branches": 216,
+        "since_new_cov": 0,
+        "loaded_from_db": 18,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_changed_kwargs_pops_if_still_permitted",
+        "elapsed_time": 0.8223477974534035,
+        "timestamp": 1743053976.365887,
+        "worker": {
+          "pid": 24758,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 200,
+        "branches": 216,
+        "since_new_cov": 137,
+        "loaded_from_db": 32,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_changed_kwargs_pops_if_still_permitted",
+        "elapsed_time": 1.098755344748497,
+        "timestamp": 1743053976.646699,
+        "worker": {
+          "pid": 24758,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 288,
+        "branches": 251,
+        "since_new_cov": 0,
+        "loaded_from_db": 36,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_changed_kwargs_pops_if_still_permitted",
+        "elapsed_time": 4.123848513700068,
+        "timestamp": 1743053982.025116,
+        "worker": {
+          "pid": 24792,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 1101,
+        "branches": 50,
+        "since_new_cov": 0,
+        "loaded_from_db": 16,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_changed_kwargs_pops_if_still_permitted",
+        "elapsed_time": 4.123848513700068,
+        "timestamp": 1743053979.687005,
+        "worker": {
+          "pid": 24758,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 1100,
+        "branches": 251,
+        "since_new_cov": 812,
+        "loaded_from_db": 55,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_changed_kwargs_pops_if_still_permitted",
+        "elapsed_time": 4.174429222010076,
+        "timestamp": 1743053982.034695,
+        "worker": {
+          "pid": 24792,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 1103,
+        "branches": 70,
+        "since_new_cov": 0,
+        "loaded_from_db": 16,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_changed_kwargs_pops_if_still_permitted",
+        "elapsed_time": 4.182365139015019,
+        "timestamp": 1743053982.038493,
+        "worker": {
+          "pid": 24792,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 1104,
+        "branches": 77,
+        "since_new_cov": 0,
+        "loaded_from_db": 16,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_changed_kwargs_pops_if_still_permitted",
+        "elapsed_time": 4.189016346819699,
+        "timestamp": 1743053982.046775,
+        "worker": {
+          "pid": 24792,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 1105,
+        "branches": 81,
+        "since_new_cov": 0,
+        "loaded_from_db": 16,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_changed_kwargs_pops_if_still_permitted",
+        "elapsed_time": 4.198068055324256,
+        "timestamp": 1743053982.060968,
+        "worker": {
+          "pid": 24792,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 1106,
+        "branches": 108,
+        "since_new_cov": 0,
+        "loaded_from_db": 16,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_changed_kwargs_pops_if_still_permitted",
+        "elapsed_time": 4.2075254721567035,
+        "timestamp": 1743053982.065268,
+        "worker": {
+          "pid": 24792,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 1107,
+        "branches": 110,
+        "since_new_cov": 0,
+        "loaded_from_db": 16,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_changed_kwargs_pops_if_still_permitted",
+        "elapsed_time": 4.212172054685652,
+        "timestamp": 1743053982.071176,
+        "worker": {
+          "pid": 24792,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 1108,
+        "branches": 116,
+        "since_new_cov": 0,
+        "loaded_from_db": 16,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_changed_kwargs_pops_if_still_permitted",
+        "elapsed_time": 4.218003803864121,
+        "timestamp": 1743053982.074844,
+        "worker": {
+          "pid": 24792,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 1109,
+        "branches": 118,
+        "since_new_cov": 0,
+        "loaded_from_db": 16,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_changed_kwargs_pops_if_still_permitted",
+        "elapsed_time": 4.2215785542503,
+        "timestamp": 1743053982.079106,
+        "worker": {
+          "pid": 24792,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 1110,
+        "branches": 152,
+        "since_new_cov": 0,
+        "loaded_from_db": 16,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_changed_kwargs_pops_if_still_permitted",
+        "elapsed_time": 4.22649151366204,
+        "timestamp": 1743053982.088555,
+        "worker": {
+          "pid": 24792,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 1111,
+        "branches": 154,
+        "since_new_cov": 0,
+        "loaded_from_db": 16,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_changed_kwargs_pops_if_still_permitted",
+        "elapsed_time": 4.23499901406467,
+        "timestamp": 1743053982.092864,
+        "worker": {
+          "pid": 24792,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 1112,
+        "branches": 158,
+        "since_new_cov": 0,
+        "loaded_from_db": 16,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_changed_kwargs_pops_if_still_permitted",
+        "elapsed_time": 4.240360181778669,
+        "timestamp": 1743053982.102347,
+        "worker": {
+          "pid": 24792,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 1113,
+        "branches": 160,
+        "since_new_cov": 0,
+        "loaded_from_db": 16,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_changed_kwargs_pops_if_still_permitted",
+        "elapsed_time": 4.248592181131244,
+        "timestamp": 1743053982.112486,
+        "worker": {
+          "pid": 24792,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 1114,
+        "branches": 181,
+        "since_new_cov": 0,
+        "loaded_from_db": 16,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_changed_kwargs_pops_if_still_permitted",
+        "elapsed_time": 4.259534473530948,
+        "timestamp": 1743053982.122977,
+        "worker": {
+          "pid": 24792,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 1115,
+        "branches": 216,
+        "since_new_cov": 0,
+        "loaded_from_db": 16,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_changed_kwargs_pops_if_still_permitted",
+        "elapsed_time": 4.271352640353143,
+        "timestamp": 1743053982.132888,
+        "worker": {
+          "pid": 24792,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 1116,
+        "branches": 249,
+        "since_new_cov": 0,
+        "loaded_from_db": 16,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_changed_kwargs_pops_if_still_permitted",
+        "elapsed_time": 4.2795315980911255,
+        "timestamp": 1743053982.1404219,
+        "worker": {
+          "pid": 24792,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 1117,
+        "branches": 251,
+        "since_new_cov": 0,
+        "loaded_from_db": 16,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_changed_kwargs_pops_if_still_permitted",
+        "elapsed_time": 4.91452051140368,
+        "timestamp": 1743053982.775265,
+        "worker": {
+          "pid": 24792,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 1300,
+        "branches": 251,
+        "since_new_cov": 183,
+        "loaded_from_db": 16,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_changed_kwargs_pops_if_still_permitted",
+        "elapsed_time": 5.263264507986605,
+        "timestamp": 1743053983.12574,
+        "worker": {
+          "pid": 24792,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 1400,
+        "branches": 251,
+        "since_new_cov": 283,
+        "loaded_from_db": 16,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_changed_kwargs_pops_if_still_permitted",
+        "elapsed_time": 5.528146262280643,
+        "timestamp": 1743053983.396131,
+        "worker": {
+          "pid": 24792,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 1500,
+        "branches": 251,
+        "since_new_cov": 383,
+        "loaded_from_db": 16,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_changed_kwargs_pops_if_still_permitted",
+        "elapsed_time": 5.837127832695842,
+        "timestamp": 1743053983.703338,
+        "worker": {
+          "pid": 24792,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 1600,
+        "branches": 251,
+        "since_new_cov": 483,
+        "loaded_from_db": 16,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_changed_kwargs_pops_if_still_permitted",
+        "elapsed_time": 6.127981952391565,
+        "timestamp": 1743053983.995214,
+        "worker": {
+          "pid": 24792,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 1700,
+        "branches": 251,
+        "since_new_cov": 583,
+        "loaded_from_db": 16,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_changed_kwargs_pops_if_still_permitted",
+        "elapsed_time": 6.402245607227087,
+        "timestamp": 1743053984.272542,
+        "worker": {
+          "pid": 24792,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 1800,
+        "branches": 251,
+        "since_new_cov": 683,
+        "loaded_from_db": 16,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_changed_kwargs_pops_if_still_permitted",
+        "elapsed_time": 6.681450163014233,
+        "timestamp": 1743053984.555847,
+        "worker": {
+          "pid": 24792,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 1900,
+        "branches": 251,
+        "since_new_cov": 783,
+        "loaded_from_db": 16,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_changed_kwargs_pops_if_still_permitted",
+        "elapsed_time": 6.9363505663350224,
+        "timestamp": 1743053984.810603,
+        "worker": {
+          "pid": 24792,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 2000,
+        "branches": 251,
+        "since_new_cov": 883,
+        "loaded_from_db": 16,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_changed_kwargs_pops_if_still_permitted",
+        "elapsed_time": 7.232496437616646,
+        "timestamp": 1743053985.106814,
+        "worker": {
+          "pid": 24792,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 2100,
+        "branches": 251,
+        "since_new_cov": 983,
+        "loaded_from_db": 16,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_changed_kwargs_pops_if_still_permitted",
+        "elapsed_time": 7.515147687867284,
+        "timestamp": 1743053985.4392378,
+        "worker": {
+          "pid": 24792,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 2200,
+        "branches": 251,
+        "since_new_cov": 1083,
+        "loaded_from_db": 31,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_changed_kwargs_pops_if_still_permitted",
+        "elapsed_time": 7.8085915660485625,
+        "timestamp": 1743053985.7942421,
+        "worker": {
+          "pid": 24792,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 2300,
+        "branches": 251,
+        "since_new_cov": 1183,
+        "loaded_from_db": 39,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_changed_kwargs_pops_if_still_permitted",
+        "elapsed_time": 8.082379650324583,
+        "timestamp": 1743053986.1298509,
+        "worker": {
+          "pid": 24792,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 2400,
+        "branches": 251,
+        "since_new_cov": 1283,
+        "loaded_from_db": 42,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_changed_kwargs_pops_if_still_permitted",
+        "elapsed_time": 8.374645408242941,
+        "timestamp": 1743053986.485328,
+        "worker": {
+          "pid": 24792,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 2500,
+        "branches": 251,
+        "since_new_cov": 1383,
+        "loaded_from_db": 49,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_changed_kwargs_pops_if_still_permitted",
+        "elapsed_time": 8.710733530111611,
+        "timestamp": 1743053986.8908958,
+        "worker": {
+          "pid": 24792,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 2600,
+        "branches": 251,
+        "since_new_cov": 1483,
+        "loaded_from_db": 57,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_changed_kwargs_pops_if_still_permitted",
+        "elapsed_time": 9.027474113740027,
+        "timestamp": 1743053987.272059,
+        "worker": {
+          "pid": 24792,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 2700,
+        "branches": 251,
+        "since_new_cov": 1583,
+        "loaded_from_db": 65,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_changed_kwargs_pops_if_still_permitted",
+        "elapsed_time": 9.327514536678791,
+        "timestamp": 1743053987.643119,
+        "worker": {
+          "pid": 24792,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 2800,
+        "branches": 251,
+        "since_new_cov": 1683,
+        "loaded_from_db": 67,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_changed_kwargs_pops_if_still_permitted",
+        "elapsed_time": 9.619574158452451,
+        "timestamp": 1743053987.9981692,
+        "worker": {
+          "pid": 24792,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 2900,
+        "branches": 251,
+        "since_new_cov": 1783,
+        "loaded_from_db": 72,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_changed_kwargs_pops_if_still_permitted",
+        "elapsed_time": 9.903959404677153,
+        "timestamp": 1743053988.350158,
+        "worker": {
+          "pid": 24792,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 3000,
+        "branches": 251,
+        "since_new_cov": 1883,
+        "loaded_from_db": 76,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_changed_kwargs_pops_if_still_permitted",
+        "elapsed_time": 10.194073357619345,
+        "timestamp": 1743053988.70991,
+        "worker": {
+          "pid": 24792,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 3100,
+        "branches": 251,
+        "since_new_cov": 1983,
+        "loaded_from_db": 77,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_changed_kwargs_pops_if_still_permitted",
+        "elapsed_time": 10.487797521054745,
+        "timestamp": 1743053989.071388,
+        "worker": {
+          "pid": 24792,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 3200,
+        "branches": 251,
+        "since_new_cov": 2083,
+        "loaded_from_db": 80,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_changed_kwargs_pops_if_still_permitted",
+        "elapsed_time": 10.771902527660131,
+        "timestamp": 1743053989.423597,
+        "worker": {
+          "pid": 24792,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 3300,
+        "branches": 251,
+        "since_new_cov": 2183,
+        "loaded_from_db": 84,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_changed_kwargs_pops_if_still_permitted",
+        "elapsed_time": 11.099971616640687,
+        "timestamp": 1743053989.824935,
+        "worker": {
+          "pid": 24792,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 3400,
+        "branches": 251,
+        "since_new_cov": 2283,
+        "loaded_from_db": 88,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_changed_kwargs_pops_if_still_permitted",
+        "elapsed_time": 11.442427566275,
+        "timestamp": 1743053990.242987,
+        "worker": {
+          "pid": 24792,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 3500,
+        "branches": 251,
+        "since_new_cov": 2383,
+        "loaded_from_db": 93,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_changed_kwargs_pops_if_still_permitted",
+        "elapsed_time": 11.705445809289813,
+        "timestamp": 1743053990.569279,
+        "worker": {
+          "pid": 24792,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 3600,
+        "branches": 251,
+        "since_new_cov": 2483,
+        "loaded_from_db": 96,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_changed_kwargs_pops_if_still_permitted",
+        "elapsed_time": 12.02009910158813,
+        "timestamp": 1743053990.954176,
+        "worker": {
+          "pid": 24792,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 3700,
+        "branches": 251,
+        "since_new_cov": 2583,
+        "loaded_from_db": 100,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_changed_kwargs_pops_if_still_permitted",
+        "elapsed_time": 12.284991308115423,
+        "timestamp": 1743053991.285567,
+        "worker": {
+          "pid": 24792,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 3800,
+        "branches": 251,
+        "since_new_cov": 2683,
+        "loaded_from_db": 103,
+        "note": ""
+      }
+    ],
+    "tests/test_provider.py::test_drawing_prefix_exactly": [
+      {
+        "nodeid": "tests/test_provider.py::test_drawing_prefix_exactly",
+        "elapsed_time": 0,
+        "timestamp": 1743053975.5753999,
+        "worker": {
+          "pid": 24754,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 1,
+        "branches": 7,
+        "since_new_cov": 0,
+        "loaded_from_db": 1,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_drawing_prefix_exactly",
+        "elapsed_time": 0.04818950034677982,
+        "timestamp": 1743053975.593462,
+        "worker": {
+          "pid": 24754,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 3,
+        "branches": 66,
+        "since_new_cov": 0,
+        "loaded_from_db": 2,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_drawing_prefix_exactly",
+        "elapsed_time": 0.06855158414691687,
+        "timestamp": 1743053975.658973,
+        "worker": {
+          "pid": 24754,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 4,
+        "branches": 175,
+        "since_new_cov": 0,
+        "loaded_from_db": 3,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_drawing_prefix_exactly",
+        "elapsed_time": 0.1297810012474656,
+        "timestamp": 1743053975.673441,
+        "worker": {
+          "pid": 24754,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 7,
+        "branches": 182,
+        "since_new_cov": 0,
+        "loaded_from_db": 4,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_drawing_prefix_exactly",
+        "elapsed_time": 0.15039558429270983,
+        "timestamp": 1743053975.6902652,
+        "worker": {
+          "pid": 24754,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 10,
+        "branches": 183,
+        "since_new_cov": 0,
+        "loaded_from_db": 5,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_drawing_prefix_exactly",
+        "elapsed_time": 0.1609992515295744,
+        "timestamp": 1743053975.701926,
+        "worker": {
+          "pid": 24754,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 11,
+        "branches": 187,
+        "since_new_cov": 0,
+        "loaded_from_db": 6,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_drawing_prefix_exactly",
+        "elapsed_time": 0.37736175302416086,
+        "timestamp": 1743053975.9514508,
+        "worker": {
+          "pid": 24754,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 28,
+        "branches": 208,
+        "since_new_cov": 0,
+        "loaded_from_db": 13,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_drawing_prefix_exactly",
+        "elapsed_time": 0.7639502109959722,
+        "timestamp": 1743053976.323861,
+        "worker": {
+          "pid": 24754,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 60,
+        "branches": 243,
+        "since_new_cov": 0,
+        "loaded_from_db": 23,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_drawing_prefix_exactly",
+        "elapsed_time": 2.7603218406438828,
+        "timestamp": 1743053981.997708,
+        "worker": {
+          "pid": 24788,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 201,
+        "branches": 7,
+        "since_new_cov": 0,
+        "loaded_from_db": 18,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_drawing_prefix_exactly",
+        "elapsed_time": 2.7603218406438828,
+        "timestamp": 1743053978.312709,
+        "worker": {
+          "pid": 24754,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 200,
+        "branches": 243,
+        "since_new_cov": 140,
+        "loaded_from_db": 41,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_drawing_prefix_exactly",
+        "elapsed_time": 2.8087748819962144,
+        "timestamp": 1743053982.013348,
+        "worker": {
+          "pid": 24788,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 203,
+        "branches": 49,
+        "since_new_cov": 0,
+        "loaded_from_db": 18,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_drawing_prefix_exactly",
+        "elapsed_time": 2.824023007415235,
+        "timestamp": 1743053982.017428,
+        "worker": {
+          "pid": 24788,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 204,
+        "branches": 67,
+        "since_new_cov": 0,
+        "loaded_from_db": 18,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_drawing_prefix_exactly",
+        "elapsed_time": 2.8285077987238765,
+        "timestamp": 1743053982.023474,
+        "worker": {
+          "pid": 24788,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 205,
+        "branches": 71,
+        "since_new_cov": 0,
+        "loaded_from_db": 18,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_drawing_prefix_exactly",
+        "elapsed_time": 2.8338138833642006,
+        "timestamp": 1743053982.026583,
+        "worker": {
+          "pid": 24788,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 206,
+        "branches": 78,
+        "since_new_cov": 0,
+        "loaded_from_db": 18,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_drawing_prefix_exactly",
+        "elapsed_time": 2.837955883704126,
+        "timestamp": 1743053982.03267,
+        "worker": {
+          "pid": 24788,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 207,
+        "branches": 108,
+        "since_new_cov": 0,
+        "loaded_from_db": 18,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_drawing_prefix_exactly",
+        "elapsed_time": 2.842537551186979,
+        "timestamp": 1743053982.041556,
+        "worker": {
+          "pid": 24788,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 208,
+        "branches": 140,
+        "since_new_cov": 0,
+        "loaded_from_db": 18,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_drawing_prefix_exactly",
+        "elapsed_time": 2.851599134504795,
+        "timestamp": 1743053982.045761,
+        "worker": {
+          "pid": 24788,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 209,
+        "branches": 143,
+        "since_new_cov": 0,
+        "loaded_from_db": 18,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_drawing_prefix_exactly",
+        "elapsed_time": 2.858386842533946,
+        "timestamp": 1743053982.054841,
+        "worker": {
+          "pid": 24788,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 210,
+        "branches": 145,
+        "since_new_cov": 0,
+        "loaded_from_db": 18,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_drawing_prefix_exactly",
+        "elapsed_time": 2.8649022998288274,
+        "timestamp": 1743053982.0584671,
+        "worker": {
+          "pid": 24788,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 211,
+        "branches": 149,
+        "since_new_cov": 0,
+        "loaded_from_db": 18,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_drawing_prefix_exactly",
+        "elapsed_time": 2.868870424106717,
+        "timestamp": 1743053982.0643399,
+        "worker": {
+          "pid": 24788,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 212,
+        "branches": 151,
+        "since_new_cov": 0,
+        "loaded_from_db": 18,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_drawing_prefix_exactly",
+        "elapsed_time": 2.874217632226646,
+        "timestamp": 1743053982.0696929,
+        "worker": {
+          "pid": 24788,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 213,
+        "branches": 152,
+        "since_new_cov": 0,
+        "loaded_from_db": 18,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_drawing_prefix_exactly",
+        "elapsed_time": 2.8809151742607355,
+        "timestamp": 1743053982.074794,
+        "worker": {
+          "pid": 24788,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 214,
+        "branches": 154,
+        "since_new_cov": 0,
+        "loaded_from_db": 18,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_drawing_prefix_exactly",
+        "elapsed_time": 2.8846170492470264,
+        "timestamp": 1743053982.0833018,
+        "worker": {
+          "pid": 24788,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 215,
+        "branches": 185,
+        "since_new_cov": 0,
+        "loaded_from_db": 18,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_drawing_prefix_exactly",
+        "elapsed_time": 2.8928070487454534,
+        "timestamp": 1743053982.0909739,
+        "worker": {
+          "pid": 24788,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 216,
+        "branches": 187,
+        "since_new_cov": 0,
+        "loaded_from_db": 18,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_drawing_prefix_exactly",
+        "elapsed_time": 2.9007282983511686,
+        "timestamp": 1743053982.101851,
+        "worker": {
+          "pid": 24788,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 217,
+        "branches": 225,
+        "since_new_cov": 0,
+        "loaded_from_db": 18,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_drawing_prefix_exactly",
+        "elapsed_time": 2.911328506655991,
+        "timestamp": 1743053982.108143,
+        "worker": {
+          "pid": 24788,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 218,
+        "branches": 226,
+        "since_new_cov": 0,
+        "loaded_from_db": 18,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_drawing_prefix_exactly",
+        "elapsed_time": 2.917658882215619,
+        "timestamp": 1743053982.1495092,
+        "worker": {
+          "pid": 24788,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 219,
+        "branches": 243,
+        "since_new_cov": 0,
+        "loaded_from_db": 18,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_drawing_prefix_exactly",
+        "elapsed_time": 5.331141596660018,
+        "timestamp": 1743053984.532354,
+        "worker": {
+          "pid": 24788,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 400,
+        "branches": 243,
+        "since_new_cov": 181,
+        "loaded_from_db": 18,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_drawing_prefix_exactly",
+        "elapsed_time": 6.460309425368905,
+        "timestamp": 1743053985.664664,
+        "worker": {
+          "pid": 24788,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 500,
+        "branches": 243,
+        "since_new_cov": 281,
+        "loaded_from_db": 18,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_drawing_prefix_exactly",
+        "elapsed_time": 7.714392801746726,
+        "timestamp": 1743053986.92166,
+        "worker": {
+          "pid": 24788,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 600,
+        "branches": 243,
+        "since_new_cov": 381,
+        "loaded_from_db": 22,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_drawing_prefix_exactly",
+        "elapsed_time": 8.86309954803437,
+        "timestamp": 1743053988.0707772,
+        "worker": {
+          "pid": 24788,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 700,
+        "branches": 243,
+        "since_new_cov": 481,
+        "loaded_from_db": 28,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_drawing_prefix_exactly",
+        "elapsed_time": 9.640867749229074,
+        "timestamp": 1743053988.8529348,
+        "worker": {
+          "pid": 24788,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 800,
+        "branches": 243,
+        "since_new_cov": 581,
+        "loaded_from_db": 29,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_drawing_prefix_exactly",
+        "elapsed_time": 10.51403521001339,
+        "timestamp": 1743053989.732642,
+        "worker": {
+          "pid": 24788,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 900,
+        "branches": 243,
+        "since_new_cov": 681,
+        "loaded_from_db": 33,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_drawing_prefix_exactly",
+        "elapsed_time": 11.473766786977649,
+        "timestamp": 1743053990.687741,
+        "worker": {
+          "pid": 24788,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 1000,
+        "branches": 243,
+        "since_new_cov": 781,
+        "loaded_from_db": 36,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_provider.py::test_drawing_prefix_exactly",
+        "elapsed_time": 12.182205330580473,
+        "timestamp": 1743053991.406689,
+        "worker": {
+          "pid": 24788,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 1100,
+        "branches": 243,
+        "since_new_cov": 881,
+        "loaded_from_db": 37,
+        "note": ""
+      }
+    ],
+    "tests/test_corpus.py::test_pool_covering_nodes": [
+      {
+        "nodeid": "tests/test_corpus.py::test_pool_covering_nodes",
+        "elapsed_time": 0,
+        "timestamp": 1743053975.614111,
+        "worker": {
+          "pid": 24752,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 1,
+        "branches": 61,
+        "since_new_cov": 0,
+        "loaded_from_db": 1,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_corpus.py::test_pool_covering_nodes",
+        "elapsed_time": 0.04507754184305668,
+        "timestamp": 1743053975.649416,
+        "worker": {
+          "pid": 24752,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 3,
+        "branches": 61,
+        "since_new_cov": null,
+        "loaded_from_db": 1,
+        "note": "raised TypeError (finished)"
+      },
+      {
+        "nodeid": "tests/test_corpus.py::test_pool_covering_nodes",
+        "elapsed_time": 0.06809604167938232,
+        "timestamp": 1743053975.685291,
+        "worker": {
+          "pid": 24752,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 4,
+        "branches": 61,
+        "since_new_cov": null,
+        "loaded_from_db": 1,
+        "note": "raised TypeError (shrinking...)"
+      },
+      {
+        "nodeid": "tests/test_corpus.py::test_pool_covering_nodes",
+        "elapsed_time": 0.10385149903595448,
+        "timestamp": 1743053975.7146912,
+        "worker": {
+          "pid": 24752,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 5,
+        "branches": 61,
+        "since_new_cov": null,
+        "loaded_from_db": 1,
+        "note": "raised TypeError (shrinking...)"
+      },
+      {
+        "nodeid": "tests/test_corpus.py::test_pool_covering_nodes",
+        "elapsed_time": 0.13051229063421488,
+        "timestamp": 1743053975.730346,
+        "worker": {
+          "pid": 24752,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 6,
+        "branches": 61,
+        "since_new_cov": null,
+        "loaded_from_db": 1,
+        "note": "raised TypeError (shrinking...)"
+      },
+      {
+        "nodeid": "tests/test_corpus.py::test_pool_covering_nodes",
+        "elapsed_time": 0.14212420769035816,
+        "timestamp": 1743053975.751669,
+        "worker": {
+          "pid": 24752,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 7,
+        "branches": 61,
+        "since_new_cov": null,
+        "loaded_from_db": 1,
+        "note": "raised TypeError (shrinking...)"
+      },
+      {
+        "nodeid": "tests/test_corpus.py::test_pool_covering_nodes",
+        "elapsed_time": 0.15996358264237642,
+        "timestamp": 1743053975.767286,
+        "worker": {
+          "pid": 24752,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 8,
+        "branches": 61,
+        "since_new_cov": null,
+        "loaded_from_db": 1,
+        "note": "raised TypeError (shrinking...)"
+      },
+      {
+        "nodeid": "tests/test_corpus.py::test_pool_covering_nodes",
+        "elapsed_time": 0.17833862453699112,
+        "timestamp": 1743053975.785367,
+        "worker": {
+          "pid": 24752,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 9,
+        "branches": 61,
+        "since_new_cov": null,
+        "loaded_from_db": 1,
+        "note": "raised TypeError (shrinking...)"
+      },
+      {
+        "nodeid": "tests/test_corpus.py::test_pool_covering_nodes",
+        "elapsed_time": 0.1932495841756463,
+        "timestamp": 1743053975.807848,
+        "worker": {
+          "pid": 24752,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 11,
+        "branches": 61,
+        "since_new_cov": null,
+        "loaded_from_db": 1,
+        "note": "raised TypeError (shrinking...)"
+      },
+      {
+        "nodeid": "tests/test_corpus.py::test_pool_covering_nodes",
+        "elapsed_time": 0.2062554182484746,
+        "timestamp": 1743053975.8292851,
+        "worker": {
+          "pid": 24752,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 12,
+        "branches": 61,
+        "since_new_cov": null,
+        "loaded_from_db": 1,
+        "note": "raised TypeError (shrinking...)"
+      },
+      {
+        "nodeid": "tests/test_corpus.py::test_pool_covering_nodes",
+        "elapsed_time": 0.22409737668931484,
+        "timestamp": 1743053975.850875,
+        "worker": {
+          "pid": 24752,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 13,
+        "branches": 61,
+        "since_new_cov": null,
+        "loaded_from_db": 1,
+        "note": "raised TypeError (shrinking...)"
+      },
+      {
+        "nodeid": "tests/test_corpus.py::test_pool_covering_nodes",
+        "elapsed_time": 0.24338604416698217,
+        "timestamp": 1743053975.865406,
+        "worker": {
+          "pid": 24752,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 14,
+        "branches": 61,
+        "since_new_cov": null,
+        "loaded_from_db": 1,
+        "note": "raised TypeError (shrinking...)"
+      },
+      {
+        "nodeid": "tests/test_corpus.py::test_pool_covering_nodes",
+        "elapsed_time": 0.24962825328111649,
+        "timestamp": 1743053975.878586,
+        "worker": {
+          "pid": 24752,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 15,
+        "branches": 61,
+        "since_new_cov": null,
+        "loaded_from_db": 1,
+        "note": "raised TypeError (shrinking...)"
+      },
+      {
+        "nodeid": "tests/test_corpus.py::test_pool_covering_nodes",
+        "elapsed_time": 0.2574195433408022,
+        "timestamp": 1743053975.89997,
+        "worker": {
+          "pid": 24752,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 16,
+        "branches": 61,
+        "since_new_cov": null,
+        "loaded_from_db": 1,
+        "note": "raised TypeError (finished)"
+      },
+      {
+        "nodeid": "tests/test_corpus.py::test_pool_covering_nodes",
+        "elapsed_time": 0.2574195433408022,
+        "timestamp": 1743053982.037333,
+        "worker": {
+          "pid": 24786,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 17,
+        "branches": 61,
+        "since_new_cov": 0,
+        "loaded_from_db": 3,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_corpus.py::test_pool_covering_nodes",
+        "elapsed_time": 0.28924304340034723,
+        "timestamp": 1743053982.058687,
+        "worker": {
+          "pid": 24786,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 19,
+        "branches": 61,
+        "since_new_cov": null,
+        "loaded_from_db": 3,
+        "note": "raised TypeError (finished)"
+      },
+      {
+        "nodeid": "tests/test_corpus.py::test_pool_covering_nodes",
+        "elapsed_time": 0.534858126193285,
+        "timestamp": 1743053982.317518,
+        "worker": {
+          "pid": 24786,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 86,
+        "branches": 61,
+        "since_new_cov": null,
+        "loaded_from_db": 3,
+        "note": "raised TypeError (finished)"
+      }
+    ],
+    "tests/test_corpus.py::test_pool_coverage_tracking": [
+      {
+        "nodeid": "tests/test_corpus.py::test_pool_coverage_tracking",
+        "elapsed_time": 0,
+        "timestamp": 1743053975.60511,
+        "worker": {
+          "pid": 24751,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 1,
+        "branches": 61,
+        "since_new_cov": 0,
+        "loaded_from_db": 1,
+        "note": ""
+      },
+      {
+        "nodeid": "tests/test_corpus.py::test_pool_coverage_tracking",
+        "elapsed_time": 0.05084870755672455,
+        "timestamp": 1743053975.646679,
+        "worker": {
+          "pid": 24751,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 3,
+        "branches": 61,
+        "since_new_cov": null,
+        "loaded_from_db": 1,
+        "note": "raised TypeError (finished)"
+      },
+      {
+        "nodeid": "tests/test_corpus.py::test_pool_coverage_tracking",
+        "elapsed_time": 0.08860104065388441,
+        "timestamp": 1743053975.660424,
+        "worker": {
+          "pid": 24751,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 4,
+        "branches": 61,
+        "since_new_cov": null,
+        "loaded_from_db": 1,
+        "note": "raised TypeError (shrinking...)"
+      },
+      {
+        "nodeid": "tests/test_corpus.py::test_pool_coverage_tracking",
+        "elapsed_time": 0.10307370778173208,
+        "timestamp": 1743053975.679702,
+        "worker": {
+          "pid": 24751,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 5,
+        "branches": 61,
+        "since_new_cov": null,
+        "loaded_from_db": 1,
+        "note": "raised TypeError (shrinking...)"
+      },
+      {
+        "nodeid": "tests/test_corpus.py::test_pool_coverage_tracking",
+        "elapsed_time": 0.12086400017142296,
+        "timestamp": 1743053975.697886,
+        "worker": {
+          "pid": 24751,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 6,
+        "branches": 61,
+        "since_new_cov": null,
+        "loaded_from_db": 1,
+        "note": "raised TypeError (shrinking...)"
+      },
+      {
+        "nodeid": "tests/test_corpus.py::test_pool_coverage_tracking",
+        "elapsed_time": 0.13846866600215435,
+        "timestamp": 1743053975.714995,
+        "worker": {
+          "pid": 24751,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 7,
+        "branches": 61,
+        "since_new_cov": null,
+        "loaded_from_db": 1,
+        "note": "raised TypeError (shrinking...)"
+      },
+      {
+        "nodeid": "tests/test_corpus.py::test_pool_coverage_tracking",
+        "elapsed_time": 0.15392745845019817,
+        "timestamp": 1743053975.729196,
+        "worker": {
+          "pid": 24751,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 8,
+        "branches": 61,
+        "since_new_cov": null,
+        "loaded_from_db": 1,
+        "note": "raised TypeError (shrinking...)"
+      },
+      {
+        "nodeid": "tests/test_corpus.py::test_pool_coverage_tracking",
+        "elapsed_time": 0.16350337397307158,
+        "timestamp": 1743053975.7509382,
+        "worker": {
+          "pid": 24751,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 9,
+        "branches": 61,
+        "since_new_cov": null,
+        "loaded_from_db": 1,
+        "note": "raised TypeError (shrinking...)"
+      },
+      {
+        "nodeid": "tests/test_corpus.py::test_pool_coverage_tracking",
+        "elapsed_time": 0.18538724910467863,
+        "timestamp": 1743053975.764508,
+        "worker": {
+          "pid": 24751,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 10,
+        "branches": 61,
+        "since_new_cov": null,
+        "loaded_from_db": 1,
+        "note": "raised TypeError (shrinking...)"
+      },
+      {
+        "nodeid": "tests/test_corpus.py::test_pool_coverage_tracking",
+        "elapsed_time": 0.2050804579630494,
+        "timestamp": 1743053975.786405,
+        "worker": {
+          "pid": 24751,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 11,
+        "branches": 61,
+        "since_new_cov": null,
+        "loaded_from_db": 1,
+        "note": "raised TypeError (shrinking...)"
+      },
+      {
+        "nodeid": "tests/test_corpus.py::test_pool_coverage_tracking",
+        "elapsed_time": 0.21393683273345232,
+        "timestamp": 1743053975.8016791,
+        "worker": {
+          "pid": 24751,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 12,
+        "branches": 61,
+        "since_new_cov": null,
+        "loaded_from_db": 1,
+        "note": "raised TypeError (shrinking...)"
+      },
+      {
+        "nodeid": "tests/test_corpus.py::test_pool_coverage_tracking",
+        "elapsed_time": 0.23057229071855545,
+        "timestamp": 1743053975.8219142,
+        "worker": {
+          "pid": 24751,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 13,
+        "branches": 61,
+        "since_new_cov": null,
+        "loaded_from_db": 1,
+        "note": "raised TypeError (shrinking...)"
+      },
+      {
+        "nodeid": "tests/test_corpus.py::test_pool_coverage_tracking",
+        "elapsed_time": 0.24405766557902098,
+        "timestamp": 1743053975.8481019,
+        "worker": {
+          "pid": 24751,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 14,
+        "branches": 61,
+        "since_new_cov": null,
+        "loaded_from_db": 1,
+        "note": "raised TypeError (finished)"
+      },
+      {
+        "nodeid": "tests/test_corpus.py::test_pool_coverage_tracking",
+        "elapsed_time": 0.24405766557902098,
+        "timestamp": 1743053981.994339,
+        "worker": {
+          "pid": 24785,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 15,
+        "branches": 61,
+        "since_new_cov": 0,
+        "loaded_from_db": 3,
+        "note": "replaying saved examples"
+      },
+      {
+        "nodeid": "tests/test_corpus.py::test_pool_coverage_tracking",
+        "elapsed_time": 0.28905508294701576,
+        "timestamp": 1743053982.014103,
+        "worker": {
+          "pid": 24785,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 17,
+        "branches": 61,
+        "since_new_cov": null,
+        "loaded_from_db": 3,
+        "note": "raised TypeError (finished)"
+      },
+      {
+        "nodeid": "tests/test_corpus.py::test_pool_coverage_tracking",
+        "elapsed_time": 0.4238595450296998,
+        "timestamp": 1743053982.159273,
+        "worker": {
+          "pid": 24785,
+          "hostname": "MacBook-Pro-3.local"
+        },
+        "ninputs": 76,
+        "branches": 61,
+        "since_new_cov": null,
+        "loaded_from_db": 3,
+        "note": "raised TypeError (finished)"
+      }
+    ]
+  },
+  "metadata": {
+    "tests/test_provider.py::test_misaligned_type": {
+      "nodeid": "tests/test_provider.py::test_misaligned_type",
+      "seed_pool": [
+        [
+          "@reproduce_failure('6.130.4', b'AEEDAABCQFoAQQAoAAAAAAAAAAA=')",
+          "test_misaligned_type(\n    node=ChoiceNode(type='bytes',\n     value=b'\\x1fa\\xbe\\xccw\\xf9\\xfe',\n     kwargs={'min_size': 0, 'max_size': 10_000_000_000},\n     was_forced=False,\n     index=None),\n    ir_type_kwargs=('boolean', {'p': 0.0, 'forced': None}),\n    random=HypothesisRandom(generated data),\n)",
+          ""
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AEEAKD/oOKJLRLT6RQDz8rysAUEDAAAoP+vmBY+bmhM=')",
+          "test_misaligned_type(\n    node=ChoiceNode(type='boolean',\n     value=True,\n     kwargs={'p': 0.7569133253179239},\n     was_forced=True,\n     index=None),\n    ir_type_kwargs=('bytes',\n     {'forced': None, 'min_size': 0, 'max_size': 10_000_000_000}),\n    random=HypothesisRandom(generated data),\n)",
+          ""
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AEEBAAAAQwCmGwFBACg/8AAAAAAAAA==')",
+          "test_misaligned_type(\n    node=ChoiceNode(type='integer',\n     value=15098,\n     kwargs={'min_value': None,\n      'max_value': None,\n      'shrink_towards': 0,\n      'weights': None},\n     was_forced=True,\n     index=None),\n    ir_type_kwargs=('boolean', {'p': 1.0, 'forced': None}),\n    random=HypothesisRandom(generated data),\n)",
+          ""
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AEEDAQBBBkMAp7IAQQAoAAAAAAAAAAA=')",
+          "test_misaligned_type(\n    node=ChoiceNode(type='bytes',\n     value=b'\\xcb\\xb2]2\\x83=',\n     kwargs={'min_size': 6, 'max_size': 10_000_000_000},\n     was_forced=False,\n     index=None),\n    ir_type_kwargs=('boolean', {'p': 0.0, 'forced': None}),\n    random=HypothesisRandom(generated data),\n)",
+          ""
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AEEAKD/VVVVVVVVVQT0AQQMAAUFAKD/v///////+')",
+          "test_misaligned_type(\n    node=ChoiceNode(type='boolean',\n     value=False,\n     kwargs={'p': 0.3333333333333333},\n     was_forced=False,\n     index=None),\n    ir_type_kwargs=('bytes', {'forced': None, 'min_size': 0, 'max_size': 64}),\n    random=HypothesisRandom(generated data),\n)",
+          ""
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AEEBAQAAQuBUQkBaAEEAKAAAAAAAAAAA')",
+          "test_misaligned_type(\n    node=ChoiceNode(type='integer',\n     value=1_446_163_013_241_166_462,\n     kwargs={'min_value': -8108,\n      'max_value': None,\n      'shrink_towards': 0,\n      'weights': None},\n     was_forced=False,\n     index=None),\n    ir_type_kwargs=('boolean', {'p': 0.0, 'forced': None}),\n    random=HypothesisRandom(generated data),\n)",
+          ""
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AEECAAAAKEfv///f8HA2QVIAQQAoAAAAAAAAAAA=')",
+          "test_misaligned_type(\n    node=ChoiceNode(type='float',\n     value=inf,\n     kwargs={'min_value': -inf,\n      'max_value': inf,\n      'allow_nan': False,\n      'smallest_nonzero_magnitude': 3.402823466e+38},\n     was_forced=False,\n     index=None),\n    ir_type_kwargs=('boolean', {'p': 0.0, 'forced': None}),\n    random=HypothesisRandom(generated data),\n)",
+          ""
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AEEAKD/VVVVVVVVVQmb7AEEBAAAAQQJDAI1t')",
+          "test_misaligned_type(\n    node=ChoiceNode(type='boolean',\n     value=True,\n     kwargs={'p': 0.3333333333333333},\n     was_forced=False,\n     index=None),\n    ir_type_kwargs=('integer',\n     {'min_value': None,\n      'max_value': None,\n      'shrink_towards': 0,\n      'weights': None,\n      'forced': None}),\n    random=HypothesisRandom(generated data),\n)",
+          ""
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AEEBAAABQQ1BMAFBACg/1VVVVVVVVSg4EAAAAAAAAA==')",
+          "test_misaligned_type(\n    node=ChoiceNode(type='integer',\n     value=-18248,\n     kwargs={'min_value': None,\n      'max_value': None,\n      'shrink_towards': 13,\n      'weights': None},\n     was_forced=True,\n     index=None),\n    ir_type_kwargs=('boolean', {'p': 0.3333333333333333, 'forced': None}),\n    random=HypothesisRandom(generated data),\n)",
+          ""
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AEEBAAEAQQFBAwFBACg/6xK+QF4uzCg/4gZW3KZ6gA==')",
+          "test_misaligned_type(\n    node=ChoiceNode(type='integer',\n     value=-16,\n     kwargs={'min_value': None,\n      'max_value': 1,\n      'shrink_towards': 0,\n      'weights': None},\n     was_forced=True,\n     index=None),\n    ir_type_kwargs=('boolean', {'p': 0.8460379845796182, 'forced': None}),\n    random=HypothesisRandom(generated data),\n)",
+          ""
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AEECAAEAKENs9/l81PXJKD5wAAAAAAAASBBix9ogaDtZAUEAKAAAAAAAAAAA')",
+          "test_misaligned_type(\n    node=ChoiceNode(type='float',\n     value=-4.586129318409595e+16,\n     kwargs={'min_value': -inf,\n      'max_value': 6.523160208917665e+16,\n      'allow_nan': False,\n      'smallest_nonzero_magnitude': 5.960464477539063e-08},\n     was_forced=True,\n     index=None),\n    ir_type_kwargs=('boolean', {'p': 0.0, 'forced': None}),\n    random=HypothesisRandom(generated data),\n)",
+          ""
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AEECAQAAKNvM9lqFI9QBKD/gAAAAAAAAQwHQwwFBACg/8AAAAAAAAA==')",
+          "test_misaligned_type(\n    node=ChoiceNode(type='float',\n     value=10000000.0,\n     kwargs={'min_value': -1.6446042809384455e+134,\n      'max_value': inf,\n      'allow_nan': False,\n      'smallest_nonzero_magnitude': 0.5},\n     was_forced=True,\n     index=None),\n    ir_type_kwargs=('boolean', {'p': 1.0, 'forced': None}),\n    random=HypothesisRandom(generated data),\n)",
+          ""
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AEEAKAAAAAAAAAAASAbsN6Ive/cKAUECAAAAKEymYQnzln4MQQwoP+D7FKw5p+o=')",
+          "test_misaligned_type(\n    node=ChoiceNode(type='boolean',\n     value=False,\n     kwargs={'p': 0.0},\n     was_forced=True,\n     index=None),\n    ir_type_kwargs=('float',\n     {'min_value': -inf,\n      'max_value': inf,\n      'forced': None,\n      'allow_nan': False,\n      'smallest_nonzero_magnitude': 1.7980879926235043e+61}),\n    random=HypothesisRandom(generated data),\n)",
+          ""
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AEEBAQEAAEHYQldbQUUAQQAoAAAAAAAAAAA=')",
+          "test_misaligned_type(\n    node=ChoiceNode(type='integer',\n     value=1182,\n     kwargs={'min_value': -40,\n      'max_value': 22363,\n      'shrink_towards': 0,\n      'weights': None},\n     was_forced=False,\n     index=None),\n    ir_type_kwargs=('boolean', {'p': 0.0, 'forced': None}),\n    random=HypothesisRandom(generated data),\n)",
+          ""
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AEEAKD/VVVVVVVVVQmb7AEEEAUMQxq0BQwZJnAAAACg/7////////g==')",
+          "test_misaligned_type(\n    node=ChoiceNode(type='boolean',\n     value=True,\n     kwargs={'p': 0.3333333333333333},\n     was_forced=False,\n     index=None),\n    ir_type_kwargs=('string',\n     {'intervals': IntervalSet(build_intervals([412060, 1099437])),\n      'forced': None,\n      'min_size': 0,\n      'max_size': 10_000_000_000}),\n    random=HypothesisRandom(generated data),\n)",
+          ""
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AEEEAUEAAUMC/pIAAABBBABBACg8sAAAAAAAACg/7zYGbF/b9Q==')",
+          "test_misaligned_type(\n    node=ChoiceNode(type='string',\n     value='\\x0b𣎖',\n     kwargs={'intervals': IntervalSet(build_intervals([0, 196242])),\n      'min_size': 0,\n      'max_size': 10_000_000_000},\n     was_forced=False,\n     index=None),\n    ir_type_kwargs=('boolean', {'p': 2.220446049250313e-16, 'forced': None}),\n    random=HypothesisRandom(generated data),\n)",
+          ""
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AEEEAUMB0MMBQweN1wFDCLJiAAAAQkXfAEEAKAAAAAAAAAAA')",
+          "test_misaligned_type(\n    node=ChoiceNode(type='string',\n     value='𝃎𝅬𡈴𝃜𝆹𝅪',\n     kwargs={'intervals': IntervalSet(\n          build_intervals([118979, 495063, 569954]),\n      ), 'min_size': 0, 'max_size': 10_000_000_000},\n     was_forced=False,\n     index=None),\n    ir_type_kwargs=('boolean', {'p': 0.0, 'forced': None}),\n    random=HypothesisRandom(generated data),\n)",
+          ""
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AXicc2RmZHTkdjJu82RYZ1Zbvt5tqTaDIxMjI6MGAxTAGY4IMQD9MAZ0')",
+          "test_misaligned_type(\n    node=ChoiceNode(type='bytes',\n     value=b'\\x9dg\\xc9\\xdd\\xb8W\\xf8f-\\nMrC',\n     kwargs={'min_size': 11, 'max_size': 111},\n     was_forced=False,\n     index=None),\n    ir_type_kwargs=('float',\n     {'min_value': 0.0,\n      'max_value': 0.0,\n      'forced': None,\n      'allow_nan': True,\n      'smallest_nonzero_magnitude': 5e-324}),\n    random=HypothesisRandom(generated data),\n)",
+          ""
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AXicc2RkZGRgdPR2smJjdDJu07B/wAABGvbvv5+7Kdau7eQ4jcGRQQMqzAAA+JYJ1Q==')",
+          "test_misaligned_type(\n    node=ChoiceNode(type='integer',\n     value=13190,\n     kwargs={'min_value': 75,\n      'max_value': 14854,\n      'shrink_towards': 0,\n      'weights': {13190: 0.999}},\n     was_forced=False,\n     index=None),\n    ir_type_kwargs=('boolean', {'p': 0.0, 'forced': None}),\n    random=HypothesisRandom(generated data),\n)",
+          ""
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AXicc2RkZGRgdGR2zGJ0ZNCw/8AAARr2DyAMD/OvK9V/HuEWZnBECGrYXw0FAwBWzQz2')",
+          "test_misaligned_type(\n    node=ChoiceNode(type='integer',\n     value=6,\n     kwargs={'min_value': 3,\n      'max_value': 106,\n      'shrink_towards': 0,\n      'weights': {3: 0.5}},\n     was_forced=False,\n     index=None),\n    ir_type_kwargs=('boolean', {'p': 0.5, 'forced': None}),\n    random=HypothesisRandom(generated data),\n)",
+          ""
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AXicc2RkZGRgdGR2zGJ0FNKwv7/cbXnY+o+MjjIa9h8YIEDDPiDJ99LHlX88ah+/UQ4WCH7M4AgUfP8fDECM1+xe5bIAVlkc4g==')",
+          "test_misaligned_type(\n    node=ChoiceNode(type='integer',\n     value=55,\n     kwargs={'min_value': 3,\n      'max_value': 106,\n      'shrink_towards': 0,\n      'weights': {21: 0.0003309178200915913, 32: 0.0006690821799084088}},\n     was_forced=False,\n     index=None),\n    ir_type_kwargs=('boolean', {'p': 0.9999999999999999, 'forced': None}),\n    random=HypothesisRandom(generated data),\n)",
+          ""
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AXicc2QEAcdvHgmb9fjj94hLwRiNjI4sGvaP9IuY7WRKGR2ZNew/MECAhv3tPTfTS5qPOQluY3RkgEsAAALFE+g=')",
+          "test_misaligned_type(\n    node=ChoiceNode(type='integer',\n     value=6_967_963_692_037_838_621,\n     kwargs={'min_value': 6_967_963_692_037_838_618,\n      'max_value': 6_967_963_692_037_838_721,\n      'shrink_towards': -10,\n      'weights': {6_967_963_692_037_838_622: 0.15704886681961902,\n       6_967_963_692_037_838_621: 0.2763525757371494}},\n     was_forced=True,\n     index=None),\n    ir_type_kwargs=('boolean', {'p': 1.0, 'forced': None}),\n    random=HypothesisRandom(generated data),\n)",
+          ""
+        ]
+      ],
+      "failures": [],
+      "status_counts": {
+        "OVERRUN": 0,
+        "INVALID": 342,
+        "VALID": 1458,
+        "INTERESTING": 0
+      }
+    },
+    "tests/test_corpus.py::test_interesting_results_are_added_to_database": {
+      "nodeid": "tests/test_corpus.py::test_interesting_results_are_added_to_database",
+      "seed_pool": [
+        [
+          "@reproduce_failure('6.130.4', b'AAA=')",
+          "test_interesting_results_are_added_to_database(\n    args=[],\n)",
+          ""
+        ]
+      ],
+      "failures": [
+        [
+          "<unknown>",
+          "",
+          "@reproduce_failure('6.130.4', b'AXicY3RkcGQAAkcogkEwAQAnVALN')",
+          "Traceback (most recent call last):\n  File \"/Users/tybug/Desktop/Liam/coding/hypofuzz/src/hypofuzz/hypofuzz.py\", line 295, in _run_test_on\n    kw, argslices = context.prep_args_kwargs_from_strategies(\n                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/tybug/Desktop/Liam/coding/hypothesis/hypothesis-python/src/hypothesis/control.py\", line 170, in prep_args_kwargs_from_strategies\n    obj = check(self.data.draw(s, observe_as=f\"generate:{k}\"))\n                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/tybug/Desktop/Liam/coding/hypothesis/hypothesis-python/src/hypothesis/internal/conjecture/data.py\", line 1126, in draw\n    v = strategy.do_draw(self)\n        ^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/tybug/Desktop/Liam/coding/hypothesis/hypothesis-python/src/hypothesis/strategies/_internal/lazy.py\", line 178, in do_draw\n    return data.draw(self.wrapped_strategy)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/tybug/Desktop/Liam/coding/hypothesis/hypothesis-python/src/hypothesis/internal/conjecture/data.py\", line 1120, in draw\n    return strategy.do_draw(self)\n           ^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/tybug/Desktop/Liam/coding/hypothesis/hypothesis-python/src/hypothesis/strategies/_internal/collections.py\", line 287, in do_draw\n    value = filtered.do_filtered_draw(data)\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/tybug/Desktop/Liam/coding/hypothesis/hypothesis-python/src/hypothesis/strategies/_internal/strategies.py\", line 1093, in do_filtered_draw\n    value = data.draw(self.filtered_strategy)\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/tybug/Desktop/Liam/coding/hypothesis/hypothesis-python/src/hypothesis/internal/conjecture/data.py\", line 1120, in draw\n    return strategy.do_draw(self)\n           ^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/tybug/Desktop/Liam/coding/hypothesis/hypothesis-python/src/hypothesis/strategies/_internal/collections.py\", line 66, in do_draw\n    return tuple(data.draw(e) for e in self.element_strategies)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/tybug/Desktop/Liam/coding/hypothesis/hypothesis-python/src/hypothesis/strategies/_internal/collections.py\", line 66, in <genexpr>\n    return tuple(data.draw(e) for e in self.element_strategies)\n                 ^^^^^^^^^^^^\n  File \"/Users/tybug/Desktop/Liam/coding/hypothesis/hypothesis-python/src/hypothesis/internal/conjecture/data.py\", line 1120, in draw\n    return strategy.do_draw(self)\n           ^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/tybug/Desktop/Liam/coding/hypothesis/hypothesis-python/src/hypothesis/strategies/_internal/core.py\", line 1027, in do_draw\n    obj = self.target(*args, **kwargs)\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nTypeError: ConjectureResult.__init__() got an unexpected keyword argument 'examples'\nwhile generating 'args' from lists(tuples(builds(ConjectureResult, examples=none(), extra_information=builds(SimpleNamespace, branches=frozensets(builds(Arc, end_line=integers(min_value=0, max_value=3), fname=sampled_from('abc'), start_line=integers(min_value=0, max_value=3))), call_repr=just(''), reports=builds(list), traceback=just('')), interesting_origin=builds(interesting_origin, n=integers()), misaligned_at=none(), nodes=lists(nodes()).map(tuple), output=none(), status=sampled_from(hypothesis.internal.conjecture.data.Status), tags=just(frozenset()), target_observations=dictionaries(keys=text(), values=one_of(integers(), floats()))), sampled_from(hypofuzz.corpus.HowGenerated)), unique_by=lambda r: r[0].nodes)\n"
+        ]
+      ],
+      "status_counts": {
+        "OVERRUN": 68,
+        "INVALID": 0,
+        "VALID": 3,
+        "INTERESTING": 1
+      }
+    },
+    "tests/test_provider.py::test_misaligned_kwargs": {
+      "nodeid": "tests/test_provider.py::test_misaligned_kwargs",
+      "seed_pool": [
+        [
+          "@reproduce_failure('6.130.4', b'AXicc2TQYIACRyYGDfsPEDYAFkgCBA==')",
+          "test_misaligned_kwargs(\n    data=data(...),\n)",
+          "Draw 1: ChoiceNode(type='boolean',\n value=False,\n kwargs={'p': 0.0},\n was_forced=False,\n index=None)\nDraw 2: {'p': 1.0, 'forced': None}\nDraw 3: HypothesisRandom(generated data)"
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AEEDAABDAOKgAQEAQQFhMig/7////////w==')",
+          "test_misaligned_kwargs(\n    data=data(...),\n)",
+          "Draw 1: ChoiceNode(type='bytes',\n value=b'',\n kwargs={'min_size': 0, 'max_size': 10_000_000_000},\n was_forced=True,\n index=None)\nDraw 2: {'forced': None, 'min_size': 1, 'max_size': 10_000_000_000}\nDraw 3: HypothesisRandom(generated data)"
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AEEBAAAAQgDtAAABAEHpQQJDAOal')",
+          "test_misaligned_kwargs(\n    data=data(...),\n)",
+          "Draw 1: ChoiceNode(type='integer',\n value=5523,\n kwargs={'min_value': None,\n  'max_value': None,\n  'shrink_towards': 0,\n  'weights': None},\n was_forced=False,\n index=None)\nDraw 2: {'min_value': None,\n 'max_value': -23,\n 'shrink_towards': 0,\n 'weights': None,\n 'forced': None}\nDraw 3: HypothesisRandom(generated data)"
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AEEBAAAAQQEAAQAAQQFBACg/5DQUNozuPEEB')",
+          "test_misaligned_kwargs(\n    data=data(...),\n)",
+          "Draw 1: ChoiceNode(type='integer',\n value=-102,\n kwargs={'min_value': None,\n  'max_value': None,\n  'shrink_towards': 0,\n  'weights': None},\n was_forced=False,\n index=None)\nDraw 2: {'min_value': 1,\n 'max_value': None,\n 'shrink_towards': 0,\n 'weights': None,\n 'forced': None}\nDraw 3: HypothesisRandom(generated data)"
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AEEBAAAAQQEAAQABQwDMX0EBQQJBAQ==')",
+          "test_misaligned_kwargs(\n    data=data(...),\n)",
+          "Draw 1: ChoiceNode(type='integer',\n value=-102,\n kwargs={'min_value': None,\n  'max_value': None,\n  'shrink_towards': 0,\n  'weights': None},\n was_forced=False,\n index=None)\nDraw 2: {'min_value': 1,\n 'max_value': None,\n 'shrink_towards': 52319,\n 'weights': None,\n 'forced': None}\nDraw 3: HypothesisRandom(generated data)"
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AEEBAAAAQQEAAQEAAEEAQQFBAA==')",
+          "test_misaligned_kwargs(\n    data=data(...),\n)",
+          "Draw 1: ChoiceNode(type='integer',\n value=-102,\n kwargs={'min_value': None,\n  'max_value': None,\n  'shrink_towards': 0,\n  'weights': None},\n was_forced=False,\n index=None)\nDraw 2: {'min_value': 0,\n 'max_value': 1,\n 'shrink_towards': 0,\n 'weights': None,\n 'forced': None}\nDraw 3: HypothesisRandom(generated data)"
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AEECAAAAKD/wAAAAAAAAQwCITgAAAAAoR+///9/wcDZBCyg+5Pi1iONo8Q==')",
+          "test_misaligned_kwargs(\n    data=data(...),\n)",
+          "Draw 1: ChoiceNode(type='float',\n value=1.1,\n kwargs={'min_value': -inf,\n  'max_value': inf,\n  'allow_nan': False,\n  'smallest_nonzero_magnitude': 1.0},\n was_forced=False,\n index=None)\nDraw 2: {'min_value': -inf,\n 'max_value': inf,\n 'forced': None,\n 'allow_nan': False,\n 'smallest_nonzero_magnitude': 3.402823466e+38}\nDraw 3: HypothesisRandom(generated data)"
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AEEDAABDAOKgAQEBQQNHGs9wZTfdTGENYaVhFyg/7////////g==')",
+          "test_misaligned_kwargs(\n    data=data(...),\n)",
+          "Draw 1: ChoiceNode(type='bytes',\n value=b'',\n kwargs={'min_size': 0, 'max_size': 10_000_000_000},\n was_forced=True,\n index=None)\nDraw 2: {'forced': None, 'min_size': 3, 'max_size': 103}\nDraw 3: HypothesisRandom(generated data)"
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AXicc2RiYGDQsP/AAAaOLIwMjAwa+z/OBIFZGvY/oOKMGvYPIEwA/EUKOQ==')",
+          "test_misaligned_kwargs(\n    data=data(...),\n)",
+          "Draw 1: ChoiceNode(type='float',\n value=-0.0,\n kwargs={'min_value': -inf,\n  'max_value': inf,\n  'allow_nan': False,\n  'smallest_nonzero_magnitude': 1.0},\n was_forced=True,\n index=None)\nDraw 2: {'min_value': -inf,\n 'max_value': -1.1,\n 'forced': None,\n 'allow_nan': False,\n 'smallest_nonzero_magnitude': 1.5}\nDraw 3: HypothesisRandom(generated data)"
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AXicc2RiYGDQsP/AAAbODB1+DIxIAhr2PyAMRxYNewEIEwC0jAYn')",
+          "test_misaligned_kwargs(\n    data=data(...),\n)",
+          "Draw 1: ChoiceNode(type='float',\n value=1.1,\n kwargs={'min_value': -inf,\n  'max_value': inf,\n  'allow_nan': False,\n  'smallest_nonzero_magnitude': 1.0},\n was_forced=False,\n index=None)\nDraw 2: {'min_value': 1.0,\n 'max_value': inf,\n 'forced': None,\n 'allow_nan': False,\n 'smallest_nonzero_magnitude': 1.5}\nDraw 3: HypothesisRandom(generated data)"
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AXicc2RkYGBwKv/GCAKOTAGKn1IYy/NaJy9ffqZO8EKFL5pAhw4jmkhTiob9BwYI0LB/AGE4MgIATFMdNA==')",
+          "test_misaligned_kwargs(\n    data=data(...),\n)",
+          "Draw 1: ChoiceNode(type='integer',\n value=1_630_058_052,\n kwargs={'min_value': None,\n  'max_value': None,\n  'shrink_towards': 0,\n  'weights': None},\n was_forced=True,\n index=None)\nDraw 2: {'min_value': 45_123_088_057_818_508_580_628_867_672_460_785_741,\n 'max_value': 45_123_088_057_818_508_580_628_867_672_460_789_804,\n 'shrink_towards': 2,\n 'weights': {45_123_088_057_818_508_580_628_867_672_460_788_324: 0.5},\n 'forced': None}\nDraw 3: HypothesisRandom(generated data)"
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AXicc2RkYGBwKv/GCAKOSo5RTgzrGB0ZNew/MECAhv3VUDBwZAQAt6MI+w==')",
+          "test_misaligned_kwargs(\n    data=data(...),\n)",
+          "Draw 1: ChoiceNode(type='integer',\n value=1_630_058_052,\n kwargs={'min_value': None,\n  'max_value': None,\n  'shrink_towards': 0,\n  'weights': None},\n was_forced=True,\n index=None)\nDraw 2: {'min_value': 90,\n 'max_value': 174,\n 'shrink_towards': 34,\n 'weights': {91: 0.3333333333333333},\n 'forced': None}\nDraw 3: HypothesisRandom(generated data)"
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AEEEAUMECVEBQQEAAABCd/YBAUML8xoBQwWyRgFDARdZAAAAKAAAAAAAAAABQQA=')",
+          "test_misaligned_kwargs(\n    data=data(...),\n)",
+          "Draw 1: ChoiceNode(type='string',\n value='𧪏\\x87',\n kwargs={'intervals': IntervalSet(build_intervals([1, 264529])),\n  'min_size': 0,\n  'max_size': 10_000_000_000},\n was_forced=True,\n index=None)\nDraw 2: {'intervals': IntervalSet(build_intervals([71513, 373318, 783130])),\n 'forced': None,\n 'min_size': 0,\n 'max_size': 10_000_000_000}\nDraw 3: HypothesisRandom(generated data)"
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AEEBAAAAQnf2AQEBAQFBIkFaQgCuAUEAKD/wAAAAAAAAAUFRKD9QYk3S8an8ACg/36jt5xmVgUEC')",
+          "test_misaligned_kwargs(\n    data=data(...),\n)",
+          "Draw 1: ChoiceNode(type='integer',\n value=1_630_058_052,\n kwargs={'min_value': None,\n  'max_value': None,\n  'shrink_towards': 0,\n  'weights': None},\n was_forced=True,\n index=None)\nDraw 2: {'min_value': 90,\n 'max_value': 174,\n 'shrink_towards': 34,\n 'weights': {90: 0.4941914352465893, 172: 0.0004941914352465894},\n 'forced': None}\nDraw 3: HypothesisRandom(generated data)"
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AEEBAAAAQnf2AQEBAQFBIkFaQgCuAUEDKD/gAAAAAAAAAUECKD9QYk3S8an8ACg/7/fO2RaHKkEB')",
+          "test_misaligned_kwargs(\n    data=data(...),\n)",
+          "Draw 1: ChoiceNode(type='integer',\n value=1_630_058_052,\n kwargs={'min_value': None,\n  'max_value': None,\n  'shrink_towards': 0,\n  'weights': None},\n was_forced=True,\n index=None)\nDraw 2: {'min_value': 90,\n 'max_value': 174,\n 'shrink_towards': 34,\n 'weights': {93: 0.997005988023952, 92: 0.001994011976047904},\n 'forced': None}\nDraw 3: HypothesisRandom(generated data)"
+        ]
+      ],
+      "failures": [],
+      "status_counts": {
+        "OVERRUN": 0,
+        "INVALID": 1154,
+        "VALID": 1446,
+        "INTERESTING": 0
+      }
+    },
+    "tests/test_provider.py::test_draw_past_prefix": {
+      "nodeid": "tests/test_provider.py::test_draw_past_prefix",
+      "seed_pool": [
+        [
+          "@reproduce_failure('6.130.4', b'AEEAKAAAAAAAAAAA')",
+          "test_draw_past_prefix(\n    ir_type_and_kwargs=('boolean', {'p': 0.0, 'forced': None}),\n    random=HypothesisRandom(generated data),\n)",
+          ""
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AEEDAAAoP+////////4=')",
+          "test_draw_past_prefix(\n    ir_type_and_kwargs=('bytes',\n     {'forced': None, 'min_size': 0, 'max_size': 10_000_000_000}),\n    random=HypothesisRandom(generated data),\n)",
+          ""
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AEEDAAFBAA==')",
+          "test_draw_past_prefix(\n    ir_type_and_kwargs=('bytes',\n     {'forced': None, 'min_size': 0, 'max_size': 0}),\n    random=HypothesisRandom(generated data),\n)",
+          ""
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AEEDAQBBACg/65BimNyjSQ==')",
+          "test_draw_past_prefix(\n    ir_type_and_kwargs=('bytes',\n     {'forced': None, 'min_size': 0, 'max_size': 10_000_000_000}),\n    random=HypothesisRandom(generated data),\n)",
+          ""
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AEEBAAAAQQJBAQ==')",
+          "test_draw_past_prefix(\n    ir_type_and_kwargs=('integer',\n     {'min_value': None,\n      'max_value': None,\n      'shrink_towards': 0,\n      'weights': None,\n      'forced': None}),\n    random=HypothesisRandom(generated data),\n)",
+          ""
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AEEBAAABQRBBAkEB')",
+          "test_draw_past_prefix(\n    ir_type_and_kwargs=('integer',\n     {'min_value': None,\n      'max_value': None,\n      'shrink_towards': 16,\n      'weights': None,\n      'forced': None}),\n    random=HypothesisRandom(generated data),\n)",
+          ""
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AEEBAAEAQQFBAkEA')",
+          "test_draw_past_prefix(\n    ir_type_and_kwargs=('integer',\n     {'min_value': None,\n      'max_value': 1,\n      'shrink_towards': 0,\n      'weights': None,\n      'forced': None}),\n    random=HypothesisRandom(generated data),\n)",
+          ""
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AEEBAQAAQQFBAkEA')",
+          "test_draw_past_prefix(\n    ir_type_and_kwargs=('integer',\n     {'min_value': 1,\n      'max_value': None,\n      'shrink_towards': 0,\n      'weights': None,\n      'forced': None}),\n    random=HypothesisRandom(generated data),\n)",
+          ""
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AEEBAQEAAEECQQI=')",
+          "test_draw_past_prefix(\n    ir_type_and_kwargs=('integer',\n     {'min_value': 2,\n      'max_value': 2,\n      'shrink_towards': 0,\n      'weights': None,\n      'forced': None}),\n    random=HypothesisRandom(generated data),\n)",
+          ""
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AXicc2RiYGDQsP/AAAaOjBoMUAAAI4wCBQ==')",
+          "test_draw_past_prefix(\n    ir_type_and_kwargs=('float',\n     {'min_value': -inf,\n      'max_value': inf,\n      'forced': None,\n      'allow_nan': False,\n      'smallest_nonzero_magnitude': 1.0}),\n    random=HypothesisRandom(generated data),\n)",
+          ""
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AEECAAEAKEFjEtAAAAAAKEM4Ko2uB/l0QQEoAAAAAAAAAAA=')",
+          "test_draw_past_prefix(\n    ir_type_and_kwargs=('float',\n     {'min_value': -inf,\n      'max_value': 10000000.0,\n      'forced': None,\n      'allow_nan': False,\n      'smallest_nonzero_magnitude': 6802187439569268.0}),\n    random=HypothesisRandom(generated data),\n)",
+          ""
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AXicc2RiZGDQYIACDcdkoQsghiOjhv0DiBgANx4DpA==')",
+          "test_draw_past_prefix(\n    ir_type_and_kwargs=('float',\n     {'min_value': 0.0,\n      'max_value': inf,\n      'forced': None,\n      'allow_nan': False,\n      'smallest_nonzero_magnitude': 10000000.0}),\n    random=HypothesisRandom(generated data),\n)",
+          ""
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AXicc2RiZGTUYIACOMMRIQYAFUgBAQ==')",
+          "test_draw_past_prefix(\n    ir_type_and_kwargs=('float',\n     {'min_value': 0.0,\n      'max_value': 0.0,\n      'forced': None,\n      'allow_nan': True,\n      'smallest_nonzero_magnitude': 5e-324}),\n    random=HypothesisRandom(generated data),\n)",
+          ""
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AEEEAUMO/HYBQxCA9QAAACg/7/RQTitCtw==')",
+          "test_draw_past_prefix(\n    ir_type_and_kwargs=('string',\n     {'intervals': IntervalSet(build_intervals([982134, 1081589])),\n      'forced': None,\n      'min_size': 0,\n      'max_size': 10_000_000_000}),\n    random=HypothesisRandom(generated data),\n)",
+          ""
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AEEBAQEAAUEDQQNBACg/8AAAAAAAACg/5Xo6KaSTLEEB')",
+          "test_draw_past_prefix(\n    ir_type_and_kwargs=('integer',\n     {'min_value': 3,\n      'max_value': 3,\n      'shrink_towards': 0,\n      'weights': {3: 0.6711703122460668},\n      'forced': None}),\n    random=HypothesisRandom(generated data),\n)",
+          ""
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AEEEAUMB/RYBQwpWOQFDC6+IAAAAKD/v////////')",
+          "test_draw_past_prefix(\n    ir_type_and_kwargs=('string',\n     {'intervals': IntervalSet(build_intervals([130326, 677433, 765832])),\n      'forced': None,\n      'min_size': 0,\n      'max_size': 10_000_000_000}),\n    random=HypothesisRandom(generated data),\n)",
+          ""
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AEEBAQEAAUEAQgb3AUIBkig/8AAAAAAAAAAoP+/3ztkWhypBAQ==')",
+          "test_draw_past_prefix(\n    ir_type_and_kwargs=('integer',\n     {'min_value': 0,\n      'max_value': 1783,\n      'shrink_towards': 0,\n      'weights': {402: 0.9989999999999999},\n      'forced': None}),\n    random=HypothesisRandom(generated data),\n)",
+          ""
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AXicc2RkZGRgdGR2ZGF0ZNSw/8AABoyODBr2DyBsDfuroWDgyAQAhpYHbw==')",
+          "test_draw_past_prefix(\n    ir_type_and_kwargs=('integer',\n     {'min_value': 3,\n      'max_value': 4,\n      'shrink_towards': 0,\n      'weights': {4: 0.2222222222222222, 3: 0.1111111111111111},\n      'forced': None}),\n    random=HypothesisRandom(generated data),\n)",
+          ""
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AXicc2RkZGRgdGR2ZGF0ZNCw/8AABshsDfv338/dFGvXcmTUYGBgkZhcsicLAOtxC28=')",
+          "test_draw_past_prefix(\n    ir_type_and_kwargs=('integer',\n     {'min_value': 3,\n      'max_value': 4,\n      'shrink_towards': 0,\n      'weights': {3: 0.49949999999999994, 4: 0.49949999999999994},\n      'forced': None}),\n    random=HypothesisRandom(generated data),\n)",
+          ""
+        ]
+      ],
+      "failures": [],
+      "status_counts": {
+        "OVERRUN": 0,
+        "INVALID": 26,
+        "VALID": 4574,
+        "INTERESTING": 0
+      }
+    },
+    "tests/test_provider.py::test_changed_kwargs_pops_if_still_permitted": {
+      "nodeid": "tests/test_provider.py::test_changed_kwargs_pops_if_still_permitted",
+      "seed_pool": [
+        [
+          "@reproduce_failure('6.130.4', b'AXicc2TQYIACRwYEGwANqgDT')",
+          "test_changed_kwargs_pops_if_still_permitted(\n    data=data(...),\n)",
+          "Draw 1: ChoiceNode(type='boolean',\n value=False,\n kwargs={'p': 0.0},\n was_forced=False,\n index=None)\nDraw 2: {'p': 0.0, 'forced': None}\nDraw 3: HypothesisRandom(generated data)"
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AEEDAABBAQAAAA==')",
+          "test_changed_kwargs_pops_if_still_permitted(\n    data=data(...),\n)",
+          "Draw 1: ChoiceNode(type='bytes',\n value=b'\\xd8\\x10~x\\xc9|\\xd5\\x9b\\x00D:\\x1a',\n kwargs={'min_size': 0, 'max_size': 10_000_000_000},\n was_forced=False,\n index=None)\nDraw 2: {'forced': None, 'min_size': 0, 'max_size': 10_000_000_000}\nDraw 3: HypothesisRandom(generated data)"
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AEEDAABBAQAAAUIbIA==')",
+          "test_changed_kwargs_pops_if_still_permitted(\n    data=data(...),\n)",
+          "Draw 1: ChoiceNode(type='bytes',\n value=b'\\xd8\\x10~x\\xc9|\\xd5\\x9b\\x00D:\\x1a',\n kwargs={'min_size': 0, 'max_size': 10_000_000_000},\n was_forced=False,\n index=None)\nDraw 2: {'forced': None, 'min_size': 0, 'max_size': 100}\nDraw 3: HypothesisRandom(generated data)"
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AEEDAABFALMwR1EAAQBBAQ==')",
+          "test_changed_kwargs_pops_if_still_permitted(\n    data=data(...),\n)",
+          "Draw 1: ChoiceNode(type='bytes',\n value=b'\\xc2\\xb3\\x8e\\x9f\\x9b\\xa0\\x84\\xc24O\\xf9T\\xc7\\xcbg&2x?g\\xd2\\x83\\xa6\\xf1',\n kwargs={'min_size': 0, 'max_size': 10_000_000_000},\n was_forced=False,\n index=None)\nDraw 2: {'forced': None, 'min_size': 1, 'max_size': 10_000_000_000}\nDraw 3: HypothesisRandom(generated data)"
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AEEBAAAAQQAAAAAA')",
+          "test_changed_kwargs_pops_if_still_permitted(\n    data=data(...),\n)",
+          "Draw 1: ChoiceNode(type='integer',\n value=13781,\n kwargs={'min_value': None,\n  'max_value': None,\n  'shrink_towards': 0,\n  'weights': None},\n was_forced=False,\n index=None)\nDraw 2: {'min_value': None,\n 'max_value': None,\n 'shrink_towards': 0,\n 'weights': None,\n 'forced': None}\nDraw 3: HypothesisRandom(generated data)"
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AEEBAAAAQQAAAAABQZM=')",
+          "test_changed_kwargs_pops_if_still_permitted(\n    data=data(...),\n)",
+          "Draw 1: ChoiceNode(type='integer',\n value=13781,\n kwargs={'min_value': None,\n  'max_value': None,\n  'shrink_towards': 0,\n  'weights': None},\n was_forced=False,\n index=None)\nDraw 2: {'min_value': None,\n 'max_value': None,\n 'shrink_towards': -109,\n 'weights': None,\n 'forced': None}\nDraw 3: HypothesisRandom(generated data)"
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AEEBAAAAQQAAAQAAQQE=')",
+          "test_changed_kwargs_pops_if_still_permitted(\n    data=data(...),\n)",
+          "Draw 1: ChoiceNode(type='integer',\n value=13781,\n kwargs={'min_value': None,\n  'max_value': None,\n  'shrink_towards': 0,\n  'weights': None},\n was_forced=False,\n index=None)\nDraw 2: {'min_value': 1,\n 'max_value': None,\n 'shrink_towards': 0,\n 'weights': None,\n 'forced': None}\nDraw 3: HypothesisRandom(generated data)"
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AEEBAAAAQQEAAAEAQQA=')",
+          "test_changed_kwargs_pops_if_still_permitted(\n    data=data(...),\n)",
+          "Draw 1: ChoiceNode(type='integer',\n value=-102,\n kwargs={'min_value': None,\n  'max_value': None,\n  'shrink_towards': 0,\n  'weights': None},\n was_forced=False,\n index=None)\nDraw 2: {'min_value': None,\n 'max_value': 0,\n 'shrink_towards': 0,\n 'weights': None,\n 'forced': None}\nDraw 3: HypothesisRandom(generated data)"
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AXicc2RiYGDQsP/AAAaOIB6Q+y8NDAA8VgWn')",
+          "test_changed_kwargs_pops_if_still_permitted(\n    data=data(...),\n)",
+          "Draw 1: ChoiceNode(type='float',\n value=9007199254740992.0,\n kwargs={'min_value': -inf,\n  'max_value': inf,\n  'allow_nan': False,\n  'smallest_nonzero_magnitude': 1.0},\n was_forced=False,\n index=None)\nDraw 2: {'min_value': -inf,\n 'max_value': inf,\n 'forced': None,\n 'allow_nan': False,\n 'smallest_nonzero_magnitude': 1.9}\nDraw 3: HypothesisRandom(generated data)"
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AEEBAAAAQQIAAQEAAEEBQmuK')",
+          "test_changed_kwargs_pops_if_still_permitted(\n    data=data(...),\n)",
+          "Draw 1: ChoiceNode(type='integer',\n value=11831,\n kwargs={'min_value': None,\n  'max_value': None,\n  'shrink_towards': 0,\n  'weights': None},\n was_forced=False,\n index=None)\nDraw 2: {'min_value': 1,\n 'max_value': 27530,\n 'shrink_towards': 0,\n 'weights': None,\n 'forced': None}\nDraw 3: HypothesisRandom(generated data)"
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AXicc2RiYGDQsP/AAAaOzAyMQO7hqBiZGQy1mhoQUQYmAGcKBQU=')",
+          "test_changed_kwargs_pops_if_still_permitted(\n    data=data(...),\n)",
+          "Draw 1: ChoiceNode(type='float',\n value=-0.0,\n kwargs={'min_value': -inf,\n  'max_value': inf,\n  'allow_nan': False,\n  'smallest_nonzero_magnitude': 1.0},\n was_forced=False,\n index=None)\nDraw 2: {'min_value': -2.9678509093942436e+16,\n 'max_value': inf,\n 'forced': None,\n 'allow_nan': False,\n 'smallest_nonzero_magnitude': 1e-323}\nDraw 3: HypothesisRandom(generated data)"
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AEECAAAAKD/wAAAAAAAASQD3zG7OekiuOAAAAQEoQ0vYVc9vpHUoP+AAAAAAAAA=')",
+          "test_changed_kwargs_pops_if_still_permitted(\n    data=data(...),\n)",
+          "Draw 1: ChoiceNode(type='float',\n value=-4.080357224508648e+16,\n kwargs={'min_value': -inf,\n  'max_value': inf,\n  'allow_nan': False,\n  'smallest_nonzero_magnitude': 1.0},\n was_forced=False,\n index=None)\nDraw 2: {'min_value': -inf,\n 'max_value': 1.5675374870415594e+16,\n 'forced': None,\n 'allow_nan': True,\n 'smallest_nonzero_magnitude': 0.5}\nDraw 3: HypothesisRandom(generated data)"
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AEEBAAAAQQIAAQEAAUErQnuQAUIGpyg/7//rB0p3HQAoP+/3ztkWhyo=')",
+          "test_changed_kwargs_pops_if_still_permitted(\n    data=data(...),\n)",
+          "Draw 1: ChoiceNode(type='integer',\n value=11831,\n kwargs={'min_value': None,\n  'max_value': None,\n  'shrink_towards': 0,\n  'weights': None},\n was_forced=False,\n index=None)\nDraw 2: {'min_value': 43,\n 'max_value': 31632,\n 'shrink_towards': 0,\n 'weights': {1703: 0.9989999999999999},\n 'forced': None}\nDraw 3: HypothesisRandom(generated data)"
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AEEBAAAAQwDCVgABAQABQcJBAQFBACg/8AAAAAAAAAAoP1BiTdLxqf0=')",
+          "test_changed_kwargs_pops_if_still_permitted(\n    data=data(...),\n)",
+          "Draw 1: ChoiceNode(type='integer',\n value=-46,\n kwargs={'min_value': None,\n  'max_value': None,\n  'shrink_towards': 0,\n  'weights': None},\n was_forced=False,\n index=None)\nDraw 2: {'min_value': -62,\n 'max_value': 1,\n 'shrink_towards': 0,\n 'weights': {0: 0.0010000000000000002},\n 'forced': None}\nDraw 3: HypothesisRandom(generated data)"
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AEEEAUMHWLABQQEAAABBAgABQwHzXgFDDuFnAAAA')",
+          "test_changed_kwargs_pops_if_still_permitted(\n    data=data(...),\n)",
+          "Draw 1: ChoiceNode(type='string',\n value='',\n kwargs={'intervals': IntervalSet(build_intervals([1, 481456])),\n  'min_size': 0,\n  'max_size': 10_000_000_000},\n was_forced=False,\n index=None)\nDraw 2: {'intervals': IntervalSet(build_intervals([127838, 975207])),\n 'forced': None,\n 'min_size': 0,\n 'max_size': 10_000_000_000}\nDraw 3: HypothesisRandom(generated data)"
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AEEEAUJYCQFDB1iwAUEBAAAAQQIAAUMGU8kBQQEAAAA=')",
+          "test_changed_kwargs_pops_if_still_permitted(\n    data=data(...),\n)",
+          "Draw 1: ChoiceNode(type='string',\n value='',\n kwargs={'intervals': IntervalSet(build_intervals([1, 22537, 481456])),\n  'min_size': 0,\n  'max_size': 10_000_000_000},\n was_forced=False,\n index=None)\nDraw 2: {'intervals': IntervalSet(build_intervals([1, 414665])),\n 'forced': None,\n 'min_size': 0,\n 'max_size': 10_000_000_000}\nDraw 3: HypothesisRandom(generated data)"
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AXicc2RkYGBwZjgUxsDIyMDoeMiRkdGRQcP+/X8wYHQUBbFfs3uVywJFHzCAAQCTARA7')",
+          "test_changed_kwargs_pops_if_still_permitted(\n    data=data(...),\n)",
+          "Draw 1: ChoiceNode(type='integer',\n value=-46,\n kwargs={'min_value': None,\n  'max_value': None,\n  'shrink_towards': 0,\n  'weights': None},\n was_forced=False,\n index=None)\nDraw 2: {'min_value': -62,\n 'max_value': 1,\n 'shrink_towards': 0,\n 'weights': {0: 0.25000125000625, -21: 0.24999874999375002},\n 'forced': None}\nDraw 3: HypothesisRandom(generated data)"
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AXicc2RkYGBwZjgUxsDIyMDoeMiRkdGRRcP+/f/X7F7lsoyOzCA2GDBo2F8NBQMAcsESIA==')",
+          "test_changed_kwargs_pops_if_still_permitted(\n    data=data(...),\n)",
+          "Draw 1: ChoiceNode(type='integer',\n value=-46,\n kwargs={'min_value': None,\n  'max_value': None,\n  'shrink_towards': 0,\n  'weights': None},\n was_forced=False,\n index=None)\nDraw 2: {'min_value': -62,\n 'max_value': 1,\n 'shrink_towards': 0,\n 'weights': {-3: 0.16666583332916665, -2: 0.16666750000416666},\n 'forced': None}\nDraw 3: HypothesisRandom(generated data)"
+        ]
+      ],
+      "failures": [],
+      "status_counts": {
+        "OVERRUN": 0,
+        "INVALID": 1023,
+        "VALID": 1677,
+        "INTERESTING": 0
+      }
+    },
+    "tests/test_provider.py::test_drawing_prefix_exactly": {
+      "nodeid": "tests/test_provider.py::test_drawing_prefix_exactly",
+      "seed_pool": [
+        [
+          "@reproduce_failure('6.130.4', b'AAA=')",
+          "test_drawing_prefix_exactly(\n    nodes=[],\n)",
+          ""
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AAFBACgAAAAAAAAAAEE9AAA=')",
+          "test_drawing_prefix_exactly(\n    nodes=[ChoiceNode(type='boolean',\n      value=False,\n      kwargs={'p': 0.0},\n      was_forced=False,\n      index=None)],\n)",
+          ""
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AAFBAwAAQgCtAQA=')",
+          "test_drawing_prefix_exactly(\n    nodes=[ChoiceNode(type='bytes',\n      value=b'\\xab\\xce\\x82\\xe3',\n      kwargs={'min_size': 0, 'max_size': 10_000_000_000},\n      was_forced=True,\n      index=None)],\n)",
+          ""
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AAFBAQAAAEEwAAA=')",
+          "test_drawing_prefix_exactly(\n    nodes=[ChoiceNode(type='integer',\n      value=-18248,\n      kwargs={'min_value': None,\n       'max_value': None,\n       'shrink_towards': 0,\n       'weights': None},\n      was_forced=False,\n      index=None)],\n)",
+          ""
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AAFBAwABQUNIVYMDHDhvcQ8AAA==')",
+          "test_drawing_prefix_exactly(\n    nodes=[ChoiceNode(type='bytes',\n      value=b'F',\n      kwargs={'min_size': 0, 'max_size': 67},\n      was_forced=False,\n      index=None)],\n)",
+          ""
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AAFBAwEAQQFCM2EAAA==')",
+          "test_drawing_prefix_exactly(\n    nodes=[ChoiceNode(type='bytes',\n      value=b'\\xb5',\n      kwargs={'min_size': 1, 'max_size': 10_000_000_000},\n      was_forced=False,\n      index=None)],\n)",
+          ""
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AAFBAQAAAUFZQg35AAA=')",
+          "test_drawing_prefix_exactly(\n    nodes=[ChoiceNode(type='integer',\n      value=29,\n      kwargs={'min_value': None,\n       'max_value': None,\n       'shrink_towards': 89,\n       'weights': None},\n      was_forced=False,\n      index=None)],\n)",
+          ""
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AAFBAQABAEJKMUIA+wEA')",
+          "test_drawing_prefix_exactly(\n    nodes=[ChoiceNode(type='integer',\n      value=-24053,\n      kwargs={'min_value': None,\n       'max_value': 18993,\n       'shrink_towards': 0,\n       'weights': None},\n      was_forced=True,\n      index=None)],\n)",
+          ""
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AAFBAQEAAEERQSkBAA==')",
+          "test_drawing_prefix_exactly(\n    nodes=[ChoiceNode(type='integer',\n      value=1_531_418_431_013_620_267,\n      kwargs={'min_value': 17,\n       'max_value': None,\n       'shrink_towards': 0,\n       'weights': None},\n      was_forced=True,\n      index=None)],\n)",
+          ""
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AAFBAgAAAChDYw15/6VDMEMAmEsBAA==')",
+          "test_drawing_prefix_exactly(\n    nodes=[ChoiceNode(type='float',\n      value=-inf,\n      kwargs={'min_value': -inf,\n       'max_value': inf,\n       'allow_nan': False,\n       'smallest_nonzero_magnitude': 4.29027375098167e+16},\n      was_forced=True,\n      index=None)],\n)",
+          ""
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AXicY3RkYmBk0Kj/wAAGGvZQhivDopsa0gwMAE84BTc=')",
+          "test_drawing_prefix_exactly(\n    nodes=[ChoiceNode(type='float',\n      value=inf,\n      kwargs={'min_value': -inf,\n       'max_value': inf,\n       'allow_nan': False,\n       'smallest_nonzero_magnitude': 1.0},\n      was_forced=False,\n      index=None)],\n)",
+          ""
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AAFBAgEAACh/8AAAAAAAACh/7////////0hh8Z/Pzzu0PwAA')",
+          "test_drawing_prefix_exactly(\n    nodes=[ChoiceNode(type='float',\n      value=inf,\n      kwargs={'min_value': inf,\n       'max_value': inf,\n       'allow_nan': False,\n       'smallest_nonzero_magnitude': 1.7976931348623157e+308},\n      was_forced=False,\n      index=None)],\n)",
+          ""
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AXicY3Rk0GCAAkc9RkYIl6sm6kiRJ8O9Sy91T2l2zGdkAABoIgiF')",
+          "test_drawing_prefix_exactly(\n    nodes=[ChoiceNode(type='boolean',\n      value=False,\n      kwargs={'p': 0.0},\n      was_forced=True,\n      index=None),\n     ChoiceNode(type='boolean',\n      value=False,\n      kwargs={'p': 2.2250738585e-313},\n      was_forced=True,\n      index=None)],\n)",
+          ""
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AAFBAQEBAABBjUJen0JieQEA')",
+          "test_drawing_prefix_exactly(\n    nodes=[ChoiceNode(type='integer',\n      value=19295,\n      kwargs={'min_value': -115,\n       'max_value': 24223,\n       'shrink_towards': 0,\n       'weights': None},\n      was_forced=True,\n      index=None)],\n)",
+          ""
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AAFBBAFDBuCPAUMJxtcAAQBBKEIAvwEA')",
+          "test_drawing_prefix_exactly(\n    nodes=[ChoiceNode(type='string',\n      value='\\U0006e0d9\\U0006e184\\U000755c4\\U0006e15e\\U0006e168\\U0006e0b8\\U0006e125\\U0008ee3f\\U0006e148\\U0006e126\\U0006e106\\U0009923c\\U0006e102\\U0008ea5e\\U0006e186\\U0006e17b\\U0006e160\\U0006e141\\U0006e0aa\\U0007cac0\\U0006e152\\U0006e0ea\\U00081e6d\\U0006e099\\U0006e0ba\\U0006e146\\U0006e0a6\\U00090a28\\U000986c4\\U000997f8\\U0006e17f\\U0006e0c4\\U0006e13c\\U0006e145\\U0006e0d0\\U0006e161\\U0006e174\\U0006e11d\\U0006e143\\U0006e142\\U0006e0b6\\U0006e0ef\\U0006e0f6\\U0006e183\\U00073e3d\\U0006e0e1\\U0009c5ee\\U0006e092\\U0006e091\\U0006e0be\\U0006e0ab\\U0006e144\\U0006e0ef\\U0006e0aa\\U0006e169\\U0006e132\\U0008a65e\\U00097eaf\\U0006e0f5\\U00085849\\U0006e0be\\U00070d81\\U0006e11e\\U0006e11e\\U0006e0d4\\U0007183e\\U0006e17e\\U0006e16a\\U0006e168\\U0006e127',\n      kwargs={'intervals': IntervalSet(build_intervals([450703, 640727])),\n       'min_size': 40,\n       'max_size': 10_000_000_000},\n      was_forced=True,\n      index=None)],\n)",
+          ""
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AAFBBAFDAm48AUIImgFDD6L0AAAASETe4VMdEZbEAQA=')",
+          "test_drawing_prefix_exactly(\n    nodes=[ChoiceNode(type='string',\n      value='𒐚ग़४ॵख\\U00013f56',\n      kwargs={'intervals': IntervalSet(\n           build_intervals([2202, 159292, 1024756]),\n       ), 'min_size': 0, 'max_size': 10_000_000_000},\n      was_forced=True,\n      index=None)],\n)",
+          ""
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AAFBAQEBAAFEKCbyA0QoJvJeAUFaKD/v/+sHSncdAUEpKD/nhiTwNMR1ACg/7/fO2RaHKkI4VAAA')",
+          "test_drawing_prefix_exactly(\n    nodes=[ChoiceNode(type='integer',\n      value=673641004,\n      kwargs={'min_value': 673640963,\n       'max_value': 673641054,\n       'shrink_towards': 0,\n       'weights': {673641053: 0.5757485755125076,\n        673641004: 0.42325142448749226}},\n      was_forced=False,\n      index=None)],\n)",
+          ""
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AAFBAQEBAQFCWsZCnulC30QBQs8qKD/wAAAAAAAAAUK4ECg/5fDhw4Sy9AFC1lQoP7hjAl2R9ogBQtu4KD9QYk3S8an9ACg/1VVVVVVVVUhoawNmVsjnhQEA')",
+          "test_drawing_prefix_exactly(\n    nodes=[ChoiceNode(type='integer',\n      value=-12677,\n      kwargs={'min_value': -24855,\n       'max_value': -8380,\n       'shrink_towards': 23238,\n       'weights': {-12502: 0.18706463514606747,\n        -18416: 0.1282617140308771,\n        -10668: 0.01781991952124267,\n        -9288: 0.00018706463514606752}},\n      was_forced=True,\n      index=None)],\n)",
+          ""
+        ],
+        [
+          "@reproduce_failure('6.130.4', b'AXicY3RkZGRkYHQsd2JYz+jIrmH/9FtTZIi+DqOjnIb9C5ueq/pK/IyOQhr2AUm+lz6u/MvoqKRh//7/a3avcllGR0WY+B9GR2UN+wcMYMDoyICkngukHgyAohuWGGZd3GzoyA9UxMzI4KjmmMzAAAAD8iyT')",
+          "test_drawing_prefix_exactly(\n    nodes=[ChoiceNode(type='integer',\n      value=166,\n      kwargs={'min_value': 119,\n       'max_value': 175,\n       'shrink_towards': 0,\n       'weights': {126: 0.011304541417985215,\n        150: 0.0124747851379549,\n        138: 1.6470725152187236e-05,\n        156: 0.016470560444935712,\n        155: 1.6470725152187233e-05,\n        159: 0.008235362576093617,\n        119: 1.6470725152187236e-05,\n        131: 0.01647072515218723}},\n      was_forced=False,\n      index=None),\n     ChoiceNode(type='bytes',\n      value=b'ga3\\x99-:?\"\\xc2\\x16@\\xbab\\x87\\xaf\\xb3\\x89\\x16\\xf0\\x9f}3k\\xb8\\x9c\\x967\\xca\\xe6\\xc9_\\xd2c\\xdc\\xae6&v\\xd9\\x15\\x87\\x16g\\x8e4\\xeev2\\xfa!\\xeb\\xbf\\x98-\\xa9\\x1cykl$\\x01\"3\\xf96\\x8b\\xc3\\xf0\\xec\\xbd\\x99&h\\x1e,',\n      kwargs={'min_size': 38, 'max_size': 10_000_000_000},\n      was_forced=False,\n      index=None)],\n)",
+          ""
+        ]
+      ],
+      "failures": [],
+      "status_counts": {
+        "OVERRUN": 0,
+        "INVALID": 3,
+        "VALID": 897,
+        "INTERESTING": 0
+      }
+    },
+    "tests/test_corpus.py::test_pool_covering_nodes": {
+      "nodeid": "tests/test_corpus.py::test_pool_covering_nodes",
+      "seed_pool": [
+        [
+          "@reproduce_failure('6.130.4', b'AAA=')",
+          "test_pool_covering_nodes(\n    args=[],\n)",
+          ""
+        ]
+      ],
+      "failures": [
+        [
+          "<unknown>",
+          "",
+          "@reproduce_failure('6.130.4', b'AXicY3RkAAJHEIJBGAUAIboCjA==')",
+          "Traceback (most recent call last):\n  File \"/Users/tybug/Desktop/Liam/coding/hypofuzz/src/hypofuzz/hypofuzz.py\", line 295, in _run_test_on\n    kw, argslices = context.prep_args_kwargs_from_strategies(\n                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/tybug/Desktop/Liam/coding/hypothesis/hypothesis-python/src/hypothesis/control.py\", line 170, in prep_args_kwargs_from_strategies\n    obj = check(self.data.draw(s, observe_as=f\"generate:{k}\"))\n                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/tybug/Desktop/Liam/coding/hypothesis/hypothesis-python/src/hypothesis/internal/conjecture/data.py\", line 1126, in draw\n    v = strategy.do_draw(self)\n        ^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/tybug/Desktop/Liam/coding/hypothesis/hypothesis-python/src/hypothesis/strategies/_internal/lazy.py\", line 178, in do_draw\n    return data.draw(self.wrapped_strategy)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/tybug/Desktop/Liam/coding/hypothesis/hypothesis-python/src/hypothesis/internal/conjecture/data.py\", line 1120, in draw\n    return strategy.do_draw(self)\n           ^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/tybug/Desktop/Liam/coding/hypothesis/hypothesis-python/src/hypothesis/strategies/_internal/collections.py\", line 287, in do_draw\n    value = filtered.do_filtered_draw(data)\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/tybug/Desktop/Liam/coding/hypothesis/hypothesis-python/src/hypothesis/strategies/_internal/strategies.py\", line 1093, in do_filtered_draw\n    value = data.draw(self.filtered_strategy)\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/tybug/Desktop/Liam/coding/hypothesis/hypothesis-python/src/hypothesis/internal/conjecture/data.py\", line 1120, in draw\n    return strategy.do_draw(self)\n           ^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/tybug/Desktop/Liam/coding/hypothesis/hypothesis-python/src/hypothesis/strategies/_internal/collections.py\", line 66, in do_draw\n    return tuple(data.draw(e) for e in self.element_strategies)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/tybug/Desktop/Liam/coding/hypothesis/hypothesis-python/src/hypothesis/strategies/_internal/collections.py\", line 66, in <genexpr>\n    return tuple(data.draw(e) for e in self.element_strategies)\n                 ^^^^^^^^^^^^\n  File \"/Users/tybug/Desktop/Liam/coding/hypothesis/hypothesis-python/src/hypothesis/internal/conjecture/data.py\", line 1120, in draw\n    return strategy.do_draw(self)\n           ^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/tybug/Desktop/Liam/coding/hypothesis/hypothesis-python/src/hypothesis/strategies/_internal/core.py\", line 1027, in do_draw\n    obj = self.target(*args, **kwargs)\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nTypeError: ConjectureResult.__init__() got an unexpected keyword argument 'examples'\nwhile generating 'args' from lists(tuples(builds(ConjectureResult, examples=none(), extra_information=builds(SimpleNamespace, branches=frozensets(builds(Arc, end_line=integers(min_value=0, max_value=3), fname=sampled_from('abc'), start_line=integers(min_value=0, max_value=3))), call_repr=just(''), reports=builds(list), traceback=just('')), interesting_origin=builds(interesting_origin, n=integers()), misaligned_at=none(), nodes=lists(nodes()).map(tuple), output=none(), status=just(Status.VALID), tags=just(frozenset()), target_observations=dictionaries(keys=text(), values=one_of(integers(), floats()))), sampled_from(hypofuzz.corpus.HowGenerated)), unique_by=lambda r: r[0].nodes)\n"
+        ]
+      ],
+      "status_counts": {
+        "OVERRUN": 66,
+        "INVALID": 0,
+        "VALID": 3,
+        "INTERESTING": 1
+      }
+    },
+    "tests/test_corpus.py::test_pool_coverage_tracking": {
+      "nodeid": "tests/test_corpus.py::test_pool_coverage_tracking",
+      "seed_pool": [
+        [
+          "@reproduce_failure('6.130.4', b'AAA=')",
+          "test_pool_coverage_tracking(\n    args=[],\n)",
+          ""
+        ]
+      ],
+      "failures": [
+        [
+          "<unknown>",
+          "",
+          "@reproduce_failure('6.130.4', b'AXicY3RkAAJHEHJEowAgtgKM')",
+          "Traceback (most recent call last):\n  File \"/Users/tybug/Desktop/Liam/coding/hypofuzz/src/hypofuzz/hypofuzz.py\", line 295, in _run_test_on\n    kw, argslices = context.prep_args_kwargs_from_strategies(\n                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/tybug/Desktop/Liam/coding/hypothesis/hypothesis-python/src/hypothesis/control.py\", line 170, in prep_args_kwargs_from_strategies\n    obj = check(self.data.draw(s, observe_as=f\"generate:{k}\"))\n                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/tybug/Desktop/Liam/coding/hypothesis/hypothesis-python/src/hypothesis/internal/conjecture/data.py\", line 1126, in draw\n    v = strategy.do_draw(self)\n        ^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/tybug/Desktop/Liam/coding/hypothesis/hypothesis-python/src/hypothesis/strategies/_internal/lazy.py\", line 178, in do_draw\n    return data.draw(self.wrapped_strategy)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/tybug/Desktop/Liam/coding/hypothesis/hypothesis-python/src/hypothesis/internal/conjecture/data.py\", line 1120, in draw\n    return strategy.do_draw(self)\n           ^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/tybug/Desktop/Liam/coding/hypothesis/hypothesis-python/src/hypothesis/strategies/_internal/collections.py\", line 287, in do_draw\n    value = filtered.do_filtered_draw(data)\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/tybug/Desktop/Liam/coding/hypothesis/hypothesis-python/src/hypothesis/strategies/_internal/strategies.py\", line 1093, in do_filtered_draw\n    value = data.draw(self.filtered_strategy)\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/tybug/Desktop/Liam/coding/hypothesis/hypothesis-python/src/hypothesis/internal/conjecture/data.py\", line 1120, in draw\n    return strategy.do_draw(self)\n           ^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/tybug/Desktop/Liam/coding/hypothesis/hypothesis-python/src/hypothesis/strategies/_internal/collections.py\", line 66, in do_draw\n    return tuple(data.draw(e) for e in self.element_strategies)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/tybug/Desktop/Liam/coding/hypothesis/hypothesis-python/src/hypothesis/strategies/_internal/collections.py\", line 66, in <genexpr>\n    return tuple(data.draw(e) for e in self.element_strategies)\n                 ^^^^^^^^^^^^\n  File \"/Users/tybug/Desktop/Liam/coding/hypothesis/hypothesis-python/src/hypothesis/internal/conjecture/data.py\", line 1120, in draw\n    return strategy.do_draw(self)\n           ^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/tybug/Desktop/Liam/coding/hypothesis/hypothesis-python/src/hypothesis/strategies/_internal/core.py\", line 1027, in do_draw\n    obj = self.target(*args, **kwargs)\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nTypeError: ConjectureResult.__init__() got an unexpected keyword argument 'examples'\nwhile generating 'args' from lists(tuples(builds(ConjectureResult, examples=none(), extra_information=builds(SimpleNamespace, branches=frozensets(builds(Arc, end_line=integers(min_value=0, max_value=3), fname=sampled_from('abc'), start_line=integers(min_value=0, max_value=3))), call_repr=just(''), reports=builds(list), traceback=just('')), interesting_origin=builds(interesting_origin, n=integers()), misaligned_at=none(), nodes=lists(nodes()).map(tuple), output=none(), status=just(Status.VALID), tags=just(frozenset()), target_observations=dictionaries(keys=text(), values=one_of(integers(), floats()))), sampled_from(hypofuzz.corpus.HowGenerated)), unique_by=lambda r: r[0].nodes)\n"
+        ]
+      ],
+      "status_counts": {
+        "OVERRUN": 58,
+        "INVALID": 0,
+        "VALID": 3,
+        "INTERESTING": 1
+      }
+    }
+  }
+}

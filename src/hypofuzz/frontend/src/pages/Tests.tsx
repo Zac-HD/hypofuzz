@@ -1,9 +1,9 @@
 import { TestTable } from "../components/TestTable"
 import { CoverageGraph } from "../components/CoverageGraph"
-import { useWebSocket } from "../context/WebSocketContext"
+import { useData } from "../context/DataProvider"
 
 export function TestsPage() {
-  const { reports, metadata } = useWebSocket()
+  const { reports, metadata } = useData()
 
   return (
     <div className="dashboard">
