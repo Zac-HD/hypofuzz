@@ -1,9 +1,17 @@
+import sys
+
+import pytest
+
 from hypofuzz.coverage import CoverageCollectionContext
 
 # ruff: noqa: PLW0120, E701
 
 # The way to read the branch format for these tests is:
 #  ((source_line, source_column), (destination_line, destination_column))
+
+pytestmark = pytest.mark.skipif(
+    sys.version_info < (3, 12), reason="sys.monitoring new in 3.12"
+)
 
 
 class Collector:
@@ -205,9 +213,16 @@ def test_while_initial_false():
 
 
 def test_for_no_else_no_break():
-    # `for` branches from the `for` statement itself to:
-    # * the definition of the loop variable `_`, during a loop iteration
-    # * the `pass` statement after the loop, when the loop ends
+    # `for` branches from:
+    # *  the definition of the loop container `range(10)` to the loop variable
+    #    `_`, during a loop iteration
+    # * `range(10)` to the `pass` statement after the loop, when the loop
+    #   ends
+    #
+    # The details of which instruction gets branched to/from are somewhat sensitive
+    # to interpreter changes. Even minor version bumps like python3.12.3 to
+    # python3.12.10 can behavior here. The *number* of branches should remain
+    # stable, though.
     def f():
         for _ in range(10):
             pass
@@ -215,7 +230,7 @@ def test_for_no_else_no_break():
 
     with Collector(f) as collector:
         f()
-    assert collector.branches == {((1, 8), (3, 8)), ((1, 8), (1, 12))}
+    assert collector.branches == {((1, 17), (1, 12)), ((1, 17), (3, 8))}
 
 
 def test_for_no_else_break():
@@ -228,7 +243,7 @@ def test_for_no_else_break():
 
     with Collector(f) as collector:
         f()
-    assert collector.branches == {((1, 8), (1, 12))}
+    assert collector.branches == {((1, 17), (1, 12))}
 
 
 def test_for_else_no_break():
@@ -241,7 +256,7 @@ def test_for_else_no_break():
 
     with Collector(f) as collector:
         f()
-    assert collector.branches == {((1, 8), (1, 12)), ((1, 8), (4, 12))}
+    assert collector.branches == {((1, 17), (1, 12)), ((1, 17), (4, 12))}
 
 
 def test_for_else_break():
@@ -254,7 +269,7 @@ def test_for_else_break():
 
     with Collector(f) as collector:
         f()
-    assert collector.branches == {((1, 8), (1, 12))}
+    assert collector.branches == {((1, 17), (1, 12))}
 
 
 def test_for_loop_break_does_not_branch():
