@@ -94,6 +94,7 @@ select = [
     "PD",     # pandas-vet
     "PIE",    # flake8-pie
     "PLE",    # Pylint errors
+    "PLW",    # Pylint warnings
     "PT",     # flake8-pytest-style
     "RET504", # flake8-return
     "RSE",    # flake8-raise
