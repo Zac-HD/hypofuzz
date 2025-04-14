@@ -102,7 +102,7 @@ class CoverageCollectionContext:
 
     if sys.version_info[:2] >= (3, 12):
         events = {
-            sys.monitoring.events.LINE: "trace_line",
+            sys.monitoring.events.BRANCH: "trace_branch",
         }
 
     def __init__(self) -> None:
@@ -118,16 +118,34 @@ class CoverageCollectionContext:
                 self.last = this
         return self.trace_pre_312
 
-    def trace_line(self, code: types.CodeType, line_number: int) -> None:
-        fname = code.co_filename
-        if not should_trace(fname):
-            # this function is only called on 3.12+, but we want to avoid an
-            # assertion to that effect for performance.
+    def trace_branch(
+        self, code: types.CodeType, source_offset: int, dest_offset: int
+    ) -> None:
+        if not should_trace(code.co_filename):
             return sys.monitoring.DISABLE  # type: ignore
 
-        this = (fname, line_number)
-        self.branches.add((self.last, this))
-        self.last = this
+        # I *think* that all bytecode offsets are multiples of 2 nowadays, though
+        # I'm not sure when this changed. 3.6 moved to 16bit (2 byte) "wordcode",
+        # https://docs.python.org/3/whatsnew/3.6.html (grep for wordcode), but
+        # this comment implies 3.10 instead, though that may be specific to
+        # co_positions:
+        # https://github.com/python/cpython/blob/281fc338fdf57ef119e213bf1b2c7722
+        # 61c359c1/Lib/inspect.py#L1555-L1560
+        #
+        # Either way, we're on 3.12+ if this function gets called.
+        assert source_offset % 2 == 0
+        assert dest_offset % 2 == 0
+        positions = list(code.co_positions())  # type: ignore # new in 3.11
+        (s_start_line, _s_end_line, s_start_column, _s_end_column) = positions[
+            source_offset // 2
+        ]
+        (d_start_line, _d_end_line, d_start_column, _d_end_column) = positions[
+            dest_offset // 2
+        ]
+
+        source = (code.co_filename, s_start_line, s_start_column)
+        dest = (code.co_filename, d_start_line, d_start_column)
+        self.branches.add((source, dest))
 
     def __enter__(self) -> None:
         self.last = None
