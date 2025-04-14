@@ -5,14 +5,14 @@
 #    pip-compile --annotation-style=line --output-file=deps/docs.txt deps/docs.in pyproject.toml
 #
 alabaster==1.0.0          # via sphinx
-anyio==4.8.0              # via starlette
-attrs==25.1.0             # via hypothesis, outcome, trio
+anyio==4.9.0              # via starlette
+attrs==25.3.0             # via hypothesis, outcome, trio
 babel==2.17.0             # via sphinx
 black==25.1.0             # via hypofuzz (pyproject.toml), hypothesis
 certifi==2025.1.31        # via requests
 charset-normalizer==3.4.1  # via requests
 click==8.1.8              # via black, hypothesis
-coverage==7.6.12          # via hypofuzz (pyproject.toml)
+coverage==7.8.0           # via hypofuzz (pyproject.toml)
 docutils==0.21.2          # via myst-parser, pybtex-docutils, sphinx, sphinx-rtd-theme, sphinxcontrib-bibtex
 exceptiongroup==1.2.2     # via anyio, hypercorn, hypothesis, pytest, taskgroup, trio
 h11==0.14.0               # via hypercorn, wsproto
@@ -20,13 +20,13 @@ h2==4.2.0                 # via hypercorn
 hpack==4.1.0              # via h2
 hypercorn==0.17.3         # via hypofuzz (pyproject.toml)
 hyperframe==6.1.0         # via h2
-hypothesis[cli,watchdog]==6.127.2  # via hypofuzz (pyproject.toml)
+hypothesis[cli,watchdog]==6.131.0  # via hypofuzz (pyproject.toml)
 idna==3.10                # via anyio, requests, trio
 imagesize==1.4.1          # via sphinx
-iniconfig==2.0.0          # via pytest
-jinja2==3.1.5             # via myst-parser, sphinx
+iniconfig==2.1.0          # via pytest
+jinja2==3.1.6             # via myst-parser, sphinx
 latexcodec==3.0.0         # via pybtex
-libcst==1.6.0             # via hypofuzz (pyproject.toml)
+libcst==1.7.0             # via hypofuzz (pyproject.toml)
 markdown-it-py==3.0.0     # via mdit-py-plugins, myst-parser, rich
 markupsafe==3.0.2         # via jinja2
 mdit-py-plugins==0.4.2    # via myst-parser
@@ -36,17 +36,17 @@ myst-parser==4.0.1        # via -r deps/docs.in
 outcome==1.3.0.post0      # via trio
 packaging==24.2           # via black, pytest, sphinx
 pathspec==0.12.1          # via black
-platformdirs==4.3.6       # via black
+platformdirs==4.3.7       # via black
 pluggy==1.5.0             # via pytest
 priority==2.0.0           # via hypercorn
 psutil==7.0.0             # via hypofuzz (pyproject.toml)
 pybtex==0.24.0            # via pybtex-docutils, sphinxcontrib-bibtex
 pybtex-docutils==1.0.3    # via sphinxcontrib-bibtex
 pygments==2.19.1          # via rich, sphinx
-pytest==8.3.4             # via hypofuzz (pyproject.toml)
+pytest==8.3.5             # via hypofuzz (pyproject.toml)
 pyyaml==6.0.2             # via libcst, myst-parser, pybtex
 requests==2.32.3          # via sphinx
-rich==13.9.4              # via hypothesis
+rich==14.0.0              # via hypothesis
 six==1.17.0               # via pybtex
 sniffio==1.3.1            # via anyio, trio
 snowballstemmer==2.2.0    # via sphinx
@@ -62,11 +62,11 @@ sphinxcontrib-jsmath==1.0.1  # via sphinx
 sphinxcontrib-programoutput==0.18  # via -r deps/docs.in
 sphinxcontrib-qthelp==2.0.0  # via sphinx
 sphinxcontrib-serializinghtml==2.0.0  # via sphinx
-starlette==0.46.0         # via hypofuzz (pyproject.toml)
+starlette==0.46.2         # via hypofuzz (pyproject.toml)
 taskgroup==0.2.2          # via hypercorn
 tomli==2.2.1              # via black, hypercorn, pytest, sphinx
 trio==0.29.0              # via hypofuzz (pyproject.toml)
-typing-extensions==4.12.2  # via anyio, black, hypercorn, rich, taskgroup
-urllib3==2.3.0            # via requests
+typing-extensions==4.13.2  # via anyio, black, hypercorn, rich, taskgroup
+urllib3==2.4.0            # via requests
 watchdog==6.0.0           # via hypothesis
 wsproto==1.2.0            # via hypercorn
