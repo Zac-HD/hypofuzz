@@ -269,13 +269,17 @@ def test_for_loop_break_does_not_branch():
 
     with Collector(f) as collector:
         f(should_break=False)
-    branches = collector.branches
+    no_break = collector.branches
+    # remove the branches corresponding to the if for should_break
+    no_break.remove(((2, 26), (2, 26)))
 
     with Collector(f) as collector:
-        f(should_break=False)
+        f(should_break=True)
+    with_break = collector.branches
+    with_break.remove(((2, 26), (3, 16)))
     # this assertion is descriptive, not perscriptive. We wish there was a new
     # branch here.
-    assert collector.branches == branches
+    assert with_break.issubset(no_break)
 
 
 def test_or():
