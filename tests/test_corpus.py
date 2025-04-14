@@ -40,7 +40,7 @@ def results(statuses=st.sampled_from(Status)) -> st.SearchStrategy[ConjectureRes
         ),
         target_observations=st.dictionaries(st.text(), st.integers() | st.floats()),
         tags=st.just(frozenset()),
-        examples=st.none(),
+        spans=st.none(),
         misaligned_at=st.none(),
         nodes=st.lists(nodes()).map(tuple),
     )

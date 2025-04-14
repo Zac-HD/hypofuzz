@@ -78,12 +78,12 @@ def fresh_data(*, random=None, observer=None) -> ConjectureData:
     return ConjectureData(random=random, observer=observer)
 
 
-def clamped_shrink_towards(kwargs):
-    v = kwargs["shrink_towards"]
-    if kwargs["min_value"] is not None:
-        v = max(kwargs["min_value"], v)
-    if kwargs["max_value"] is not None:
-        v = min(kwargs["max_value"], v)
+def clamped_shrink_towards(constraints):
+    v = constraints["shrink_towards"]
+    if constraints["min_value"] is not None:
+        v = max(constraints["min_value"], v)
+    if constraints["max_value"] is not None:
+        v = min(constraints["max_value"], v)
     return v
 
 
@@ -110,7 +110,7 @@ def integer_weights(draw, min_value=None, max_value=None):
 
 
 @st.composite
-def integer_kwargs(
+def integer_constraints(
     draw,
     *,
     use_min_value=None,
@@ -177,7 +177,7 @@ def integer_kwargs(
 
 
 @st.composite
-def _collection_kwargs(draw, *, forced, use_min_size=None, use_max_size=None):
+def _collection_constraints(draw, *, forced, use_min_size=None, use_max_size=None):
     min_size = 0
     max_size = COLLECTION_DEFAULT_MAX_SIZE
     # collections are quite expensive in entropy. cap to avoid overruns.
@@ -206,7 +206,7 @@ def _collection_kwargs(draw, *, forced, use_min_size=None, use_max_size=None):
 
 
 @st.composite
-def string_kwargs(draw, *, use_min_size=None, use_max_size=None, use_forced=False):
+def string_constraints(draw, *, use_min_size=None, use_max_size=None, use_forced=False):
     # TODO also sample empty intervals, ie remove this min_size, once we handle empty
     # pseudo-choices in the ir
     interval_set = draw(intervals(min_size=1))
@@ -215,29 +215,31 @@ def string_kwargs(draw, *, use_min_size=None, use_max_size=None, use_forced=Fals
         if use_forced
         else None
     )
-    kwargs = draw(
-        _collection_kwargs(
+    constraints = draw(
+        _collection_constraints(
             forced=forced, use_min_size=use_min_size, use_max_size=use_max_size
         )
     )
 
-    return {"intervals": interval_set, "forced": forced, **kwargs}
+    return {"intervals": interval_set, "forced": forced, **constraints}
 
 
 @st.composite
-def bytes_kwargs(draw, *, use_min_size=None, use_max_size=None, use_forced=False):
+def bytes_constraints(draw, *, use_min_size=None, use_max_size=None, use_forced=False):
     forced = draw(st.binary()) if use_forced else None
 
-    kwargs = draw(
-        _collection_kwargs(
+    constraints = draw(
+        _collection_constraints(
             forced=forced, use_min_size=use_min_size, use_max_size=use_max_size
         )
     )
-    return {"forced": forced, **kwargs}
+    return {"forced": forced, **constraints}
 
 
 @st.composite
-def float_kwargs(draw, *, use_min_value=None, use_max_value=None, use_forced=False):
+def float_constraints(
+    draw, *, use_min_value=None, use_max_value=None, use_forced=False
+):
     if use_min_value is None:
         use_min_value = draw(st.booleans())
     if use_max_value is None:
@@ -288,7 +290,7 @@ def float_kwargs(draw, *, use_min_value=None, use_max_value=None, use_forced=Fal
 
 
 @st.composite
-def boolean_kwargs(draw, *, use_forced=False):
+def boolean_constraints(draw, *, use_forced=False):
     forced = draw(st.booleans()) if use_forced else None
     # avoid invalid forced combinations
     p = draw(st.floats(0, 1, exclude_min=forced is True, exclude_max=forced is False))
@@ -296,44 +298,47 @@ def boolean_kwargs(draw, *, use_forced=False):
     return {"p": p, "forced": forced}
 
 
-def kwargs_strategy(ir_type, strategy_kwargs=None, *, use_forced=False):
+def constraints_strategy(choice_type, constraints=None, *, use_forced=False):
     strategy = {
-        "boolean": boolean_kwargs,
-        "integer": integer_kwargs,
-        "float": float_kwargs,
-        "bytes": bytes_kwargs,
-        "string": string_kwargs,
-    }[ir_type]
-    if strategy_kwargs is None:
-        strategy_kwargs = {}
-    return strategy(**strategy_kwargs.get(ir_type, {}), use_forced=use_forced)
+        "boolean": boolean_constraints,
+        "integer": integer_constraints,
+        "float": float_constraints,
+        "bytes": bytes_constraints,
+        "string": string_constraints,
+    }[choice_type]
+    if constraints is None:
+        constraints = {}
+    return strategy(**constraints.get(choice_type, {}), use_forced=use_forced)
 
 
-def ir_types_and_kwargs(strategy_kwargs=None, *, use_forced=False):
+def choice_type_and_constraints(constraints=None, *, use_forced=False):
     options = ["boolean", "integer", "float", "bytes", "string"]
     return st.one_of(
         st.tuples(
-            st.just(name), kwargs_strategy(name, strategy_kwargs, use_forced=use_forced)
+            st.just(name),
+            constraints_strategy(name, constraints, use_forced=use_forced),
         )
         for name in options
     )
 
 
-def draw_value(ir_type, kwargs):
+def draw_value(choice_type, constraints):
     data = fresh_data()
-    return getattr(data, f"draw_{ir_type}")(**kwargs)
+    return getattr(data, f"draw_{choice_type}")(**constraints)
 
 
 @st.composite
-def nodes(draw, *, was_forced=None, ir_types=None):
-    if ir_types is None:
-        (ir_type, kwargs) = draw(ir_types_and_kwargs())
+def nodes(draw, *, was_forced=None, choice_types=None):
+    if choice_types is None:
+        (choice_type, constraints) = draw(choice_type_and_constraints())
     else:
-        ir_type = draw(st.sampled_from(ir_types))
-        kwargs = draw(kwargs_strategy(ir_type))
-    # ir nodes don't include forced in their kwargs. see was_forced attribute
-    del kwargs["forced"]
-    value = draw_value(ir_type, kwargs)
+        choice_type = draw(st.sampled_from(choice_types))
+        constraints = draw(constraints_strategy(choice_type))
+    # choice nodes don't include forced in their constraints. see was_forced attribute
+    del constraints["forced"]
+    value = draw_value(choice_type, constraints)
     was_forced = draw(st.booleans()) if was_forced is None else was_forced
 
-    return ChoiceNode(type=ir_type, value=value, kwargs=kwargs, was_forced=was_forced)
+    return ChoiceNode(
+        type=choice_type, value=value, constraints=constraints, was_forced=was_forced
+    )

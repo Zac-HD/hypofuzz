@@ -3,7 +3,7 @@ from random import Random
 from typing import Optional, cast
 
 from hypothesis.internal.conjecture.choice import (
-    ChoiceKwargsT,
+    ChoiceConstraintsT,
     ChoiceT,
     ChoiceTypeT,
     choice_permitted,
@@ -19,10 +19,10 @@ from hypofuzz.corpus import ChoicesT
 
 
 def fresh_choice(
-    choice_type: ChoiceTypeT, kwargs: ChoiceKwargsT, *, random: Random
+    choice_type: ChoiceTypeT, constraints: ChoiceConstraintsT, *, random: Random
 ) -> ChoiceT:
     cd = ConjectureData(random=random)
-    choice = getattr(cd.provider, f"draw_{choice_type}")(**kwargs)
+    choice = getattr(cd.provider, f"draw_{choice_type}")(**constraints)
     return cast(ChoiceT, choice)
 
 
@@ -34,15 +34,19 @@ class HypofuzzProvider(PrimitiveProvider):
         self.choices = choices
         self.index = 0
 
-    def _fresh_choice(self, choice_type: ChoiceTypeT, kwargs: ChoiceKwargsT) -> ChoiceT:
+    def _fresh_choice(
+        self, choice_type: ChoiceTypeT, constraints: ChoiceConstraintsT
+    ) -> ChoiceT:
         assert self._cd is not None
         assert self._cd._random is not None
-        return fresh_choice(choice_type, kwargs, random=self._cd._random)
+        return fresh_choice(choice_type, constraints, random=self._cd._random)
 
-    def _pop_choice(self, choice_type: ChoiceTypeT, kwargs: ChoiceKwargsT) -> ChoiceT:
+    def _pop_choice(
+        self, choice_type: ChoiceTypeT, constraints: ChoiceConstraintsT
+    ) -> ChoiceT:
         if self.index >= len(self.choices):
             # past our prefix. draw a random choice
-            return self._fresh_choice(choice_type, kwargs)
+            return self._fresh_choice(choice_type, constraints)
 
         choice = self.choices[self.index]
         popped_choice_type = {
@@ -52,9 +56,11 @@ class HypofuzzProvider(PrimitiveProvider):
             bytes: "bytes",
             str: "string",
         }[type(choice)]
-        if choice_type != popped_choice_type or not choice_permitted(choice, kwargs):
+        if choice_type != popped_choice_type or not choice_permitted(
+            choice, constraints
+        ):
             # misalignment. draw a random choice
-            choice = self._fresh_choice(choice_type, kwargs)
+            choice = self._fresh_choice(choice_type, constraints)
 
         self.index += 1
         return choice
