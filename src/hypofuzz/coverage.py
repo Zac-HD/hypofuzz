@@ -16,8 +16,7 @@ from hypothesis.internal.escalation import belongs_to
 
 import hypofuzz
 
-# The upstream notion of an arc is (int, int) with an implicit filename,
-# but HypoFuzz uses an explicit filename as part of the arc.
+# filename: {start: {end: arc}}
 _ARC_CACHE: dict[str, dict[int, dict[int, "Arc"]]] = {}
 
 
@@ -32,9 +31,9 @@ class Arc:
         try:
             return _ARC_CACHE[fname][start][end]
         except KeyError:
-            self = Arc(fname, start, end)
-            _ARC_CACHE.setdefault(fname, {}).setdefault(start, {})[end] = self
-            return self
+            arc = Arc(fname, start, end)
+            _ARC_CACHE.setdefault(fname, {}).setdefault(start, {})[end] = arc
+            return arc
 
     def __str__(self) -> str:
         return f"{self.fname}:{self.start_line}::{self.end_line}"
@@ -87,7 +86,7 @@ def should_trace(fname: str) -> bool:
 
 
 # use 3.12's sys.monitoring where possible, and sys.settrace otherwise.
-class CustomCollectionContext:
+class CoverageCollectionContext:
     """Collect coverage data as a context manager.
 
     The context manager can be reused; each use updates the ``.branches``
@@ -97,15 +96,18 @@ class CustomCollectionContext:
     # tool_id = 1 is designated for coverage, but we intentionally choose a
     # non-reserved tool id so we can co-exist with coverage tools.
     # out of an abundance of caution, we also avoid conflicting with hypothesis'
-    # tool_id = 3, thought we don't expect this to be problematic.s
+    # tool_id = 3, thought I don't expect this to be problematic.
     tool_id: int = 4
     tool_name: str = "hypofuzz"
-    last: Optional[tuple]
 
     if sys.version_info[:2] >= (3, 12):
         events = {
             sys.monitoring.events.LINE: "trace_line",
         }
+
+    def __init__(self) -> None:
+        self.branches: set[tuple] = set()
+        self.last: Optional[tuple] = None
 
     def trace_pre_312(self, frame: Any, event: Any, arg: Any) -> Any:
         if event == "line":
@@ -129,7 +131,7 @@ class CustomCollectionContext:
 
     def __enter__(self) -> None:
         self.last = None
-        self.branches: set[tuple] = set()
+        self.branches = set()
 
         if sys.version_info[:2] < (3, 12):
             self.prev_trace = sys.gettrace()
@@ -137,8 +139,8 @@ class CustomCollectionContext:
             return
 
         sys.monitoring.use_tool_id(self.tool_id, self.tool_name)
+        sys.monitoring.set_events(self.tool_id, sum(self.events.keys()))
         for event, callback_name in self.events.items():
-            sys.monitoring.set_events(self.tool_id, event)
             callback = getattr(self, callback_name)
             sys.monitoring.register_callback(self.tool_id, event, callback)
 
