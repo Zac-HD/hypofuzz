@@ -52,6 +52,18 @@ export function CollectionStatusPage() {
     ],
   )
 
+  const headers = [
+    {
+      text: "Test",
+      sortKey: (item: CollectionResult) => item.node_id,
+    },
+    {
+      text: "Status",
+      sortKey: (item: CollectionResult) =>
+        statusOrder[item.status as keyof typeof statusOrder],
+    },
+  ]
+
   const row = (item: CollectionResult): React.ReactNode[] => {
     return [
       <Link
@@ -77,7 +89,7 @@ export function CollectionStatusPage() {
     <div className="card">
       <div className="card__header">Test collection status</div>
       <Table
-        headers={["Test", "Status"]}
+        headers={headers}
         data={sortedResults}
         row={row}
         getKey={item => item.database_key}
