@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { Table } from "../components/Table"
 
 interface CollectionResult {
   database_key: string
@@ -11,15 +12,9 @@ interface CollectionResults {
   collection_status: CollectionResult[]
 }
 
-function CollectionRow({ result }: { result: CollectionResult }) {
-  return (
-    <tr>
-      <td style={{ wordBreak: "break-all" }}>{result.node_id}</td>
-      <td>
-        {result.status === "collected" ? "Success" : result.status_reason}
-      </td>
-    </tr>
-  )
+const statusOrder = {
+  not_collected: 0,
+  collected: 1,
 }
 
 export function CollectionStatusPage() {
@@ -49,47 +44,32 @@ export function CollectionStatusPage() {
     )
   }
 
-  const notCollected = collectionResults.collection_status.filter(
-    result => result.status === "not_collected",
+  const sortedResults = [...collectionResults.collection_status].sortKey(
+    result => [
+      statusOrder[result.status as keyof typeof statusOrder],
+      result.node_id,
+    ],
   )
 
-  const collected = collectionResults.collection_status.filter(
-    result => result.status === "collected",
-  )
+  const row = (item: CollectionResult): React.ReactNode[] => {
+    return [
+      <span key="test" style={{ wordBreak: "break-all" }}>
+        {item.node_id}
+      </span>,
+      item.status === "collected" ? "Collected" : "Not collected",
+      item.status_reason || "-",
+    ]
+  }
 
   return (
     <div className="card">
       <div className="card__header">Test collection status</div>
-      <table className="segmented-table">
-        <thead>
-          <tr>
-            <th>Test</th>
-            <th>Status reason</th>
-          </tr>
-        </thead>
-        <tbody>
-          {notCollected.length > 0 && (
-            <>
-              <tr className="segmented-table__segment">
-                <td colSpan={2}>Not collected</td>
-              </tr>
-              {notCollected.map(result => (
-                <CollectionRow key={result.node_id} result={result} />
-              ))}
-            </>
-          )}
-          {collected.length > 0 && (
-            <>
-              <tr className="segmented-table__segment">
-                <td colSpan={2}>Collected</td>
-              </tr>
-              {collected.map(result => (
-                <CollectionRow key={result.node_id} result={result} />
-              ))}
-            </>
-          )}
-        </tbody>
-      </table>
+      <Table
+        headers={["Test", "Status", "Status reason"]}
+        data={sortedResults}
+        row={row}
+        getKey={item => item.database_key}
+      />
     </div>
   )
 }

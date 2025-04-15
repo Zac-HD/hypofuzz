@@ -1,10 +1,4 @@
-import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-  useCallback,
-} from "react"
+import React, { createContext, useContext, useEffect, useState } from "react"
 import { Report, Metadata } from "../types/dashboard"
 
 export interface WebSocketRequest {
@@ -85,7 +79,7 @@ export function WebSocketProvider({
       // when the backend or websocket events make stronger ordering guarantees.
       setReports(currentReports => {
         for (const nodeid in currentReports) {
-          currentReports[nodeid].sort((a, b) => a.elapsed_time - b.elapsed_time)
+          currentReports[nodeid].sortKey(r => [r.elapsed_time])
         }
         return currentReports
       })

@@ -166,21 +166,19 @@ class Graph {
         Object.values(this.reports).forEach(points => {
           if (!points || points.length === 0) return
 
-          const sortedPoints = points.sort(
-            (a, b) => this.xValue(a) - this.xValue(b),
-          )
+          points
+            .sortKey(point => [this.xValue(point)])
+            .forEach(point => {
+              const distance = Math.sqrt(
+                (this.viewportX(this.xValue(point)) - mouseX) ** 2 +
+                  (this.viewportY(point.branches) - mouseY) ** 2,
+              )
 
-          sortedPoints.forEach(point => {
-            const distance = Math.sqrt(
-              (this.viewportX(this.xValue(point)) - mouseX) ** 2 +
-                (this.viewportY(point.branches) - mouseY) ** 2,
-            )
-
-            if (distance < closestDistance && distance < distanceThreshold) {
-              closestDistance = distance
-              closestPoint = point
-            }
-          })
+              if (distance < closestDistance && distance < distanceThreshold) {
+                closestDistance = distance
+                closestPoint = point
+              }
+            })
         })
 
         if (closestPoint) {
