@@ -37,12 +37,21 @@ class Report(TypedDict):
 
 
 class Metadata(TypedDict):
-    database_key: bytes
+    # from Report
     nodeid: str
+    elapsed_time: float
+    timestamp: float
+    ninputs: int
+    branches: int
+    since_new_cov: Optional[int]
+    loaded_from_db: int
+    note: str
+
+    # new
+    database_key: bytes
     seed_pool: list[list[str]]
     failures: list[list[str]]
     status_counts: dict[str, int]
-    # TODO also add a note here?
 
 
 reports_key = b".hypofuzz.reports"

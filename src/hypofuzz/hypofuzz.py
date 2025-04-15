@@ -421,9 +421,19 @@ class FuzzProcess:
 
     @property
     def _metadata(self) -> Metadata:
+        report = self._report
         return {
+            # entries from report
+            "nodeid": report["nodeid"],
+            "elapsed_time": report["elapsed_time"],
+            "timestamp": report["timestamp"],
+            "ninputs": report["ninputs"],
+            "branches": report["branches"],
+            "since_new_cov": report["since_new_cov"],
+            "loaded_from_db": report["loaded_from_db"],
+            "note": report["note"],
+            # new entries
             "database_key": self.database_key,
-            "nodeid": self.nodeid,
             "seed_pool": self.pool.json_report,
             "failures": [ls for _, ls in self.pool.interesting_examples.values()],
             "status_counts": dict(self.status_counts),

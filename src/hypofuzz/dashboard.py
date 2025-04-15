@@ -72,8 +72,13 @@ class OverviewWebsocket(HypofuzzWebsocket):
         )
 
     async def on_event(self, event_type: str, data: Any) -> None:
-        if event_type == "save":
-            await self.send_json({"type": "save", "data": data})
+        data = dict(data)
+        # The seed pool can get *really* large (>100kb), and the overview page
+        # doesn't use it. Don't send it over the websocket.
+        if event_type == "metadata":
+            data.pop("seed_pool")
+        if event_type in ["save", "metadata"]:
+            await self.send_json({"type": event_type, "data": data})
 
 
 class TestWebsocket(HypofuzzWebsocket):
@@ -95,17 +100,8 @@ class TestWebsocket(HypofuzzWebsocket):
         )
 
     async def on_event(self, event_type: str, data: Any) -> None:
-        if event_type == "save":
-            node_id = data["nodeid"]
-            if node_id != self.node_id:
-                return
-            await self.send_json({"type": "save", "data": data})
-
-        if event_type == "metadata":
-            node_id = data["nodeid"]
-            if node_id != self.node_id:
-                return
-            await self.send_json({"type": "metadata", "data": data})
+        if event_type in ["save", "metadata"] and data["nodeid"] == self.node_id:
+            await self.send_json({"type": event_type, "data": data})
 
         # TODO handle delete and refresh events
 
@@ -275,7 +271,7 @@ async def handle_event(receive_channel: MemoryReceiveChannel) -> None:
                         if reports:
                             node_id = reports[0]["nodeid"]
                             REPORTS[node_id] = reports
-                            await broadcast_event("refresh", reports)
+                            await broadcast_event("refresh", {"reports": reports})
                         refreshed_at[key] = time.time()
 
             # We're only keeping a reference to the latest metadata, so we don't need
