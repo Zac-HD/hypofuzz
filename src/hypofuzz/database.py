@@ -37,7 +37,7 @@ class Report(TypedDict):
 
 
 class Metadata(TypedDict):
-    database_key: str
+    database_key: bytes
     nodeid: str
     seed_pool: list[list[str]]
     failures: list[list[str]]
@@ -88,8 +88,8 @@ class HypofuzzDatabase:
 
     def fetch_metadata(self, key: bytes) -> list[Metadata]:
         metadatas = []
-        for metadata in self.fetch(key + metadata_key):
-            metadata = json.loads(metadata)
+        for metadata_b in self.fetch(key + metadata_key):
+            metadata = json.loads(metadata_b)
             metadata["database_key"] = b64decode(metadata["database_key"])
             metadatas.append(metadata)
         return metadatas
