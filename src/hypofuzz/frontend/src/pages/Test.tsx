@@ -94,7 +94,7 @@ function _TestPage() {
               <div key={index} className="test-failure__item">
                 <h3>Call</h3>
                 <pre>
-                  <code>{reproductionDecorator + "\n\n" + callRepr}</code>
+                  <code>{reproductionDecorator + "\n" + callRepr}</code>
                 </pre>
                 <h3>Traceback</h3>
                 <pre>
