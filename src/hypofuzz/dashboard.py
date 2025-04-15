@@ -4,6 +4,7 @@ import abc
 import json
 import math
 import time
+from base64 import b64encode
 from collections import defaultdict
 from pathlib import Path
 from typing import Any, Optional
@@ -33,6 +34,8 @@ class HypofuzzEncoder(json.JSONEncoder):
     def default(self, obj: object) -> object:
         if isinstance(obj, SortedList):
             return list(obj)
+        if isinstance(obj, bytes):
+            return b64encode(obj).decode()
         return super().default(obj)
 
 

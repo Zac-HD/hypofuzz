@@ -1,4 +1,5 @@
 import json
+from base64 import b64decode, b64encode
 from collections.abc import Iterable
 from functools import cache
 from typing import Any, Optional, TypedDict
@@ -36,6 +37,7 @@ class Report(TypedDict):
 
 
 class Metadata(TypedDict):
+    database_key: str
     nodeid: str
     seed_pool: list[list[str]]
     failures: list[list[str]]
@@ -45,6 +47,13 @@ class Metadata(TypedDict):
 
 reports_key = b".hypofuzz.reports"
 metadata_key = b".hypofuzz.metadata"
+
+
+class DatabaseEncoder(json.JSONEncoder):
+    def default(self, obj: object) -> object:
+        if isinstance(obj, bytes):
+            return b64encode(obj).decode()
+        return super().default(obj)
 
 
 class HypofuzzDatabase:
@@ -57,7 +66,7 @@ class HypofuzzDatabase:
     __repr__ = __str__
 
     def _encode(self, data: Any) -> bytes:
-        return bytes(json.dumps(data), "ascii")
+        return bytes(json.dumps(data, cls=DatabaseEncoder), "ascii")
 
     def save(self, key: bytes, value: bytes) -> None:
         self._db.save(key, value)
@@ -78,7 +87,12 @@ class HypofuzzDatabase:
         return [json.loads(e) for e in self.fetch(key + reports_key)]
 
     def fetch_metadata(self, key: bytes) -> list[Metadata]:
-        return [json.loads(e) for e in self.fetch(key + metadata_key)]
+        metadatas = []
+        for metadata in self.fetch(key + metadata_key):
+            metadata = json.loads(metadata)
+            metadata["database_key"] = b64decode(metadata["database_key"])
+            metadatas.append(metadata)
+        return metadatas
 
     def replace_metadata(self, key: bytes, metadata: Metadata) -> None:
         # save and then delete to avoid intermediary state where no metadata is

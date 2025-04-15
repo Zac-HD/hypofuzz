@@ -10,6 +10,7 @@ export interface Report {
 }
 
 export interface Metadata {
+  database_key: string
   nodeid: string
   status_counts: Record<string, number>
   seed_pool: any

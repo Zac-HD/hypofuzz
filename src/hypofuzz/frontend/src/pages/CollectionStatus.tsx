@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 
 interface CollectionResult {
+  database_key: string
   node_id: string
   status: string
   status_reason?: string
