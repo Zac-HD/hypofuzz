@@ -45,7 +45,7 @@ from hypofuzz.corpus import (
     Pool,
     get_shrinker,
 )
-from hypofuzz.coverage import CustomCollectionContext
+from hypofuzz.coverage import CoverageCollectionContext
 from hypofuzz.database import Metadata, Report, WorkerT, get_db
 from hypofuzz.provider import HypofuzzProvider
 
@@ -274,7 +274,7 @@ class FuzzProcess:
         """
         start = time.perf_counter()
         self.ninputs += 1
-        collector = collector or CustomCollectionContext()
+        collector = collector or CoverageCollectionContext()
         assert collector is not None
         reports: list[object] = []
         try:
