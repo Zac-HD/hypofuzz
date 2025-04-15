@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 import { Table } from "../components/Table"
+import { Link } from "react-router-dom"
 
 interface CollectionResult {
   database_key: string
@@ -53,11 +54,22 @@ export function CollectionStatusPage() {
 
   const row = (item: CollectionResult): React.ReactNode[] => {
     return [
-      <span key="test" style={{ wordBreak: "break-all" }}>
+      <Link
+        to={`/tests/${encodeURIComponent(item.node_id)}`}
+        className="test__link"
+        style={{ wordBreak: "break-all" }}
+      >
         {item.node_id}
-      </span>,
-      item.status === "collected" ? "Collected" : "Not collected",
-      item.status_reason || "-",
+      </Link>,
+      <div style={{ textAlign: "center" }}>
+        {item.status === "collected" ? (
+          <div className="pill pill__success">Collected</div>
+        ) : (
+          <div className="pill pill__neutral">
+            Not collected ({item.status_reason!})
+          </div>
+        )}
+      </div>,
     ]
   }
 
@@ -65,7 +77,7 @@ export function CollectionStatusPage() {
     <div className="card">
       <div className="card__header">Test collection status</div>
       <Table
-        headers={["Test", "Status", "Status reason"]}
+        headers={["Test", "Status"]}
         data={sortedResults}
         row={row}
         getKey={item => item.database_key}

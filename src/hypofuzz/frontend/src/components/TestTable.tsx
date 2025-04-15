@@ -52,18 +52,21 @@ export function TestTable({ reports, metadata }: Props) {
 
     return [
       <Link
-        key="test-link"
         to={`/tests/${encodeURIComponent(item.metadata.nodeid)}`}
         className="test__link"
         style={{ wordBreak: "break-all" }}
       >
         {item.metadata.nodeid}
       </Link>,
-      item.metadata.failures?.length
-        ? "Failed"
-        : latest.ninputs === 0
-          ? "Collected"
-          : "Running",
+      <div style={{ textAlign: "center" }}>
+        {item.metadata.failures?.length ? (
+          <div className="pill pill__failure">Failed</div>
+        ) : latest.ninputs === 0 ? (
+          <div className="pill pill__neutral">Collected</div>
+        ) : (
+          <div className="pill pill__success">Running</div>
+        )}
+      </div>,
       stats.inputs,
       stats.branches,
       stats.executions,
