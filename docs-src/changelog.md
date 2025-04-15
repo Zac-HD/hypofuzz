@@ -2,6 +2,10 @@
 HypoFuzz uses [calendar-based versioning](https://calver.org/), with a
 `YY-MM-patch` format.
 
+## 25.04.2
+
+Improve table UI in the dashboard.
+
 ## 25.04.1
 
 Hypofuzz now uses a more accurate method of measuring branch coverage on python 3.12+, resulting in better fuzzing performance in general.
