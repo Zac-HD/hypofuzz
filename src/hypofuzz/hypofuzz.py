@@ -3,16 +3,20 @@
 import contextlib
 import itertools
 import os
+import platform
 import socket
 import sys
 import time
 import traceback
+from base64 import b64encode
 from collections.abc import Callable, Generator
 from contextlib import suppress
 from functools import lru_cache
 from random import Random
-from typing import Any, Optional, Union, cast
+from typing import Any, Optional, Union
+from uuid import uuid4
 
+import hypothesis
 from hypothesis import settings
 from hypothesis.control import BuildContext
 from hypothesis.core import (
@@ -38,6 +42,7 @@ from hypothesis.reporting import with_reporter
 from hypothesis.vendor.pretty import RepresentationPrinter
 from sortedcontainers import SortedKeyList
 
+import hypofuzz
 from hypofuzz.corpus import (
     BlackBoxMutator,
     CrossOverMutator,
@@ -46,7 +51,7 @@ from hypofuzz.corpus import (
     get_shrinker,
 )
 from hypofuzz.coverage import CoverageCollectionContext
-from hypofuzz.database import Metadata, Report, WorkerT, get_db
+from hypofuzz.database import Metadata, Phase, Report, WorkerIdentity, get_db
 from hypofuzz.provider import HypofuzzProvider
 
 record_pytrace: Optional[Callable[..., Any]]
@@ -54,6 +59,8 @@ try:
     from hypofuzz.pytrace import record_pytrace
 except ImportError:
     record_pytrace = None
+
+process_uuid = uuid4().hex
 
 
 @contextlib.contextmanager
@@ -165,9 +172,9 @@ class FuzzProcess:
         """Set up initial state and prepare to replay the saved behaviour."""
         # If we're continuing to fuzz something we've tested before, load some stats
         if reports := list(get_db().fetch_reports(self.database_key)):
-            latest: Any = max(reports, key=lambda d: d["elapsed_time"])
-            self.ninputs = latest["ninputs"]
-            self.elapsed_time = latest["elapsed_time"]
+            latest: Report = max(reports, key=lambda d: d.elapsed_time)
+            self.ninputs = latest.ninputs
+            self.elapsed_time = latest.elapsed_time
         # Report that we've started this fuzz target
         get_db().save(b"hypofuzz-test-keys", self.database_key)
         # Next, restore progress made in previous runs by loading our saved examples.
@@ -370,11 +377,11 @@ class FuzzProcess:
         # by dropping the previous report if it differs from the latest in more
         # than just runtime.
         if self._last_report and not (
-            self._last_report["branches"] != report["branches"]
-            or self._last_report["note"] != report["note"]
+            self._last_report.branches != report.branches
+            or self._last_report.phase != report.phase
             or self.pool.interesting_examples
             # always keep reports which discovered new coverage
-            or self._last_report["since_new_cov"] == 0
+            or self._last_report.since_new_cov == 0
         ):
             db.delete_report(self.database_key, self._last_report)
 
@@ -385,48 +392,55 @@ class FuzzProcess:
         db.replace_metadata(self.database_key, metadata)
 
     @property
+    def _phase(self) -> Phase:
+        phase = Phase.GENERATE
+        if self._replay_queue:
+            phase = Phase.REPLAY
+        elif self.pool._in_distill_phase:
+            phase = Phase.DISTILL
+        elif self.pool.interesting_examples:
+            phase = Phase.SHRINK if self.shrinking else Phase.FAILED
+        return phase
+
+    @property
     def _report(self) -> Report:
         """Summarise current state to send to dashboard."""
-        report: Report = {
-            "nodeid": self.nodeid,
-            "elapsed_time": self.elapsed_time,
-            "timestamp": time.time(),
-            "worker": where_am_i(),
-            "ninputs": self.ninputs,
-            "branches": len(self.pool.arc_counts),
-            "since_new_cov": None if self.ninputs == 0 else self.since_new_cov,
-            "loaded_from_db": len(self.pool._loaded_from_database),
-            "note": (
-                "starting up..."
-                if self.ninputs == 0
-                else (
-                    "replaying saved examples"
-                    if self._replay_queue
-                    else (
-                        "shrinking known examples"
-                        if self.pool._in_distill_phase
-                        else ""
-                    )
-                )
+        return Report(
+            database_key=b64encode(self.database_key).decode(),
+            nodeid=self.nodeid,
+            elapsed_time=self.elapsed_time,
+            timestamp=time.time(),
+            worker=worker_identity(),
+            ninputs=self.ninputs,
+            branches=len(self.pool.arc_counts),
+            since_new_cov=(
+                None
+                if (self.ninputs == 0 or self.pool.interesting_examples)
+                else self.since_new_cov
             ),
-        }
-
-        if self.pool.interesting_examples:
-            report["note"] = (
-                f"raised {list(self.pool.interesting_examples)[0][0].__name__} "
-                f"({'shrinking...' if self.shrinking else 'finished'})"
-            )
-            report["since_new_cov"] = None
-        return report
+            loaded_from_db=len(self.pool._loaded_from_database),
+            phase=self._phase,
+        )
 
     @property
     def _metadata(self) -> Metadata:
-        return {
-            "nodeid": self.nodeid,
-            "seed_pool": self.pool.json_report,
-            "failures": [ls for _, ls in self.pool.interesting_examples.values()],
-            "status_counts": dict(self.status_counts),
-        }
+        report = self._report
+        return Metadata(
+            # entries from report
+            database_key=report.database_key,
+            nodeid=report.nodeid,
+            elapsed_time=report.elapsed_time,
+            timestamp=report.timestamp,
+            ninputs=report.ninputs,
+            branches=report.branches,
+            since_new_cov=report.since_new_cov,
+            loaded_from_db=report.loaded_from_db,
+            phase=report.phase,
+            # new entries
+            seed_pool=self.pool.json_report,
+            failures=[ls for _, ls in self.pool.interesting_examples.values()],
+            status_counts=dict(self.status_counts),
+        )
 
     @property
     def has_found_failure(self) -> bool:
@@ -465,8 +479,8 @@ def fuzz_several(*targets_: FuzzProcess, random_seed: Optional[int] = None) -> N
 
 
 @lru_cache
-def where_am_i() -> WorkerT:
-    """Return a json blob identifying the machine running this code.
+def worker_identity() -> WorkerIdentity:
+    """Returns a class identifying the machine running this code.
 
     This is intended to roughly represent the "unit of fuzz worker", so it includes
     the PID as well as hostname and (if in kubernetes) some pod identifiers.
@@ -476,20 +490,25 @@ def where_am_i() -> WorkerT:
     total number of inputs, and so on.  In practice we don't care that much about
     precision here, because the code under test is likely to be changing too.
     """
-    identifiers: WorkerT = {
-        "pid": os.getpid(),
-        "hostname": socket.gethostname(),  # In K8s, this is typically the pod name
-        "pod_name": os.getenv("HOSTNAME"),
-        "pod_namespace": os.getenv("POD_NAMESPACE"),
-        "node_name": os.getenv("NODE_NAME"),
-        "pod_ip": os.getenv("POD_IP"),
-        "container_id": None,
-    }
+    container_id = None
     with suppress(Exception), open("/proc/self/cgroup") as f:
         for line in f:
             if "kubepods" in line:
                 container_id = line.split("/")[-1].strip()
-                identifiers["container_id"] = container_id
-                break
 
-    return cast(WorkerT, {k: v for k, v in identifiers.items() if v is not None})
+    return WorkerIdentity(
+        worker_uuid=process_uuid,
+        operating_system=platform.system(),
+        python_version=".".join(map(str, sys.version_info)),
+        # eg 3.12.10 (main, Apr  8 2025, 11:35:47) [Clang 16.0.0 (clang-1600.0.26.6)]
+        python_version_full=sys.version,
+        hypothesis_version=hypothesis.__version__,
+        hypofuzz_version=hypofuzz.__version__,
+        pid=os.getpid(),
+        hostname=socket.gethostname(),  # In K8s, this is typically the pod name
+        pod_name=os.getenv("HOSTNAME"),
+        pod_namespace=os.getenv("POD_NAMESPACE"),
+        node_name=os.getenv("NODE_NAME"),
+        pod_ip=os.getenv("POD_IP"),
+        container_id=container_id,
+    )

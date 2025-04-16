@@ -1,13 +1,35 @@
+import dataclasses
 import json
 from collections.abc import Iterable
+from dataclasses import dataclass, is_dataclass
+from enum import Enum
 from functools import cache
-from typing import Any, Optional, TypedDict
+from typing import Any, Optional
 
 from hypothesis import settings
 from hypothesis.database import BackgroundWriteDatabase, ExampleDatabase
+from sortedcontainers import SortedList
 
 
-class WorkerT(TypedDict):
+class HypofuzzEncoder(json.JSONEncoder):
+    def default(self, obj: object) -> object:
+        if is_dataclass(obj) and not isinstance(obj, type):
+            return dataclasses.asdict(obj)
+        if isinstance(obj, SortedList):
+            return list(obj)
+        if isinstance(obj, Enum):
+            return obj.value
+        return super().default(obj)
+
+
+@dataclass(frozen=True)
+class WorkerIdentity:
+    worker_uuid: str
+    operating_system: str
+    python_version: str
+    python_version_full: str
+    hypothesis_version: str
+    hypofuzz_version: str
     pid: int
     hostname: str
     pod_name: Optional[str]
@@ -16,6 +38,18 @@ class WorkerT(TypedDict):
     pod_ip: Optional[str]
     container_id: Optional[str]
 
+    @staticmethod
+    def from_dict(data: dict) -> "WorkerIdentity":
+        return WorkerIdentity(**data)
+
+
+class Phase(Enum):
+    GENERATE = "generate"
+    REPLAY = "replay"
+    DISTILL = "distill"
+    SHRINK = "shrink"
+    FAILED = "failed"
+
 
 # Conceptually:
 # * A report is an incremental progress marker which we don't want to delete,
@@ -23,24 +57,53 @@ class WorkerT(TypedDict):
 # * Metadata is the latest status of a test, which we might update to something
 #   different if new information comes along. Intermediate metadata steps are
 #   not saved because they are not interesting.
-class Report(TypedDict):
+@dataclass(frozen=True)
+class Report:
+    database_key: str
     nodeid: str
     elapsed_time: float
     timestamp: float
-    worker: WorkerT
+    worker: WorkerIdentity
     ninputs: int
     branches: int
     since_new_cov: Optional[int]
     loaded_from_db: int
-    note: str
+    phase: Phase
+
+    @staticmethod
+    def from_dict(data: dict) -> "Report":
+        data = dict(data)
+        # compatibility with older dbs
+        if "note" in data:
+            del data["note"]
+        data["worker"] = WorkerIdentity.from_dict(data["worker"])
+        data["phase"] = Phase(data["phase"])
+        return Report(**data)
 
 
-class Metadata(TypedDict):
+@dataclass(frozen=True)
+class Metadata:
+    # from Report
+    database_key: str
     nodeid: str
+    elapsed_time: float
+    timestamp: float
+    ninputs: int
+    branches: int
+    since_new_cov: Optional[int]
+    loaded_from_db: int
+    phase: Phase
+
+    # Metadata-specific
     seed_pool: list[list[str]]
     failures: list[list[str]]
     status_counts: dict[str, int]
-    # TODO also add a note here?
+
+    @staticmethod
+    def from_dict(data: dict) -> "Metadata":
+        data = dict(data)
+        data["phase"] = Phase(data["phase"])
+        return Metadata(**data)
 
 
 reports_key = b".hypofuzz.reports"
@@ -57,7 +120,7 @@ class HypofuzzDatabase:
     __repr__ = __str__
 
     def _encode(self, data: Any) -> bytes:
-        return bytes(json.dumps(data), "ascii")
+        return bytes(json.dumps(data, cls=HypofuzzEncoder), "ascii")
 
     def save(self, key: bytes, value: bytes) -> None:
         self._db.save(key, value)
@@ -75,10 +138,12 @@ class HypofuzzDatabase:
         self.delete(key + reports_key, self._encode(report))
 
     def fetch_reports(self, key: bytes) -> list[Report]:
-        return [json.loads(e) for e in self.fetch(key + reports_key)]
+        return [Report.from_dict(json.loads(v)) for v in self.fetch(key + reports_key)]
 
     def fetch_metadata(self, key: bytes) -> list[Metadata]:
-        return [json.loads(e) for e in self.fetch(key + metadata_key)]
+        return [
+            Metadata.from_dict(json.loads(v)) for v in self.fetch(key + metadata_key)
+        ]
 
     def replace_metadata(self, key: bytes, metadata: Metadata) -> None:
         # save and then delete to avoid intermediary state where no metadata is

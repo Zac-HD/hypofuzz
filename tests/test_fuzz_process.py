@@ -39,7 +39,7 @@ def test_fuzz_one_process_explain_mode():
 
     # Check that we got the expected failure, including message + explain-mode output.
     assert fp.status_counts[Status.INTERESTING.name] >= 1
-    (call_repr, _, _, tb_repr), *rest = fp._metadata["failures"]
+    (call_repr, _, _, tb_repr), *rest = fp._metadata.failures
     assert not rest  # expected only one failure
     assert tb_repr.endswith("test_fuzz_process.CustomError: x=1\n")
     assert call_repr == "failing_pbt(\n    x=1,\n    y=0,\n)"

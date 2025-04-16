@@ -7,6 +7,8 @@ from hypofuzz.database import HypofuzzDatabase
 def test_database_stores_reports_and_metadata_correctly():
     # test that things of type Report are saved to reports_key, and things of type
     # Metadata are saved to metadata_key.
+    #
+    # Nowadays, this is validated by our dataclass parsing step.
 
     test_dir, db_dir = write_test_code(BASIC_TEST_CODE)
     db = HypofuzzDatabase(DirectoryBasedExampleDatabase(db_dir))
@@ -29,7 +31,5 @@ def test_database_stores_reports_and_metadata_correctly():
                 timeout=15,
                 interval=0.05,
             )
-            reports = list(db.fetch_reports(key))
-            metadatas = list(db.fetch_metadata(key))
-            assert all("seed_pool" not in report for report in reports)
-            assert all("seed_pool" in metadata for metadata in metadatas)
+            list(db.fetch_reports(key))
+            list(db.fetch_metadata(key))

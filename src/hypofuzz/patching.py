@@ -6,6 +6,8 @@ from typing import Any
 from hypothesis.configuration import storage_directory
 from hypothesis.extra._patching import FAIL_MSG, get_patch_for, make_patch, save_patch
 
+from hypofuzz.database import Metadata, Phase, Report
+
 COV_MSG = "HypoFuzz covering example"
 get_patch_for_cached = lru_cache(maxsize=8192)(get_patch_for)
 make_patch_cached = lru_cache(maxsize=1024)(make_patch)
@@ -19,7 +21,11 @@ def get_all_tests(pytest_args: Any) -> list:
 
 
 def make_and_save_patches(
-    pytest_args: Any, reports: dict, metadata: dict, *, canonical: bool = True
+    pytest_args: Any,
+    reports: dict[str, list[Report]],
+    metadata: dict[str, Metadata],
+    *,
+    canonical: bool = True,
 ) -> dict[str, Path]:
     triples_all: list = []
     triples_cov: list = []
@@ -37,20 +43,12 @@ def make_and_save_patches(
         #   - tag covering examples with covering-via
         failing_examples = []
         covering_examples = []
-        if (
-            node_metadata.get("failures")
-            and report.get("note") != "shrinking known examples"
-        ):
+        if node_metadata.failures and report.phase != Phase.DISTILL:
             failing_examples = [
-                (ex, FAIL_MSG) for ex, _, _, _ in node_metadata["failures"]
+                (ex, FAIL_MSG) for ex, _, _, _ in node_metadata.failures
             ]
-        if (
-            node_metadata.get("seed_pool")
-            and report.get("note") != "replaying saved examples"
-        ):
-            covering_examples = [
-                (ex, COV_MSG) for _, ex, _ in node_metadata["seed_pool"]
-            ]
+        if node_metadata.seed_pool and report.phase != Phase.REPLAY:
+            covering_examples = [(ex, COV_MSG) for _, ex, _ in node_metadata.seed_pool]
 
         for out, examples, strip_via in [
             (triples_fail, failing_examples, ()),
