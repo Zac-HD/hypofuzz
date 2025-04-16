@@ -2,6 +2,7 @@
 /docs/docs/
 __latexindent_temp.tex
 pycrunch-recordings/
+.cursor
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

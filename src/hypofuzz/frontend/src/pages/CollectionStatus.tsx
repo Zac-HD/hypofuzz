@@ -3,7 +3,6 @@ import { Table } from "../components/Table"
 import { Link } from "react-router-dom"
 
 interface CollectionResult {
-  database_key: string
   node_id: string
   status: string
   status_reason?: string
@@ -80,7 +79,7 @@ export function CollectionStatusPage() {
         headers={["Test", "Status"]}
         data={sortedResults}
         row={row}
-        getKey={item => item.database_key}
+        getKey={item => item.node_id}
       />
     </div>
   )

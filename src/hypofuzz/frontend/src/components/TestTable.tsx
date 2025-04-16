@@ -82,7 +82,7 @@ export function TestTable({ reports, metadata }: Props) {
         headers={headers}
         data={sortedTests}
         row={row}
-        getKey={item => item.metadata.database_key}
+        getKey={item => item.metadata.nodeid}
       />
     </div>
   )
