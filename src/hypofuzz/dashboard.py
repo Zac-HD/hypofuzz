@@ -24,16 +24,30 @@ from starlette.staticfiles import StaticFiles
 from starlette.websockets import WebSocket, WebSocketDisconnect
 from trio import MemoryReceiveChannel
 
-from hypofuzz.database import Metadata, Report, get_db, metadata_key, reports_key
+from hypofuzz.database import (
+    HypofuzzEncoder,
+    Metadata,
+    Report,
+    get_db,
+    metadata_key,
+    reports_key,
+)
 from hypofuzz.interface import CollectionResult
 from hypofuzz.patching import make_and_save_patches
 
 
-class HypofuzzEncoder(json.JSONEncoder):
-    def default(self, obj: object) -> object:
-        if isinstance(obj, SortedList):
-            return list(obj)
-        return super().default(obj)
+class HypofuzzJSONResponse(JSONResponse):
+    def render(self, content: Any) -> bytes:
+        # arguments copied from starlette.JSONResponse, with the addition of
+        # cls=HypofuzzEncoder
+        return json.dumps(
+            content,
+            ensure_ascii=False,
+            allow_nan=False,
+            indent=None,
+            separators=(",", ":"),
+            cls=HypofuzzEncoder,
+        ).encode("utf-8")
 
 
 class HypofuzzWebsocket(abc.ABC):
@@ -93,13 +107,13 @@ class TestWebsocket(HypofuzzWebsocket):
 
     async def on_event(self, event_type: str, data: Any) -> None:
         if event_type == "save":
-            node_id = data["nodeid"]
+            node_id = data.nodeid
             if node_id != self.node_id:
                 return
             await self.send_json({"type": "save", "data": data})
 
         if event_type == "metadata":
-            node_id = data["nodeid"]
+            node_id = data.nodeid
             if node_id != self.node_id:
                 return
             await self.send_json({"type": "metadata", "data": data})
@@ -108,7 +122,7 @@ class TestWebsocket(HypofuzzWebsocket):
 
 
 REPORTS: dict[str, SortedList[Report]] = defaultdict(
-    lambda: SortedList(key=lambda r: r["elapsed_time"])
+    lambda: SortedList(key=lambda r: r.elapsed_time)
 )
 METADATA: dict[str, Metadata] = {}
 COLLECTION_RESULT: Optional[CollectionResult] = None
@@ -135,7 +149,7 @@ async def websocket(websocket: WebSocket) -> None:
         websockets.remove(websocket)
 
 
-async def broadcast_event(event_type: str, data: dict) -> None:
+async def broadcast_event(event_type: str, data: Any) -> None:
     for websocket in websockets:
         await websocket.on_event(event_type, data)
 
@@ -148,20 +162,20 @@ def try_format(code: str) -> str:
 
 
 async def api_tests(request: Request) -> Response:
-    # ideally we'd use HypofuzzEncoder here, but JSONResponse doesn't accept an encoder
-    reports = {node_id: list(reports) for node_id, reports in REPORTS.items()}
-    return JSONResponse(reports)
+    return HypofuzzJSONResponse(
+        {node_id: list(reports) for node_id, reports in REPORTS.items()}
+    )
 
 
 async def api_test(request: Request) -> Response:
     node_id = request.path_params["node_id"]
-    return JSONResponse(list(REPORTS[node_id]))
+    return HypofuzzJSONResponse(list(REPORTS[node_id]))
 
 
 async def api_patches(request: Request) -> Response:
     patches = make_and_save_patches(PYTEST_ARGS, REPORTS, METADATA)
 
-    return JSONResponse(
+    return HypofuzzJSONResponse(
         {name: str(patch_path.read_text()) for name, patch_path in patches.items()}
     )
 
@@ -182,7 +196,7 @@ async def api_collected_tests(request: Request) -> Response:
             }
         )
 
-    return JSONResponse({"collection_status": collection_status})
+    return HypofuzzJSONResponse({"collection_status": collection_status})
 
 
 def pycrunch_path(node_id: str) -> Path:
@@ -192,7 +206,7 @@ def pycrunch_path(node_id: str) -> Path:
 
 async def api_pycrunch_available(request: Request) -> Response:
     path = pycrunch_path(request.path_params["node_id"])
-    return JSONResponse({"available": path.exists()})
+    return HypofuzzJSONResponse({"available": path.exists()})
 
 
 async def api_pycrunch_file(request: Request) -> Response:
@@ -243,12 +257,12 @@ async def handle_event(receive_channel: MemoryReceiveChannel) -> None:
             key, value = args
             assert value is not None
             if key.endswith(reports_key):
-                report = json.loads(value)
-                REPORTS[report["nodeid"]].add(report)
+                report = Report.from_dict(json.loads(value))
+                REPORTS[report.nodeid].add(report)
                 await broadcast_event("save", report)
             if key.endswith(metadata_key):
-                metadata = json.loads(value)
-                METADATA[metadata["nodeid"]] = metadata
+                metadata = Metadata.from_dict(json.loads(value))
+                METADATA[metadata.nodeid] = metadata
                 await broadcast_event("metadata", metadata)
 
         if event_type == "delete":
@@ -257,8 +271,8 @@ async def handle_event(receive_channel: MemoryReceiveChannel) -> None:
             if key.endswith(reports_key):
                 key = key.rstrip(reports_key)
                 if value is not None:
-                    report = json.loads(value)
-                    REPORTS[report["nodeid"]].remove(report)
+                    report = Report.from_dict(json.loads(value))
+                    REPORTS[report.nodeid].remove(report)
                     await broadcast_event("delete", report)
                 else:
                     # debounce each key, to relieve db read pressure for this expensive
@@ -267,10 +281,10 @@ async def handle_event(receive_channel: MemoryReceiveChannel) -> None:
                     if time.time() - refreshed_at[key] > delete_debounce:
                         reports = SortedList(
                             list(get_db().fetch_reports(key)),
-                            key=lambda r: r["elapsed_time"],
+                            key=lambda r: r.elapsed_time,
                         )
                         if reports:
-                            node_id = reports[0]["nodeid"]
+                            node_id = reports[0].nodeid
                             REPORTS[node_id] = reports
                             await broadcast_event("refresh", reports)
                         refreshed_at[key] = time.time()
@@ -301,10 +315,10 @@ async def run_dashboard(port: int, host: str) -> None:
         metadata = db.fetch_metadata(key)
         if reports:
             # TODO we should really add the node id to hypofuzz-test-keys entries
-            node_id = reports[0]["nodeid"]
-            REPORTS[node_id] = SortedList(reports, key=lambda r: r["elapsed_time"])
+            node_id = reports[0].nodeid
+            REPORTS[node_id] = SortedList(reports, key=lambda r: r.elapsed_time)
         if metadata:
-            node_id = metadata[0]["nodeid"]
+            node_id = metadata[0].nodeid
             # there is usually only a single metadata, unless we updated right
             # as the db is inserting a new one. TODO take latest by
             # elapsed_time, when we have Metadata extend Report
