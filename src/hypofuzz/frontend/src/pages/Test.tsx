@@ -7,23 +7,23 @@ import { CoveringExamples } from "../components/CoveringExamples"
 import { WebSocketProvider } from "../context/WebSocketContext"
 
 export function TestPage() {
-  const { testId } = useParams<{ testId: string }>()
+  const { nodeid } = useParams<{ nodeid: string }>()
 
   return (
-    <WebSocketProvider nodeId={testId}>
+    <WebSocketProvider nodeId={nodeid}>
       <_TestPage />
     </WebSocketProvider>
   )
 }
 
 function _TestPage() {
-  const { testId } = useParams<{ testId: string }>()
+  const { nodeid } = useParams<{ nodeid: string }>()
   const { reports, metadata } = useWebSocket()
   const [pycrunchAvailable, setPycrunchAvailable] = useState<boolean>(false)
 
   useEffect(() => {
-    if (testId) {
-      fetch(`/api/pycrunch/${testId}`)
+    if (nodeid) {
+      fetch(`/api/pycrunch/${nodeid}`)
         .then(response => response.json())
         .then(data => {
           setPycrunchAvailable(data.available)
@@ -33,14 +33,14 @@ function _TestPage() {
           setPycrunchAvailable(false)
         })
     }
-  }, [testId])
+  }, [nodeid])
 
-  if (!testId || !reports[testId]) {
+  if (!nodeid || !reports[nodeid]) {
     return <div>Test not found</div>
   }
 
-  const testReports = reports[testId]
-  const testMetadata = metadata[testId]
+  const testReports = reports[nodeid]
+  const testMetadata = metadata[nodeid]
   const stats = getTestStats(testReports[testReports.length - 1])
 
   return (
@@ -48,11 +48,11 @@ function _TestPage() {
       <Link to="/" className="back-link">
         ← Back to all tests
       </Link>
-      <h1>{testId}</h1>
+      <h1>{nodeid}</h1>
       {pycrunchAvailable && (
         <div className="pycrunch-link">
           <a
-            href={`https://app.pytrace.com/?open=http://${window.location.host}/api/pycrunch/${testId}/session.chunked`}
+            href={`https://app.pytrace.com/?open=http://${window.location.host}/api/pycrunch/${nodeid}/session.chunked`}
             target="_blank"
             rel="noopener noreferrer"
           >
@@ -84,7 +84,7 @@ function _TestPage() {
           </div>
         </div>
       </div>
-      <CoverageGraph reports={{ [testId]: testReports }} />
+      <CoverageGraph reports={{ [nodeid]: testReports }} />
 
       {testMetadata.failures && testMetadata.failures.length > 0 && (
         <div className="test-failure">
@@ -94,7 +94,7 @@ function _TestPage() {
               <div key={index} className="test-failure__item">
                 <h3>Call</h3>
                 <pre>
-                  <code>{reproductionDecorator + "\n\n" + callRepr}</code>
+                  <code>{reproductionDecorator + "\n" + callRepr}</code>
                 </pre>
                 <h3>Traceback</h3>
                 <pre>

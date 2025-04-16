@@ -21,7 +21,7 @@ export function App() {
           />
           <Route path="/patches" element={<PatchesPage />} />
           <Route path="/collected" element={<CollectionStatusPage />} />
-          <Route path="/tests/:testId" element={<TestPage />} />
+          <Route path="/tests/:nodeid" element={<TestPage />} />
         </Route>
       </Routes>
     </BrowserRouter>
