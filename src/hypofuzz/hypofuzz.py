@@ -5,6 +5,7 @@ import itertools
 import os
 import platform
 import socket
+import subprocess
 import sys
 import time
 import traceback
@@ -160,7 +161,7 @@ class FuzzProcess:
         self.stop_shrinking_at = float("inf")
         self.since_new_cov = 0
         self.status_counts = {s.name: 0 for s in Status}
-        self.shrinking = False
+        self.phase: Optional[Phase] = None
         # Any new examples from the database will be added to this replay queue
         self._replay_queue: list[tuple[Union[ChoiceT, ChoiceTemplate], ...]] = []
         # After replay, we stay in blackbox mode for a while, until we've generated
@@ -200,9 +201,13 @@ class FuzzProcess:
         # database.  This is useful to recover state at startup, or to share
         # progress made in other processes.
         if self._replay_queue:
+            self.phase = Phase.REPLAY
             choices = self._replay_queue.pop()
             return ConjectureData.for_choices(choices)
 
+        # TODO we should emit a report whenever we switch phases, eg from replay
+        # to generate.
+        self.phase = Phase.GENERATE
         # TODO: currently hard-coding a particular mutator; we want to do MOpt-style
         # adaptive weighting of all the different mutators we could use.
         # For now though, we'll just use a hardcoded swapover point
@@ -236,7 +241,7 @@ class FuzzProcess:
         if result.status is Status.INTERESTING:
             assert not isinstance(result, _Overrun)
             # Shrink to our minimal failing example, since we'll stop after this.
-            self.shrinking = True
+            self.phase = Phase.SHRINK
             shrinker = get_shrinker(
                 self.pool,
                 self._run_test_on,  # type: ignore
@@ -248,7 +253,7 @@ class FuzzProcess:
             self.stop_shrinking_at = self.elapsed_time + 300
             with contextlib.suppress(HitShrinkTimeoutError, RunIsComplete):
                 shrinker.shrink()
-            self.shrinking = False
+            self.phase = Phase.FAILED
             if record_pytrace:
                 # Replay minimal example under our time-travelling debug tracer
                 self._run_test_on(
@@ -265,6 +270,7 @@ class FuzzProcess:
         # NOTE: this distillation logic works fine, it's just discovering new coverage
         # much more slowly than jumping directly to mutational mode.
         # if len(self.pool.arc_counts) > seen_count and not self._early_blackbox_mode:
+        #     self.phase = Phase.DISTILL
         #     self.pool.distill(self._run_test_on, self.random)
 
     def _run_test_on(
@@ -392,17 +398,6 @@ class FuzzProcess:
         db.replace_metadata(self.database_key, metadata)
 
     @property
-    def _phase(self) -> Phase:
-        phase = Phase.GENERATE
-        if self._replay_queue:
-            phase = Phase.REPLAY
-        elif self.pool._in_distill_phase:
-            phase = Phase.DISTILL
-        elif self.pool.interesting_examples:
-            phase = Phase.SHRINK if self.shrinking else Phase.FAILED
-        return phase
-
-    @property
     def _report(self) -> Report:
         """Summarise current state to send to dashboard."""
         return Report(
@@ -419,7 +414,7 @@ class FuzzProcess:
                 else self.since_new_cov
             ),
             loaded_from_db=len(self.pool._loaded_from_database),
-            phase=self._phase,
+            phase=self.phase,
         )
 
     @property
