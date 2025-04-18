@@ -24,7 +24,7 @@ class HypofuzzEncoder(json.JSONEncoder):
 
 @dataclass(frozen=True)
 class WorkerIdentity:
-    worker_uuid: str
+    uuid: str
     operating_system: str
     python_version: str
     hypothesis_version: str

@@ -509,7 +509,7 @@ def worker_identity() -> WorkerIdentity:
         python_version = python_version[:3]
 
     return WorkerIdentity(
-        worker_uuid=process_uuid,
+        uuid=process_uuid,
         operating_system=platform.system(),
         python_version=".".join(map(str, python_version)),
         hypothesis_version=hypothesis.__version__,
