@@ -479,6 +479,18 @@ def fuzz_several(*targets_: FuzzProcess, random_seed: Optional[int] = None) -> N
 
 
 @lru_cache
+def _git_head() -> Optional[str]:
+    try:
+        return subprocess.check_output(
+            ["git", "rev-parse", "HEAD"],
+            timeout=10,
+            text=True,
+        ).stdout.strip()
+    except Exception:
+        return None
+
+
+@lru_cache
 def worker_identity() -> WorkerIdentity:
     """Returns a class identifying the machine running this code.
 
@@ -514,4 +526,5 @@ def worker_identity() -> WorkerIdentity:
         node_name=os.getenv("NODE_NAME"),
         pod_ip=os.getenv("POD_IP"),
         container_id=container_id,
+        git_hash=_git_head(),
     )

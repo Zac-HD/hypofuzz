@@ -36,6 +36,7 @@ class WorkerIdentity:
     node_name: Optional[str]
     pod_ip: Optional[str]
     container_id: Optional[str]
+    git_hash: Optional[str]
 
     @staticmethod
     def from_dict(data: dict) -> "WorkerIdentity":
