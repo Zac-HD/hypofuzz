@@ -496,12 +496,15 @@ def worker_identity() -> WorkerIdentity:
             if "kubepods" in line:
                 container_id = line.split("/")[-1].strip()
 
+    python_version = sys.version_info
+    if python_version.releaselevel == "final":
+        # drop releaselevel and serial for standard releases
+        python_version = python_version[:3]
+
     return WorkerIdentity(
         worker_uuid=process_uuid,
         operating_system=platform.system(),
-        python_version=".".join(map(str, sys.version_info)),
-        # eg 3.12.10 (main, Apr  8 2025, 11:35:47) [Clang 16.0.0 (clang-1600.0.26.6)]
-        python_version_full=sys.version,
+        python_version=".".join(map(str, python_version)),
         hypothesis_version=hypothesis.__version__,
         hypofuzz_version=hypofuzz.__version__,
         pid=os.getpid(),

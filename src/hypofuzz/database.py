@@ -27,7 +27,6 @@ class WorkerIdentity:
     worker_uuid: str
     operating_system: str
     python_version: str
-    python_version_full: str
     hypothesis_version: str
     hypofuzz_version: str
     pid: int
