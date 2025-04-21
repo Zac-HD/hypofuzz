@@ -99,9 +99,6 @@ class Report:
     @staticmethod
     def from_dict(data: dict) -> "Report":
         data = dict(data)
-        # compatibility with older dbs
-        if "note" in data:
-            del data["note"]
         data["worker"] = WorkerIdentity.from_dict(data["worker"])
         data["status_counts"] = StatusCounts(
             {Status(int(k)): v for k, v in data["status_counts"].items()}
@@ -206,11 +203,11 @@ def linearize_reports(reports: list[Report]) -> LinearReports:
     # The linearization algorithm is as follows:
     # * Track the total number of inputs and the total elapsed time of the
     #   current linearized history.
-    # * Examine reports in sorted timestamp order. Compute the new ninputs n and new
-    #   elapsed_time t relative to the previous report from that worker.
+    # * Examine reports in sorted timestamp order. Compute the new status_counts c
+    #   and new elapsed_time t relative to the previous report from that worker.
     # * Append a new report to the linearized history, which is the same as the
-    #   actual report but with inputs linearized_n + n and elapsed time
-    #   linearized_elapsed_time + t.
+    #   actual report but with status counts linearized_status_counts + c and
+    #   elapsed time linearized_elapsed_time + t.
     #
     # We could improve lineariztion for time periods with overlapping workers by
     # taking the maximum of any coverage achieved in that interval, if all the
@@ -221,11 +218,11 @@ def linearize_reports(reports: list[Report]) -> LinearReports:
     total_statuses = StatusCounts(dict.fromkeys(Status, 0))
     total_elapsed_time = 0.0
     linearized_reports = []
-    # we track a running total of ninputs and elapsed_time for each worker. This
-    # lets us compute new ninputs and elapsed_time for each report, relative to
-    # the previous report.
+    # we track a running total of status counts and elapsed_time for each worker.
+    # This lets us compute new status counts and elapsed_time for each report,
+    # relative to the previous report.
     #
-    # We could equivalently store ninputs_new and elapsed_time_new on the reports.
+    # We could equivalently store statuses_new and elapsed_time_new on the reports.
     # (but then deletion or loss of arbitrary reports becomes unsound without fixing
     # up the subsequent report).
     offsets_statuses: dict[str, StatusCounts] = defaultdict(
@@ -233,9 +230,9 @@ def linearize_reports(reports: list[Report]) -> LinearReports:
     )
     offsets_elapsed_time: dict[str, float] = defaultdict(float)
     # We sort by timestamp, and rely on the invariant that reports from an
-    # individual worker always monotonically increase in both ninputs and elapsed_time
-    # as the timestamp increases, so that sorting by timestamp is enough to sort by
-    # all three attributes (within an individual worker).
+    # individual worker always monotonically increase in both status counts and
+    # elapsed_time as the timestamp increases, so that sorting by timestamp is
+    # enough to sort by all three attributes (within an individual worker).
     for report in sorted(reports, key=lambda report: report.timestamp):
         statuses_diff = report.status_counts - offsets_statuses[report.worker.uuid]
         elapsed_time_diff = (
