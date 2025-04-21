@@ -44,6 +44,7 @@ export interface WorkerIdentity {
 
 export class Report {
   constructor(
+    readonly database_key: string,
     readonly nodeid: string,
     readonly elapsed_time: number,
     readonly timestamp: number,
@@ -59,6 +60,7 @@ export class Report {
   }
   static fromJson(data: any): Report {
     return new Report(
+      data.database_key,
       data.nodeid,
       data.elapsed_time,
       data.timestamp,
