@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 
 export function PatchesPage() {
-  const [patches, setPatches] = useState<Record<string, string>>({})
+  const [patches, setPatches] = useState<Map<string, string>>(new Map())
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -26,7 +26,7 @@ export function PatchesPage() {
     )
   }
 
-  if (!Object.keys(patches).length) {
+  if (!patches.size) {
     return (
       <div className="patches-page">
         <h1>Patches</h1>

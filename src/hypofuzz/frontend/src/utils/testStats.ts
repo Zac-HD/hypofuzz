@@ -22,19 +22,17 @@ function formatTime(t: number): string {
   return `${hours > 0 ? `${hours}:${minutes.toString().padStart(2, "0")}` : minutes}:${seconds.toString().padStart(2, "0")}`
 }
 
-export function getTestStats(latest: Report): TestStats {
+export function getTestStats(report: Report): TestStats {
   const perSecond =
-    latest.elapsed_time > 0
-      ? Math.round(
-          (latest.loaded_from_db + latest.ninputs) / latest.elapsed_time,
-        )
+    report.elapsed_time > 0
+      ? Math.round(report.ninputs / report.elapsed_time)
       : 0
 
   return {
-    inputs: latest.ninputs.toLocaleString(),
-    branches: latest.branches.toLocaleString(),
+    inputs: report.ninputs.toLocaleString(),
+    branches: report.branches.toLocaleString(),
     executions: `${perSecond.toLocaleString()}/s`,
-    inputsSinceBranch: latest.since_new_cov?.toLocaleString() ?? "—",
-    timeSpent: formatTime(latest.elapsed_time),
+    inputsSinceBranch: report.since_new_cov?.toLocaleString() ?? "—",
+    timeSpent: formatTime(report.elapsed_time),
   }
 }

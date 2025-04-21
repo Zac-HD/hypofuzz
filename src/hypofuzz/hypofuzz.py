@@ -1,18 +1,25 @@
 """Adaptive fuzzing for property-based tests using Hypothesis."""
 
 import contextlib
+import inspect
 import itertools
 import os
+import platform
 import socket
+import subprocess
 import sys
 import time
 import traceback
+from base64 import b64encode
 from collections.abc import Callable, Generator
 from contextlib import suppress
 from functools import lru_cache
+from pathlib import Path
 from random import Random
-from typing import Any, Optional, Union, cast
+from typing import Any, Optional, Union
+from uuid import uuid4
 
+import hypothesis
 from hypothesis import settings
 from hypothesis.control import BuildContext
 from hypothesis.core import (
@@ -38,6 +45,7 @@ from hypothesis.reporting import with_reporter
 from hypothesis.vendor.pretty import RepresentationPrinter
 from sortedcontainers import SortedKeyList
 
+import hypofuzz
 from hypofuzz.corpus import (
     BlackBoxMutator,
     CrossOverMutator,
@@ -46,7 +54,14 @@ from hypofuzz.corpus import (
     get_shrinker,
 )
 from hypofuzz.coverage import CoverageCollectionContext
-from hypofuzz.database import Metadata, Report, WorkerT, get_db
+from hypofuzz.database import (
+    Metadata,
+    Phase,
+    Report,
+    StatusCounts,
+    WorkerIdentity,
+    get_db,
+)
 from hypofuzz.provider import HypofuzzProvider
 
 record_pytrace: Optional[Callable[..., Any]]
@@ -54,6 +69,8 @@ try:
     from hypofuzz.pytrace import record_pytrace
 except ImportError:
     record_pytrace = None
+
+process_uuid = uuid4().hex
 
 
 @contextlib.contextmanager
@@ -152,8 +169,8 @@ class FuzzProcess:
         self.elapsed_time = 0.0
         self.stop_shrinking_at = float("inf")
         self.since_new_cov = 0
-        self.status_counts = {s.name: 0 for s in Status}
-        self.shrinking = False
+        self.status_counts = dict.fromkeys(Status, 0)
+        self.phase: Optional[Phase] = None
         # Any new examples from the database will be added to this replay queue
         self._replay_queue: list[tuple[Union[ChoiceT, ChoiceTemplate], ...]] = []
         # After replay, we stay in blackbox mode for a while, until we've generated
@@ -163,11 +180,6 @@ class FuzzProcess:
 
     def startup(self) -> None:
         """Set up initial state and prepare to replay the saved behaviour."""
-        # If we're continuing to fuzz something we've tested before, load some stats
-        if reports := list(get_db().fetch_reports(self.database_key)):
-            latest: Any = max(reports, key=lambda d: d["elapsed_time"])
-            self.ninputs = latest["ninputs"]
-            self.elapsed_time = latest["elapsed_time"]
         # Report that we've started this fuzz target
         get_db().save(b"hypofuzz-test-keys", self.database_key)
         # Next, restore progress made in previous runs by loading our saved examples.
@@ -176,6 +188,15 @@ class FuzzProcess:
         # our data structures directly, but copes much better with changed behaviour.
         self._replay_queue.extend(self.pool.fetch())
         self._replay_queue.append((ChoiceTemplate(type="simplest", count=None),))
+
+    def _start_phase(self, phase: Phase) -> None:
+        if phase is self.phase:
+            return
+        if self.phase is not None:
+            # don't save a report the very first time we start a phase
+            self._save_report(self._report)
+            self._replace_metadata(self._metadata)
+        self.phase = phase
 
     def generate_data(self) -> ConjectureData:
         """Generate a test prefix by mutating previous examples.
@@ -193,9 +214,11 @@ class FuzzProcess:
         # database.  This is useful to recover state at startup, or to share
         # progress made in other processes.
         if self._replay_queue:
+            self._start_phase(Phase.REPLAY)
             choices = self._replay_queue.pop()
             return ConjectureData.for_choices(choices)
 
+        self._start_phase(Phase.GENERATE)
         # TODO: currently hard-coding a particular mutator; we want to do MOpt-style
         # adaptive weighting of all the different mutators we could use.
         # For now though, we'll just use a hardcoded swapover point
@@ -229,7 +252,7 @@ class FuzzProcess:
         if result.status is Status.INTERESTING:
             assert not isinstance(result, _Overrun)
             # Shrink to our minimal failing example, since we'll stop after this.
-            self.shrinking = True
+            self._start_phase(Phase.SHRINK)
             shrinker = get_shrinker(
                 self.pool,
                 self._run_test_on,  # type: ignore
@@ -241,7 +264,7 @@ class FuzzProcess:
             self.stop_shrinking_at = self.elapsed_time + 300
             with contextlib.suppress(HitShrinkTimeoutError, RunIsComplete):
                 shrinker.shrink()
-            self.shrinking = False
+            self._start_phase(Phase.FAILED)
             if record_pytrace:
                 # Replay minimal example under our time-travelling debug tracer
                 self._run_test_on(
@@ -258,6 +281,7 @@ class FuzzProcess:
         # NOTE: this distillation logic works fine, it's just discovering new coverage
         # much more slowly than jumping directly to mutational mode.
         # if len(self.pool.arc_counts) > seen_count and not self._early_blackbox_mode:
+        #     self._start_phase(Phase.DISTILL)
         #     self.pool.distill(self._run_test_on, self.random)
 
     def _run_test_on(
@@ -346,7 +370,7 @@ class FuzzProcess:
         data.freeze()
         # Update the pool and report any changes immediately for new coverage.  If no
         # new coverage, occasionally send an update anyway so we don't look stalled.
-        self.status_counts[data.status.name] += 1
+        self.status_counts[data.status] += 1
         if self.pool.add(data.as_result(), source):
             self.since_new_cov = 0
         else:
@@ -370,11 +394,11 @@ class FuzzProcess:
         # by dropping the previous report if it differs from the latest in more
         # than just runtime.
         if self._last_report and not (
-            self._last_report["branches"] != report["branches"]
-            or self._last_report["note"] != report["note"]
+            self._last_report.branches != report.branches
+            or self._last_report.phase != report.phase
             or self.pool.interesting_examples
             # always keep reports which discovered new coverage
-            or self._last_report["since_new_cov"] == 0
+            or self._last_report.since_new_cov == 0
         ):
             db.delete_report(self.database_key, self._last_report)
 
@@ -387,46 +411,33 @@ class FuzzProcess:
     @property
     def _report(self) -> Report:
         """Summarise current state to send to dashboard."""
-        report: Report = {
-            "nodeid": self.nodeid,
-            "elapsed_time": self.elapsed_time,
-            "timestamp": time.time(),
-            "worker": where_am_i(),
-            "ninputs": self.ninputs,
-            "branches": len(self.pool.arc_counts),
-            "since_new_cov": None if self.ninputs == 0 else self.since_new_cov,
-            "loaded_from_db": len(self.pool._loaded_from_database),
-            "note": (
-                "starting up..."
-                if self.ninputs == 0
-                else (
-                    "replaying saved examples"
-                    if self._replay_queue
-                    else (
-                        "shrinking known examples"
-                        if self.pool._in_distill_phase
-                        else ""
-                    )
-                )
+        assert sum(self.status_counts.values()) == self.ninputs
+        assert self.phase is not None
+        return Report(
+            database_key=b64encode(self.database_key).decode(),
+            nodeid=self.nodeid,
+            elapsed_time=self.elapsed_time,
+            timestamp=time.time(),
+            worker=worker_identity(
+                in_directory=Path(inspect.getfile(self._test_fn)).parent
             ),
-        }
-
-        if self.pool.interesting_examples:
-            report["note"] = (
-                f"raised {list(self.pool.interesting_examples)[0][0].__name__} "
-                f"({'shrinking...' if self.shrinking else 'finished'})"
-            )
-            report["since_new_cov"] = None
-        return report
+            status_counts=StatusCounts(self.status_counts),
+            branches=len(self.pool.arc_counts),
+            since_new_cov=(
+                None
+                if (self.ninputs == 0 or self.pool.interesting_examples)
+                else self.since_new_cov
+            ),
+            phase=self.phase,
+        )
 
     @property
     def _metadata(self) -> Metadata:
-        return {
-            "nodeid": self.nodeid,
-            "seed_pool": self.pool.json_report,
-            "failures": [ls for _, ls in self.pool.interesting_examples.values()],
-            "status_counts": dict(self.status_counts),
-        }
+        return Metadata(
+            nodeid=self.nodeid,
+            seed_pool=self.pool.json_report,
+            failures=[ls for _, ls in self.pool.interesting_examples.values()],
+        )
 
     @property
     def has_found_failure(self) -> bool:
@@ -465,8 +476,21 @@ def fuzz_several(*targets_: FuzzProcess, random_seed: Optional[int] = None) -> N
 
 
 @lru_cache
-def where_am_i() -> WorkerT:
-    """Return a json blob identifying the machine running this code.
+def _git_head(*, in_directory: Optional[Path] = None) -> Optional[str]:
+    if in_directory is not None:
+        assert in_directory.is_dir()
+
+    try:
+        return subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], timeout=10, text=True, cwd=in_directory
+        ).strip()
+    except Exception:
+        return None
+
+
+@lru_cache
+def worker_identity(*, in_directory: Optional[Path] = None) -> WorkerIdentity:
+    """Returns a class identifying the machine running this code.
 
     This is intended to roughly represent the "unit of fuzz worker", so it includes
     the PID as well as hostname and (if in kubernetes) some pod identifiers.
@@ -476,20 +500,29 @@ def where_am_i() -> WorkerT:
     total number of inputs, and so on.  In practice we don't care that much about
     precision here, because the code under test is likely to be changing too.
     """
-    identifiers: WorkerT = {
-        "pid": os.getpid(),
-        "hostname": socket.gethostname(),  # In K8s, this is typically the pod name
-        "pod_name": os.getenv("HOSTNAME"),
-        "pod_namespace": os.getenv("POD_NAMESPACE"),
-        "node_name": os.getenv("NODE_NAME"),
-        "pod_ip": os.getenv("POD_IP"),
-        "container_id": None,
-    }
+    container_id = None
     with suppress(Exception), open("/proc/self/cgroup") as f:
         for line in f:
             if "kubepods" in line:
                 container_id = line.split("/")[-1].strip()
-                identifiers["container_id"] = container_id
-                break
 
-    return cast(WorkerT, {k: v for k, v in identifiers.items() if v is not None})
+    python_version: Any = sys.version_info
+    if python_version.releaselevel == "final":
+        # drop releaselevel and serial for standard releases
+        python_version = python_version[:3]
+
+    return WorkerIdentity(
+        uuid=process_uuid,
+        operating_system=platform.system(),
+        python_version=".".join(map(str, python_version)),
+        hypothesis_version=hypothesis.__version__,
+        hypofuzz_version=hypofuzz.__version__,
+        pid=os.getpid(),
+        hostname=socket.gethostname(),  # In K8s, this is typically the pod name
+        pod_name=os.getenv("HOSTNAME"),
+        pod_namespace=os.getenv("POD_NAMESPACE"),
+        node_name=os.getenv("NODE_NAME"),
+        pod_ip=os.getenv("POD_IP"),
+        container_id=container_id,
+        git_hash=_git_head(in_directory=in_directory),
+    )

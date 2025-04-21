@@ -136,7 +136,6 @@ class Pool:
 
         # To show the current state of the pool in the dashboard
         self.json_report: list[list[str]] = []
-        self._in_distill_phase = False
 
     def __repr__(self) -> str:
         rs = {b: r.extra_information.branches for b, r in self.results.items()}  # type: ignore
@@ -338,7 +337,6 @@ class Pool:
            try again if they did not reach a fixpoint.  Almost all of the structures
            we're using can be mutated in the process, so it can get strange.
         """
-        self._in_distill_phase = True
         self._check_invariants()
         minimal_branches = {
             arc
@@ -368,7 +366,6 @@ class Pool:
                 if choices == shrinker.shrink_target.choices
             }
             self._check_invariants()
-        self._in_distill_phase = False
 
 
 class Mutator(abc.ABC):

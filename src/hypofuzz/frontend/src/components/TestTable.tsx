@@ -4,8 +4,8 @@ import { Table } from "./Table"
 import { getTestStats } from "../utils/testStats"
 
 interface Props {
-  reports: Record<string, Report[]>
-  metadata: Record<string, Metadata>
+  reports: Map<string, Report[]>
+  metadata: Map<string, Metadata>
 }
 
 interface TestRow {
@@ -20,21 +20,24 @@ const statusOrder = {
 }
 
 export function TestTable({ reports, metadata }: Props) {
-  const sortedTests = Object.entries(reports)
+  const sortedTests = Array.from(reports.entries())
     .filter(([_nodeid, reports]) => {
+      if (reports.length === 0) {
+        return false
+      }
       const latest = reports[reports.length - 1]
-      return latest.nodeid in metadata
+      return metadata.has(latest.nodeid)
     })
     .sortKey(([_nodeid, reports]) => {
       const latest = reports[reports.length - 1]
-      const status = metadata[latest.nodeid].failures?.length
+      const status = metadata.get(latest.nodeid)!.failures?.length
         ? statusOrder.failed
         : latest.ninputs === 0
           ? statusOrder.collected
           : statusOrder.running
       return [status, latest.nodeid]
     })
-    .map(([nodeid, reports]) => ({ reports, metadata: metadata[nodeid] }))
+    .map(([nodeid, reports]) => ({ reports, metadata: metadata.get(nodeid)! }))
 
   const headers = [
     "Test",

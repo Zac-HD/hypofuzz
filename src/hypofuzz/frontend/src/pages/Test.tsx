@@ -35,12 +35,12 @@ function _TestPage() {
     }
   }, [nodeid])
 
-  if (!nodeid || !reports[nodeid]) {
+  if (!nodeid || !reports.has(nodeid)) {
     return <div>Test not found</div>
   }
 
-  const testReports = reports[nodeid]
-  const testMetadata = metadata[nodeid]
+  const testReports = reports.get(nodeid)!
+  const testMetadata = metadata.get(nodeid)!
   const stats = getTestStats(testReports[testReports.length - 1])
 
   return (
@@ -84,7 +84,7 @@ function _TestPage() {
           </div>
         </div>
       </div>
-      <CoverageGraph reports={{ [nodeid]: testReports }} />
+      <CoverageGraph reports={new Map([[nodeid, testReports]])} />
 
       {testMetadata.failures && testMetadata.failures.length > 0 && (
         <div className="test-failure">

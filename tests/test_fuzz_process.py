@@ -18,7 +18,7 @@ def test_fuzz_one_process():
         fp.run_one()
 
     # We expect that this test will always pass; check that.
-    assert fp.status_counts[Status.INTERESTING.name] == 0
+    assert fp.status_counts[Status.INTERESTING] == 0
 
 
 class CustomError(Exception):
@@ -38,8 +38,8 @@ def test_fuzz_one_process_explain_mode():
         fp.run_one()
 
     # Check that we got the expected failure, including message + explain-mode output.
-    assert fp.status_counts[Status.INTERESTING.name] >= 1
-    (call_repr, _, _, tb_repr), *rest = fp._metadata["failures"]
+    assert fp.status_counts[Status.INTERESTING] >= 1
+    (call_repr, _, _, tb_repr), *rest = fp._metadata.failures
     assert not rest  # expected only one failure
     assert tb_repr.endswith("test_fuzz_process.CustomError: x=1\n")
     assert call_repr == "failing_pbt(\n    x=1,\n    y=0,\n)"

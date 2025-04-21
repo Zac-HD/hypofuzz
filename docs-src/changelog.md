@@ -2,6 +2,10 @@
 HypoFuzz uses [calendar-based versioning](https://calver.org/), with a
 `YY-MM-patch` format.
 
+## 25.04.3
+
+The coverage graph in the dashboard now displays a more unified view across restarts, avoiding displaying dramatic drops in coverage when replaying the covering corpus.
+
 ## 25.04.2
 
 Improve table UI in the dashboard.
