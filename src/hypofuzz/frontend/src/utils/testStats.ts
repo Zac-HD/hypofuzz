@@ -22,16 +22,17 @@ function formatTime(t: number): string {
   return `${hours > 0 ? `${hours}:${minutes.toString().padStart(2, "0")}` : minutes}:${seconds.toString().padStart(2, "0")}`
 }
 
-export function getTestStats(report: Report): TestStats {
-  const perSecond =
-    report.elapsed_time > 0
-      ? Math.round(report.ninputs / report.elapsed_time)
-      : 0
+export function inputsPerSecond(report: Report): number {
+  return report.elapsed_time > 0
+    ? Math.round(report.ninputs / report.elapsed_time)
+    : 0
+}
 
+export function getTestStats(report: Report): TestStats {
   return {
     inputs: report.ninputs.toLocaleString(),
     branches: report.branches.toLocaleString(),
-    executions: `${perSecond.toLocaleString()}/s`,
+    executions: `${inputsPerSecond(report).toLocaleString()}/s`,
     inputsSinceBranch: report.since_new_cov?.toLocaleString() ?? "—",
     timeSpent: formatTime(report.elapsed_time),
   }

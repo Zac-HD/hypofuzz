@@ -61,8 +61,38 @@ select {
         text-align: left;
     }
 
+    &--sortable {
+        cursor: pointer;
+        // it's easy to accidentally trigger a double click highlight when
+        // toggling sorting options.
+        user-select: none;
+    }
+
     tr:last-child td {
         border-bottom: none;
+    }
+
+    &__header {
+        display: flex;
+    }
+
+    &__sort {
+        display: flex;
+        margin-left: 7px;
+
+        &__arrow {
+            opacity: 0.3;
+            font-size: 1em;
+            font-weight: bold;
+
+            &--active {
+                opacity: 1;
+            }
+
+            &--desc {
+                margin-left: -5px;
+            }
+        }
     }
 }
 

@@ -139,6 +139,7 @@ export function WebSocketProvider({
             if (nodeReports.length > 0) {
               const latestReport = nodeReports[nodeReports.length - 1]
               const updatedReport = new Report(
+                report.database_key,
                 report.nodeid,
                 latestReport.elapsed_time + newElapsedTime,
                 report.timestamp,

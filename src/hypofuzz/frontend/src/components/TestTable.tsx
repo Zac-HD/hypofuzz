@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom"
 import { Report, Metadata } from "../types/dashboard"
 import { Table } from "./Table"
-import { getTestStats } from "../utils/testStats"
+import { getTestStats, inputsPerSecond } from "../utils/testStats"
 
 interface Props {
   reports: Map<string, Report[]>
@@ -13,10 +13,10 @@ interface TestRow {
   metadata: Metadata
 }
 
-const statusOrder = {
-  failed: 0,
-  running: 1,
-  collected: 2,
+enum StatusOrder {
+  FAILED = 0,
+  RUNNING = 1,
+  COLLECTED = 2,
 }
 
 export function TestTable({ reports, metadata }: Props) {
@@ -31,22 +31,52 @@ export function TestTable({ reports, metadata }: Props) {
     .sortKey(([_nodeid, reports]) => {
       const latest = reports[reports.length - 1]
       const status = metadata.get(latest.nodeid)!.failures?.length
-        ? statusOrder.failed
+        ? StatusOrder.FAILED
         : latest.ninputs === 0
-          ? statusOrder.collected
-          : statusOrder.running
+          ? StatusOrder.COLLECTED
+          : StatusOrder.RUNNING
       return [status, latest.nodeid]
     })
     .map(([nodeid, reports]) => ({ reports, metadata: metadata.get(nodeid)! }))
 
   const headers = [
-    "Test",
-    "Status",
-    "Inputs",
-    "Branches",
-    "Executions",
-    "Inputs since branch",
-    "Time spent",
+    {
+      text: "Test",
+      sortKey: (item: TestRow) => item.metadata.nodeid,
+    },
+    {
+      text: "Status",
+      sortKey: (item: TestRow) => {
+        const latest = item.reports[item.reports.length - 1]
+        if (item.metadata.failures?.length) return 0
+        if (latest.ninputs === 0) return 1
+        return 2
+      },
+    },
+    {
+      text: "Inputs",
+      sortKey: (item: TestRow) => item.reports[item.reports.length - 1].ninputs,
+    },
+    {
+      text: "Branches",
+      sortKey: (item: TestRow) =>
+        item.reports[item.reports.length - 1].branches,
+    },
+    {
+      text: "Executions",
+      sortKey: (item: TestRow) =>
+        inputsPerSecond(item.reports[item.reports.length - 1]),
+    },
+    {
+      text: "Inputs since branch",
+      sortKey: (item: TestRow) =>
+        item.reports[item.reports.length - 1].since_new_cov ?? 0,
+    },
+    {
+      text: "Time spent",
+      sortKey: (item: TestRow) =>
+        item.reports[item.reports.length - 1].elapsed_time,
+    },
   ]
 
   const row = (item: TestRow): React.ReactNode[] => {
@@ -55,11 +85,11 @@ export function TestTable({ reports, metadata }: Props) {
 
     return [
       <Link
-        to={`/tests/${encodeURIComponent(item.metadata.nodeid)}`}
+        to={`/tests/${encodeURIComponent(latest.nodeid)}`}
         className="test__link"
         style={{ wordBreak: "break-all" }}
       >
-        {item.metadata.nodeid}
+        {latest.nodeid}
       </Link>,
       <div style={{ textAlign: "center" }}>
         {item.metadata.failures?.length ? (
@@ -85,7 +115,7 @@ export function TestTable({ reports, metadata }: Props) {
         headers={headers}
         data={sortedTests}
         row={row}
-        getKey={item => item.metadata.nodeid}
+        getKey={item => item.reports[item.reports.length - 1].database_key}
       />
     </div>
   )
