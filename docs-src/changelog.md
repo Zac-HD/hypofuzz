@@ -4,7 +4,7 @@ HypoFuzz uses [calendar-based versioning](https://calver.org/), with a
 
 ## 25.04.4
 
-Tables in the dashboard are now sortable by column.
+Tables in the dashboard can now be sorted by column.
 
 ## 25.04.3
 
