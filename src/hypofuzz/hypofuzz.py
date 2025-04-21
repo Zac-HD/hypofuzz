@@ -1,6 +1,7 @@
 """Adaptive fuzzing for property-based tests using Hypothesis."""
 
 import contextlib
+import inspect
 import itertools
 import os
 import platform
@@ -13,6 +14,7 @@ from base64 import b64encode
 from collections.abc import Callable, Generator
 from contextlib import suppress
 from functools import lru_cache
+from pathlib import Path
 from random import Random
 from typing import Any, Optional, Union
 from uuid import uuid4
@@ -416,7 +418,9 @@ class FuzzProcess:
             nodeid=self.nodeid,
             elapsed_time=self.elapsed_time,
             timestamp=time.time(),
-            worker=worker_identity(),
+            worker=worker_identity(
+                in_directory=Path(inspect.getfile(self._test_fn)).parent
+            ),
             status_counts=StatusCounts(self.status_counts),
             branches=len(self.pool.arc_counts),
             since_new_cov=(
@@ -472,19 +476,20 @@ def fuzz_several(*targets_: FuzzProcess, random_seed: Optional[int] = None) -> N
 
 
 @lru_cache
-def _git_head() -> Optional[str]:
+def _git_head(*, in_directory: Optional[Path] = None) -> Optional[str]:
+    if in_directory is not None:
+        assert in_directory.is_dir()
+
     try:
         return subprocess.check_output(
-            ["git", "rev-parse", "HEAD"],
-            timeout=10,
-            text=True,
+            ["git", "rev-parse", "HEAD"], timeout=10, text=True, cwd=in_directory
         ).strip()
     except Exception:
         return None
 
 
 @lru_cache
-def worker_identity() -> WorkerIdentity:
+def worker_identity(*, in_directory: Optional[Path] = None) -> WorkerIdentity:
     """Returns a class identifying the machine running this code.
 
     This is intended to roughly represent the "unit of fuzz worker", so it includes
@@ -519,5 +524,5 @@ def worker_identity() -> WorkerIdentity:
         node_name=os.getenv("NODE_NAME"),
         pod_ip=os.getenv("POD_IP"),
         container_id=container_id,
-        git_hash=_git_head(),
+        git_hash=_git_head(in_directory=in_directory),
     )
