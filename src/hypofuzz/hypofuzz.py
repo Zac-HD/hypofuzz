@@ -52,7 +52,14 @@ from hypofuzz.corpus import (
     get_shrinker,
 )
 from hypofuzz.coverage import CoverageCollectionContext
-from hypofuzz.database import Metadata, Phase, Report, WorkerIdentity, get_db
+from hypofuzz.database import (
+    Metadata,
+    Phase,
+    Report,
+    StatusCounts,
+    WorkerIdentity,
+    get_db,
+)
 from hypofuzz.provider import HypofuzzProvider
 
 record_pytrace: Optional[Callable[..., Any]]
@@ -160,7 +167,7 @@ class FuzzProcess:
         self.elapsed_time = 0.0
         self.stop_shrinking_at = float("inf")
         self.since_new_cov = 0
-        self.status_counts = {s.name: 0 for s in Status}
+        self.status_counts = dict.fromkeys(Status, 0)
         self.phase: Optional[Phase] = None
         # Any new examples from the database will be added to this replay queue
         self._replay_queue: list[tuple[Union[ChoiceT, ChoiceTemplate], ...]] = []
@@ -171,11 +178,6 @@ class FuzzProcess:
 
     def startup(self) -> None:
         """Set up initial state and prepare to replay the saved behaviour."""
-        # If we're continuing to fuzz something we've tested before, load some stats
-        if reports := list(get_db().fetch_reports(self.database_key)):
-            latest: Report = max(reports, key=lambda d: d.elapsed_time)
-            self.ninputs = latest.ninputs
-            self.elapsed_time = latest.elapsed_time
         # Report that we've started this fuzz target
         get_db().save(b"hypofuzz-test-keys", self.database_key)
         # Next, restore progress made in previous runs by loading our saved examples.
@@ -184,6 +186,15 @@ class FuzzProcess:
         # our data structures directly, but copes much better with changed behaviour.
         self._replay_queue.extend(self.pool.fetch())
         self._replay_queue.append((ChoiceTemplate(type="simplest", count=None),))
+
+    def _start_phase(self, phase: Phase) -> None:
+        if phase is self.phase:
+            return
+        if self.phase is not None:
+            # don't save a report the very first time we start a phase
+            self._save_report(self._report)
+            self._replace_metadata(self._metadata)
+        self.phase = phase
 
     def generate_data(self) -> ConjectureData:
         """Generate a test prefix by mutating previous examples.
@@ -201,13 +212,11 @@ class FuzzProcess:
         # database.  This is useful to recover state at startup, or to share
         # progress made in other processes.
         if self._replay_queue:
-            self.phase = Phase.REPLAY
+            self._start_phase(Phase.REPLAY)
             choices = self._replay_queue.pop()
             return ConjectureData.for_choices(choices)
 
-        # TODO we should emit a report whenever we switch phases, eg from replay
-        # to generate.
-        self.phase = Phase.GENERATE
+        self._start_phase(Phase.GENERATE)
         # TODO: currently hard-coding a particular mutator; we want to do MOpt-style
         # adaptive weighting of all the different mutators we could use.
         # For now though, we'll just use a hardcoded swapover point
@@ -241,7 +250,7 @@ class FuzzProcess:
         if result.status is Status.INTERESTING:
             assert not isinstance(result, _Overrun)
             # Shrink to our minimal failing example, since we'll stop after this.
-            self.phase = Phase.SHRINK
+            self._start_phase(Phase.SHRINK)
             shrinker = get_shrinker(
                 self.pool,
                 self._run_test_on,  # type: ignore
@@ -253,7 +262,7 @@ class FuzzProcess:
             self.stop_shrinking_at = self.elapsed_time + 300
             with contextlib.suppress(HitShrinkTimeoutError, RunIsComplete):
                 shrinker.shrink()
-            self.phase = Phase.FAILED
+            self._start_phase(Phase.FAILED)
             if record_pytrace:
                 # Replay minimal example under our time-travelling debug tracer
                 self._run_test_on(
@@ -270,7 +279,7 @@ class FuzzProcess:
         # NOTE: this distillation logic works fine, it's just discovering new coverage
         # much more slowly than jumping directly to mutational mode.
         # if len(self.pool.arc_counts) > seen_count and not self._early_blackbox_mode:
-        #     self.phase = Phase.DISTILL
+        #     self._start_phase(Phase.DISTILL)
         #     self.pool.distill(self._run_test_on, self.random)
 
     def _run_test_on(
@@ -359,7 +368,7 @@ class FuzzProcess:
         data.freeze()
         # Update the pool and report any changes immediately for new coverage.  If no
         # new coverage, occasionally send an update anyway so we don't look stalled.
-        self.status_counts[data.status.name] += 1
+        self.status_counts[data.status] += 1
         if self.pool.add(data.as_result(), source):
             self.since_new_cov = 0
         else:
@@ -400,41 +409,30 @@ class FuzzProcess:
     @property
     def _report(self) -> Report:
         """Summarise current state to send to dashboard."""
+        assert sum(self.status_counts.values()) == self.ninputs
+        assert self.phase is not None
         return Report(
             database_key=b64encode(self.database_key).decode(),
             nodeid=self.nodeid,
             elapsed_time=self.elapsed_time,
             timestamp=time.time(),
             worker=worker_identity(),
-            ninputs=self.ninputs,
+            status_counts=StatusCounts(self.status_counts),
             branches=len(self.pool.arc_counts),
             since_new_cov=(
                 None
                 if (self.ninputs == 0 or self.pool.interesting_examples)
                 else self.since_new_cov
             ),
-            loaded_from_db=len(self.pool._loaded_from_database),
             phase=self.phase,
         )
 
     @property
     def _metadata(self) -> Metadata:
-        report = self._report
         return Metadata(
-            # entries from report
-            database_key=report.database_key,
-            nodeid=report.nodeid,
-            elapsed_time=report.elapsed_time,
-            timestamp=report.timestamp,
-            ninputs=report.ninputs,
-            branches=report.branches,
-            since_new_cov=report.since_new_cov,
-            loaded_from_db=report.loaded_from_db,
-            phase=report.phase,
-            # new entries
+            nodeid=self.nodeid,
             seed_pool=self.pool.json_report,
             failures=[ls for _, ls in self.pool.interesting_examples.values()],
-            status_counts=dict(self.status_counts),
         )
 
     @property
@@ -480,7 +478,7 @@ def _git_head() -> Optional[str]:
             ["git", "rev-parse", "HEAD"],
             timeout=10,
             text=True,
-        ).stdout.strip()
+        ).strip()
     except Exception:
         return None
 
@@ -503,7 +501,7 @@ def worker_identity() -> WorkerIdentity:
             if "kubepods" in line:
                 container_id = line.split("/")[-1].strip()
 
-    python_version = sys.version_info
+    python_version: Any = sys.version_info
     if python_version.releaselevel == "final":
         # drop releaselevel and serial for standard releases
         python_version = python_version[:3]

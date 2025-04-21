@@ -14,14 +14,14 @@ if (typeof window !== "undefined") {
 }
 
 interface Props {
-  reports: Record<string, Report[]>
+  reports: Map<string, Report[]>
 }
 
 // in pixels
 const distanceThreshold = 10
 
 class Graph {
-  reports: Record<string, Report[]>
+  reports: Map<string, Report[]>
   scaleSetting: string
   axisSetting: string
   xValue: (d: Report) => number
@@ -36,7 +36,7 @@ class Graph {
 
   private tooltip: d3.Selection<HTMLDivElement, unknown, HTMLElement, any>
   private brush: d3.BrushBehavior<unknown> | null = null
-  private eventListeners: Record<string, Array<() => void>> = {}
+  private eventListeners: Map<string, Array<() => void>> = new Map()
   private xAxis: d3.Selection<SVGGElement, unknown, null, undefined>
   private yAxis: d3.Selection<SVGGElement, unknown, null, undefined>
   private color: d3.ScaleOrdinal<string, string>
@@ -45,25 +45,24 @@ class Graph {
 
   constructor(
     svg: SVGSVGElement,
-    reports: Record<string, Report[]>,
+    reports: Map<string, Report[]>,
     scaleSetting: string,
     axisSetting: string,
   ) {
     this.reports = reports
     this.scaleSetting = scaleSetting
     this.axisSetting = axisSetting
-    this.xValue = (d: Report) =>
-      axisSetting == "time" ? d.elapsed_time : d.ninputs
+    this.xValue = (report: Report) =>
+      axisSetting == "time" ? report.elapsed_time : report.ninputs
 
     this.margin = { top: 20, right: 150, bottom: 45, left: 60 }
     this.width = svg.clientWidth - this.margin.left - this.margin.right
     this.height = 300 - this.margin.top - this.margin.bottom
 
-    const nodeIds = Array.from(Object.keys(reports))
-    this.color = d3.scaleOrdinal(d3.schemeCategory10).domain(nodeIds)
-    const latests = Object.entries(reports).map(
-      ([_, points]) => points[points.length - 1],
-    )
+    this.color = d3.scaleOrdinal(d3.schemeCategory10).domain(reports.keys())
+    const latests = Array.from(reports.entries())
+      .filter(([_, reports]) => reports.length > 0)
+      .map(([_, reports]) => reports[reports.length - 1])
 
     // symlog is like log but defined linearly in the range [0, 1].
     // https://d3js.org/d3-scale/symlog
@@ -163,7 +162,7 @@ class Graph {
         let closestPoint = null as Report | null
         let closestDistance = Infinity
 
-        Object.values(this.reports).forEach(points => {
+        Array.from(this.reports.values()).forEach(points => {
           if (!points || points.length === 0) return
 
           points
@@ -279,7 +278,7 @@ class Graph {
       .x(d => this.x(this.xValue(d)))
       .y(d => this.y(d.branches))
 
-    Object.entries(this.reports).forEach(([nodeid, points]) => {
+    Array.from(this.reports.entries()).forEach(([nodeid, points]) => {
       this.chartArea
         .append("path")
         .datum(points)
@@ -361,24 +360,25 @@ class Graph {
   // handroll a small event system
 
   on(eventName: string, callback: () => void): void {
-    if (!this.eventListeners[eventName]) {
-      this.eventListeners[eventName] = []
+    if (!this.eventListeners.has(eventName)) {
+      this.eventListeners.set(eventName, [])
     }
-    this.eventListeners[eventName].push(callback)
+    this.eventListeners.get(eventName)!.push(callback)
   }
 
   off(eventName: string, callback: () => void): void {
-    if (!this.eventListeners[eventName]) return
-    this.eventListeners[eventName] = this.eventListeners[eventName].filter(
-      cb => cb !== callback,
+    if (!this.eventListeners.has(eventName)) return
+    this.eventListeners.set(
+      eventName,
+      this.eventListeners.get(eventName)!.filter(cb => cb !== callback),
     )
   }
 
   emit(eventName: string): void {
-    if (!this.eventListeners[eventName]) {
+    if (!this.eventListeners.has(eventName)) {
       return
     }
-    this.eventListeners[eventName].forEach(callback => callback())
+    this.eventListeners.get(eventName)!.forEach(callback => callback())
   }
 }
 
@@ -400,7 +400,7 @@ export function CoverageGraph({ reports }: Props) {
   const [boxSelectEnabled, setBoxSelectEnabled] = useState(false)
 
   useEffect(() => {
-    if (!svgRef.current || Object.keys(reports).length === 0) {
+    if (!svgRef.current || reports.size === 0) {
       return
     }
 

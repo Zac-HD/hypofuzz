@@ -3,7 +3,6 @@
 import abc
 import json
 import math
-import time
 from collections import defaultdict
 from pathlib import Path
 from typing import Any, Optional
@@ -26,9 +25,11 @@ from trio import MemoryReceiveChannel
 
 from hypofuzz.database import (
     HypofuzzEncoder,
+    LinearReports,
     Metadata,
     Report,
     get_db,
+    linearize_reports,
     metadata_key,
     reports_key,
 )
@@ -65,7 +66,7 @@ class HypofuzzWebsocket(abc.ABC):
 
     @abc.abstractmethod
     async def initial(
-        self, reports: dict[str, list[Report]], metadata: dict[str, Metadata]
+        self, reports: dict[str, LinearReports], metadata: dict[str, Metadata]
     ) -> None:
         pass
 
@@ -76,7 +77,7 @@ class HypofuzzWebsocket(abc.ABC):
 
 class OverviewWebsocket(HypofuzzWebsocket):
     async def initial(
-        self, reports: dict[str, list[Report]], metadata: dict[str, Metadata]
+        self, reports: dict[str, LinearReports], metadata: dict[str, Metadata]
     ) -> None:
         await self.send_json(
             {"type": "initial", "reports": reports, "metadata": metadata}
@@ -93,7 +94,7 @@ class TestWebsocket(HypofuzzWebsocket):
         self.node_id = node_id
 
     async def initial(
-        self, reports: dict[str, list[Report]], metadata: dict[str, Metadata]
+        self, reports: dict[str, LinearReports], metadata: dict[str, Metadata]
     ) -> None:
         # match same shape as overview for now (mapping of node id to data)
         # TODO refactor this, drop the nesting and fix the types typescript-side
@@ -128,8 +129,6 @@ METADATA: dict[str, Metadata] = {}
 COLLECTION_RESULT: Optional[CollectionResult] = None
 PYTEST_ARGS: Optional[list[str]] = None
 websockets: set[HypofuzzWebsocket] = set()
-delete_debounce = 300
-refreshed_at: dict[bytes, float] = defaultdict(int)
 
 
 async def websocket(websocket: WebSocket) -> None:
@@ -140,7 +139,11 @@ async def websocket(websocket: WebSocket) -> None:
     )
     await websocket.accept()
     websockets.add(websocket)
-    await websocket.initial(REPORTS, METADATA)
+
+    reports = {
+        node_id: linearize_reports(reports) for node_id, reports in REPORTS.items()
+    }
+    await websocket.initial(reports, METADATA)
 
     try:
         while True:
@@ -265,32 +268,13 @@ async def handle_event(receive_channel: MemoryReceiveChannel) -> None:
                 METADATA[metadata.nodeid] = metadata
                 await broadcast_event("metadata", metadata)
 
-        if event_type == "delete":
-            key, value = args
+        # We're only keeping a reference to the latest metadata, so we don't need
+        # to bother handling deletion events for it, just save.
 
-            if key.endswith(reports_key):
-                key = key.rstrip(reports_key)
-                if value is not None:
-                    report = Report.from_dict(json.loads(value))
-                    REPORTS[report.nodeid].remove(report)
-                    await broadcast_event("delete", report)
-                else:
-                    # debounce each key, to relieve db read pressure for this expensive
-                    # re-scan. Deletions aren't important for correctness, just
-                    # performance / memory.
-                    if time.time() - refreshed_at[key] > delete_debounce:
-                        reports = SortedList(
-                            list(get_db().fetch_reports(key)),
-                            key=lambda r: r.elapsed_time,
-                        )
-                        if reports:
-                            node_id = reports[0].nodeid
-                            REPORTS[node_id] = reports
-                            await broadcast_event("refresh", reports)
-                        refreshed_at[key] = time.time()
-
-            # We're only keeping a reference to the latest metadata, so we don't need
-            # to bother handling deletion events for it, just save.
+        # we'll want to send the relinearized history to the dashboard every now
+        # and then (via the "refresh" event), to avoid falling too far out of sync.
+        # Unclear whether we want this on a long debounce for any arbitrary event,
+        # or on a timer.
 
 
 async def run_dashboard(port: int, host: str) -> None:
