@@ -23,9 +23,9 @@ from trio import MemoryReceiveChannel
 
 from hypofuzz.database import (
     HypofuzzEncoder,
-    LinearReports,
     Metadata,
     Report,
+    ReportWithDiff,
     get_db,
     linearize_reports,
     metadata_key,
@@ -64,7 +64,7 @@ class HypofuzzWebsocket(abc.ABC):
 
     @abc.abstractmethod
     async def initial(
-        self, reports: dict[str, LinearReports], metadata: dict[str, Metadata]
+        self, reports: dict[str, list[ReportWithDiff]], metadata: dict[str, Metadata]
     ) -> None:
         pass
 
@@ -75,7 +75,7 @@ class HypofuzzWebsocket(abc.ABC):
 
 class OverviewWebsocket(HypofuzzWebsocket):
     async def initial(
-        self, reports: dict[str, LinearReports], metadata: dict[str, Metadata]
+        self, reports: dict[str, list[ReportWithDiff]], metadata: dict[str, Metadata]
     ) -> None:
         await self.send_json(
             {"type": "initial", "reports": reports, "metadata": metadata}
@@ -92,7 +92,9 @@ class TestWebsocket(HypofuzzWebsocket):
         self.node_id = node_id
 
     async def initial(
-        self, reports: dict[str, LinearReports], metadata: dict[str, Metadata]
+        self,
+        reports: dict[str, list[ReportWithDiff]],
+        metadata: dict[str, Metadata],
     ) -> None:
         # match same shape as overview for now (mapping of node id to data)
         # TODO refactor this, drop the nesting and fix the types typescript-side
@@ -121,7 +123,7 @@ class TestWebsocket(HypofuzzWebsocket):
 
 
 REPORTS: dict[str, SortedList[Report]] = defaultdict(
-    lambda: SortedList(key=lambda r: r.elapsed_time)
+    lambda: SortedList(key=lambda r: r.timestamp)
 )
 METADATA: dict[str, Metadata] = {}
 COLLECTION_RESULT: Optional[CollectionResult] = None
@@ -138,9 +140,7 @@ async def websocket(websocket: WebSocket) -> None:
     await websocket.accept()
     websockets.add(websocket)
 
-    reports = {
-        node_id: linearize_reports(reports) for node_id, reports in REPORTS.items()
-    }
+    reports = linearize_reports(reports)
     await websocket.initial(reports, METADATA)
 
     try:
@@ -163,9 +163,7 @@ def try_format(code: str) -> str:
 
 
 async def api_tests(request: Request) -> Response:
-    return HypofuzzJSONResponse(
-        {node_id: list(reports) for node_id, reports in REPORTS.items()}
-    )
+    return HypofuzzJSONResponse(REPORTS)
 
 
 async def api_test(request: Request) -> Response:
