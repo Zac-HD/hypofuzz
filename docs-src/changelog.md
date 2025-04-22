@@ -2,6 +2,10 @@
 HypoFuzz uses [calendar-based versioning](https://calver.org/), with a
 `YY-MM-patch` format.
 
+## 25.04.5
+
+Remove integration with the time-travel debugger [pytrace](https://pytrace.com/). While (very) cool in principle, the ecosystem is not yet mature or stable enough.
+
 ## 25.04.4
 
 Tables in the dashboard can now be sorted by column.
