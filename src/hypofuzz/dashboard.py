@@ -244,10 +244,14 @@ async def handle_event(receive_channel: MemoryReceiveChannel) -> None:
             assert value is not None
             if key.endswith(reports_key):
                 report = Report.from_dict(json.loads(value))
+                # this is an in-process transmission, it should never be out of
+                # date with the Report schema
+                assert report is not None
                 REPORTS[report.nodeid].add(report)
                 await broadcast_event("save", report)
             if key.endswith(metadata_key):
                 metadata = Metadata.from_dict(json.loads(value))
+                assert metadata is not None
                 METADATA[metadata.nodeid] = metadata
                 await broadcast_event("metadata", metadata)
 
