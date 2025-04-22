@@ -200,6 +200,20 @@ async def api_collected_tests(request: Request) -> Response:
     return HypofuzzJSONResponse({"collection_status": collection_status})
 
 
+async def api_backing_state(request: Request) -> Response:
+    # get the backing state of the dashboard, suitable for use by
+    # dashboard_state.json.
+    # The data returned here looks very similar to other endpoints for now, but
+    # I'm keeping it separate because the data required to back a dashboard may
+    # change over time.
+    reports = {
+        node_id: linearize_reports(reports) for node_id, reports in REPORTS.items()
+    }
+    return HypofuzzJSONResponse(
+        {"reports": reports, "metadata": METADATA},
+    )
+
+
 dist = Path(__file__).parent / "frontend" / "dist"
 dist.mkdir(exist_ok=True)
 routes = [
@@ -208,6 +222,7 @@ routes = [
     Route("/api/tests/{node_id:path}", api_test),
     Route("/api/patches/", api_patches),
     Route("/api/collected_tests/", api_collected_tests),
+    Route("/api/backing_state/", api_backing_state),
     Mount("/assets", StaticFiles(directory=dist / "assets")),
     # catchall fallback. react will handle the routing of dynamic urls here,
     # such as to a node id.
