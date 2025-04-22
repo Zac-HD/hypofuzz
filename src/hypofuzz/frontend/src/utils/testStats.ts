@@ -23,9 +23,7 @@ function formatTime(t: number): string {
 }
 
 export function inputsPerSecond(report: Report): number {
-  return report.elapsed_time > 0
-    ? report.ninputs / report.elapsed_time
-    : 0
+  return report.elapsed_time > 0 ? report.ninputs / report.elapsed_time : 0
 }
 
 export function getTestStats(report: Report): TestStats {
