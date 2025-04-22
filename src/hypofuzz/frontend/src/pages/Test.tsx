@@ -19,21 +19,6 @@ export function TestPage() {
 function _TestPage() {
   const { nodeid } = useParams<{ nodeid: string }>()
   const { reports, metadata } = useWebSocket()
-  const [pycrunchAvailable, setPycrunchAvailable] = useState<boolean>(false)
-
-  useEffect(() => {
-    if (nodeid) {
-      fetch(`/api/pycrunch/${nodeid}`)
-        .then(response => response.json())
-        .then(data => {
-          setPycrunchAvailable(data.available)
-        })
-        .catch(error => {
-          console.error("Failed to check PyCrunch availability:", error)
-          setPycrunchAvailable(false)
-        })
-    }
-  }, [nodeid])
 
   if (!nodeid || !reports.has(nodeid)) {
     return <div>Test not found</div>
@@ -49,17 +34,6 @@ function _TestPage() {
         ← Back to all tests
       </Link>
       <h1>{nodeid}</h1>
-      {pycrunchAvailable && (
-        <div className="pycrunch-link">
-          <a
-            href={`https://app.pytrace.com/?open=http://${window.location.host}/api/pycrunch/${nodeid}/session.chunked`}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Open in Pytrace
-          </a>
-        </div>
-      )}
       <div className="test-info">
         <div className="info-grid">
           <div className="info-item">

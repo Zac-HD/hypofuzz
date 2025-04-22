@@ -64,12 +64,6 @@ from hypofuzz.database import (
 )
 from hypofuzz.provider import HypofuzzProvider
 
-record_pytrace: Optional[Callable[..., Any]]
-try:
-    from hypofuzz.pytrace import record_pytrace
-except ImportError:
-    record_pytrace = None
-
 process_uuid = uuid4().hex
 
 
@@ -265,12 +259,6 @@ class FuzzProcess:
             with contextlib.suppress(HitShrinkTimeoutError, RunIsComplete):
                 shrinker.shrink()
             self._start_phase(Phase.FAILED)
-            if record_pytrace:
-                # Replay minimal example under our time-travelling debug tracer
-                self._run_test_on(
-                    ConjectureData.for_choices(shrinker.choices),
-                    collector=record_pytrace(self.nodeid),
-                )
             self._save_report(self._report)
             self._replace_metadata(self._metadata)
 
