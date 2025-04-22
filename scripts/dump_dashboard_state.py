@@ -5,7 +5,6 @@ from urllib.parse import urlparse
 
 import requests
 
-
 parser = argparse.ArgumentParser()
 parser.add_argument("url")
 args = parser.parse_args()
