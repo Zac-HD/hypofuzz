@@ -29,8 +29,6 @@ HypoFuzz solves all of these problems, and more!
 - Prioritise functions where we expect to make progress
 - Coverage-guided exploration of your system-under-test
 - Seamless python-native and CLI integrations (replaces the `pytest` command)
-- Web-based time-travel debugging with [PyTrace](https://pytrace.com/)
-  (automatic if you `pip install hypofuzz[pytrace]`)
 
 Read more about HypoFuzz at https://hypofuzz.com/docs/, including
 [the changelog](https://hypofuzz.com/docs/changelog.html).

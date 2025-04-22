@@ -49,11 +49,6 @@ documentation = "https://hypofuzz.com/docs/"
 changelog = "https://hypofuzz.com/docs/changelog.html"
 
 
-[project.optional-dependencies]
-pytrace = [
-    "pycrunch-trace>=0.1.6",
-]
-
 [project.entry-points.hypothesis]
 "_" = "hypofuzz.entrypoint"
 
