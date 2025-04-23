@@ -13,9 +13,9 @@ url = urlparse(args.url)
 response = requests.get(f"http://{url.hostname}:{url.port}/api/backing_state/")
 response.raise_for_status()
 
-output_file = Path("dashboard_state.json")
+output_file = Path(__file__).parent.parent / "docs-src" / "dashboard_state.json"
 with open(output_file, "w") as f:
     json.dump(response.json(), f, indent=2)
 
 # use like:
-# python scripts/dump_dashboard_state.py http://localhost:9999/
+# python scripts/update_dashboard_state.py http://localhost:9999/

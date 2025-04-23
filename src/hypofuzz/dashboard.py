@@ -173,15 +173,16 @@ async def api_test(request: Request) -> Response:
     return HypofuzzJSONResponse(list(REPORTS[node_id]))
 
 
-async def api_patches(request: Request) -> Response:
+def _patches() -> dict[str, str]:
     patches = make_and_save_patches(PYTEST_ARGS, REPORTS, METADATA)
-
-    return HypofuzzJSONResponse(
-        {name: str(patch_path.read_text()) for name, patch_path in patches.items()}
-    )
+    return {name: str(patch_path.read_text()) for name, patch_path in patches.items()}
 
 
-async def api_collected_tests(request: Request) -> Response:
+async def api_patches(request: Request) -> Response:
+    return HypofuzzJSONResponse(_patches())
+
+
+def _collection_status() -> list[dict[str, Any]]:
     assert COLLECTION_RESULT is not None
 
     collection_status = [
@@ -196,8 +197,11 @@ async def api_collected_tests(request: Request) -> Response:
                 "status_reason": item["status_reason"],
             }
         )
+    return collection_status
 
-    return HypofuzzJSONResponse({"collection_status": collection_status})
+
+async def api_collected_tests(request: Request) -> Response:
+    return HypofuzzJSONResponse({"collection_status": _collection_status()})
 
 
 async def api_backing_state(request: Request) -> Response:
@@ -210,7 +214,12 @@ async def api_backing_state(request: Request) -> Response:
         node_id: linearize_reports(reports) for node_id, reports in REPORTS.items()
     }
     return HypofuzzJSONResponse(
-        {"reports": reports, "metadata": METADATA},
+        {
+            "reports": reports,
+            "metadata": METADATA,
+            "collected_tests": {"collection_status": _collection_status()},
+            "patches": _patches(),
+        },
     )
 
 

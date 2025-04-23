@@ -30,7 +30,9 @@ jobs:
         npm run format:check --prefix src/hypofuzz/frontend
 
   docs:
-    # whitelist preview build authors to prevent arbitrary pushes to hypofuzz.com via PRs
+    # whitelist preview build authors as an extra layer of security. We don't expect this to matter in practice,
+    # since the GITHUB_TOKEN in PRs from forks don't get the write permission, so they can't commit to the gh-pages
+    # branch.
     if: >
       github.repository == 'Zac-HD/hypofuzz' && (
         github.ref == 'refs/heads/master' ||
@@ -41,8 +43,8 @@ jobs:
           )
         )
       )
-    # required to push to gh-pages branch
     permissions:
+      # required to push to gh-pages branch
       contents: write
     runs-on: ubuntu-latest
     steps:

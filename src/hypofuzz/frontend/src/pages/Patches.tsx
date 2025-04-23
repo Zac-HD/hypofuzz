@@ -1,20 +1,17 @@
 import { useEffect, useState } from "react"
+import { fetchData } from "../utils/api"
 
 export function PatchesPage() {
-  const [patches, setPatches] = useState<Map<string, string>>(new Map())
+  const [patches, setPatches] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch("/api/patches/")
-      .then(response => response.json())
-      .then(data => {
+    fetchData<Record<string, string>>("patches").then(data => {
+      if (data) {
         setPatches(data)
-        setLoading(false)
-      })
-      .catch(error => {
-        console.error("Failed to fetch patches:", error)
-        setLoading(false)
-      })
+      }
+      setLoading(false)
+    })
   }, [])
 
   if (loading) {
@@ -26,11 +23,11 @@ export function PatchesPage() {
     )
   }
 
-  if (!patches.size) {
+  if (Object.values(patches).length == 0) {
     return (
       <div className="patches-page">
         <h1>Patches</h1>
-        <p>Waiting for examples...</p>
+        <p>No patches yet</p>
       </div>
     )
   }
