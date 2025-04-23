@@ -6,7 +6,7 @@ from urllib.parse import urlparse
 import requests
 
 parser = argparse.ArgumentParser()
-parser.add_argument("url")
+parser.add_argument("url", nargs="?", default="http://localhost:9999/")
 args = parser.parse_args()
 
 url = urlparse(args.url)
