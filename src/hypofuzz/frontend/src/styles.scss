@@ -179,16 +179,33 @@ select {
 .layout {
     display: flex;
     min-height: 100vh;
+    position: relative;
 }
 
 .sidebar {
     width: 250px;
+    flex-shrink: 0;
     background: #2c3e50;
     padding: 20px;
     color: white;
-    position: sticky;
-    top: 0;
     height: 100vh;
+
+    @media (max-width: 768px) {
+        position: fixed;
+        top: 0;
+        left: 0;
+        transform: translateX(-100%);
+        transition: transform 0.2s ease-out;
+
+        &--open {
+            transform: translateX(0);
+        }
+    }
+
+    @media (min-width: 769px) {
+        position: sticky;
+        top: 0;
+    }
 
     &__title {
         display: block;
@@ -220,9 +237,30 @@ select {
     }
 }
 
+.toggle-sidebar {
+    position: fixed;
+    top: 15px;
+    left: 15px;
+    color: #2c3e50;
+    cursor: pointer;
+    font-size: 1.1em;
+
+    // hide on desktop
+    display: none;
+
+    @media (max-width: 768px) {
+        // show on mobile
+        display: block;
+    }
+}
+
 .content {
     flex: 1;
     padding: 20px 30px;
+
+    @media (max-width: 768px) {
+        padding: 20px;
+    }
 }
 
 /* patches page styles */
@@ -501,5 +539,24 @@ select {
         &:last-child {
             margin-bottom: 0;
         }
+    }
+}
+
+.opacity-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    transition: opacity 0.2s ease-out;
+
+    // we don't expect this to ever be present on desktop, but people clicking
+    // the hamburger menu on a small window size and then resizing their window
+    // upwards could cause this.
+    display: none;
+
+    @media (max-width: 768px) {
+        display: block;
     }
 }
