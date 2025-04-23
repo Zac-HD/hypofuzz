@@ -53,11 +53,13 @@ export function CollectionStatusPage() {
     {
       text: "Test",
       sortKey: (item: CollectionResult) => item.node_id,
+      filterable: true,
     },
     {
       text: "Status",
       sortKey: (item: CollectionResult) =>
         statusOrder[item.status as keyof typeof statusOrder],
+      filterable: true,
     },
   ]
 
