@@ -50,7 +50,7 @@ changelog = "https://hypofuzz.com/docs/changelog.html"
 
 
 [project.entry-points.hypothesis]
-"_" = "hypofuzz.entrypoint"
+_ = "hypofuzz.entrypoint"
 
 [tool.setuptools.package-data]
 hypofuzz = [

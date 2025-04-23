@@ -1,24 +1,23 @@
 import { useEffect, useState } from "react"
 import { useParams, Link } from "react-router-dom"
 import { CoverageGraph } from "../components/CoverageGraph"
-import { useWebSocket } from "../context/WebSocketContext"
+import { useData, DataProvider } from "../context/DataProvider"
 import { getTestStats } from "../utils/testStats"
 import { CoveringExamples } from "../components/CoveringExamples"
-import { WebSocketProvider } from "../context/WebSocketContext"
 
 export function TestPage() {
   const { nodeid } = useParams<{ nodeid: string }>()
 
   return (
-    <WebSocketProvider nodeId={nodeid}>
+    <DataProvider nodeid={nodeid}>
       <_TestPage />
-    </WebSocketProvider>
+    </DataProvider>
   )
 }
 
 function _TestPage() {
   const { nodeid } = useParams<{ nodeid: string }>()
-  const { reports, metadata } = useWebSocket()
+  const { reports, metadata } = useData()
 
   if (!nodeid || !reports.has(nodeid)) {
     return <div>Test not found</div>

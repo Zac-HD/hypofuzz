@@ -30,6 +30,22 @@ jobs:
         npm run format:check --prefix src/hypofuzz/frontend
 
   docs:
+    # whitelist preview build authors as an extra layer of security. We don't expect this to matter in practice,
+    # since the GITHUB_TOKEN in PRs from forks don't get the write permission, so they can't commit to the gh-pages
+    # branch.
+    if: >
+      github.repository == 'Zac-HD/hypofuzz' && (
+        github.ref == 'refs/heads/master' ||
+        (
+          github.event_name == 'pull_request' && (
+            github.event.pull_request.user.login == 'tybug' ||
+            github.event.pull_request.user.login == 'Zac-HD'
+          )
+        )
+      )
+    permissions:
+      # required to push to gh-pages branch
+      contents: write
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
@@ -38,17 +54,35 @@ jobs:
       with:
         python-version: "3.11"
     - name: Install dependencies
-      run: python -m pip install --upgrade pip setuptools tox
+      run: |
+        python -m pip install --upgrade pip setuptools tox
+        npm ci --prefix src/hypofuzz/frontend
+    - name: Set $BASE envvar
+      run: |
+        if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+          echo "BASE=/preview-${{ github.event.pull_request.number }}" >> $GITHUB_ENV
+        else
+          echo "BASE=/" >> $GITHUB_ENV
+        fi
     - name: Build docs
       run: |
-        python -m tox --recreate -e docs
-    - name: Upload docs
-      if: github.repository == 'Zac-HD/hypofuzz' &&  github.ref == 'refs/heads/master'
+        HYPOFUZZ_DOCS_OUTPUT_DIR=docs/docs python -m tox --recreate -e docs
+        HYPOFUZZ_DOCS_OUTPUT_DIR=docs/${BASE}/docs python -m tox --recreate -e docs
+        VITE_ROUTER_TYPE=hash npm run build --prefix src/hypofuzz/frontend -- --base=${BASE}/example-dashboard
+
+        rm -rf docs/${BASE}/example-dashboard
+        mkdir -p docs/${BASE}/example-dashboard
+        cp -r src/hypofuzz/frontend/dist/* docs/${BASE}/example-dashboard
+        cp docs-src/dashboard_state.json docs/${BASE}/example-dashboard/assets/dashboard_state.json
+    - name: Commit docs and example dashboard
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
         git add --force docs/docs/
+        git add --force docs/${BASE}/docs/
         git commit -m "build docs"
+        git add --force docs/${BASE}/example-dashboard
+        git commit -m "build example dashboard"
         git push --force origin HEAD:gh-pages
 
   test:

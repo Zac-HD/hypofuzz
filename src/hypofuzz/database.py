@@ -97,14 +97,17 @@ class Report:
     phase: Phase
 
     @staticmethod
-    def from_dict(data: dict) -> "Report":
+    def from_dict(data: dict) -> Optional["Report"]:
         data = dict(data)
-        data["worker"] = WorkerIdentity.from_dict(data["worker"])
-        data["status_counts"] = StatusCounts(
-            {Status(int(k)): v for k, v in data["status_counts"].items()}
-        )
-        data["phase"] = Phase(data["phase"])
-        return Report(**data)
+        try:
+            data["worker"] = WorkerIdentity.from_dict(data["worker"])
+            data["status_counts"] = StatusCounts(
+                {Status(int(k)): v for k, v in data["status_counts"].items()}
+            )
+            data["phase"] = Phase(data["phase"])
+            return Report(**data)
+        except Exception:
+            return None
 
 
 @dataclass(frozen=True)
@@ -114,9 +117,12 @@ class Metadata:
     failures: list[list[str]]
 
     @staticmethod
-    def from_dict(data: dict) -> "Metadata":
+    def from_dict(data: dict) -> Optional["Metadata"]:
         data = dict(data)
-        return Metadata(**data)
+        try:
+            return Metadata(**data)
+        except Exception:
+            return None
 
 
 reports_key = b".hypofuzz.reports"
@@ -151,12 +157,16 @@ class HypofuzzDatabase:
         self.delete(key + reports_key, self._encode(report))
 
     def fetch_reports(self, key: bytes) -> list[Report]:
-        return [Report.from_dict(json.loads(v)) for v in self.fetch(key + reports_key)]
+        reports = [
+            Report.from_dict(json.loads(v)) for v in self.fetch(key + reports_key)
+        ]
+        return [r for r in reports if r is not None]
 
     def fetch_metadata(self, key: bytes) -> list[Metadata]:
-        return [
+        metadata = [
             Metadata.from_dict(json.loads(v)) for v in self.fetch(key + metadata_key)
         ]
+        return [m for m in metadata if m is not None]
 
     def replace_metadata(self, key: bytes, metadata: Metadata) -> None:
         # save and then delete to avoid intermediary state where no metadata is

@@ -173,15 +173,16 @@ async def api_test(request: Request) -> Response:
     return HypofuzzJSONResponse(list(REPORTS[node_id]))
 
 
-async def api_patches(request: Request) -> Response:
+def _patches() -> dict[str, str]:
     patches = make_and_save_patches(PYTEST_ARGS, REPORTS, METADATA)
-
-    return HypofuzzJSONResponse(
-        {name: str(patch_path.read_text()) for name, patch_path in patches.items()}
-    )
+    return {name: str(patch_path.read_text()) for name, patch_path in patches.items()}
 
 
-async def api_collected_tests(request: Request) -> Response:
+async def api_patches(request: Request) -> Response:
+    return HypofuzzJSONResponse(_patches())
+
+
+def _collection_status() -> list[dict[str, Any]]:
     assert COLLECTION_RESULT is not None
 
     collection_status = [
@@ -196,8 +197,30 @@ async def api_collected_tests(request: Request) -> Response:
                 "status_reason": item["status_reason"],
             }
         )
+    return collection_status
 
-    return HypofuzzJSONResponse({"collection_status": collection_status})
+
+async def api_collected_tests(request: Request) -> Response:
+    return HypofuzzJSONResponse({"collection_status": _collection_status()})
+
+
+async def api_backing_state(request: Request) -> Response:
+    # get the backing state of the dashboard, suitable for use by
+    # dashboard_state.json.
+    # The data returned here looks very similar to other endpoints for now, but
+    # I'm keeping it separate because the data required to back a dashboard may
+    # change over time.
+    reports = {
+        node_id: linearize_reports(reports) for node_id, reports in REPORTS.items()
+    }
+    return HypofuzzJSONResponse(
+        {
+            "reports": reports,
+            "metadata": METADATA,
+            "collected_tests": {"collection_status": _collection_status()},
+            "patches": _patches(),
+        },
+    )
 
 
 dist = Path(__file__).parent / "frontend" / "dist"
@@ -208,6 +231,7 @@ routes = [
     Route("/api/tests/{node_id:path}", api_test),
     Route("/api/patches/", api_patches),
     Route("/api/collected_tests/", api_collected_tests),
+    Route("/api/backing_state/", api_backing_state),
     Mount("/assets", StaticFiles(directory=dist / "assets")),
     # catchall fallback. react will handle the routing of dynamic urls here,
     # such as to a node id.
@@ -229,10 +253,14 @@ async def handle_event(receive_channel: MemoryReceiveChannel) -> None:
             assert value is not None
             if key.endswith(reports_key):
                 report = Report.from_dict(json.loads(value))
+                # this is an in-process transmission, it should never be out of
+                # date with the Report schema
+                assert report is not None
                 REPORTS[report.nodeid].add(report)
                 await broadcast_event("save", report)
             if key.endswith(metadata_key):
                 metadata = Metadata.from_dict(json.loads(value))
+                assert metadata is not None
                 METADATA[metadata.nodeid] = metadata
                 await broadcast_event("metadata", metadata)
 

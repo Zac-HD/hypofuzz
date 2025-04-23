@@ -1,9 +1,5 @@
 import { Link, useLocation, Outlet } from "react-router-dom"
 
-interface Props {
-  children?: React.ReactNode
-}
-
 export function Layout() {
   const location = useLocation()
   const isTestsActive =

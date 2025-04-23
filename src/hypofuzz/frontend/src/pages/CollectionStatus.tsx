@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { Table } from "../components/Table"
 import { Link } from "react-router-dom"
+import { fetchData } from "../utils/api"
 
 interface CollectionResult {
   database_key: string
@@ -19,24 +20,20 @@ const statusOrder = {
 }
 
 export function CollectionStatusPage() {
-  const [collectionResults, setCollectionResults] =
+  const [collectionStatus, setCollectionStatus] =
     useState<CollectionResults | null>(null)
 
   useEffect(() => {
-    fetch("/api/collected_tests/")
-      .then(response => {
-        return response.json()
-      })
-      .then(data => {
-        setCollectionResults(data)
-      })
+    fetchData<CollectionResults>("collected_tests").then(data => {
+      setCollectionStatus(data)
+    })
   }, [])
 
-  if (collectionResults === null) {
+  if (collectionStatus === null) {
     return null
   }
 
-  if (!collectionResults.collection_status.length) {
+  if (!collectionStatus.collection_status.length) {
     return (
       <div className="card">
         <div className="card__header">Test collection</div>
@@ -45,7 +42,7 @@ export function CollectionStatusPage() {
     )
   }
 
-  const sortedResults = [...collectionResults.collection_status].sortKey(
+  const sortedResults = [...collectionStatus.collection_status].sortKey(
     result => [
       statusOrder[result.status as keyof typeof statusOrder],
       result.node_id,

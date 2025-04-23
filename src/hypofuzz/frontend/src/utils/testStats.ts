@@ -23,16 +23,14 @@ function formatTime(t: number): string {
 }
 
 export function inputsPerSecond(report: Report): number {
-  return report.elapsed_time > 0
-    ? Math.round(report.ninputs / report.elapsed_time)
-    : 0
+  return report.elapsed_time > 0 ? report.ninputs / report.elapsed_time : 0
 }
 
 export function getTestStats(report: Report): TestStats {
   return {
     inputs: report.ninputs.toLocaleString(),
     branches: report.branches.toLocaleString(),
-    executions: `${inputsPerSecond(report).toLocaleString()}/s`,
+    executions: `${inputsPerSecond(report).toFixed(1).toLocaleString()}/s`,
     inputsSinceBranch: report.since_new_cov?.toLocaleString() ?? "—",
     timeSpent: formatTime(report.elapsed_time),
   }

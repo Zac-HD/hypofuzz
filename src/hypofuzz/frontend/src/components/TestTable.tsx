@@ -13,10 +13,28 @@ interface TestRow {
   metadata: Metadata
 }
 
-enum StatusOrder {
+enum Status {
   FAILED = 0,
   RUNNING = 1,
-  COLLECTED = 2,
+  WAITING = 2,
+}
+
+// if it's been this long since the last report in seconds, consider the test status
+// to be "waiting" instead of "running"
+const WAITING_STATUS_DURATION = 120
+
+function getStatus(report: Report, metadata: Metadata): Status {
+  if (metadata.failures?.length) {
+    return Status.FAILED
+  }
+  const timestamp = new Date().getTime() / 1000
+  if (
+    report.ninputs === 0 ||
+    report.timestamp < timestamp - WAITING_STATUS_DURATION
+  ) {
+    return Status.WAITING
+  }
+  return Status.RUNNING
 }
 
 export function TestTable({ reports, metadata }: Props) {
@@ -30,12 +48,7 @@ export function TestTable({ reports, metadata }: Props) {
     })
     .sortKey(([_nodeid, reports]) => {
       const latest = reports[reports.length - 1]
-      const status = metadata.get(latest.nodeid)!.failures?.length
-        ? StatusOrder.FAILED
-        : latest.ninputs === 0
-          ? StatusOrder.COLLECTED
-          : StatusOrder.RUNNING
-      return [status, latest.nodeid]
+      return [getStatus(latest, metadata.get(latest.nodeid)!), latest.nodeid]
     })
     .map(([nodeid, reports]) => ({ reports, metadata: metadata.get(nodeid)! }))
 
@@ -82,6 +95,7 @@ export function TestTable({ reports, metadata }: Props) {
   const row = (item: TestRow): React.ReactNode[] => {
     const latest = item.reports[item.reports.length - 1]
     const stats = getTestStats(latest)
+    const status = getStatus(latest, item.metadata)
 
     return [
       <Link
@@ -92,10 +106,10 @@ export function TestTable({ reports, metadata }: Props) {
         {latest.nodeid}
       </Link>,
       <div style={{ textAlign: "center" }}>
-        {item.metadata.failures?.length ? (
+        {status === Status.FAILED ? (
           <div className="pill pill__failure">Failed</div>
-        ) : latest.ninputs === 0 ? (
-          <div className="pill pill__neutral">Collected</div>
+        ) : status === Status.WAITING ? (
+          <div className="pill pill__neutral">Waiting</div>
         ) : (
           <div className="pill pill__success">Running</div>
         )}
