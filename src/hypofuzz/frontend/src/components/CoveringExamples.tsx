@@ -1,4 +1,6 @@
 import { useState } from "react"
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
+import { faCaretDown, faCaretRight } from "@fortawesome/free-solid-svg-icons"
 
 interface Props {
   seedPool: Array<[string, string, any]>
@@ -18,7 +20,11 @@ export function CoveringExamples({ seedPool }: Props) {
         onClick={() => setIsOpen(!isOpen)}
       >
         <span className="covering-examples__toggle-icon">
-          {isOpen ? "▼" : "▶"}
+          {isOpen ? (
+            <FontAwesomeIcon icon={faCaretDown} />
+          ) : (
+            <FontAwesomeIcon icon={faCaretRight} />
+          )}
         </span>
         Minimal covering examples
       </button>

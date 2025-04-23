@@ -103,19 +103,19 @@ select {
 
     &__sort {
         display: flex;
-        margin-left: 7px;
+        margin-left: 6px;
+        font-size: 0.9rem;
+        font-weight: bold;
 
         &__arrow {
             opacity: 0.3;
-            font-size: 1em;
-            font-weight: bold;
 
             &--active {
-                opacity: 1;
+                opacity: 0.9;
             }
 
             &--desc {
-                margin-left: -5px;
+                margin-left: -2.5px;
             }
         }
     }
@@ -471,7 +471,7 @@ select {
 
     &__toggle-icon {
         margin-right: 10px;
-        font-size: 0.8em;
+        font-size: 1em;
         color: #666;
     }
 

@@ -1,4 +1,6 @@
 import React, { useState, useMemo } from "react"
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
+import { faArrowUp, faArrowDown } from "@fortawesome/free-solid-svg-icons"
 
 interface TableHeader<T> {
   text: string
@@ -94,7 +96,7 @@ export function Table<T>({ headers, data, row, getKey }: TableProps<T>) {
                   {header.sortKey && (
                     <div className="table__sort">
                       {[SortOrder.ASC, SortOrder.DESC].map(order => (
-                        <span
+                        <div
                           className={`table__sort__arrow table__sort__arrow--${
                             order === SortOrder.ASC ? "asc" : "desc"
                           } ${
@@ -103,8 +105,12 @@ export function Table<T>({ headers, data, row, getKey }: TableProps<T>) {
                               : ""
                           }`}
                         >
-                          {order === SortOrder.ASC ? "↑" : "↓"}
-                        </span>
+                          {order === SortOrder.ASC ? (
+                            <FontAwesomeIcon icon={faArrowUp} />
+                          ) : (
+                            <FontAwesomeIcon icon={faArrowDown} />
+                          )}
+                        </div>
                       ))}
                     </div>
                   )}
