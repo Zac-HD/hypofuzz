@@ -4,7 +4,7 @@ HypoFuzz uses [calendar-based versioning](https://calver.org/), with a
 
 ## 25.04.6
 
-Add ability to filter table rows by string, for example to filter for all tests whose name contains a string.
+Improve mobile appearance, and add ability to filter table rows by string, for example to filter for all tests whose name contains a string.
 
 ## 25.04.5
 
