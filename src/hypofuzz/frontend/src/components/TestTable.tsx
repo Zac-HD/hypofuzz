@@ -56,6 +56,7 @@ export function TestTable({ reports, metadata }: Props) {
     {
       text: "Test",
       sortKey: (item: TestRow) => item.metadata.nodeid,
+      filterable: true,
     },
     {
       text: "Status",
@@ -65,6 +66,7 @@ export function TestTable({ reports, metadata }: Props) {
         if (latest.ninputs === 0) return 1
         return 2
       },
+      filterable: true,
     },
     {
       text: "Inputs",

@@ -74,16 +74,24 @@ jobs:
         mkdir -p docs/${BASE}/example-dashboard
         cp -r src/hypofuzz/frontend/dist/* docs/${BASE}/example-dashboard
         cp docs-src/dashboard_state.json docs/${BASE}/example-dashboard/assets/dashboard_state.json
-    - name: Commit docs and example dashboard
+    - name: Commit docs
       run: |
+        cp -r docs/${BASE}/docs $RUNNER_TEMP
+        cp -r docs/${BASE}/example-dashboard $RUNNER_TEMP
+        git reset --hard && git clean -xfd
+
+        git fetch --all
+        git switch -c gh-pages origin/gh-pages
+
+        cp -r $RUNNER_TEMP/docs docs/${BASE}
+        cp -r $RUNNER_TEMP/example-dashboard docs/${BASE}
+        git add --force docs/${BASE}/docs
+        git add --force docs/${BASE}/example-dashboard
+
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
-        git add --force docs/docs/
-        git add --force docs/${BASE}/docs/
-        git commit -m "build docs"
-        git add --force docs/${BASE}/example-dashboard
-        git commit -m "build example dashboard"
-        git push --force origin HEAD:gh-pages
+        git commit -m "build docs (base=${BASE})"
+        git push
 
   test:
     runs-on: ubuntu-latest

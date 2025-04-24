@@ -41,12 +41,78 @@ select {
 }
 
 .table {
-    width: 100%;
-    border-collapse: collapse;
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    margin-top: 20px;
+    &__table {
+        border-collapse: collapse;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        border-radius: 8px;
+        width: 100%;
+    }
+
+    &__filter {
+        margin-bottom: 5px;
+        width: min(100%, 20rem);
+        margin-left: auto;
+        position: relative;
+
+        margin-top: -13px;
+        @media (max-width: 1200px) {
+            padding-top: 2px;
+            margin-top: unset;
+        }
+
+        &__input {
+            width: 100%;
+            padding: 7px;
+            border: 1px solid #d9d9d9;
+            border-radius: 4px;
+            font-size: 14px;
+            color: #2c3e50;
+            transition: border-color 0.2s ease;
+
+            &:focus {
+                outline: none;
+                border-color: #979696;
+            }
+
+            &::placeholder {
+                color: #aaa;
+            }
+        }
+
+        &__clear {
+            position: absolute;
+            right: 7px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            color: #666;
+            padding: 3px;
+
+            &:hover {
+                color: #333;
+            }
+        }
+    }
+
+    &__filter-status {
+        margin-top: 1rem;
+        padding: 0.5rem;
+        background: #f5f5f5;
+        border-radius: 4px;
+        font-size: 0.9rem;
+        color: #666;
+
+        &__clear {
+            color: #2c3e50;
+            cursor: pointer;
+            text-decoration: underline;
+            padding-left: 5px;
+
+            &:hover {
+                color: #1a1a1a;
+            }
+        }
+    }
 
     th,
     td {
@@ -78,19 +144,19 @@ select {
 
     &__sort {
         display: flex;
-        margin-left: 7px;
+        margin-left: 6px;
+        font-size: 0.9rem;
+        font-weight: bold;
 
         &__arrow {
             opacity: 0.3;
-            font-size: 1em;
-            font-weight: bold;
 
             &--active {
-                opacity: 1;
+                opacity: 0.9;
             }
 
             &--desc {
-                margin-left: -5px;
+                margin-left: -2.5px;
             }
         }
     }
@@ -154,16 +220,34 @@ select {
 .layout {
     display: flex;
     min-height: 100vh;
+    position: relative;
 }
 
 .sidebar {
     width: 250px;
+    flex-shrink: 0;
     background: #2c3e50;
     padding: 20px;
     color: white;
-    position: sticky;
-    top: 0;
     height: 100vh;
+    z-index: 1000;
+
+    @media (max-width: 768px) {
+        position: fixed;
+        top: 0;
+        left: 0;
+        transform: translateX(-100%);
+        transition: transform 0.2s ease-out;
+
+        &--open {
+            transform: translateX(0);
+        }
+    }
+
+    @media (min-width: 769px) {
+        position: sticky;
+        top: 0;
+    }
 
     &__title {
         display: block;
@@ -195,9 +279,30 @@ select {
     }
 }
 
+.toggle-sidebar {
+    position: fixed;
+    top: 15px;
+    left: 15px;
+    color: #2c3e50;
+    cursor: pointer;
+    font-size: 1.1em;
+
+    // hide on desktop
+    display: none;
+
+    @media (max-width: 768px) {
+        // show on mobile
+        display: block;
+    }
+}
+
 .content {
     flex: 1;
     padding: 20px 30px;
+
+    @media (max-width: 768px) {
+        padding: 20px;
+    }
 }
 
 /* patches page styles */
@@ -446,7 +551,7 @@ select {
 
     &__toggle-icon {
         margin-right: 10px;
-        font-size: 0.8em;
+        font-size: 1em;
         color: #666;
     }
 
@@ -476,5 +581,25 @@ select {
         &:last-child {
             margin-bottom: 0;
         }
+    }
+}
+
+.opacity-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    transition: opacity 0.2s ease-out;
+    z-index: 900;
+
+    // we don't expect this to ever be present on desktop, but people clicking
+    // the hamburger menu on a small window size and then resizing their window
+    // upwards could cause this.
+    display: none;
+
+    @media (max-width: 768px) {
+        display: block;
     }
 }
