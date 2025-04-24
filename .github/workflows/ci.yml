@@ -90,7 +90,7 @@ jobs:
 
         cp -r $RUNNER_TEMP/docs docs/${BASE}
         cp -r $RUNNER_TEMP/example-dashboard docs/${BASE}
-        git commit -m "build docs"
+        git commit -m "build docs (base=${BASE})"
         git push
 
   test:
