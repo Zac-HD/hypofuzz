@@ -20,6 +20,18 @@ enum SortOrder {
   DESC = 1,
 }
 
+function textContent(node: React.ReactNode): string {
+  if (typeof node === "string") {
+    return node
+  }
+  if (React.isValidElement(node)) {
+    return React.Children.toArray(node.props.children)
+      .map(child => textContent(child))
+      .join(" ")
+  }
+  return ""
+}
+
 export function Table<T>({ headers, data, row, getKey }: TableProps<T>) {
   const [sortColumn, setSortColumn] = useState<number | null>(null)
   const [sortDirection, setSortDirection] = useState<SortOrder>(SortOrder.ASC)
@@ -36,10 +48,7 @@ export function Table<T>({ headers, data, row, getKey }: TableProps<T>) {
           .filter(header => header.filterable)
           .map(header => {
             const row = rowValues[headers.indexOf(header)]
-            if (React.isValidElement(row)) {
-              return String(row.props.children || "").toLowerCase()
-            }
-            return ""
+            return textContent(row).toLowerCase()
           })
           .join(" ")
         return filterText.includes(filterString.toLowerCase())
