@@ -76,19 +76,17 @@ jobs:
         cp docs-src/dashboard_state.json docs/${BASE}/example-dashboard/assets/dashboard_state.json
     - name: Commit docs
       run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
-
         cp -r docs/${BASE}/docs $RUNNER_TEMP
         cp -r docs/${BASE}/example-dashboard $RUNNER_TEMP
 
-        git add --force docs/${BASE}/docs
-        git add --force docs/${BASE}/example-dashboard
         git fetch --all
         git switch -c gh-pages origin/gh-pages
 
         cp -r $RUNNER_TEMP/docs docs/${BASE}
         cp -r $RUNNER_TEMP/example-dashboard docs/${BASE}
+
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
         git commit -m "build docs (base=${BASE})"
         git push
 
