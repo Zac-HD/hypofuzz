@@ -230,6 +230,7 @@ select {
     padding: 20px;
     color: white;
     height: 100vh;
+    z-index: 1000;
 
     @media (max-width: 768px) {
         position: fixed;
@@ -591,6 +592,7 @@ select {
     bottom: 0;
     background-color: rgba(0, 0, 0, 0.5);
     transition: opacity 0.2s ease-out;
+    z-index: 900;
 
     // we don't expect this to ever be present on desktop, but people clicking
     // the hamburger menu on a small window size and then resizing their window
