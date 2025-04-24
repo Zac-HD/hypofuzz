@@ -79,7 +79,6 @@ jobs:
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
 
-        mkdir $RUNNER_TEMP
         cp -r docs/${BASE}/docs $RUNNER_TEMP
         cp -r docs/${BASE}/example-dashboard $RUNNER_TEMP
 
