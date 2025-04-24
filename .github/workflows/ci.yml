@@ -85,6 +85,8 @@ jobs:
 
         cp -r $RUNNER_TEMP/docs docs/${BASE}
         cp -r $RUNNER_TEMP/example-dashboard docs/${BASE}
+        git add --force docs/${BASE}/docs
+        git add --force docs/${BASE}/example-dashboard
 
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
