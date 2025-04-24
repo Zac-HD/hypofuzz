@@ -1,6 +1,10 @@
 import React, { useState, useMemo } from "react"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
-import { faArrowUp, faArrowDown } from "@fortawesome/free-solid-svg-icons"
+import {
+  faArrowUp,
+  faArrowDown,
+  faTimes,
+} from "@fortawesome/free-solid-svg-icons"
 
 interface TableHeader<T> {
   text: string
@@ -90,6 +94,14 @@ export function Table<T>({ headers, data, row, getKey }: TableProps<T>) {
           onChange={e => setFilterString(e.target.value)}
           className="table__filter__input"
         />
+        {filterString && (
+          <span
+            className="table__filter__clear"
+            onClick={() => setFilterString("")}
+          >
+            <FontAwesomeIcon icon={faTimes} />
+          </span>
+        )}
       </div>
       <table className="table__table">
         <thead>
@@ -142,6 +154,17 @@ export function Table<T>({ headers, data, row, getKey }: TableProps<T>) {
           })}
         </tbody>
       </table>
+      {filterString && displayData.length < data.length && (
+        <div className="table__filter-status">
+          Showing {displayData.length} of {data.length} rows
+          <span
+            className="table__filter-status__clear"
+            onClick={() => setFilterString("")}
+          >
+            [clear]
+          </span>
+        </div>
+      )}
     </div>
   )
 }
