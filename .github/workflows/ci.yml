@@ -78,6 +78,7 @@ jobs:
       run: |
         cp -r docs/${BASE}/docs $RUNNER_TEMP
         cp -r docs/${BASE}/example-dashboard $RUNNER_TEMP
+        git reset --hard && git clean -xfd
 
         git fetch --all
         git switch -c gh-pages origin/gh-pages
