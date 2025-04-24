@@ -53,9 +53,15 @@ select {
         width: min(100%, 20rem);
         margin-left: auto;
 
+        margin-top: -13px;
+        @media (max-width: 1200px) {
+            padding-top: 2px;
+            margin-top: unset;
+        }
+
         &__input {
             width: 100%;
-            padding: 8px;
+            padding: 7px;
             border: 1px solid #d9d9d9;
             border-radius: 4px;
             font-size: 14px;
