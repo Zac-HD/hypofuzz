@@ -8,6 +8,7 @@ import {
   faCodeBranch,
   faTachometerAlt,
   faClock,
+  faMagnifyingGlass,
 } from "@fortawesome/free-solid-svg-icons"
 import { StatusPill } from "./StatusPill"
 import { Tooltip } from "./Tooltip"
@@ -95,7 +96,16 @@ export function TestTable({ reports, metadata }: Props) {
         inputsPerSecond(item.reports[item.reports.length - 1]),
     },
     {
-      content: "Since branch",
+      content: (
+        <Tooltip
+          content={
+            <div className="table__header__icon">
+              <FontAwesomeIcon icon={faMagnifyingGlass} />
+            </div>
+          }
+          tooltip="Number of inputs since a new branch"
+        />
+      ),
       sortKey: (item: TestRow) =>
         item.reports[item.reports.length - 1].since_new_cov ?? 0,
     },
