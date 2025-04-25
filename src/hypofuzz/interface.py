@@ -154,6 +154,11 @@ class _ItemsCollector:
                     )
                     extra_kw = {"factory": StateMachineClass}
                 else:
+                    # our pytest plugin would normally add this. Necessary to
+                    # distinguish pytest.mark.parametrize.
+                    item.obj.hypothesis.inner_test._hypothesis_internal_add_digest = (
+                        item.nodeid.encode()
+                    )
                     target = item.obj
                 fuzz = FuzzProcess.from_hypothesis_test(
                     target, nodeid=item.nodeid, extra_kw=extra_kw

@@ -25,16 +25,15 @@ interface TestRow {
 
 export function TestTable({ reports, metadata }: Props) {
   const sortedTests = Array.from(reports.entries())
-    .filter(([_nodeid, reports]) => {
+    .filter(([nodeid, reports]) => {
       if (reports.length === 0) {
         return false
       }
-      const latest = reports[reports.length - 1]
-      return metadata.has(latest.nodeid)
+      return metadata.has(nodeid)
     })
-    .sortKey(([_nodeid, reports]) => {
+    .sortKey(([nodeid, reports]) => {
       const latest = reports[reports.length - 1]
-      return [getStatus(latest, metadata.get(latest.nodeid)!), latest.nodeid]
+      return [getStatus(latest, metadata.get(nodeid)!), nodeid]
     })
     .map(([nodeid, reports]) => ({ reports, metadata: metadata.get(nodeid)! }))
 

@@ -33,3 +33,24 @@ def test_database_stores_reports_and_metadata_correctly():
             )
             list(db.fetch_reports(key))
             list(db.fetch_metadata(key))
+
+
+def test_database_keys_are_unique_by_nodeid():
+    test_dir, db_dir = write_test_code(
+        """
+        @pytest.mark.parametrize("x", [1, 2])
+        @given(st.integers())
+        def test_ints(x, n):
+            pass
+        """
+    )
+    db = HypofuzzDatabase(DirectoryBasedExampleDatabase(db_dir))
+    assert not list(db.fetch(b"hypofuzz-test-keys"))
+
+    with fuzz(test_path=test_dir, n=2):
+        # this will time out if the test keys are the same across parametrizations
+        wait_for(
+            lambda: len(list(db.fetch(b"hypofuzz-test-keys"))) == 2,
+            timeout=10,
+            interval=0.1,
+        )

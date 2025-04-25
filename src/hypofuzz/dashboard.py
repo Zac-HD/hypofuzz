@@ -139,8 +139,10 @@ async def websocket(websocket: WebSocket) -> None:
     websockets.add(websocket)
 
     reports = {
-        node_id: linearize_reports(reports) for node_id, reports in REPORTS.items()
+        nodeid: linearize_reports(reports) for nodeid, reports in REPORTS.items()
     }
+    for nodeid, reports_ in reports.items():
+        assert all(nodeid == report.nodeid for report in reports_.reports)
     await websocket.initial(reports, METADATA)
 
     try:

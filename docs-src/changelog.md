@@ -2,6 +2,10 @@
 HypoFuzz uses [calendar-based versioning](https://calver.org/), with a
 `YY-MM-patch` format.
 
+## 25.04.9
+
+Improve uniqueness of database keys for tests which use `@pytest.mark.parametrize`.
+
 ## 25.04.8
 
 Improve text alignment of the test table UI.

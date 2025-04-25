@@ -96,6 +96,21 @@ jobs:
         git config --local user.name "GitHub Action"
         git commit -m "build docs (base=${BASE})"
         git push
+    - name: Create dashboard preview link
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v6
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          await github.rest.repos.createCommitStatus({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            sha: context.sha,
+            state: 'success',
+            target_url: `https://hypofuzz.com/preview-${context.payload.pull_request.number}/example-dashboard/`,
+            description: 'Dashboard preview',
+            context: 'dashboard-preview'
+          });
 
   test:
     runs-on: ubuntu-latest
