@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react"
+import React, { useState, useMemo, ReactNode } from "react"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
 import {
   faArrowUp,
@@ -7,7 +7,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons"
 
 interface TableHeader<T> {
-  text: string
+  content: ReactNode
   sortKey?: (item: T) => string | number
   filterable?: boolean
 }
@@ -16,7 +16,7 @@ interface TableProps<T> {
   headers: TableHeader<T>[]
   data: T[]
   row: (item: T) => React.ReactNode[]
-  getKey: (item: T) => string | number
+  getKey?: (item: T) => string | number
 }
 
 enum SortOrder {
@@ -86,23 +86,26 @@ export function Table<T>({ headers, data, row, getKey }: TableProps<T>) {
 
   return (
     <div className="table">
-      <div className="table__filter">
-        <input
-          type="text"
-          placeholder="Filter"
-          value={filterString}
-          onChange={e => setFilterString(e.target.value)}
-          className="table__filter__input"
-        />
-        {filterString && (
-          <span
-            className="table__filter__clear"
-            onClick={() => setFilterString("")}
-          >
-            <FontAwesomeIcon icon={faTimes} />
-          </span>
-        )}
-      </div>
+      {/* only show filter box if some rows are filterable */}
+      {headers.some(header => header.filterable) && (
+        <div className="table__filter">
+          <input
+            type="text"
+            placeholder="Filter"
+            value={filterString}
+            onChange={e => setFilterString(e.target.value)}
+            className="table__filter__input"
+          />
+          {filterString && (
+            <span
+              className="table__filter__clear"
+              onClick={() => setFilterString("")}
+            >
+              <FontAwesomeIcon icon={faTimes} />
+            </span>
+          )}
+        </div>
+      )}
       <table className="table__table">
         <thead>
           <tr>
@@ -113,7 +116,7 @@ export function Table<T>({ headers, data, row, getKey }: TableProps<T>) {
                 className={header.sortKey ? "table--sortable" : ""}
               >
                 <div className="table__header">
-                  {header.text}
+                  {header.content}
                   {header.sortKey && (
                     <div className="table__sort">
                       {[SortOrder.ASC, SortOrder.DESC].map(order => (
@@ -145,7 +148,7 @@ export function Table<T>({ headers, data, row, getKey }: TableProps<T>) {
             const rowValue = row(item)
             console.assert(rowValue.length === headers.length)
             return (
-              <tr key={getKey(item)}>
+              <tr key={getKey ? getKey(item) : undefined}>
                 {rowValue.map((cell, colIndex) => (
                   <td key={colIndex}>{cell}</td>
                 ))}

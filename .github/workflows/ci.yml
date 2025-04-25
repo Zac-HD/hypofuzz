@@ -83,6 +83,10 @@ jobs:
         git fetch --all
         git switch -c gh-pages origin/gh-pages
 
+        rm -rf docs/${BASE}/docs
+        rm -rf docs/${BASE}/example-dashboard
+
+        mkdir -p docs/${BASE}/
         cp -r $RUNNER_TEMP/docs docs/${BASE}
         cp -r $RUNNER_TEMP/example-dashboard docs/${BASE}
         git add --force docs/${BASE}/docs

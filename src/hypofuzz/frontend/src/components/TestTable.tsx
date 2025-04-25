@@ -1,7 +1,17 @@
 import { Link } from "react-router-dom"
 import { Report, Metadata } from "../types/dashboard"
 import { Table } from "./Table"
-import { getTestStats, inputsPerSecond } from "../utils/testStats"
+import { getTestStats, inputsPerSecond, getStatus } from "../utils/testStats"
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
+import {
+  faHashtag,
+  faCodeBranch,
+  faTachometerAlt,
+  faClock,
+  faSeedling,
+} from "@fortawesome/free-solid-svg-icons"
+import { StatusPill } from "./StatusPill"
+import { Tooltip } from "./Tooltip"
 
 interface Props {
   reports: Map<string, Report[]>
@@ -11,30 +21,6 @@ interface Props {
 interface TestRow {
   reports: Report[]
   metadata: Metadata
-}
-
-enum Status {
-  FAILED = 0,
-  RUNNING = 1,
-  WAITING = 2,
-}
-
-// if it's been this long since the last report in seconds, consider the test status
-// to be "waiting" instead of "running"
-const WAITING_STATUS_DURATION = 120
-
-function getStatus(report: Report, metadata: Metadata): Status {
-  if (metadata.failures?.length) {
-    return Status.FAILED
-  }
-  const timestamp = new Date().getTime() / 1000
-  if (
-    report.ninputs === 0 ||
-    report.timestamp < timestamp - WAITING_STATUS_DURATION
-  ) {
-    return Status.WAITING
-  }
-  return Status.RUNNING
 }
 
 export function TestTable({ reports, metadata }: Props) {
@@ -54,12 +40,12 @@ export function TestTable({ reports, metadata }: Props) {
 
   const headers = [
     {
-      text: "Test",
+      content: "Test",
       sortKey: (item: TestRow) => item.metadata.nodeid,
       filterable: true,
     },
     {
-      text: "Status",
+      content: "Status",
       sortKey: (item: TestRow) => {
         const latest = item.reports[item.reports.length - 1]
         if (item.metadata.failures?.length) return 0
@@ -69,26 +55,71 @@ export function TestTable({ reports, metadata }: Props) {
       filterable: true,
     },
     {
-      text: "Inputs",
+      content: (
+        <Tooltip
+          content={
+            <div className="table__header__icon">
+              <FontAwesomeIcon icon={faHashtag} />
+            </div>
+          }
+          tooltip="Number of inputs"
+        />
+      ),
       sortKey: (item: TestRow) => item.reports[item.reports.length - 1].ninputs,
     },
     {
-      text: "Branches",
+      content: (
+        <Tooltip
+          content={
+            <div className="table__header__icon">
+              <FontAwesomeIcon icon={faCodeBranch} />
+            </div>
+          }
+          tooltip="Number of branches executed"
+        />
+      ),
       sortKey: (item: TestRow) =>
         item.reports[item.reports.length - 1].branches,
     },
     {
-      text: "Executions",
+      content: (
+        <Tooltip
+          content={
+            <div className="table__header__icon">
+              <FontAwesomeIcon icon={faTachometerAlt} />
+            </div>
+          }
+          tooltip="Inputs per second"
+        />
+      ),
       sortKey: (item: TestRow) =>
         inputsPerSecond(item.reports[item.reports.length - 1]),
     },
     {
-      text: "Inputs since branch",
+      content: (
+        <Tooltip
+          content={
+            <div className="table__header__icon">
+              <FontAwesomeIcon icon={faSeedling} />
+            </div>
+          }
+          tooltip="Number of inputs since a new branch"
+        />
+      ),
       sortKey: (item: TestRow) =>
         item.reports[item.reports.length - 1].since_new_cov ?? 0,
     },
     {
-      text: "Time spent",
+      content: (
+        <Tooltip
+          content={
+            <div className="table__header__icon">
+              <FontAwesomeIcon icon={faClock} />
+            </div>
+          }
+          tooltip="Total time spent running"
+        />
+      ),
       sortKey: (item: TestRow) =>
         item.reports[item.reports.length - 1].elapsed_time,
     },
@@ -107,15 +138,7 @@ export function TestTable({ reports, metadata }: Props) {
       >
         {latest.nodeid}
       </Link>,
-      <div style={{ textAlign: "center" }}>
-        {status === Status.FAILED ? (
-          <div className="pill pill__failure">Failed</div>
-        ) : status === Status.WAITING ? (
-          <div className="pill pill__neutral">Waiting</div>
-        ) : (
-          <div className="pill pill__success">Running</div>
-        )}
-      </div>,
+      <StatusPill status={status} />,
       stats.inputs,
       stats.branches,
       stats.executions,
