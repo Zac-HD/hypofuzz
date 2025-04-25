@@ -52,19 +52,23 @@ export function TestTable({ reports, metadata }: Props) {
         if (latest.ninputs === 0) return 1
         return 2
       },
+      align: "center",
       filterable: true,
     },
     {
       content: (
-        <Tooltip
-          content={
-            <div className="table__header__icon">
-              <FontAwesomeIcon icon={faHashtag} />
-            </div>
-          }
-          tooltip="Number of inputs"
-        />
+        <div style={{ textAlign: "right" }}>
+          <Tooltip
+            content={
+              <div className="table__header__icon">
+                <FontAwesomeIcon icon={faHashtag} />
+              </div>
+            }
+            tooltip="Number of inputs"
+          />
+        </div>
       ),
+      align: "right",
       sortKey: (item: TestRow) => item.reports[item.reports.length - 1].ninputs,
     },
     {
@@ -78,6 +82,7 @@ export function TestTable({ reports, metadata }: Props) {
           tooltip="Number of branches executed"
         />
       ),
+      align: "right",
       sortKey: (item: TestRow) =>
         item.reports[item.reports.length - 1].branches,
     },
@@ -92,6 +97,7 @@ export function TestTable({ reports, metadata }: Props) {
           tooltip="Inputs per second"
         />
       ),
+      align: "right",
       sortKey: (item: TestRow) =>
         inputsPerSecond(item.reports[item.reports.length - 1]),
     },
@@ -106,6 +112,7 @@ export function TestTable({ reports, metadata }: Props) {
           tooltip="Number of inputs since a new branch"
         />
       ),
+      align: "right",
       sortKey: (item: TestRow) =>
         item.reports[item.reports.length - 1].since_new_cov ?? 0,
     },
@@ -120,6 +127,7 @@ export function TestTable({ reports, metadata }: Props) {
           tooltip="Total time spent running"
         />
       ),
+      align: "right",
       sortKey: (item: TestRow) =>
         item.reports[item.reports.length - 1].elapsed_time,
     },
@@ -138,12 +146,24 @@ export function TestTable({ reports, metadata }: Props) {
       >
         {latest.nodeid}
       </Link>,
-      <StatusPill status={status} />,
-      stats.inputs,
-      stats.branches,
-      stats.executions,
-      stats.inputsSinceBranch,
-      stats.timeSpent,
+      <div style={{ textAlign: "center" }}>
+        <StatusPill status={status} />
+      </div>,
+      <div style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+        {stats.inputs}
+      </div>,
+      <div style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+        {stats.branches}
+      </div>,
+      <div style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+        {stats.executions}
+      </div>,
+      <div style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+        {stats.inputsSinceBranch}
+      </div>,
+      <div style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+        {stats.timeSpent}
+      </div>,
     ]
   }
 

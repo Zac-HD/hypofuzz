@@ -146,6 +146,18 @@ select {
             color: #666;
             width: 20px;
         }
+
+        &--right {
+            justify-content: flex-end;
+        }
+
+        &--left {
+            justify-content: flex-start;
+        }
+
+        &--center {
+            justify-content: center;
+        }
     }
 
     &__sort {

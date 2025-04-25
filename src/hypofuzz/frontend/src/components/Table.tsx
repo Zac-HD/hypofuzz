@@ -10,6 +10,7 @@ interface TableHeader<T> {
   content: ReactNode
   sortKey?: (item: T) => string | number
   filterable?: boolean
+  align?: string
 }
 
 interface TableProps<T> {
@@ -115,7 +116,9 @@ export function Table<T>({ headers, data, row, getKey }: TableProps<T>) {
                 onClick={() => handleHeaderClick(index)}
                 className={header.sortKey ? "table--sortable" : ""}
               >
-                <div className="table__header">
+                <div
+                  className={`table__header table__header--${header.align ?? "left"}`}
+                >
                   {header.content}
                   {header.sortKey && (
                     <div className="table__sort">

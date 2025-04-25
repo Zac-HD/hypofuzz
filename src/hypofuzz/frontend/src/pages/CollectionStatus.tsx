@@ -60,6 +60,7 @@ export function CollectionStatusPage() {
       sortKey: (item: CollectionResult) =>
         statusOrder[item.status as keyof typeof statusOrder],
       filterable: true,
+      align: "center",
     },
   ]
 

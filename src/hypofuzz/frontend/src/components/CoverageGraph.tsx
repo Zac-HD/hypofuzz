@@ -64,19 +64,17 @@ class Graph {
     this.height = 300 - this.margin.top - this.margin.bottom
 
     this.color = d3.scaleOrdinal(d3.schemeCategory10).domain(reports.keys())
-    const latests = Array.from(reports.entries())
-      .filter(([_, reports]) => reports.length > 0)
-      .map(([_, reports]) => reports[reports.length - 1])
+    const allReports = Array.from(reports.values()).flat()
 
     // symlog is like log but defined linearly in the range [0, 1].
     // https://d3js.org/d3-scale/symlog
     this.x = (scaleSetting === "log" ? d3.scaleSymlog() : d3.scaleLinear())
-      .domain([0, d3.max(latests, d => this.xValue(d)) || 1])
+      .domain([0, d3.max(allReports, d => this.xValue(d)) || 1])
       .range([0, this.width])
 
     this.y = d3
       .scaleLinear()
-      .domain([0, d3.max(latests, d => d.branches) || 0])
+      .domain([0, d3.max(allReports, d => d.branches) || 0])
       .range([this.height, 0])
 
     // this.x and this.y are the full axes which encompass all of the points.
