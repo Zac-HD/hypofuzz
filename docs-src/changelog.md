@@ -2,6 +2,10 @@
 HypoFuzz uses [calendar-based versioning](https://calver.org/), with a
 `YY-MM-patch` format.
 
+## 25.04.7
+
+Improve test table UI by using icons for most columns.
+
 ## 25.04.6
 
 Improve mobile appearance, and add ability to filter table rows by string, for example to filter for all tests whose name contains a string.
