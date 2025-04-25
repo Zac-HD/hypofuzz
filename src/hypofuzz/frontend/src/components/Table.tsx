@@ -86,23 +86,26 @@ export function Table<T>({ headers, data, row, getKey }: TableProps<T>) {
 
   return (
     <div className="table">
-      <div className="table__filter">
-        <input
-          type="text"
-          placeholder="Filter"
-          value={filterString}
-          onChange={e => setFilterString(e.target.value)}
-          className="table__filter__input"
-        />
-        {filterString && (
-          <span
-            className="table__filter__clear"
-            onClick={() => setFilterString("")}
-          >
-            <FontAwesomeIcon icon={faTimes} />
-          </span>
-        )}
-      </div>
+      {/* only show filter box if some rows are filterable */}
+      {headers.some(header => header.filterable) && (
+        <div className="table__filter">
+          <input
+            type="text"
+            placeholder="Filter"
+            value={filterString}
+            onChange={e => setFilterString(e.target.value)}
+            className="table__filter__input"
+          />
+          {filterString && (
+            <span
+              className="table__filter__clear"
+              onClick={() => setFilterString("")}
+            >
+              <FontAwesomeIcon icon={faTimes} />
+            </span>
+          )}
+        </div>
+      )}
       <table className="table__table">
         <thead>
           <tr>
