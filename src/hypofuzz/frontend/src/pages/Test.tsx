@@ -48,7 +48,7 @@ function _TestPage() {
               <FontAwesomeIcon icon={faHashtag} />
             </div>
           }
-          tooltip="Number of inputs to this test"
+          tooltip="Number of inputs"
         />
       ),
     },
@@ -87,7 +87,7 @@ function _TestPage() {
               <FontAwesomeIcon icon={faClock} />
             </div>
           }
-          tooltip="Total time spent running this test"
+          tooltip="Total time spent running"
         />
       ),
     },

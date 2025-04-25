@@ -61,7 +61,7 @@ export function TestTable({ reports, metadata }: Props) {
               <FontAwesomeIcon icon={faHashtag} />
             </div>
           }
-          tooltip="Number of inputs to this test"
+          tooltip="Number of inputs"
         />
       ),
       sortKey: (item: TestRow) => item.reports[item.reports.length - 1].ninputs,
@@ -107,7 +107,7 @@ export function TestTable({ reports, metadata }: Props) {
               <FontAwesomeIcon icon={faClock} />
             </div>
           }
-          tooltip="Total time spent running this test"
+          tooltip="Total time spent running"
         />
       ),
       sortKey: (item: TestRow) =>
