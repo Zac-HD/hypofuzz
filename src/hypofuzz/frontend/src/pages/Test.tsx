@@ -10,7 +10,7 @@ import {
   faCodeBranch,
   faTachometerAlt,
   faClock,
-  faMagnifyingGlass,
+  faSeedling,
 } from "@fortawesome/free-solid-svg-icons"
 import { getStatus } from "../utils/testStats"
 import { StatusPill } from "../components/StatusPill"
@@ -82,7 +82,7 @@ function _TestPage() {
         <Tooltip
           content={
             <div className="table__header__icon">
-              <FontAwesomeIcon icon={faMagnifyingGlass} />
+              <FontAwesomeIcon icon={faSeedling} />
             </div>
           }
           tooltip="Number of inputs since a new branch"
