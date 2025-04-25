@@ -2,6 +2,10 @@
 HypoFuzz uses [calendar-based versioning](https://calver.org/), with a
 `YY-MM-patch` format.
 
+## 25.04.8
+
+Improve text alignment of the test table UI.
+
 ## 25.04.7
 
 Improve test table UI by using icons for most columns.
