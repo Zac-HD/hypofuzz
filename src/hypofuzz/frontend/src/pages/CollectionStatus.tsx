@@ -51,12 +51,12 @@ export function CollectionStatusPage() {
 
   const headers = [
     {
-      text: "Test",
+      content: "Test",
       sortKey: (item: CollectionResult) => item.node_id,
       filterable: true,
     },
     {
-      text: "Status",
+      content: "Status",
       sortKey: (item: CollectionResult) =>
         statusOrder[item.status as keyof typeof statusOrder],
       filterable: true,

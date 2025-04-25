@@ -3,6 +3,17 @@ import { CoverageGraph } from "../components/CoverageGraph"
 import { useData, DataProvider } from "../context/DataProvider"
 import { getTestStats } from "../utils/testStats"
 import { CoveringExamples } from "../components/CoveringExamples"
+import { Table } from "../components/Table"
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
+import {
+  faHashtag,
+  faCodeBranch,
+  faTachometerAlt,
+  faClock,
+} from "@fortawesome/free-solid-svg-icons"
+import { getStatus } from "../utils/testStats"
+import { StatusPill } from "../components/StatusPill"
+import { Tooltip } from "../components/Tooltip"
 
 export function TestPage() {
   const { nodeid } = useParams<{ nodeid: string }>()
@@ -24,37 +35,94 @@ function _TestPage() {
 
   const testReports = reports.get(nodeid)!
   const testMetadata = metadata.get(nodeid)!
-  const stats = getTestStats(testReports[testReports.length - 1])
+  const latest = testReports[testReports.length - 1]
+  const stats = getTestStats(latest)
+  const status = getStatus(latest, testMetadata)
+
+  const headers = [
+    {
+      content: (
+        <Tooltip
+          content={
+            <div className="table__header__icon">
+              <FontAwesomeIcon icon={faHashtag} />
+            </div>
+          }
+          tooltip="Number of inputs to this test"
+        />
+      ),
+    },
+    {
+      content: (
+        <Tooltip
+          content={
+            <div className="table__header__icon">
+              <FontAwesomeIcon icon={faCodeBranch} />
+            </div>
+          }
+          tooltip="Number of branches executed"
+        />
+      ),
+    },
+    {
+      content: (
+        <Tooltip
+          content={
+            <div className="table__header__icon">
+              <FontAwesomeIcon icon={faTachometerAlt} />
+            </div>
+          }
+          tooltip="Inputs per second"
+        />
+      ),
+    },
+    {
+      content: "Since branch",
+    },
+    {
+      content: (
+        <Tooltip
+          content={
+            <div className="table__header__icon">
+              <FontAwesomeIcon icon={faClock} />
+            </div>
+          }
+          tooltip="Total time spent running this test"
+        />
+      ),
+    },
+  ]
 
   return (
     <div className="test-details">
       <Link to="/" className="back-link">
         ← Back to all tests
       </Link>
-      <h1>{nodeid}</h1>
-      <div className="test-info">
-        <div className="info-grid">
-          <div className="info-item">
-            <label>Inputs</label>
-            <div>{stats.inputs}</div>
-          </div>
-          <div className="info-item">
-            <label>Branches</label>
-            <div>{stats.branches}</div>
-          </div>
-          <div className="info-item">
-            <label>Executions</label>
-            <div>{stats.executions}</div>
-          </div>
-          <div className="info-item">
-            <label>Inputs since branch</label>
-            <div>{stats.inputsSinceBranch}</div>
-          </div>
-          <div className="info-item">
-            <label>Time spent</label>
-            <div>{stats.timeSpent}</div>
-          </div>
-        </div>
+      <div>
+        <span
+          style={{
+            wordBreak: "break-all",
+            fontSize: "1.5rem",
+            fontWeight: "bold",
+            marginRight: "0.7rem",
+          }}
+        >
+          {nodeid}
+        </span>
+        <StatusPill status={status} />
+      </div>
+      <div style={{ paddingTop: "1rem", paddingBottom: "1rem" }}>
+        <Table
+          headers={headers}
+          data={[stats]}
+          row={item => [
+            item.inputs,
+            item.branches,
+            item.executions,
+            item.inputsSinceBranch,
+            item.timeSpent,
+          ]}
+        />
       </div>
       <CoverageGraph reports={new Map([[nodeid, testReports]])} />
 
