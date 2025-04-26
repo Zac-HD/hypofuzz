@@ -1,12 +1,18 @@
 """CLI and Python API for the fuzzer."""
 
 import sys
-from multiprocessing import Process
+import time
+from multiprocessing import Pool, Process
+from random import Random
 from typing import NoReturn, Optional
 
 import click
 import hypothesis.extra.cli
 import psutil
+from sortedcontainers import SortedKeyList
+
+from hypofuzz.collection import collect_tests
+from hypofuzz.hypofuzz import FuzzProcess
 
 
 @hypothesis.extra.cli.main.command()  # type: ignore
@@ -44,11 +50,6 @@ import psutil
     metavar="PORT",
     help="Optional port for the dashboard (if any). 0 to request an arbitrary open port",
 )
-@click.option(
-    "--unsafe",
-    is_flag=True,
-    help="Allow concurrent execution of each test (dashboard may report wrong results)",
-)
 @click.argument(
     "pytest_args",
     nargs=-1,
@@ -60,7 +61,6 @@ def fuzz(
     dashboard_only: bool,
     host: Optional[str],
     port: Optional[int],
-    unsafe: bool,
     pytest_args: tuple[str, ...],
 ) -> NoReturn:
     """[hypofuzz] runs tests with an adaptive coverage-guided fuzzer.
@@ -71,6 +71,16 @@ def fuzz(
 
     This process will run forever unless stopped with e.g. ctrl-C.
     """
+    # Before doing anything with our arguments, we'll check that none
+    # of HypoFuzz's arguments will be passed on to pytest instead.
+    misplaced: set = set(pytest_args) & set().union(*(p.opts for p in fuzz.params))
+    if misplaced:
+        plural = "s" * (len(misplaced) > 1)
+        names = ", ".join(map(repr, misplaced))
+        raise click.UsageError(
+            f"fuzzer option{plural} {names} would be passed to pytest instead"
+        )
+
     dash_proc = None
     if dashboard or dashboard_only:
         from hypofuzz.dashboard import start_dashboard_process
@@ -88,7 +98,6 @@ def fuzz(
     try:
         _fuzz_impl(
             numprocesses=numprocesses,
-            unsafe=unsafe,
             pytest_args=pytest_args,
         )
     except BaseException:
@@ -102,45 +111,83 @@ def fuzz(
     raise NotImplementedError("unreachable")
 
 
-def _fuzz_impl(numprocesses: int, unsafe: bool, pytest_args: tuple[str, ...]) -> None:
-    # Before doing anything with our arguments, we'll check that none
-    # of HypoFuzz's arguments will be passed on to pytest instead.
-    misplaced: set = set(pytest_args) & set().union(*(p.opts for p in fuzz.params))
-    if misplaced:
-        plural = "s" * (len(misplaced) > 1)
-        names = ", ".join(map(repr, misplaced))
-        raise click.UsageError(
-            f"fuzzer option{plural} {names} would be passed to pytest instead"
+class FuzzProcessPool:
+    def __init__(self, *, targets: list[FuzzProcess], pytest_args, num_processes):
+        self.targets = targets
+        self.num_processes = num_processes
+        self.pytest_args = pytest_args
+
+        self.pool = Pool(processes=num_processes)
+        self.random = Random()
+        # TODO: make this aware of test runtime, so it adapts for branches-per-second
+        #       rather than branches-per-input.
+        self.targets = SortedKeyList(targets, lambda t: t.since_new_cov)
+
+    def start(self):
+        for _ in range(self.num_processes):
+            self._submit_new_task()
+
+    def _callback(self, _result):
+        self._submit_new_task()
+
+    def _submit_new_task(self):
+        for i, target in enumerate(self.targets):
+            if target.has_found_failure:
+                self.targets.pop(i)
+
+        # epsilon-greedy sampling
+        if self.random.random() < 0.05:
+            target = self.targets[self.random.randrange(len(self.targets))]
+        else:
+            if len(self.targets) > 1 and self.targets.key(
+                self.targets[0]
+            ) > self.targets.key(self.targets[1]):
+                # pay our log-n cost to keep the list sorted
+                self.targets.add(self.targets.pop(0))
+            target = self.targets[0]
+
+        self.pool.apply_async(
+            _fuzz_one_test,
+            kwds={"pytest_args": self.pytest_args, "nodeid": target.nodeid},
+            callback=self._callback,
+            error_callback=self._callback,
         )
 
-    from hypofuzz.interface import _fuzz_several, _get_hypothesis_tests_with_pytest
 
-    # With our arguments validated, it's time to actually do the work.
-    tests = _get_hypothesis_tests_with_pytest(pytest_args).fuzz_targets
+def _fuzz_impl(numprocesses: int, pytest_args: tuple[str, ...]) -> None:
+    collection_result = collect_tests(pytest_args)
+    tests = collection_result.fuzz_targets
     if not tests:
         raise click.UsageError(
             f"No property-based tests were collected. args: {pytest_args}"
         )
 
-    print(f"collected {len(tests)} property-based tests")
-    if numprocesses > len(tests) and not unsafe:
-        numprocesses = len(tests)
+    skipped_msg = (
+        ""
+        if not collection_result.not_collected
+        else f" (skipped {len(collection_result.not_collected)} tests)"
+    )
+    print(
+        f"using {numprocesses} processes to fuzz {len(tests)} property-based tests{skipped_msg}"
+    )
 
-    testnames = "\n    ".join(t.nodeid for t in tests)
-    print(f"using up to {numprocesses} processes to fuzz:\n    {testnames}\n")
+    pool = FuzzProcessPool(
+        targets=tests, pytest_args=pytest_args, num_processes=numprocesses
+    )
+    pool.start()
+    while True:
+        time.sleep(999)
 
-    if numprocesses <= 1:
-        _fuzz_several(pytest_args=pytest_args, nodeids=[t.nodeid for t in tests])
-    else:
-        processes = []
-        for i in range(numprocesses):
-            nodes = {t.nodeid for t in (tests if unsafe else tests[i::numprocesses])}
-            p = Process(
-                target=_fuzz_several,
-                kwargs={"pytest_args": pytest_args, "nodeids": nodes},
-            )
-            p.start()
-            processes.append(p)
-        for p in processes:
-            p.join()
-    print("Found a failing input for every test!", file=sys.stderr)
+
+def _fuzz_one_test(*, pytest_args, nodeid):
+    targets = [t for t in collect_tests(pytest_args).fuzz_targets if t.nodeid == nodeid]
+    if len(targets) != 1:
+        return
+
+    target = targets[0]
+    target.startup()
+
+    for _ in range(1000):
+        if target.has_found_failure:
+            break
+        target.run_one()

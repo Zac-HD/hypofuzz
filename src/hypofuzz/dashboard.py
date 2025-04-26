@@ -21,6 +21,7 @@ from starlette.staticfiles import StaticFiles
 from starlette.websockets import WebSocket, WebSocketDisconnect
 from trio import MemoryReceiveChannel
 
+from hypofuzz.collection import CollectionResult
 from hypofuzz.database import (
     HypofuzzEncoder,
     LinearReports,
@@ -31,7 +32,6 @@ from hypofuzz.database import (
     metadata_key,
     reports_key,
 )
-from hypofuzz.interface import CollectionResult
 from hypofuzz.patching import make_and_save_patches
 
 
@@ -313,7 +313,7 @@ async def run_dashboard(port: int, host: str) -> None:
 def start_dashboard_process(
     port: int, *, pytest_args: list, host: str = "localhost"
 ) -> None:
-    from hypofuzz.interface import _get_hypothesis_tests_with_pytest
+    from hypofuzz.collection import collect_tests
 
     global PYTEST_ARGS
     global COLLECTION_RESULT
@@ -321,7 +321,7 @@ def start_dashboard_process(
 
     # we run a pytest collection step for the dashboard to pick up on databases
     # from custom profiles, and to figure out what tests are available.
-    COLLECTION_RESULT = _get_hypothesis_tests_with_pytest(pytest_args)
+    COLLECTION_RESULT = collect_tests(pytest_args)
 
     print(f"\n\tNow serving dashboard at  http://{host}:{port}/\n")
     trio.run(run_dashboard, port, host)

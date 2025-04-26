@@ -2,7 +2,6 @@
 
 import contextlib
 import inspect
-import itertools
 import os
 import platform
 import socket
@@ -43,7 +42,6 @@ from hypothesis.internal.escalation import InterestingOrigin, get_trimmed_traceb
 from hypothesis.internal.reflection import function_digest, get_signature
 from hypothesis.reporting import with_reporter
 from hypothesis.vendor.pretty import RepresentationPrinter
-from sortedcontainers import SortedKeyList
 
 import hypofuzz
 from hypofuzz.corpus import (
@@ -232,13 +230,6 @@ class FuzzProcess:
         The "more" part is in cases where we discover new coverage, and shrink
         to the minimal covering example.
         """
-        # If we've been stable for a little while, try loading new examples from the
-        # database.  We do this unconditionally because even if this fuzzer doesn't
-        # know of other concurrent runs, there may be e.g. a test process sharing the
-        # database.  We do make it infrequent to manage the overhead though.
-        if self.ninputs % 1000 == 0 and self.since_new_cov > 1000:
-            self._replay_queue.extend(self.pool.fetch())
-
         # seen_count = len(self.pool.arc_counts)
         # Run the input
         result = self._run_test_on(self.generate_data())
@@ -431,36 +422,6 @@ class FuzzProcess:
     def has_found_failure(self) -> bool:
         """If we've already found a failing example we might reprioritize."""
         return bool(self.pool.interesting_examples)
-
-
-def fuzz_several(*targets_: FuzzProcess, random_seed: Optional[int] = None) -> None:
-    """Take N fuzz targets and run them all."""
-    # TODO: this isn't actually multi-process yet, and that's bad.
-    rand = Random(random_seed)
-    targets = SortedKeyList(targets_, lambda t: t.since_new_cov)
-
-    # Loop forever: at each timestep, we choose a target using an epsilon-greedy
-    # strategy for simplicity (TODO: improve this later) and run it once.
-    # TODO: make this aware of test runtime, so it adapts for branches-per-second
-    #       rather than branches-per-input.
-    for t in targets:
-        t.startup()
-    for i in itertools.count():
-        if i % 20 == 0:
-            t = targets.pop(rand.randrange(len(targets)))
-            t.run_one()
-            targets.add(t)
-        else:
-            targets[0].run_one()
-            if len(targets) > 1 and targets.key(targets[0]) > targets.key(targets[1]):
-                # pay our log-n cost to keep the list sorted
-                targets.add(targets.pop(0))
-            elif targets[0].has_found_failure:
-                print(f"found failing example for {targets[0].nodeid}")
-                targets.pop(0)
-            if not targets:
-                return
-    raise NotImplementedError("unreachable")
 
 
 @lru_cache

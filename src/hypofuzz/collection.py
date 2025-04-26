@@ -1,13 +1,12 @@
-"""CLI and Python API for the fuzzer."""
-
-import io
-import sys
 import traceback
-from collections.abc import Iterable
-from contextlib import redirect_stdout
 from dataclasses import dataclass
 from inspect import signature
 from typing import TYPE_CHECKING, Any, Optional, get_type_hints
+import io
+from collections.abc import Iterable
+from contextlib import redirect_stdout
+import sys
+
 
 import pytest
 from _pytest.nodes import Item, Node
@@ -61,9 +60,11 @@ class _ItemsCollector:
                 self._skip_because("not_a_function", item.nodeid)
                 continue
             # we're only noting the reason for the first skip and skipifs for
-            # now, not all of them. Be careful that this matches pytest semantics;
-            # pytest might not evaluate conditions beyond the first true one,
-            # which could cause side effects.
+            # now, not all of them.
+            #
+            # Be careful that this logic matches pytest semantics;
+            # pytest does not evaluate conditions beyond the first true one,
+            # which could cause side effects in the string-condition case.
             if skips := list(item.iter_markers("skip")):
                 # reason is in either args or kwargs depending on how it was
                 # passed to the mark. all 3 are valid:
@@ -80,7 +81,7 @@ class _ItemsCollector:
                 self._skip_because("skipif", item.nodeid, {"reason": skipif_reason})
                 continue
             # If the test takes a fixture, we skip it - the fuzzer doesn't have
-            # pytest scopes, so we just can't support them.  TODO: note skips.
+            # pytest scopes, so we just can't support them.
             manager = item._request._fixturemanager
             fixtureinfo = manager.getfixtureinfo(
                 node=item, func=item.function, cls=None
@@ -168,7 +169,7 @@ class _ItemsCollector:
                 self.fuzz_targets.append(fuzz)
 
 
-def _get_hypothesis_tests_with_pytest(args: Iterable[str]) -> CollectionResult:
+def collect_tests(args: Iterable[str]) -> CollectionResult:
     """Find the hypothesis-only test functions run by pytest.
 
     This basically uses `pytest --collect-only -m hypothesis $args`.
@@ -194,20 +195,3 @@ def _get_hypothesis_tests_with_pytest(args: Iterable[str]) -> CollectionResult:
     return CollectionResult(
         fuzz_targets=collector.fuzz_targets, not_collected=collector.not_collected
     )
-
-
-def _fuzz_several(pytest_args: tuple[str, ...], nodeids: list[str]) -> None:
-    """Collect and fuzz tests.
-
-    Designed to be used inside a multiprocessing.Process started with the spawn()
-    method - requires picklable arguments but works on Windows too.
-    """
-    # Import within the function to break an import cycle when used as an entry point.
-    from hypofuzz.hypofuzz import fuzz_several
-
-    tests = [
-        t
-        for t in _get_hypothesis_tests_with_pytest(pytest_args).fuzz_targets
-        if t.nodeid in nodeids
-    ]
-    fuzz_several(*tests)

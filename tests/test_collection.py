@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from hypofuzz import interface
+from hypofuzz.collection import collect_tests
 from hypofuzz.hypofuzz import FuzzProcess
 
 
@@ -24,7 +24,7 @@ def collect(code: str) -> list[FuzzProcess]:
     )
     p = Path(tempfile.mkstemp(prefix="test_", suffix=".py")[1])
     p.write_text(code)
-    fps = interface._get_hypothesis_tests_with_pytest([str(p)]).fuzz_targets
+    fps = collect_tests([str(p)]).fuzz_targets
     p.unlink()
     return fps
 
@@ -133,6 +133,38 @@ def test_skipif_collection(conditions, result):
         pass
     """
     assert collect_names(code) == (set() if result else {"test_a"})
+
+
+def test_evaluates_only_closest_skipif(tmp_path):
+    # match pytest semantics of short-circuit skipif evaluation.
+    file_1 = tmp_path / "skipif_side_effect_test_1"
+    file_2 = tmp_path / "skipif_side_effect_test_2"
+
+    code = f"""
+    @pytest.mark.skipif(
+        \"\"\"(
+            (f := open('{file_2}', 'w')) and
+            os.write(f.fileno(), b'0') and
+            f.close()
+        ) or True\"\"\",
+        reason="",
+    )
+    @pytest.mark.skipif(
+        \"\"\"(
+            (f := open('{file_1}', 'w')) and
+            os.write(f.fileno(), b'0') and
+            f.close()
+        ) or True\"\"\",
+        reason="",
+    )
+    @given(st.none())
+    def test_a(a):
+        pass
+    """
+
+    assert collect_names(code) == set()
+    assert file_1.exists()
+    assert not file_2.exists()
 
 
 def test_skip_not_collected():
