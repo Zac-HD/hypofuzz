@@ -44,8 +44,10 @@ jobs:
         )
       )
     permissions:
-      # required to push to gh-pages branch
+      # for pushing to the gh-pages branch
       contents: write
+      # for creating a new commit status for the docs page
+      statuses: write
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
