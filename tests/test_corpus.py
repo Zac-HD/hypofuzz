@@ -11,7 +11,6 @@ from strategies import nodes
 from hypofuzz.corpus import (
     Arc,
     ConjectureResult,
-    HowGenerated,
     NodesT,
     Pool,
     Status,
@@ -47,21 +46,15 @@ def results(statuses=st.sampled_from(Status)) -> st.SearchStrategy[ConjectureRes
 
 
 def pool_args(statuses=st.sampled_from(Status)):
-    return st.lists(
-        st.tuples(
-            results(statuses=statuses),
-            st.sampled_from(HowGenerated),
-        ),
-        unique_by=lambda r: r[0].nodes,
-    )
+    return st.lists(results(statuses=statuses), unique_by=lambda r: r.nodes)
 
 
 @given(pool_args(statuses=st.just(Status.VALID)))
 def test_pool_coverage_tracking(args):
     pool = Pool(database=InMemoryExampleDatabase(), key=b"")
     total_coverage = set()
-    for res, how in args:
-        pool.add(res, how)
+    for res in args:
+        pool.add(res)
         note(repr(pool))
         pool._check_invariants()
         total_coverage.update(res.extra_information.branches)
@@ -75,8 +68,8 @@ def test_pool_covering_nodes(args):
     pool = Pool(database=InMemoryExampleDatabase(), key=b"")
     covering_nodes: dict[Arc, NodesT] = {}
 
-    for res, how in args:
-        pool.add(res, how)
+    for res in args:
+        pool.add(res)
         note(repr(pool))
         pool._check_invariants()
         for arc in res.extra_information.branches:
@@ -96,8 +89,8 @@ def test_interesting_results_are_added_to_database(args):
     pool = Pool(database=db, key=key)
 
     saved = defaultdict(set)
-    for res, how in args:
-        pool.add(res, how)
+    for res in args:
+        pool.add(res)
         if res.status is not Status.INTERESTING:
             continue
 

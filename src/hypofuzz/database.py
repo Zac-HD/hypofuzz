@@ -1,10 +1,12 @@
 import dataclasses
+import hashlib
 import json
-from collections import defaultdict
+from collections import defaultdict, deque
 from collections.abc import Iterable
+from contextlib import suppress
 from dataclasses import dataclass, is_dataclass
 from enum import Enum
-from functools import cache
+from functools import cache, lru_cache
 from typing import Any, Optional
 
 from hypothesis import settings
@@ -126,12 +128,19 @@ class Metadata:
 
 
 reports_key = b".hypofuzz.reports"
+observe_key = b".hypofuzz.observe"
 metadata_key = b".hypofuzz.metadata"
+
+
+@lru_cache(maxsize=512)
+def cov_obs_key(fuzz_key: bytes, covering_example: bytes) -> bytes:
+    return fuzz_key + b".observe." + hashlib.sha1(covering_example).digest()
 
 
 class HypofuzzDatabase:
     def __init__(self, db: ExampleDatabase) -> None:
         self._db = db
+        self._obs_queue: deque[bytes] = deque()
 
     def __str__(self) -> str:
         return f"HypofuzzDatabase({self._db!r})"
@@ -180,6 +189,39 @@ class HypofuzzDatabase:
                 # would cause us to reset to zero entries.
                 continue
             self.delete(key + metadata_key, self._encode(old_metadata))
+
+    def save_observation(
+        self, key: bytes, observation: dict, *, discard_over: int
+    ) -> None:
+        if not self._obs_queue:
+            # If we don't have anything at all, load from the database
+            seen = []
+            for x in self._db.fetch(key + observe_key):
+                with suppress(Exception):
+                    seen.append((json.loads(x)["timestamp"], x))
+            self._obs_queue.extend([v for _, v in sorted(seen)])
+
+        encoded = json.dumps(observation).encode()
+        self._obs_queue.append(encoded)
+        self._db.save(key + observe_key, encoded)
+
+        # If we have more elements in the buffer than we need, clear them out.
+        while len(self._obs_queue) > discard_over:
+            self._db.delete(key + observe_key, self._obs_queue.popleft())
+
+    def fetch_observations(self, key: bytes) -> Iterable[dict]:
+        for x in self.fetch(key + observe_key):
+            with suppress(Exception):
+                value = json.loads(x)
+            yield value
+
+    def fetch_covering_observations(self, key: bytes) -> Iterable[dict]:
+        covering_examples = set(self._db.fetch(key))
+        for k in covering_examples:
+            for x in self._db.fetch(cov_obs_key(key, k)):
+                with suppress(Exception):
+                    value = json.loads(x)
+                yield value
 
 
 # cache to make the db a singleton. We defer creation until first-usage to ensure

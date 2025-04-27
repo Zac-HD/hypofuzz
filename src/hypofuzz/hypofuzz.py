@@ -3,7 +3,6 @@
 import contextlib
 import inspect
 import itertools
-import json
 import os
 import platform
 import socket
@@ -53,7 +52,6 @@ import hypofuzz
 from hypofuzz.corpus import (
     BlackBoxMutator,
     CrossOverMutator,
-    HowGenerated,
     Pool,
     get_shrinker,
 )
@@ -254,8 +252,7 @@ class FuzzProcess:
 
         # seen_count = len(self.pool.arc_counts)
         # Run the input
-        with self._maybe_observe_for_tyche():
-            result = self._run_test_on(self.generate_data())
+        result = self._run_test_on(self.generate_data())
 
         if result.status is Status.INTERESTING:
             assert not isinstance(result, _Overrun)
@@ -290,7 +287,6 @@ class FuzzProcess:
         self,
         data: ConjectureData,
         *,
-        source: HowGenerated = HowGenerated.shrinking,
         collector: Optional[contextlib.AbstractContextManager] = None,
     ) -> Union[ConjectureResult, _Overrun]:
         """Run the test_fn on a given data, in a way a Shrinker can handle.
@@ -309,6 +305,7 @@ class FuzzProcess:
                 BuildContext(data, is_final=True) as context,
                 constant_stack_depth(),
                 with_reporter(reports.append),
+                self._maybe_observe_for_tyche() as observations,
             ):
                 # Note that the data generation and test execution happen in the same
                 # coverage context.  We may later split this, or tag each separately.
@@ -373,7 +370,7 @@ class FuzzProcess:
         # Update the pool and report any changes immediately for new coverage.  If no
         # new coverage, occasionally send an update anyway so we don't look stalled.
         self.status_counts[data.status] += 1
-        if self.pool.add(data.as_result(), source):
+        if self.pool.add(data.as_result(), observation=observations[0]):
             self.since_new_cov = 0
         else:
             self.since_new_cov += 1
@@ -389,44 +386,24 @@ class FuzzProcess:
         return data.as_result()
 
     @contextlib.contextmanager
-    def _maybe_observe_for_tyche(self) -> Generator[None, None, None]:
+    def _maybe_observe_for_tyche(self) -> Generator[list[dict], None, None]:
         # We're aiming for a rolling buffer of the last 300 observations, downsampling
         # to one per second if we're executing more than one test case per second.
-
-        if not self._observations_queue:
-            # If we don't have anything at all, load from the database
-            def _safe_load() -> list[bytes]:
-                seen = SortedKeyList()
-                for x in self.pool._database.fetch(self._observations_key):
-                    with contextlib.suppress(Exception):
-                        seen.add((json.loads(x)["timestamp"], x))
-                return [v for _, v in seen]
-
-            self._observations_queue.extend(_safe_load())
-
-        if self.phase is Phase.GENERATE and (
+        # Decide here, so that runtime doesn't bias our choice of what to observe.
+        will_save = self.phase is Phase.GENERATE and (
             self.elapsed_time > self._last_observed + 1
             or len(self._observations_queue) < 300
-        ):
-            got: list = []
-            TESTCASE_CALLBACKS.append(got.append)
-            try:
-                yield
-            finally:
-                cb = TESTCASE_CALLBACKS.pop()
-                assert cb is got.append
-            observation = [v for v in got if v["type"] == "test_case"][0]
-            encoded = json.dumps(observation).encode()
-            self._observations_queue.append(encoded)
-            self.pool._database.save(self._observations_key, encoded)
-        else:
-            yield
-
-        # If we have more elements in the buffer than we need, clear them out.
-        while len(self._observations_queue) > 300:
-            self.pool._database.delete(
-                self._observations_key, self._observations_queue.popleft()
-            )
+        )
+        got: list = []
+        TESTCASE_CALLBACKS.append(
+            lambda x: got.append(x) if x["type"] == "test_case" else None
+        )
+        try:
+            yield got
+        finally:
+            TESTCASE_CALLBACKS.pop()
+        if will_save:
+            get_db().save_observation(*got, discard_over=300)
 
     def _save_report(self, report: Report) -> None:
         db = get_db()

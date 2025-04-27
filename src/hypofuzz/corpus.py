@@ -2,6 +2,7 @@
 
 import abc
 import enum
+import json
 from collections import Counter
 from collections.abc import Callable, Iterable, Iterator
 from random import Random
@@ -23,6 +24,7 @@ from hypothesis.internal.escalation import InterestingOrigin
 from sortedcontainers import SortedDict
 
 from hypofuzz.coverage import Arc
+from hypofuzz.database import cov_obs_key
 
 if TYPE_CHECKING:
     from typing import TypeAlias
@@ -177,7 +179,10 @@ class Pool:
         return self._key + b".fuzz"
 
     def add(
-        self, result: Union[ConjectureResult, _Overrun], source: HowGenerated
+        self,
+        result: Union[ConjectureResult, _Overrun],
+        *,
+        observation: dict | None = None,
     ) -> Optional[bool]:
         """Update the corpus with the result of running a test.
 
@@ -228,7 +233,17 @@ class Pool:
             # We do this the stupid-but-obviously-correct way: add the new choices to
             # our tracked corpus, and then run a distillation step.
             self.results[result.nodes] = result
+            as_bytes = choices_to_bytes(result.choices)
             self._database.save(self._fuzz_key, choices_to_bytes(result.choices))
+            if observation is not None:
+                assert isinstance(observation, dict)
+                obs_key = cov_obs_key(self._fuzz_key, as_bytes)
+                encoded = json.dumps(observation).encode()
+                self._database.save(obs_key, encoded)
+                for value in self._database.fetch(obs_key):
+                    if value != encoded:
+                        self._database.delete(obs_key, value)
+
             self._loaded_from_database.add(Choices(result.choices))
             # Clear out any redundant entries
             seen_branches: set[Arc] = set()
@@ -239,7 +254,12 @@ class Pool:
                 seen_branches.update(res.extra_information.branches)  # type: ignore
                 if not covers:
                     del self.results[res.nodes]
-                    self._database.delete(self._fuzz_key, choices_to_bytes(res.choices))
+                    as_bytes = choices_to_bytes(res.choices)
+                    self._database.delete(self._fuzz_key, as_bytes)
+                    # also clear out any observations
+                    obs_key = cov_obs_key(self._fuzz_key, as_bytes)
+                    for value in self._database.fetch(obs_key):
+                        self._database.delete(obs_key, value)
                 else:
                     for arc in covers:
                         self.covering_nodes[arc] = res.nodes
