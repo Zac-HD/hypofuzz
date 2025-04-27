@@ -74,8 +74,6 @@ jobs:
         fi
 
         HYPOFUZZ_DOCS_OUTPUT_DIR=docs/${BASE}/docs python -m tox --recreate -e docs
-        # avoid committing this large (~2mb) and unnecessary dir to git
-        rm -rf docs/${BASE}/docs/.doctrees
         VITE_ROUTER_TYPE=hash npm run build --prefix src/hypofuzz/frontend -- --base=${BASE%/}/example-dashboard
 
         rm -rf docs/${BASE}/example-dashboard
