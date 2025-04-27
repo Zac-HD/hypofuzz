@@ -91,7 +91,10 @@ jobs:
         git fetch --all
         git switch -c gh-pages origin/gh-pages
 
-        rm -rf docs/${BASE}
+        # avoid wiping preview directories on master
+        if [[ "${BASE}" = "/" ]]; then
+          find docs/${BASE} -mindepth 1 -maxdepth 1 -not -name "preview-*" -exec rm -rf {} +
+        fi
         mkdir -p docs/${BASE}
         cp -r $RUNNER_TEMP/hypofuzz_site/* docs/${BASE}
         git add --force docs/${BASE}
