@@ -580,7 +580,7 @@ export function CoverageGraph({ reports }: Props) {
             { value: "log", label: "Log" },
           ]}
         />
-        <TestFilter onSearch={setFilterString} />
+        {reports.size > 1 && <TestFilter onSearch={setFilterString} />}
       </div>
       <div className="coverage-graph__tooltip" />
       <svg
