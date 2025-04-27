@@ -74,6 +74,8 @@ jobs:
         fi
 
         HYPOFUZZ_DOCS_OUTPUT_DIR=docs/${BASE}/docs python -m tox --recreate -e docs
+        # avoid committing this large (~2mb) and unnecessary dir to git
+        rm -rf docs/${BASE}/docs/.doctrees
         VITE_ROUTER_TYPE=hash npm run build --prefix src/hypofuzz/frontend -- --base=${BASE%/}/example-dashboard
 
         rm -rf docs/${BASE}/example-dashboard
@@ -95,6 +97,7 @@ jobs:
         fi
         mkdir -p docs/${BASE}
         cp -r $RUNNER_TEMP/hypofuzz_site/* docs/${BASE}
+        touch docs/${BASE}/.nojekyll
         git add --force docs/${BASE}
 
         git config --local user.email "action@github.com"
