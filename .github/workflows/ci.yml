@@ -97,7 +97,7 @@ jobs:
         fi
         mkdir -p docs/${BASE}
         cp -r $RUNNER_TEMP/hypofuzz_site/* docs/${BASE}
-        touch docs/.nojekyll
+        touch docs/${BASE}/.nojekyll
         git add --force docs/${BASE}
 
         git config --local user.email "action@github.com"
