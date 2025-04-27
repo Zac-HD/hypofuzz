@@ -1,9 +1,11 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, useMemo } from "react"
 import * as d3 from "d3"
 import { Report } from "../types/dashboard"
 import { Toggle } from "./Toggle"
 import { useSetting } from "../hooks/useSetting"
 import { useNavigate } from "react-router-dom"
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
+import { faSearch, faTimes } from "@fortawesome/free-solid-svg-icons"
 // import BoxSelect from "../assets/box-select.svg?react"
 
 const mousePosition = { x: 0, y: 0 }
@@ -41,13 +43,14 @@ class Graph {
   private eventListeners: Map<string, Array<() => void>> = new Map()
   private xAxis: d3.Selection<SVGGElement, unknown, null, undefined>
   private yAxis: d3.Selection<SVGGElement, unknown, null, undefined>
-  private color: d3.ScaleOrdinal<string, string>
+  private reportsColor: d3.ScaleOrdinal<string, string>
   private viewportX: d3.ScaleContinuousNumeric<number, number>
   private viewportY: d3.ScaleContinuousNumeric<number, number>
 
   constructor(
     svg: SVGSVGElement,
     reports: Map<string, Report[]>,
+    reportsColor: d3.ScaleOrdinal<string, string>,
     scaleSetting: string,
     axisSetting: string,
     navigate: (path: string) => void,
@@ -63,7 +66,7 @@ class Graph {
     this.width = svg.clientWidth - this.margin.left - this.margin.right
     this.height = 300 - this.margin.top - this.margin.bottom
 
-    this.color = d3.scaleOrdinal(d3.schemeCategory10).domain(reports.keys())
+    this.reportsColor = reportsColor
     const allReports = Array.from(reports.values()).flat()
 
     // symlog is like log but defined linearly in the range [0, 1].
@@ -235,7 +238,7 @@ class Graph {
       .append("g")
       .attr("transform", `translate(${this.width + 10},0)`)
 
-    this.color.domain().forEach((nodeid, i) => {
+    this.reportsColor.domain().forEach((nodeid, i) => {
       const legendItem = legend
         .append("g")
         .attr("transform", `translate(0,${i * 20})`)
@@ -263,7 +266,7 @@ class Graph {
         .attr("x2", 20)
         .attr("y1", 10)
         .attr("y2", 10)
-        .attr("stroke", this.color(nodeid))
+        .attr("stroke", this.reportsColor(nodeid))
 
       legendItem
         .append("text")
@@ -285,7 +288,7 @@ class Graph {
         .append("path")
         .datum(points)
         .attr("fill", "none")
-        .attr("stroke", this.color(nodeid))
+        .attr("stroke", this.reportsColor(nodeid))
         .attr("d", line)
         .attr("class", "coverage-line")
         .style("cursor", "pointer")
@@ -384,6 +387,62 @@ class Graph {
   }
 }
 
+function TestFilter({ onSearch }: { onSearch: (query: string) => void }) {
+  const [expanded, setExpanded] = useState(false)
+  const [filterString, setFilterString] = useState("")
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  // focus whenever filter is expanded
+  useEffect(() => {
+    if (expanded && inputRef.current) {
+      inputRef.current.focus()
+    }
+  }, [expanded])
+
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    setFilterString(value)
+    onSearch(value)
+  }
+
+  const clearSearch = () => {
+    setFilterString("")
+    onSearch("")
+    setExpanded(false)
+  }
+
+  const handleBlur = () => {
+    if (!filterString) {
+      setExpanded(false)
+    }
+  }
+
+  return (
+    <div>
+      {!expanded ? (
+        <div className="coverage-graph__icon" onClick={() => setExpanded(true)}>
+          <FontAwesomeIcon icon={faSearch} />
+        </div>
+      ) : (
+        <div className="coverage-graph__search">
+          <input
+            ref={inputRef}
+            type="text"
+            placeholder="Filter tests..."
+            value={filterString}
+            onChange={handleSearch}
+            onBlur={handleBlur}
+            className="coverage-graph__search__input"
+          />
+          <div className="coverage-graph__search__clear" onClick={clearSearch}>
+            <FontAwesomeIcon icon={faTimes} />
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function CoverageGraph({ reports }: Props) {
   const svgRef = useRef<SVGSVGElement>(null)
   const [scaleSetting, setScaleSetting] = useSetting<string>(
@@ -400,10 +459,25 @@ export function CoverageGraph({ reports }: Props) {
     zoomY: boolean
   }>({ transform: null, zoomY: false })
   const [boxSelectEnabled, setBoxSelectEnabled] = useState(false)
+  const [filterString, setFilterString] = useState("")
   const navigate = useNavigate()
 
+  const filteredReports = useMemo(() => {
+    if (!filterString) return reports
+    return new Map(
+      Array.from(reports.entries()).filter(([nodeid]) =>
+        nodeid.toLowerCase().includes(filterString.toLowerCase()),
+      ),
+    )
+  }, [reports, filterString])
+
+  // use the unfiltered reports as the domain so colors are stable across filtering.
+  const reportsColor = d3
+    .scaleOrdinal(d3.schemeCategory10)
+    .domain(reports.keys())
+
   useEffect(() => {
-    if (!svgRef.current || reports.size === 0) {
+    if (!svgRef.current) {
       return
     }
 
@@ -433,7 +507,8 @@ export function CoverageGraph({ reports }: Props) {
     d3.select(svgRef.current).selectAll("*").remove()
     const graph = new Graph(
       svgRef.current,
-      reports,
+      filteredReports,
+      reportsColor,
       scaleSetting,
       axisSetting,
       navigate,
@@ -465,7 +540,7 @@ export function CoverageGraph({ reports }: Props) {
       graph.cleanup()
     }
   }, [
-    reports,
+    filteredReports,
     scaleSetting,
     axisSetting,
     forceUpdate,
@@ -505,6 +580,7 @@ export function CoverageGraph({ reports }: Props) {
             { value: "log", label: "Log" },
           ]}
         />
+        <TestFilter onSearch={setFilterString} />
       </div>
       <div className="coverage-graph__tooltip" />
       <svg
