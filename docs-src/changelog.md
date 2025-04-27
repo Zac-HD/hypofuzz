@@ -4,7 +4,7 @@ HypoFuzz uses [calendar-based versioning](https://calver.org/), with a
 
 ## 25.04.9
 
-Improve uniqueness of database keys for tests which use `@pytest.mark.parametrize`.
+Add a search bar to the coverage graph, and fix failures for parametrized tests being written to the incorrect database key.
 
 ## 25.04.8
 
