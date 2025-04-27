@@ -182,6 +182,14 @@ async def api_patches(request: Request) -> Response:
     return HypofuzzJSONResponse(_patches())
 
 
+async def api_one_patch(request: Request) -> Response:
+    patch_name = request.path_params["patch_name"]
+    patches = _patches()
+    if patch_name not in patches:
+        return Response(status_code=404)
+    return Response(content=patches[patch_name], media_type="text/x-patch")
+
+
 def _collection_status() -> list[dict[str, Any]]:
     assert COLLECTION_RESULT is not None
 
@@ -230,6 +238,7 @@ routes = [
     Route("/api/tests/", api_tests),
     Route("/api/tests/{node_id:path}", api_test),
     Route("/api/patches/", api_patches),
+    Route("/api/patches/{patch_name}", api_one_patch),
     Route("/api/collected_tests/", api_collected_tests),
     Route("/api/backing_state/", api_backing_state),
     Mount("/assets", StaticFiles(directory=dist / "assets")),
