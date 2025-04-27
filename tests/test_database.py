@@ -67,7 +67,7 @@ def test_database_keys_incorporate_parametrization():
         set(db_hypothesis.fetch(DirectoryBasedExampleDatabase._metakeys_name)) == set()
     )
 
-    subprocess.run(["pytest", str(test_dir)])
+    subprocess.run(["pytest", str(test_dir)], check=False)
     assert hypofuzz_keys == set(
         db_hypothesis.fetch(DirectoryBasedExampleDatabase._metakeys_name)
     )
