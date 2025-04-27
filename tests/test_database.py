@@ -1,3 +1,5 @@
+import subprocess
+
 from common import BASIC_TEST_CODE, fuzz, wait_for, write_test_code
 from hypothesis.database import DirectoryBasedExampleDatabase
 
@@ -35,22 +37,37 @@ def test_database_stores_reports_and_metadata_correctly():
             list(db.fetch_metadata(key))
 
 
-def test_database_keys_are_unique_by_nodeid():
-    test_dir, db_dir = write_test_code(
-        """
+def test_database_keys_incorporate_parametrization():
+    test_code = """
         @pytest.mark.parametrize("x", [1, 2])
         @given(st.integers())
         def test_ints(x, n):
-            pass
+            assert False
         """
-    )
-    db = HypofuzzDatabase(DirectoryBasedExampleDatabase(db_dir))
-    assert not list(db.fetch(b"hypofuzz-test-keys"))
+    test_dir, db_dir = write_test_code(test_code)
+    db_hypofuzz = HypofuzzDatabase(DirectoryBasedExampleDatabase(db_dir))
+    assert not set(db_hypofuzz.fetch(b"hypofuzz-test-keys"))
 
     with fuzz(test_path=test_dir, n=2):
         # this will time out if the test keys are the same across parametrizations
         wait_for(
-            lambda: len(list(db.fetch(b"hypofuzz-test-keys"))) == 2,
+            lambda: len(set(db_hypofuzz.fetch(b"hypofuzz-test-keys"))) == 2,
             timeout=10,
             interval=0.1,
         )
+
+    # we also test that the keys hypofuzz uses are the same as the ones hypothesis
+    # uses. We run pytest on the test file, which fails, causing hypothesis to write
+    # the failing choice sequence for each parametrization as a top-level key. These
+    # top-level keys should be the same as the hypofuzz keys.
+    test_dir, db_dir = write_test_code(test_code)
+    db_hypothesis = HypofuzzDatabase(DirectoryBasedExampleDatabase(db_dir))
+    hypofuzz_keys = set(db_hypofuzz.fetch(b"hypofuzz-test-keys"))
+    assert (
+        set(db_hypothesis.fetch(DirectoryBasedExampleDatabase._metakeys_name)) == set()
+    )
+
+    subprocess.run(["pytest", str(test_dir)])
+    assert hypofuzz_keys == set(
+        db_hypothesis.fetch(DirectoryBasedExampleDatabase._metakeys_name)
+    )
