@@ -8,9 +8,10 @@ If you're looking to get started in the ecosystem, I recommend starting there.
 
 ## Contributor License Agreement
 
-HypoFuzz is licensed under [GNU Affero General Public License v3.0](https://choosealicense.com/licenses/agpl-3.0/).
-In order to allow flexibility for future relicensing, we require all contributors to agree to
-the CLA, and add their name to the authors list below.
+HypoFuzz is distributed under a custom license, which permits non-commercial use for free but
+requires commercial users to hold a separate written commercial license agreement.
+(Contact sales@hypofuzz.com or visit hypofuzz.com/pricing if you need one of those)
+We therefore require all contributors to agree to the CLA, and add their name to the authors list below.
 
 <details>
   <summary>Full text of the Contributor License Agreement</summary>
