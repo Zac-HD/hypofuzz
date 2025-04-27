@@ -66,7 +66,6 @@ jobs:
         fi
     - name: Build docs
       run: |
-        HYPOFUZZ_DOCS_OUTPUT_DIR=docs/docs python -m tox --recreate -e docs
         HYPOFUZZ_DOCS_OUTPUT_DIR=docs/${BASE}/docs python -m tox --recreate -e docs
         VITE_ROUTER_TYPE=hash npm run build --prefix src/hypofuzz/frontend -- --base=${BASE%/}/example-dashboard
 
@@ -74,23 +73,19 @@ jobs:
         mkdir -p docs/${BASE}/example-dashboard
         cp -r src/hypofuzz/frontend/dist/* docs/${BASE}/example-dashboard
         cp docs-src/dashboard_state.json docs/${BASE}/example-dashboard/assets/dashboard_state.json
-    - name: Commit docs
+    - name: Commit website update
       run: |
-        cp -r docs/${BASE}/docs $RUNNER_TEMP
-        cp -r docs/${BASE}/example-dashboard $RUNNER_TEMP
+        mkdir $RUNNER_TEMP/hypofuzz_site
+        cp -r docs/${BASE}/ $RUNNER_TEMP/hypofuzz_site
         git reset --hard && git clean -xfd
 
         git fetch --all
         git switch -c gh-pages origin/gh-pages
 
-        rm -rf docs/${BASE}/docs
-        rm -rf docs/${BASE}/example-dashboard
-
-        mkdir -p docs/${BASE}/
-        cp -r $RUNNER_TEMP/docs docs/${BASE}
-        cp -r $RUNNER_TEMP/example-dashboard docs/${BASE}
-        git add --force docs/${BASE}/docs
-        git add --force docs/${BASE}/example-dashboard
+        rm -rf docs/${BASE}
+        mkdir -p docs/${BASE}
+        cp -r $RUNNER_TEMP/hypofuzz_site/ docs/${BASE}
+        git add --force docs/${BASE}
 
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
