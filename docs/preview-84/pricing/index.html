@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-176879127-1"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
+        gtag('config', 'UA-176879127-1');
+    </script>
+
+    <title>HypoFuzz</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body>
+    <div class="bs-component">
+        <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+            <a class="navbar-brand" href="/">HypoFuzz</a>
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarColor01"
+                aria-controls="navbarColor01" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navbarColor01">
+                <ul class="navbar-nav mr-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/docs/features.html">Features</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/docs/">Docs</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/example-dashboard/">Demo</a>
+                    </li>
+                    <li class="nav-item active">
+                        <a class="nav-link" href="#">Pricing <span class="sr-only">(current)</span></a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+    </div>
+
+    <div class="pricing-header px-3 py-3 pt-md-5 pb-md-4 mx-auto text-center">
+        <h1 class="display-4">Start using HypoFuzz today!</h1>
+        <p class="lead">
+            HypoFuzz upgrades your testing workflow, from run-and-done to an ongoing search for bugs...<br>
+            and every bug it finds comes with a fast, deterministic test case you can run in CI.
+        </p>
+    </div>
+
+    <div class="container">
+        <div class="card-deck mb-3 text-center">
+
+            <div class="card mb-3 box-shadow">
+                <div class="card-header">
+                    <h4 class="my-0 font-weight-normal">Non-commercial</h4>
+                </div>
+                <div class="card-body d-flex flex-column">
+                    <h2 class="card-title pricing-card-title">$0</h2>
+                    <p>
+                        Just <code>pip install hypofuzz</code>, then<br>
+                        <a href="/docs/quickstart.html">hit the quickstart guide</a>
+                        and get fuzzing!
+                    </p>
+                    <p>
+                        <i>HypoFuzz is free for non-commercial use.</i>
+                    </p>
+                    <a type="button" href="/docs/quickstart.html"
+                        class="mt-auto btn btn-lg btn-block btn-primary">Read the quickstart guide</a>
+                </div>
+            </div>
+
+            <div class="card mb-3 box-shadow">
+                <div class="card-header">
+                    <h4 class="my-0 font-weight-normal">Per-seat</h4>
+                </div>
+                <div class="card-body d-flex flex-column">
+                    <h2 class="card-title pricing-card-title">$10 <small class="text-muted">/ seat / mo</small></h2>
+                    <p>
+                        Works seamlessly across CI, shared fuzzing
+                        servers, and everyone's dev machines.
+                    </p>
+                    <p>
+                        <i>Unlimited use for the whole team.<br>10% discount for annual billing.</i>
+                    </p>
+                    <a type="button" href="mailto:sales@hypofuzz.com?subject=Per-seat%20HypoFuzz%20licence"
+                        class="mt-auto btn btn-lg btn-block btn-primary">Get in touch</a>
+                </div>
+            </div>
+
+            <div class="card mb-3 box-shadow">
+                <div class="card-header">
+                    <h4 class="my-0 font-weight-normal">Enterprise</h4>
+                </div>
+                <div class="card-body d-flex flex-column">
+                    <h2 class="card-title pricing-card-title">ask us</h2>
+                    <p>
+                        What do you spend on testing every month?
+                        HypoFuzz finds bugs without slowing down CI.
+                    </p>
+                    <p>
+                        <i>
+                            Unlimited use, priority support, zero telemetry...<br>
+                            talk to us and we'll find a way to meet your needs.
+                        </i>
+                    </p>
+                    <a type="button" href="mailto:sales@hypofuzz.com?subject=Enterprise%20HypoFuzz%20licence"
+                        class="mt-auto btn btn-lg btn-block btn-primary">Get in touch</a>
+                </div>
+            </div>
+        </div>
+        <div  class="text-center">
+            <i>
+                Hypofuzz is designed for significant compute workloads, and to autoscale
+                and run efficiently on spot instances or idle capacity.<br>For best results,
+                we typically see customers allocating compute budgets at least 2-3x their
+                licensing costs.
+            </i>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="container text-right">
+            <hr>
+            <p>&copy; <a href="https://zhd.dev">Zac Hatfield-Dodds</a> 2025</p>
+        </div>
+    </footer>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"
+        integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj"
+        crossorigin="anonymous"></script>
+    <script>window.jQuery || document.write('<script src="/docs/4.5/assets/js/vendor/jquery.slim.min.js"><\/script>')</script>
+    <script src="/js/bootstrap.bundle.min.js"
+        integrity="sha384-LtrjvnR4Twt/qOuYxE721u19sVFLVSA4hf/rRt6PrZTmiPltdZcI7q7PXQBYTKyf"
+        crossorigin="anonymous"></script>
+</body>
+
+</html>
