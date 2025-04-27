@@ -79,6 +79,13 @@ class _ItemsCollector:
             if true_skipif:
                 self._skip_because("skipif", item.nodeid, {"reason": skipif_reason})
                 continue
+
+            # skip xfail tests for now. We could in theory fuzz strict xfail
+            # tests for an input which does not cause a failure.
+            if list(item.iter_markers("xfail")):
+                self._skip_because("xfail", item.nodeid)
+                continue
+
             # If the test takes a fixture, we skip it - the fuzzer doesn't have
             # pytest scopes, so we just can't support them.  TODO: note skips.
             manager = item._request._fixturemanager
