@@ -3,6 +3,7 @@
 import contextlib
 import inspect
 import itertools
+import json
 import os
 import platform
 import socket
@@ -11,8 +12,8 @@ import sys
 import time
 import traceback
 from base64 import b64encode
+from collections import deque
 from collections.abc import Callable, Generator
-from contextlib import suppress
 from functools import lru_cache
 from pathlib import Path
 from random import Random
@@ -20,6 +21,8 @@ from typing import Any, Optional, Union
 from uuid import uuid4
 
 import hypothesis
+import hypothesis.internal
+import hypothesis.internal.observability
 from hypothesis import settings
 from hypothesis.control import BuildContext
 from hypothesis.core import (
@@ -40,6 +43,7 @@ from hypothesis.internal.conjecture.engine import RunIsComplete
 from hypothesis.internal.conjecture.junkdrawer import stack_depth_of_caller
 from hypothesis.internal.entropy import deterministic_PRNG
 from hypothesis.internal.escalation import InterestingOrigin, get_trimmed_traceback
+from hypothesis.internal.observability import TESTCASE_CALLBACKS
 from hypothesis.internal.reflection import function_digest, get_signature
 from hypothesis.reporting import with_reporter
 from hypothesis.vendor.pretty import RepresentationPrinter
@@ -65,6 +69,10 @@ from hypofuzz.database import (
 from hypofuzz.provider import HypofuzzProvider
 
 process_uuid = uuid4().hex
+
+# We're going to collect and store some observability records,
+# but don't want the space overhead of more coverage data.
+hypothesis.internal.observability.OBSERVABILITY_COLLECT_COVERAGE = False
 
 
 @contextlib.contextmanager
@@ -172,6 +180,11 @@ class FuzzProcess:
         self._early_blackbox_mode = True
         self._last_report: Report | None = None
 
+        # Track observability data
+        self._observations_key = database_key + b".observations"
+        self._last_observed = 0.0
+        self._observations_queue: deque[bytes] = deque()
+
     def startup(self) -> None:
         """Set up initial state and prepare to replay the saved behaviour."""
         # Report that we've started this fuzz target
@@ -241,7 +254,8 @@ class FuzzProcess:
 
         # seen_count = len(self.pool.arc_counts)
         # Run the input
-        result = self._run_test_on(self.generate_data())
+        with self._maybe_observe_for_tyche():
+            result = self._run_test_on(self.generate_data())
 
         if result.status is Status.INTERESTING:
             assert not isinstance(result, _Overrun)
@@ -374,6 +388,46 @@ class FuzzProcess:
         # The shrinker relies on returning the data object to be inspected.
         return data.as_result()
 
+    @contextlib.contextmanager
+    def _maybe_observe_for_tyche(self) -> Generator[None, None, None]:
+        # We're aiming for a rolling buffer of the last 300 observations, downsampling
+        # to one per second if we're executing more than one test case per second.
+
+        if not self._observations_queue:
+            # If we don't have anything at all, load from the database
+            def _safe_load() -> list[bytes]:
+                seen = SortedKeyList()
+                for x in self.pool._database.fetch(self._observations_key):
+                    with contextlib.suppress(Exception):
+                        seen.add((json.loads(x)["timestamp"], x))
+                return [v for _, v in seen]
+
+            self._observations_queue.extend(_safe_load())
+
+        if self.phase is Phase.GENERATE and (
+            self.elapsed_time > self._last_observed + 1
+            or len(self._observations_queue) < 300
+        ):
+            got: list = []
+            TESTCASE_CALLBACKS.append(got.append)
+            try:
+                yield
+            finally:
+                cb = TESTCASE_CALLBACKS.pop()
+                assert cb is got.append
+            observation = [v for v in got if v["type"] == "test_case"][0]
+            encoded = json.dumps(observation).encode()
+            self._observations_queue.append(encoded)
+            self.pool._database.save(self._observations_key, encoded)
+        else:
+            yield
+
+        # If we have more elements in the buffer than we need, clear them out.
+        while len(self._observations_queue) > 300:
+            self.pool._database.delete(
+                self._observations_key, self._observations_queue.popleft()
+            )
+
     def _save_report(self, report: Report) -> None:
         db = get_db()
         db.save_report(self.database_key, report)
@@ -489,7 +543,7 @@ def worker_identity(*, in_directory: Optional[Path] = None) -> WorkerIdentity:
     precision here, because the code under test is likely to be changing too.
     """
     container_id = None
-    with suppress(Exception), open("/proc/self/cgroup") as f:
+    with contextlib.suppress(Exception), open("/proc/self/cgroup") as f:
         for line in f:
             if "kubepods" in line:
                 container_id = line.split("/")[-1].strip()
