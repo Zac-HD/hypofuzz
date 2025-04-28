@@ -18,6 +18,7 @@ if (typeof window !== "undefined") {
 
 interface Props {
   reports: Map<string, Report[]>
+  filterString?: string
 }
 
 // in pixels
@@ -387,63 +388,7 @@ class Graph {
   }
 }
 
-function TestFilter({ onSearch }: { onSearch: (query: string) => void }) {
-  const [expanded, setExpanded] = useState(false)
-  const [filterString, setFilterString] = useState("")
-  const inputRef = useRef<HTMLInputElement>(null)
-
-  // focus whenever filter is expanded
-  useEffect(() => {
-    if (expanded && inputRef.current) {
-      inputRef.current.focus()
-    }
-  }, [expanded])
-
-  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value
-    setFilterString(value)
-    onSearch(value)
-  }
-
-  const clearSearch = () => {
-    setFilterString("")
-    onSearch("")
-    setExpanded(false)
-  }
-
-  const handleBlur = () => {
-    if (!filterString) {
-      setExpanded(false)
-    }
-  }
-
-  return (
-    <div>
-      {!expanded ? (
-        <div className="coverage-graph__icon" onClick={() => setExpanded(true)}>
-          <FontAwesomeIcon icon={faSearch} />
-        </div>
-      ) : (
-        <div className="coverage-graph__search">
-          <input
-            ref={inputRef}
-            type="text"
-            placeholder="Filter tests..."
-            value={filterString}
-            onChange={handleSearch}
-            onBlur={handleBlur}
-            className="coverage-graph__search__input"
-          />
-          <div className="coverage-graph__search__clear" onClick={clearSearch}>
-            <FontAwesomeIcon icon={faTimes} />
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}
-
-export function CoverageGraph({ reports }: Props) {
+export function CoverageGraph({ reports, filterString = "" }: Props) {
   const svgRef = useRef<SVGSVGElement>(null)
   const [scaleSetting, setScaleSetting] = useSetting<string>(
     "graph_scale",
@@ -459,7 +404,6 @@ export function CoverageGraph({ reports }: Props) {
     zoomY: boolean
   }>({ transform: null, zoomY: false })
   const [boxSelectEnabled, setBoxSelectEnabled] = useState(false)
-  const [filterString, setFilterString] = useState("")
   const navigate = useNavigate()
 
   const filteredReports = useMemo(() => {
@@ -580,7 +524,6 @@ export function CoverageGraph({ reports }: Props) {
             { value: "log", label: "Log" },
           ]}
         />
-        {reports.size > 1 && <TestFilter onSearch={setFilterString} />}
       </div>
       <div className="coverage-graph__tooltip" />
       <svg
