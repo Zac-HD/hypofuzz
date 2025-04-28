@@ -18,6 +18,7 @@ interface TableProps<T> {
   data: T[]
   row: (item: T) => React.ReactNode[]
   getKey?: (item: T) => string | number
+  onFilterChange?: (filter: string) => void
 }
 
 enum SortOrder {
@@ -37,7 +38,13 @@ function textContent(node: React.ReactNode): string {
   return ""
 }
 
-export function Table<T>({ headers, data, row, getKey }: TableProps<T>) {
+export function Table<T>({
+  headers,
+  data,
+  row,
+  getKey,
+  onFilterChange,
+}: TableProps<T>) {
   const [sortColumn, setSortColumn] = useState<number | null>(null)
   const [sortDirection, setSortDirection] = useState<SortOrder>(SortOrder.ASC)
   const [filterString, setFilterString] = useState("")
@@ -85,6 +92,11 @@ export function Table<T>({ headers, data, row, getKey }: TableProps<T>) {
     }
   }
 
+  function doFilterChange(filter: string) {
+    setFilterString(filter)
+    onFilterChange?.(filter)
+  }
+
   return (
     <div className="table">
       {/* only show filter box if some rows are filterable */}
@@ -94,13 +106,13 @@ export function Table<T>({ headers, data, row, getKey }: TableProps<T>) {
             type="text"
             placeholder="Filter"
             value={filterString}
-            onChange={e => setFilterString(e.target.value)}
+            onChange={e => doFilterChange(e.target.value)}
             className="table__filter__input"
           />
           {filterString && (
             <span
               className="table__filter__clear"
-              onClick={() => setFilterString("")}
+              onClick={() => doFilterChange("")}
             >
               <FontAwesomeIcon icon={faTimes} />
             </span>
@@ -165,7 +177,10 @@ export function Table<T>({ headers, data, row, getKey }: TableProps<T>) {
           Showing {displayData.length} of {data.length} rows
           <span
             className="table__filter-status__clear"
-            onClick={() => setFilterString("")}
+            onClick={() => {
+              setFilterString("")
+              onFilterChange?.("")
+            }}
           >
             [clear]
           </span>

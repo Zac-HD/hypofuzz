@@ -119,12 +119,12 @@ def fuzz(*, n=1, dashboard=False, test_path=None):
     ]
     if test_path is not None:
         args += ["--", str(test_path)]
-    process = subprocess.Popen(args)
+    process = subprocess.Popen(args, start_new_session=True)
 
     try:
         yield
     finally:
-        process.terminate()
+        os.killpg(os.getpgid(process.pid), signal.SIGINT)
         process.wait()
 
 

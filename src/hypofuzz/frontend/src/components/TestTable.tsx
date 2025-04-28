@@ -16,6 +16,7 @@ import { Tooltip } from "./Tooltip"
 interface Props {
   reports: Map<string, Report[]>
   metadata: Map<string, Metadata>
+  onFilterChange?: (filter: string) => void
 }
 
 interface TestRow {
@@ -23,18 +24,17 @@ interface TestRow {
   metadata: Metadata
 }
 
-export function TestTable({ reports, metadata }: Props) {
+export function TestTable({ reports, metadata, onFilterChange }: Props) {
   const sortedTests = Array.from(reports.entries())
-    .filter(([_nodeid, reports]) => {
+    .filter(([nodeid, reports]) => {
       if (reports.length === 0) {
         return false
       }
-      const latest = reports[reports.length - 1]
-      return metadata.has(latest.nodeid)
+      return metadata.has(nodeid)
     })
-    .sortKey(([_nodeid, reports]) => {
+    .sortKey(([nodeid, reports]) => {
       const latest = reports[reports.length - 1]
-      return [getStatus(latest, metadata.get(latest.nodeid)!), latest.nodeid]
+      return [getStatus(latest, metadata.get(nodeid)!), nodeid]
     })
     .map(([nodeid, reports]) => ({ reports, metadata: metadata.get(nodeid)! }))
 
@@ -175,6 +175,7 @@ export function TestTable({ reports, metadata }: Props) {
         data={sortedTests}
         row={row}
         getKey={item => item.reports[item.reports.length - 1].database_key}
+        onFilterChange={onFilterChange}
       />
     </div>
   )

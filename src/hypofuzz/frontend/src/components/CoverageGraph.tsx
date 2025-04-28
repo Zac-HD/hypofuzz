@@ -1,9 +1,11 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, useMemo } from "react"
 import * as d3 from "d3"
 import { Report } from "../types/dashboard"
 import { Toggle } from "./Toggle"
 import { useSetting } from "../hooks/useSetting"
 import { useNavigate } from "react-router-dom"
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
+import { faSearch, faTimes } from "@fortawesome/free-solid-svg-icons"
 // import BoxSelect from "../assets/box-select.svg?react"
 
 const mousePosition = { x: 0, y: 0 }
@@ -16,6 +18,7 @@ if (typeof window !== "undefined") {
 
 interface Props {
   reports: Map<string, Report[]>
+  filterString?: string
 }
 
 // in pixels
@@ -41,13 +44,14 @@ class Graph {
   private eventListeners: Map<string, Array<() => void>> = new Map()
   private xAxis: d3.Selection<SVGGElement, unknown, null, undefined>
   private yAxis: d3.Selection<SVGGElement, unknown, null, undefined>
-  private color: d3.ScaleOrdinal<string, string>
+  private reportsColor: d3.ScaleOrdinal<string, string>
   private viewportX: d3.ScaleContinuousNumeric<number, number>
   private viewportY: d3.ScaleContinuousNumeric<number, number>
 
   constructor(
     svg: SVGSVGElement,
     reports: Map<string, Report[]>,
+    reportsColor: d3.ScaleOrdinal<string, string>,
     scaleSetting: string,
     axisSetting: string,
     navigate: (path: string) => void,
@@ -63,7 +67,7 @@ class Graph {
     this.width = svg.clientWidth - this.margin.left - this.margin.right
     this.height = 300 - this.margin.top - this.margin.bottom
 
-    this.color = d3.scaleOrdinal(d3.schemeCategory10).domain(reports.keys())
+    this.reportsColor = reportsColor
     const allReports = Array.from(reports.values()).flat()
 
     // symlog is like log but defined linearly in the range [0, 1].
@@ -235,7 +239,7 @@ class Graph {
       .append("g")
       .attr("transform", `translate(${this.width + 10},0)`)
 
-    this.color.domain().forEach((nodeid, i) => {
+    this.reportsColor.domain().forEach((nodeid, i) => {
       const legendItem = legend
         .append("g")
         .attr("transform", `translate(0,${i * 20})`)
@@ -263,7 +267,7 @@ class Graph {
         .attr("x2", 20)
         .attr("y1", 10)
         .attr("y2", 10)
-        .attr("stroke", this.color(nodeid))
+        .attr("stroke", this.reportsColor(nodeid))
 
       legendItem
         .append("text")
@@ -285,7 +289,7 @@ class Graph {
         .append("path")
         .datum(points)
         .attr("fill", "none")
-        .attr("stroke", this.color(nodeid))
+        .attr("stroke", this.reportsColor(nodeid))
         .attr("d", line)
         .attr("class", "coverage-line")
         .style("cursor", "pointer")
@@ -384,7 +388,7 @@ class Graph {
   }
 }
 
-export function CoverageGraph({ reports }: Props) {
+export function CoverageGraph({ reports, filterString = "" }: Props) {
   const svgRef = useRef<SVGSVGElement>(null)
   const [scaleSetting, setScaleSetting] = useSetting<string>(
     "graph_scale",
@@ -402,8 +406,22 @@ export function CoverageGraph({ reports }: Props) {
   const [boxSelectEnabled, setBoxSelectEnabled] = useState(false)
   const navigate = useNavigate()
 
+  const filteredReports = useMemo(() => {
+    if (!filterString) return reports
+    return new Map(
+      Array.from(reports.entries()).filter(([nodeid]) =>
+        nodeid.toLowerCase().includes(filterString.toLowerCase()),
+      ),
+    )
+  }, [reports, filterString])
+
+  // use the unfiltered reports as the domain so colors are stable across filtering.
+  const reportsColor = d3
+    .scaleOrdinal(d3.schemeCategory10)
+    .domain(reports.keys())
+
   useEffect(() => {
-    if (!svgRef.current || reports.size === 0) {
+    if (!svgRef.current) {
       return
     }
 
@@ -433,7 +451,8 @@ export function CoverageGraph({ reports }: Props) {
     d3.select(svgRef.current).selectAll("*").remove()
     const graph = new Graph(
       svgRef.current,
-      reports,
+      filteredReports,
+      reportsColor,
       scaleSetting,
       axisSetting,
       navigate,
@@ -465,7 +484,7 @@ export function CoverageGraph({ reports }: Props) {
       graph.cleanup()
     }
   }, [
-    reports,
+    filteredReports,
     scaleSetting,
     axisSetting,
     forceUpdate,
