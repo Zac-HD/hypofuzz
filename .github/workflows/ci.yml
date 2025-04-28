@@ -66,35 +66,43 @@ jobs:
         fi
     - name: Build docs
       run: |
-        HYPOFUZZ_DOCS_OUTPUT_DIR=docs/docs python -m tox --recreate -e docs
+        if [[ "${BASE}" != "/" ]]; then
+          cp -r docs/ $RUNNER_TEMP
+          mkdir -p docs/${BASE}
+          cp -r $RUNNER_TEMP/docs/* docs/${BASE}
+          rm -rf $RUNNER_TEMP/docs
+        fi
+
         HYPOFUZZ_DOCS_OUTPUT_DIR=docs/${BASE}/docs python -m tox --recreate -e docs
+        # avoid committing this large (~2mb) and unnecessary dir to git
+        rm -rf docs/${BASE}/docs/.doctrees
         VITE_ROUTER_TYPE=hash npm run build --prefix src/hypofuzz/frontend -- --base=${BASE%/}/example-dashboard
 
         rm -rf docs/${BASE}/example-dashboard
         mkdir -p docs/${BASE}/example-dashboard
         cp -r src/hypofuzz/frontend/dist/* docs/${BASE}/example-dashboard
         cp docs-src/dashboard_state.json docs/${BASE}/example-dashboard/assets/dashboard_state.json
-    - name: Commit docs
+    - name: Commit website update
       run: |
-        cp -r docs/${BASE}/docs $RUNNER_TEMP
-        cp -r docs/${BASE}/example-dashboard $RUNNER_TEMP
+        mkdir $RUNNER_TEMP/hypofuzz_site
+        cp -r docs/${BASE}/* $RUNNER_TEMP/hypofuzz_site
         git reset --hard && git clean -xfd
 
         git fetch --all
         git switch -c gh-pages origin/gh-pages
 
-        rm -rf docs/${BASE}/docs
-        rm -rf docs/${BASE}/example-dashboard
-
-        mkdir -p docs/${BASE}/
-        cp -r $RUNNER_TEMP/docs docs/${BASE}
-        cp -r $RUNNER_TEMP/example-dashboard docs/${BASE}
-        git add --force docs/${BASE}/docs
-        git add --force docs/${BASE}/example-dashboard
+        # avoid wiping preview directories on master
+        if [[ "${BASE}" = "/" ]]; then
+          find docs/${BASE} -mindepth 1 -maxdepth 1 -not -name "preview-*" -exec rm -rf {} +
+        fi
+        mkdir -p docs/${BASE}
+        cp -r $RUNNER_TEMP/hypofuzz_site/* docs/${BASE}
+        touch docs/${BASE}/.nojekyll
+        git add --force docs/${BASE}
 
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
-        git commit -m "build docs (base=${BASE})"
+        git commit -m "build docs (base=${BASE})" --allow-empty
         git push
 
   test:
