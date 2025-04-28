@@ -68,10 +68,6 @@ from hypofuzz.provider import HypofuzzProvider
 
 process_uuid = uuid4().hex
 
-# We're going to collect and store some observability records,
-# but don't want the space overhead of more coverage data.
-hypothesis.internal.observability.OBSERVABILITY_COLLECT_COVERAGE = False
-
 
 @contextlib.contextmanager
 def constant_stack_depth() -> Generator[None, None, None]:
@@ -387,6 +383,14 @@ class FuzzProcess:
 
     @contextlib.contextmanager
     def _maybe_observe_for_tyche(self) -> Generator[list[dict], None, None]:
+        # We're going to collect and store some observability records,
+        # but don't want the space overhead of more coverage data.
+        #
+        # Don't set this globally so we don't affect standard hypothesis
+        # observability if hypofuzz is imported (but not used), from e.g. the
+        # hypothesis cli entrypoint.
+        hypothesis.internal.observability.OBSERVABILITY_COLLECT_COVERAGE = False
+
         # We're aiming for a rolling buffer of the last 300 observations, downsampling
         # to one per second if we're executing more than one test case per second.
         # Decide here, so that runtime doesn't bias our choice of what to observe.

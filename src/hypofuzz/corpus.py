@@ -182,7 +182,7 @@ class Pool:
         self,
         result: Union[ConjectureResult, _Overrun],
         *,
-        observation: dict | None = None,
+        observation: Optional[dict] = None,
     ) -> Optional[bool]:
         """Update the corpus with the result of running a test.
 
