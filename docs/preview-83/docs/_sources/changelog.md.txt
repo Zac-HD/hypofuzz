@@ -4,7 +4,7 @@ HypoFuzz uses [calendar-based versioning](https://calver.org/), with a
 
 ## 25.04.9
 
-Add a search bar to the coverage graph, and fix failures for parametrized tests being written to the incorrect database key.
+Also filter the coverage graph when filtering the test table, and fix failures for parametrized tests being written to the incorrect database key.
 
 ## 25.04.8
 
