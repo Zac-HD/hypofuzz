@@ -15,6 +15,12 @@ import {
 import { getStatus } from "../utils/testStats"
 import { StatusPill } from "../components/StatusPill"
 import { Tooltip } from "../components/Tooltip"
+import hljs from "highlight.js/lib/core"
+import "highlight.js/styles/github.css"
+import python from "highlight.js/lib/languages/python"
+import { useEffect } from "react"
+
+hljs.registerLanguage("python", python)
 
 export function TestPage() {
   const { nodeid } = useParams<{ nodeid: string }>()
@@ -29,6 +35,10 @@ export function TestPage() {
 function _TestPage() {
   const { nodeid } = useParams<{ nodeid: string }>()
   const { reports, metadata } = useData()
+
+  useEffect(() => {
+    hljs.highlightAll()
+  }, [reports, metadata])
 
   if (!nodeid || !reports.has(nodeid)) {
     return <div>Test not found</div>
@@ -144,11 +154,13 @@ function _TestPage() {
               <div key={index} className="test-failure__item">
                 <h3>Call</h3>
                 <pre>
-                  <code>{reproductionDecorator + "\n" + callRepr}</code>
+                  <code className="language-python">
+                    {reproductionDecorator + "\n" + callRepr}
+                  </code>
                 </pre>
                 <h3>Traceback</h3>
                 <pre>
-                  <code>{traceback}</code>
+                  <code className="language-python">{traceback}</code>
                 </pre>
               </div>
             ),

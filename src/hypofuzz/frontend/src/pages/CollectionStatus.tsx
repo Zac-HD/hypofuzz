@@ -45,6 +45,7 @@ export function CollectionStatusPage() {
   const sortedResults = [...collectionStatus.collection_status].sortKey(
     result => [
       statusOrder[result.status as keyof typeof statusOrder],
+      result.status_reason,
       result.node_id,
     ],
   )
@@ -56,21 +57,33 @@ export function CollectionStatusPage() {
     },
     {
       content: "Status",
-      sortKey: (item: CollectionResult) =>
+      sortKey: (item: CollectionResult) => [
         statusOrder[item.status as keyof typeof statusOrder],
+        item.status_reason,
+      ],
       align: "center",
     },
   ]
 
   const row = (item: CollectionResult): React.ReactNode[] => {
+    const nodeidRow = (
+      <div style={{ wordBreak: "break-all" }}>
+        {/* don't link to a nonexistent page */}
+        {item.status == "collected" ? (
+          <Link
+            to={`/tests/${encodeURIComponent(item.node_id)}`}
+            className="test__link"
+          >
+            {item.node_id}
+          </Link>
+        ) : (
+          item.node_id
+        )}
+      </div>
+    )
+
     return [
-      <Link
-        to={`/tests/${encodeURIComponent(item.node_id)}`}
-        className="test__link"
-        style={{ wordBreak: "break-all" }}
-      >
-        {item.node_id}
-      </Link>,
+      nodeidRow,
       <div style={{ textAlign: "center" }}>
         {item.status === "collected" ? (
           <div className="pill pill__success">Collected</div>
@@ -91,7 +104,12 @@ export function CollectionStatusPage() {
         data={sortedResults}
         row={row}
         getKey={item => item.database_key}
-        filterStrings={item => [item.node_id, item.status]}
+        filterStrings={item => [
+          item.node_id,
+          item.status === "collected"
+            ? "Collected"
+            : `Not collected (${item.status_reason})`,
+        ]}
       />
     </div>
   )
