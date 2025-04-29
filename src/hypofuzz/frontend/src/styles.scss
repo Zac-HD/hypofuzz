@@ -32,20 +32,54 @@ select {
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.coverage-graph {
-    margin: 20px;
-    padding: 20px;
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
 .table {
     &__table {
         border-collapse: collapse;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         border-radius: 8px;
         width: 100%;
+    }
+
+    &__mobile-row {
+        background: white;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+        &__header {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+
+            // allow test link to shrink more than the pill. prevents the pill
+            // overflowing to next line
+            .test__link {
+                flex: 1;
+            }
+        }
+
+        &__statistics {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+        }
+    }
+
+    &__inline-statistic {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: #666;
+        padding: 0.5rem;
+        background: #f8f9fa;
+        border-radius: 4px;
+
+        &__value {
+            font-variant-numeric: tabular-nums;
+        }
     }
 
     &__filter {
@@ -142,6 +176,7 @@ select {
         display: flex;
 
         &__icon {
+            text-align: center;
             font-size: 1.1em;
             color: #666;
             width: 20px;

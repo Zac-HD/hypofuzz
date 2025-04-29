@@ -79,6 +79,13 @@ class _ItemsCollector:
             if true_skipif:
                 self._skip_because("skipif", item.nodeid, {"reason": skipif_reason})
                 continue
+
+            # skip xfail tests for now. We could in theory fuzz strict xfail
+            # tests for an input which does not cause a failure.
+            if list(item.iter_markers("xfail")):
+                self._skip_because("xfail", item.nodeid)
+                continue
+
             # If the test takes a fixture, we skip it - the fuzzer doesn't have
             # pytest scopes, so we just can't support them.  TODO: note skips.
             manager = item._request._fixturemanager
@@ -154,6 +161,11 @@ class _ItemsCollector:
                     )
                     extra_kw = {"factory": StateMachineClass}
                 else:
+                    # our pytest plugin would normally add this. Necessary to
+                    # distinguish pytest.mark.parametrize.
+                    item.obj.hypothesis.inner_test._hypothesis_internal_add_digest = (
+                        item.nodeid.encode()
+                    )
                     target = item.obj
                 fuzz = FuzzProcess.from_hypothesis_test(
                     target, nodeid=item.nodeid, extra_kw=extra_kw

@@ -2,6 +2,14 @@
 HypoFuzz uses [calendar-based versioning](https://calver.org/), with a
 `YY-MM-patch` format.
 
+## 25.04.10
+
+Improve test table ui on mobile.
+
+## 25.04.9
+
+Also filter the coverage graph when filtering the test table, and fix failures for parametrized tests being written to the incorrect database key.
+
 ## 25.04.8
 
 Improve text alignment of the test table UI.

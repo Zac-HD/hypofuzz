@@ -178,3 +178,45 @@ def test_collects_stateful_test():
     NumberModifierTest = NumberModifier.TestCase
     """
     assert collect_names(code) == {"run_state_machine"}
+
+
+def test_skips_xfail():
+    code = """
+        @pytest.mark.xfail()
+        @given(st.integers())
+        def test_a(n):
+            pass
+        """
+    assert not collect_names(code)
+
+
+def test_skips_parametrized_xfail():
+    code = """
+        @pytest.mark.xfail
+        @pytest.mark.parametrize("param", [1, 2, 3])
+        @given(n=st.integers())
+        def test_a(param, n):
+            pass
+        """
+    assert not collect_names(code)
+
+
+def test_collects_custom_xfail():
+    code = """
+        from functools import wraps
+
+        def custom_xfail(f):
+            @wraps(f)
+            def wrapped(*args, **kwargs):
+                try:
+                    return f(*args, **kwargs)
+                except Exception:
+                    pass
+            return wrapped
+
+        @custom_xfail
+        @given(st.integers())
+        def test_a(n):
+            pass
+        """
+    assert collect_names(code) == {"test_a"}
