@@ -63,7 +63,7 @@ class Graph {
     this.xValue = (report: Report) =>
       axisSetting == "time" ? report.elapsed_time : report.ninputs
 
-    this.margin = { top: 20, right: 150, bottom: 45, left: 60 }
+    this.margin = { top: 20, right: 20, bottom: 45, left: 60 }
     this.width = svg.clientWidth - this.margin.left - this.margin.right
     this.height = 300 - this.margin.top - this.margin.bottom
 
@@ -204,7 +204,6 @@ class Graph {
       })
 
     this.drawLines()
-    this.drawLegend()
   }
 
   zoomTo(transform: d3.ZoomTransform, zoomY: boolean) {
