@@ -8,7 +8,7 @@ import {
 
 interface TableHeader<T> {
   content: ReactNode
-  sortKey?: (item: T) => string | number
+  sortKey?: (item: T) => any[] | string | number
   align?: string
 }
 
@@ -67,12 +67,10 @@ export function Table<T>({
       return displayData
     }
 
-    return [...displayData].sort((a, b) => {
-      const aValue = headers[sortColumn].sortKey!(a)
-      const bValue = headers[sortColumn].sortKey!(b)
-      const result = aValue < bValue ? -1 : aValue > bValue ? 1 : 0
-      return sortDirection === SortOrder.ASC ? result : -result
-    })
+    const sorted = [...displayData].sortKey(item =>
+      headers[sortColumn].sortKey!(item),
+    )
+    return sortDirection === SortOrder.ASC ? sorted : sorted.reverse()
   }, [
     data,
     sortColumn,
