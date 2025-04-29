@@ -10,6 +10,9 @@
 
 * {
     margin: 0;
+}
+
+body {
     font-family:
         -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
         Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji",
@@ -535,11 +538,7 @@ select {
             padding: 15px;
             border-radius: 4px;
             overflow-x: auto;
-
-            code {
-                font-family: monospace;
-                font-size: 0.9em;
-            }
+            font-size: 1em;
         }
     }
 }
@@ -668,4 +667,17 @@ select {
             opacity: 1;
         }
     }
+}
+
+// unset some hljs styles to give us more customization control (e.g.,
+// over padding)
+.hljs {
+    background: unset;
+    padding: unset;
+}
+
+pre code.hljs {
+    padding: unset;
+    overflow-x: unset;
+    padding: unset;
 }
