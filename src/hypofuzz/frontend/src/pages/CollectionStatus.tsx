@@ -53,13 +53,11 @@ export function CollectionStatusPage() {
     {
       content: "Test",
       sortKey: (item: CollectionResult) => item.node_id,
-      filterable: true,
     },
     {
       content: "Status",
       sortKey: (item: CollectionResult) =>
         statusOrder[item.status as keyof typeof statusOrder],
-      filterable: true,
       align: "center",
     },
   ]
@@ -93,6 +91,7 @@ export function CollectionStatusPage() {
         data={sortedResults}
         row={row}
         getKey={item => item.database_key}
+        filterStrings={item => [item.node_id, item.status]}
       />
     </div>
   )
