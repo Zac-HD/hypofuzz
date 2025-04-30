@@ -1,6 +1,12 @@
 import { useState } from "react"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
 import { faCaretDown, faCaretRight } from "@fortawesome/free-solid-svg-icons"
+import hljs from "highlight.js/lib/core"
+import "highlight.js/styles/github.css"
+import python from "highlight.js/lib/languages/python"
+import { useEffect } from "react"
+
+hljs.registerLanguage("python", python)
 
 interface Props {
   seedPool: Array<[string, string, any]>
@@ -12,6 +18,10 @@ export function CoveringExamples({ seedPool }: Props) {
   if (!seedPool || seedPool.length === 0) {
     return null
   }
+
+  useEffect(() => {
+    hljs.highlightAll()
+  }, [seedPool])
 
   return (
     <div className="covering-examples">
@@ -37,7 +47,7 @@ export function CoveringExamples({ seedPool }: Props) {
           </p>
           {seedPool.map(([_, callRepr], index) => (
             <pre key={index} className="covering-examples__example">
-              <code>{callRepr}</code>
+              <code className="language-python">{callRepr}</code>
             </pre>
           ))}
         </div>
