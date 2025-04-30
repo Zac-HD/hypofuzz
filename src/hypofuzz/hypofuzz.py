@@ -84,7 +84,7 @@ class HitShrinkTimeoutError(Exception):
 
 
 class HypofuzzStateForActualGivenExecution(StateForActualGivenExecution):
-    def _should_trace(self):
+    def _should_trace(self) -> bool:
         # we're handling our own coverage collection, both for observability and
         # for failing examples (explain phase).
         return False
@@ -151,7 +151,7 @@ class FuzzProcess:
         self.nodeid = nodeid or test_fn.__qualname__
         self.database_key = database_key
 
-        self.state = HypofuzzStateForActualGivenExecution(
+        self.state = HypofuzzStateForActualGivenExecution(  # type: ignore
             stuff,
             self._test_fn,
             settings(
@@ -315,7 +315,7 @@ class FuzzProcess:
         # pass current string_repr through to ConjectureResult.
         # Note that observability has to be enabled (i.e. something has to be
         # in TESTCASE_CALLBACKS) for hypothesis to fill _string_repr.
-        data.extra_information.string_repr = self.state._string_repr
+        data.extra_information.string_repr = self.state._string_repr  # type: ignore
         data.extra_information.reports = "\n".join(map(str, reports))  # type: ignore
 
         # In addition to coverage branches, use psudeo-coverage information provided via
@@ -362,7 +362,7 @@ class FuzzProcess:
         # manager. Use a wrapping Value class as a reference-forwarder.
         observation: Value[Optional[dict]] = Value(None)
 
-        def callback(test_case):
+        def callback(test_case: dict) -> None:
             if test_case["type"] != "test_case":
                 return
             assert observation.value is None
@@ -374,6 +374,7 @@ class FuzzProcess:
         finally:
             TESTCASE_CALLBACKS.pop()
         if will_save:
+            assert observation.value is not None
             get_db().save_observation(
                 self._observations_key, observation.value, discard_over=300
             )

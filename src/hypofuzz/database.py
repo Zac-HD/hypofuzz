@@ -141,7 +141,7 @@ class HypofuzzDatabase:
     def __init__(self, db: ExampleDatabase) -> None:
         self._db = db
         # track a per-test observability queue
-        self._obs_queues: dict[deque[bytes]] = defaultdict(deque)
+        self._obs_queues: dict[bytes, deque[bytes]] = defaultdict(deque)
 
     def __str__(self) -> str:
         return f"HypofuzzDatabase({self._db!r})"
