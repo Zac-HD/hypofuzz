@@ -10,9 +10,7 @@ import subprocess
 import sys
 import threading
 import time
-import traceback
 from base64 import b64encode
-from collections import deque
 from collections.abc import Callable, Generator
 from functools import lru_cache
 from pathlib import Path
@@ -21,17 +19,14 @@ from typing import Any, Generic, Optional, TypeVar, Union
 from uuid import uuid4
 
 import hypothesis
-import hypothesis.internal
-import hypothesis.internal.observability
-from hypothesis import settings
-from hypothesis.control import BuildContext
+from hypothesis import HealthCheck, settings
 from hypothesis.core import (
+    StateForActualGivenExecution,
     Stuff,
-    failure_exceptions_to_catch,
     process_arguments_to_given,
 )
 from hypothesis.database import ExampleDatabase
-from hypothesis.errors import StopTest, UnsatisfiedAssumption
+from hypothesis.errors import StopTest
 from hypothesis.internal.conjecture.choice import ChoiceT, ChoiceTemplate
 from hypothesis.internal.conjecture.data import (
     ConjectureData,
@@ -40,13 +35,9 @@ from hypothesis.internal.conjecture.data import (
     _Overrun,
 )
 from hypothesis.internal.conjecture.engine import RunIsComplete
-from hypothesis.internal.conjecture.junkdrawer import stack_depth_of_caller
-from hypothesis.internal.entropy import deterministic_PRNG
-from hypothesis.internal.escalation import InterestingOrigin, get_trimmed_traceback
 from hypothesis.internal.observability import TESTCASE_CALLBACKS
 from hypothesis.internal.reflection import function_digest, get_signature
 from hypothesis.reporting import with_reporter
-from hypothesis.vendor.pretty import RepresentationPrinter
 from sortedcontainers import SortedKeyList
 
 import hypofuzz
@@ -87,29 +78,16 @@ class Value(Generic[T]):
     def value(self, value: T) -> None:
         self.data.value = value
 
-@contextlib.contextmanager
-def constant_stack_depth() -> Generator[None, None, None]:
-    # TODO: consider extracting this upstream so we can just import it.
-    recursion_limit = sys.getrecursionlimit()
-    depth = stack_depth_of_caller()
-    # Because we add to the recursion limit, to be good citizens we also add
-    # a check for unbounded recursion.  The default limit is 1000, so this can
-    # only ever trigger if something really strange is happening and it's hard
-    # to imagine an intentionally-deeply-recursive use of this code.
-    assert depth <= 1000, (
-        f"Hypothesis would usually add {recursion_limit} to the stack depth of "
-        f"{depth} here, but we are already much deeper than expected.  Aborting "
-        "now, to avoid extending the stack limit in an infinite loop..."
-    )
-    try:
-        sys.setrecursionlimit(depth + recursion_limit)
-        yield
-    finally:
-        sys.setrecursionlimit(recursion_limit)
-
 
 class HitShrinkTimeoutError(Exception):
     pass
+
+
+class HypofuzzStateForActualGivenExecution(StateForActualGivenExecution):
+    def _should_trace(self):
+        # we're handling our own coverage collection, both for observability and
+        # for failing examples (explain phase).
+        return False
 
 
 class FuzzProcess:
@@ -151,6 +129,7 @@ class FuzzProcess:
                 wrapped_test, "_hypothesis_internal_use_settings", settings.default
             ).database
             or settings.default.database,
+            wrapped_test=wrapped_test,
         )
 
     def __init__(
@@ -162,6 +141,7 @@ class FuzzProcess:
         nodeid: Optional[str] = None,
         database_key: bytes,
         hypothesis_database: ExampleDatabase,
+        wrapped_test: Callable,
     ) -> None:
         """Construct a FuzzProcess from specific arguments."""
         # The actual fuzzer implementation
@@ -170,6 +150,16 @@ class FuzzProcess:
         self._stuff = stuff
         self.nodeid = nodeid or test_fn.__qualname__
         self.database_key = database_key
+
+        self.state = HypofuzzStateForActualGivenExecution(
+            stuff,
+            self._test_fn,
+            settings(
+                database=None, deadline=None, suppress_health_check=list(HealthCheck)
+            ),
+            self.random,
+            wrapped_test,
+        )
 
         # The seed pool is responsible for managing all seed state, including saving
         # novel seeds to the database.  This includes tracking how often each branch
@@ -310,62 +300,23 @@ class FuzzProcess:
         start = time.perf_counter()
         self.ninputs += 1
         collector = collector or CoverageCollectionContext()
-        assert collector is not None
         reports: list[object] = []
         try:
             with (
-                deterministic_PRNG(),
-                BuildContext(data, is_final=True) as context,
-                constant_stack_depth(),
                 with_reporter(reports.append),
-                self._maybe_observe_for_tyche() as observations,
-            ):
+                self._maybe_observe_for_tyche() as observation,
                 # Note that the data generation and test execution happen in the same
                 # coverage context.  We may later split this, or tag each separately.
-                with collector:
-                    if self._stuff.selfy is not None:
-                        data.hypothesis_runner = self._stuff.selfy  # type: ignore
-                    # Generate all arguments to the test function.
-                    args = self._stuff.args
-                    kwargs = dict(self._stuff.kwargs)
-                    kw, argslices = context.prep_args_kwargs_from_strategies(
-                        self._stuff.given_kwargs
-                    )
-                    kwargs.update(kw)
-
-                    printer = RepresentationPrinter(context=context)
-                    printer.repr_call(
-                        self._test_fn.__name__,
-                        args,
-                        kwargs,
-                        force_split=True,
-                        arg_slices=argslices,
-                        leading_comment=(
-                            "# " + context.data.slice_comments[(0, 0)]
-                            if (0, 0) in context.data.slice_comments
-                            else None
-                        ),
-                    )
-                    data.extra_information.call_repr = printer.getvalue()  # type: ignore
-
-                    self._test_fn(*args, **kwargs)
+                collector,
+            ):
+                self.state._execute_once_for_engine(data)
         except StopTest:
-            data.status = Status.OVERRUN
-        except UnsatisfiedAssumption:
-            data.status = Status.INVALID
-        except failure_exceptions_to_catch() as e:
-            data.status = Status.INTERESTING
-            tb = get_trimmed_traceback()
-            data.interesting_origin = InterestingOrigin.from_exception(e)
-            data.extra_information.traceback = "".join(  # type: ignore
-                traceback.format_exception(type(e), value=e, tb=tb)
-            )
-        except KeyboardInterrupt:
-            # If you have a test function which raises KI, this is pretty useful.
-            print(f"Got a KeyboardInterrupt in {self.nodeid}, exiting...")
-            raise
-        finally:
-            data.extra_information.reports = "\n".join(map(str, reports))  # type: ignore
+            pass
+        # pass current string_repr through to ConjectureResult.
+        # Note that observability has to be enabled (i.e. something has to be
+        # in TESTCASE_CALLBACKS) for hypothesis to fill _string_repr.
+        data.extra_information.string_repr = self.state._string_repr
+        data.extra_information.reports = "\n".join(map(str, reports))  # type: ignore
 
         # In addition to coverage branches, use psudeo-coverage information provided via
         # the `hypothesis.event()` function - exploiting user-defined partitions

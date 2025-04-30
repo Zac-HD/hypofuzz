@@ -210,10 +210,10 @@ class Pool:
                 self.interesting_examples[origin] = (
                     result,
                     [
-                        getattr(result.extra_information, "call_repr", "<unknown>"),
+                        getattr(result.extra_information, "string_repr", "<unknown>"),
                         result.extra_information.reports,  # type: ignore
                         reproduction_decorator(result.choices),
-                        result.extra_information.traceback,  # type: ignore
+                        result.expected_traceback,  # type: ignore
                     ],
                 )
                 return True
@@ -271,7 +271,7 @@ class Pool:
             self.json_report = [
                 [
                     reproduction_decorator(res.choices),
-                    getattr(res.extra_information, "call_repr", "<unknown>"),
+                    getattr(res.extra_information, "string_repr", "<unknown>"),
                     res.extra_information.reports,  # type: ignore
                 ]
                 for res in self.results.values()
