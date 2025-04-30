@@ -258,7 +258,7 @@ class Pool:
                     self._database.delete(self._fuzz_key, as_bytes)
                     # also clear out any observations
                     obs_key = cov_obs_key(self._fuzz_key, as_bytes)
-                    for value in self._database.fetch(obs_key):
+                    for value in list(self._database.fetch(obs_key)):
                         self._database.delete(obs_key, value)
                 else:
                     for arc in covers:

@@ -215,15 +215,15 @@ class HypofuzzDatabase:
             self.delete(key + observe_key, obs_queue.popleft())
 
     def fetch_observations(self, key: bytes) -> Iterable[dict]:
-        for x in self.fetch(key + observe_key):
+        for as_bytes in self.fetch(key + observe_key):
             with suppress(Exception):
-                value = json.loads(x)
+                value = json.loads(as_bytes)
             yield value
 
     def fetch_covering_observations(self, key: bytes) -> Iterable[dict]:
         covering_examples = set(self.fetch(key))
-        for k in covering_examples:
-            for x in self.fetch(cov_obs_key(key, k)):
+        for as_bytes in covering_examples:
+            for x in self.fetch(cov_obs_key(key, as_bytes)):
                 with suppress(Exception):
                     value = json.loads(x)
                 yield value
