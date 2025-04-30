@@ -140,7 +140,8 @@ def cov_obs_key(fuzz_key: bytes, covering_example: bytes) -> bytes:
 class HypofuzzDatabase:
     def __init__(self, db: ExampleDatabase) -> None:
         self._db = db
-        self._obs_queue: deque[bytes] = deque()
+        # track a per-test observability queue
+        self._obs_queues: dict[deque[bytes]] = defaultdict(deque)
 
     def __str__(self) -> str:
         return f"HypofuzzDatabase({self._db!r})"
@@ -193,21 +194,25 @@ class HypofuzzDatabase:
     def save_observation(
         self, key: bytes, observation: dict, *, discard_over: int
     ) -> None:
-        if not self._obs_queue:
+        obs_queue = self._obs_queues[key]
+        if not obs_queue:
             # If we don't have anything at all, load from the database
             seen = []
-            for x in self._db.fetch(key + observe_key):
-                with suppress(Exception):
-                    seen.append((json.loads(x)["timestamp"], x))
-            self._obs_queue.extend([v for _, v in sorted(seen)])
+            for as_bytes in self._db.fetch(key + observe_key):
+                try:
+                    start = json.loads(as_bytes)["run_start"]
+                except Exception:
+                    continue
+                seen.append((start, as_bytes))
+            obs_queue.extend([v for _, v in sorted(seen)])
 
-        encoded = json.dumps(observation).encode()
-        self._obs_queue.append(encoded)
-        self._db.save(key + observe_key, encoded)
+        encoded = self._encode(observation)
+        obs_queue.append(encoded)
+        self.save(key + observe_key, encoded)
 
         # If we have more elements in the buffer than we need, clear them out.
-        while len(self._obs_queue) > discard_over:
-            self._db.delete(key + observe_key, self._obs_queue.popleft())
+        while len(obs_queue) > discard_over:
+            self.delete(key + observe_key, obs_queue.popleft())
 
     def fetch_observations(self, key: bytes) -> Iterable[dict]:
         for x in self.fetch(key + observe_key):
@@ -216,9 +221,9 @@ class HypofuzzDatabase:
             yield value
 
     def fetch_covering_observations(self, key: bytes) -> Iterable[dict]:
-        covering_examples = set(self._db.fetch(key))
+        covering_examples = set(self.fetch(key))
         for k in covering_examples:
-            for x in self._db.fetch(cov_obs_key(key, k)):
+            for x in self.fetch(cov_obs_key(key, k)):
                 with suppress(Exception):
                     value = json.loads(x)
                 yield value
