@@ -8,6 +8,7 @@ import platform
 import socket
 import subprocess
 import sys
+import threading
 import time
 import traceback
 from base64 import b64encode
@@ -16,7 +17,7 @@ from collections.abc import Callable, Generator
 from functools import lru_cache
 from pathlib import Path
 from random import Random
-from typing import Any, Optional, Union
+from typing import Any, Generic, Optional, TypeVar, Union
 from uuid import uuid4
 
 import hypothesis
@@ -66,8 +67,25 @@ from hypofuzz.database import (
 )
 from hypofuzz.provider import HypofuzzProvider
 
+T = TypeVar("T")
+
 process_uuid = uuid4().hex
 
+
+# hypothesis.utils.dynamicvaraible, but without the with_value context manager.
+# Essentially just a reference to a value.
+class Value(Generic[T]):
+    def __init__(self, default: T) -> None:
+        self.default = default
+        self.data = threading.local()
+
+    @property
+    def value(self) -> T:
+        return getattr(self.data, "value", self.default)
+
+    @value.setter
+    def value(self, value: T) -> None:
+        self.data.value = value
 
 @contextlib.contextmanager
 def constant_stack_depth() -> Generator[None, None, None]:
@@ -177,7 +195,6 @@ class FuzzProcess:
         # Track observability data
         self._observations_key = database_key + b".observations"
         self._last_observed = 0.0
-        self._observations_queue: deque[bytes] = deque()
 
     def startup(self) -> None:
         """Set up initial state and prepare to replay the saved behaviour."""
@@ -366,7 +383,8 @@ class FuzzProcess:
         # Update the pool and report any changes immediately for new coverage.  If no
         # new coverage, occasionally send an update anyway so we don't look stalled.
         self.status_counts[data.status] += 1
-        if self.pool.add(data.as_result(), observation=observations[0]):
+        assert observation.value is not None
+        if self.pool.add(data.as_result(), observation=observation.value):
             self.since_new_cov = 0
         else:
             self.since_new_cov += 1
@@ -382,32 +400,32 @@ class FuzzProcess:
         return data.as_result()
 
     @contextlib.contextmanager
-    def _maybe_observe_for_tyche(self) -> Generator[list[dict], None, None]:
-        # We're going to collect and store some observability records,
-        # but don't want the space overhead of more coverage data.
-        #
-        # Don't set this globally so we don't affect standard hypothesis
-        # observability if hypofuzz is imported (but not used), from e.g. the
-        # hypothesis cli entrypoint.
-        hypothesis.internal.observability.OBSERVABILITY_COLLECT_COVERAGE = False
-
+    def _maybe_observe_for_tyche(self) -> Generator[Value[Optional[dict]], None, None]:
         # We're aiming for a rolling buffer of the last 300 observations, downsampling
         # to one per second if we're executing more than one test case per second.
         # Decide here, so that runtime doesn't bias our choice of what to observe.
         will_save = self.phase is Phase.GENERATE and (
             self.elapsed_time > self._last_observed + 1
-            or len(self._observations_queue) < 300
         )
-        got: list = []
-        TESTCASE_CALLBACKS.append(
-            lambda x: got.append(x) if x["type"] == "test_case" else None
-        )
+        # we want to refer to and set this value inside and outside of the context
+        # manager. Use a wrapping Value class as a reference-forwarder.
+        observation: Value[Optional[dict]] = Value(None)
+
+        def callback(test_case):
+            if test_case["type"] != "test_case":
+                return
+            assert observation.value is None
+            observation.value = test_case
+
+        TESTCASE_CALLBACKS.append(callback)
         try:
-            yield got
+            yield observation
         finally:
             TESTCASE_CALLBACKS.pop()
         if will_save:
-            get_db().save_observation(*got, discard_over=300)
+            get_db().save_observation(
+                self._observations_key, observation.value, discard_over=300
+            )
 
     def _save_report(self, report: Report) -> None:
         db = get_db()
