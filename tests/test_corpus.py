@@ -9,7 +9,7 @@ from hypothesis.database import InMemoryExampleDatabase, choices_to_bytes
 from strategies import nodes
 
 from hypofuzz.corpus import (
-    Arc,
+    Branch,
     ConjectureResult,
     NodesT,
     Pool,
@@ -18,10 +18,9 @@ from hypofuzz.corpus import (
 )
 
 
-def branches(
-    fnames=st.sampled_from("abc"), lines=st.integers(0, 3)
-) -> st.SearchStrategy[frozenset[Arc]]:
-    return st.frozensets(st.builds(Arc, fname=fnames, start_line=lines, end_line=lines))
+def branches(fnames=st.sampled_from("abc")) -> st.SearchStrategy[frozenset[Branch]]:
+    location = st.tuples(fnames, st.integers(0, 3), st.integers(0, 3))
+    return st.frozensets(st.tuples(location, location))
 
 
 def results(statuses=st.sampled_from(Status)) -> st.SearchStrategy[ConjectureResult]:
@@ -58,26 +57,26 @@ def test_pool_coverage_tracking(args):
         note(repr(pool))
         pool._check_invariants()
         total_coverage.update(res.extra_information.branches)
-    assert total_coverage == set(pool.arc_counts)
+    assert total_coverage == set(pool.branch_counts)
 
 
 @given(pool_args(statuses=st.just(Status.VALID)))
 def test_pool_covering_nodes(args):
-    # the pool tracks the *minimal* covering example for each arc. so if we
+    # the pool tracks the *minimal* covering example for each branch. so if we
     # ever try a smaller one, the pool should update.
     pool = Pool(database=InMemoryExampleDatabase(), key=b"")
-    covering_nodes: dict[Arc, NodesT] = {}
+    covering_nodes: dict[Branch, NodesT] = {}
 
     for res in args:
         pool.add(res)
         note(repr(pool))
         pool._check_invariants()
-        for arc in res.extra_information.branches:
-            if arc not in covering_nodes:
-                covering_nodes[arc] = res.nodes
-            if sort_key(res.nodes) < sort_key(covering_nodes[arc]):
+        for branch in res.extra_information.branches:
+            if branch not in covering_nodes:
+                covering_nodes[branch] = res.nodes
+            if sort_key(res.nodes) < sort_key(covering_nodes[branch]):
                 event("updated size")
-                covering_nodes[arc] = res.nodes
+                covering_nodes[branch] = res.nodes
 
     assert covering_nodes == pool.covering_nodes
 

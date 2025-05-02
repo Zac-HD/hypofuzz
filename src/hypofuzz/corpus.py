@@ -22,8 +22,6 @@ from hypothesis.internal.conjecture.engine import ConjectureRunner
 from hypothesis.internal.conjecture.shrinker import Shrinker, sort_key as _sort_key
 from hypothesis.internal.escalation import InterestingOrigin
 from sortedcontainers import SortedDict
-
-from hypofuzz.coverage import Arc
 from hypofuzz.database import cov_obs_key
 
 if TYPE_CHECKING:
@@ -31,6 +29,8 @@ if TYPE_CHECKING:
 
 ChoicesT: "TypeAlias" = tuple[ChoiceT, ...]
 NodesT: "TypeAlias" = tuple[ChoiceNode, ...]
+# (start, end) where start = end = (filename, line, column)
+Branch: "TypeAlias" = tuple[tuple[str, int, int], tuple[str, int, int]]
 
 
 class Choices:
@@ -110,7 +110,7 @@ def get_shrinker(
 class Pool:
     """Manage the seed pool for a fuzz target.
 
-    The class tracks the minimal valid example which covers each known arc.
+    The class tracks the minimal valid example which covers each known branch.
     """
 
     def __init__(self, database: ExampleDatabase, key: bytes) -> None:
@@ -124,10 +124,10 @@ class Pool:
         #       over earlier inputs whose coverage is a subset of later inputs.
         self.results: dict[NodesT, ConjectureResult] = SortedDict(sort_key)
 
-        # For each arc, what's the minimal covering example?
-        self.covering_nodes: dict[Arc, NodesT] = {}
-        # How many times have we seen each arc since discovering our latest arc?
-        self.arc_counts: Counter[Arc] = Counter()
+        # For each branch, what's the minimal covering example?
+        self.covering_nodes: dict[Branch, NodesT] = {}
+        # How many times have we seen each branch since discovering our latest branch?
+        self.branch_counts: Counter[Branch] = Counter()
 
         # And various internal attributes and metadata
         self.interesting_examples: dict[
@@ -142,21 +142,21 @@ class Pool:
     def __repr__(self) -> str:
         rs = {b: r.extra_information.branches for b, r in self.results.items()}  # type: ignore
         return (
-            f"<Pool\n    results={rs}\n    arc_counts={self.arc_counts}\n    "
+            f"<Pool\n    results={rs}\n    branch_counts={self.branch_counts}\n    "
             f"covering_nodes={self.covering_nodes}\n>"
         )
 
     def _check_invariants(self) -> None:
         """Check all invariants of the structure."""
-        seen: set[Arc] = set()
+        seen: set[Branch] = set()
         for res in self.results.values():
-            # Each result in our ordered choices covers at least one arc not covered
+            # Each result in our ordered choices covers at least one branch not covered
             # by any more-minimal result.
             not_previously_covered = res.extra_information.branches - seen  # type: ignore
             assert not_previously_covered
             # And our covering_choices map points back the correct (minimal) choices
-            for arc in not_previously_covered:
-                assert self.covering_nodes[arc] == res.nodes
+            for branch in not_previously_covered:
+                assert self.covering_nodes[branch] == res.nodes
             seen.update(res.extra_information.branches)  # type: ignore
 
         # And the union of those branches is exactly covered by our counters.
@@ -164,7 +164,7 @@ class Pool:
             self.covering_nodes
         )
         assert seen == set(self.covering_nodes), seen.symmetric_difference(
-            self.arc_counts
+            self.branch_counts
         )
 
         # Every covering choice was either read from the database, or saved to it.
@@ -220,14 +220,14 @@ class Pool:
 
         # If we haven't just discovered new branches and our example is larger than the
         # current largest minimal example, we can skip the expensive calculation.
-        if (not branches.issubset(self.arc_counts)) or (
+        if (not branches.issubset(self.branch_counts)) or (
             self.results
             and sort_key(result.nodes)
             < sort_key(self.results.keys()[-1])  # type: ignore
             and any(
                 sort_key(nodes) < sort_key(known_nodes)
-                for arc, known_nodes in self.covering_nodes.items()
-                if arc in branches
+                for branch, known_nodes in self.covering_nodes.items()
+                if branch in branches
             )
         ):
             # We do this the stupid-but-obviously-correct way: add the new choices to
@@ -246,7 +246,7 @@ class Pool:
 
             self._loaded_from_database.add(Choices(result.choices))
             # Clear out any redundant entries
-            seen_branches: set[Arc] = set()
+            seen_branches: set[Branch] = set()
             self.covering_nodes = {}
             for res in list(self.results.values()):
                 assert res.extra_information is not None
@@ -261,12 +261,12 @@ class Pool:
                     for value in list(self._database.fetch(obs_key)):
                         self._database.delete(obs_key, value)
                 else:
-                    for arc in covers:
-                        self.covering_nodes[arc] = res.nodes
+                    for branch in covers:
+                        self.covering_nodes[branch] = res.nodes
             # We add newly-discovered branches to the counter later; so here our only
             # unseen branches should be the newly discovered branches.
-            assert seen_branches - set(self.arc_counts) == branches - set(
-                self.arc_counts
+            assert seen_branches - set(self.branch_counts) == branches - set(
+                self.branch_counts
             )
             self.json_report = [
                 [
@@ -277,23 +277,23 @@ class Pool:
                 for res in self.results.values()
             ]
 
-        # Either update the arc counts so we can prioritize rarer branches in future,
+        # Either update the branch counts so we can prioritize rarer branches in future,
         # or save an example with new coverage and reset the counter because we'll
         # have a different distribution with a new seed pool.
-        if branches.issubset(self.arc_counts):
-            self.arc_counts.update(branches)
+        if branches.issubset(self.branch_counts):
+            self.branch_counts.update(branches)
         else:
-            # Reset our seen arc counts.  This is essential because changing our
-            # seed pool alters the probability of seeing each arc in future.
+            # Reset our seen branch counts.  This is essential because changing our
+            # seed pool alters the probability of seeing each branch in future.
             # For details see AFL-fast, esp. the markov-chain trick.
-            self.arc_counts = Counter(branches.union(self.arc_counts))
+            self.branch_counts = Counter(branches.union(self.branch_counts))
 
-            # Save this choices as our minimal-known covering example for each new arc.
+            # Save this choices as our minimal-known covering example for each new branch.
             if result.nodes not in self.results:
                 self.results[result.nodes] = result
             self._database.save(self._fuzz_key, choices_to_bytes(result.choices))
-            for arc in branches - set(self.covering_nodes):
-                self.covering_nodes[arc] = nodes
+            for branch in branches - set(self.covering_nodes):
+                self.covering_nodes[branch] = nodes
 
             # We've just finished making some tricky changes, so this is a good time
             # to assert that all our invariants have been upheld.
@@ -351,7 +351,7 @@ class Pool:
         1. We exploit the fact that each successful shrink calls self.add(result)
            to let us skip a lot of work.  Because any "fully shrunk" example is
            a local fixpoint of all our reduction passes, there's no point trying
-           to shrink a choice sequence for arc A if it's already minimal for arc B.
+           to shrink a choice sequence for branch A if it's already minimal for branch B.
            (because we'd have updated the best known for A while shrinking for B)
         2. All of the loops are designed to make some amount of progress, and then
            try again if they did not reach a fixpoint.  Almost all of the structures
@@ -359,30 +359,31 @@ class Pool:
         """
         self._check_invariants()
         minimal_branches = {
-            arc
-            for arc, nodes in self.covering_nodes.items()
+            branch
+            for branch, nodes in self.covering_nodes.items()
             if nodes in self.__shrunk_to_nodes
         }
         while set(self.covering_nodes) - minimal_branches:
             # The "largest first" shrinking order is designed to maximise the rate
             # of incidental progress, where shrinking hard problems stumbles over
             # smaller starting points for the easy ones.
-            arc_to_shrink = max(
+            branch_to_shrink = max(
                 set(self.covering_nodes) - minimal_branches,
-                key=lambda a: sort_key(self.covering_nodes[a]),
+                key=lambda b: sort_key(self.covering_nodes[b]),
             )
             shrinker = get_shrinker(
                 self,
                 fn,
-                initial=self.results[self.covering_nodes[arc_to_shrink]],
-                predicate=lambda d, a=arc_to_shrink: a in d.extra_information.branches,
+                initial=self.results[self.covering_nodes[branch_to_shrink]],
+                predicate=lambda d, b=branch_to_shrink: b
+                in d.extra_information.branches,
                 random=random,
             )
             shrinker.shrink()
             self.__shrunk_to_nodes.add(shrinker.shrink_target.nodes)
             minimal_branches |= {
-                arc
-                for arc, choices in self.covering_nodes.items()
+                branch
+                for branch, choices in self.covering_nodes.items()
                 if choices == shrinker.shrink_target.choices
             }
             self._check_invariants()
@@ -415,7 +416,7 @@ class CrossOverMutator(Mutator):
         # This is related to the AFL-fast trick, but doesn't track the transition
         # probabilities - just node densities in the markov chain.
         weights = [
-            1 / min(self.pool.arc_counts[arc] for arc in res.extra_information.branches)  # type: ignore
+            1 / min(self.pool.branch_counts[branch] for branch in res.extra_information.branches)  # type: ignore
             for res in self.pool.results.values()
         ]
         total = sum(weights)

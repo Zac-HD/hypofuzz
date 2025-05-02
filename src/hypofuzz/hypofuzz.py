@@ -47,7 +47,7 @@ from hypofuzz.corpus import (
     Pool,
     get_shrinker,
 )
-from hypofuzz.coverage import CoverageCollectionContext
+from hypofuzz.coverage import CoverageCollector
 from hypofuzz.database import (
     Metadata,
     Phase,
@@ -299,7 +299,7 @@ class FuzzProcess:
         """
         start = time.perf_counter()
         self.ninputs += 1
-        collector = collector or CoverageCollectionContext()
+        collector = collector or CoverageCollector()
         reports: list[object] = []
         try:
             with (
@@ -415,7 +415,7 @@ class FuzzProcess:
                 in_directory=Path(inspect.getfile(self._test_fn)).parent
             ),
             status_counts=StatusCounts(self.status_counts),
-            branches=len(self.pool.arc_counts),
+            branches=len(self.pool.branch_counts),
             since_new_cov=(
                 None
                 if (self.ninputs == 0 or self.pool.interesting_examples)

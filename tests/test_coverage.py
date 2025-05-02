@@ -2,7 +2,7 @@ import sys
 
 import pytest
 
-from hypofuzz.coverage import CoverageCollectionContext
+from hypofuzz.coverage import CoverageCollector
 
 # ruff: noqa: PLW0120, E701
 
@@ -17,17 +17,20 @@ pytestmark = pytest.mark.skipif(
 class Collector:
     def __init__(self, f):
         self.offset = f.__code__.co_firstlineno
-        self.context = CoverageCollectionContext()
+        self.context = CoverageCollector()
 
     @property
     def branches(self) -> set[tuple[tuple[int, int], tuple[int, int]]]:
         files = set()
         branches = set()
-        for start, end in self.context.branches:
-            files.add(start[0])
-            files.add(end[0])
+        for branch in self.context.branches:
+            files.add(branch.start[0])
+            files.add(branch.end[0])
             branches.add(
-                ((start[1] - self.offset, start[2]), (end[1] - self.offset, end[2]))
+                (
+                    (branch.start[1] - self.offset, branch.start[2]),
+                    (branch.end[1] - self.offset, branch.end[2]),
+                )
             )
         # all branches are in the same file
         assert len(files) <= 1

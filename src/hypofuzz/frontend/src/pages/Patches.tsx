@@ -1,5 +1,10 @@
 import { useEffect, useState } from "react"
 import { fetchData } from "../utils/api"
+import hljs from "highlight.js/lib/core"
+import "highlight.js/styles/github.css"
+import diff from "highlight.js/lib/languages/diff"
+
+hljs.registerLanguage("diff", diff)
 
 export function PatchesPage() {
   const [patches, setPatches] = useState<Record<string, string>>({})
@@ -13,6 +18,10 @@ export function PatchesPage() {
       setLoading(false)
     })
   }, [])
+
+  useEffect(() => {
+    hljs.highlightAll()
+  }, [patches])
 
   if (loading) {
     return (
@@ -39,8 +48,8 @@ export function PatchesPage() {
         {Object.entries(patches).map(([name, content]) => (
           <div key={name} className="patch">
             <h3>{name}</h3>
-            <pre className="language-diff-python diff-highlight">
-              <code>{content}</code>
+            <pre>
+              <code className="language-diff">{content}</code>
             </pre>
           </div>
         ))}

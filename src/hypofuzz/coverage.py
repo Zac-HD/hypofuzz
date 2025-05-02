@@ -3,40 +3,63 @@
 import os
 import sys
 import types
+from dataclasses import dataclass
 from functools import cache
 from pathlib import Path
-from typing import Any, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 import _pytest
 import attr
+import attrs
 import coverage
 import hypothesis
 import pytest
+import sortedcontainers
 from hypothesis.internal.escalation import belongs_to
 
 import hypofuzz
 
-# filename: {start: {end: arc}}
-_ARC_CACHE: dict[str, dict[int, dict[int, "Arc"]]] = {}
+if TYPE_CHECKING:
+    from typing import TypeAlias
+
+# column might be None if we're on pre-3.12
+LocationT: "TypeAlias" = tuple[str, int, Optional[int]]
+# (start_file, end_file): {start: {end: branch}}
+_BRANCH_CACHE: dict[
+    tuple[str, str],
+    dict[tuple[int, Optional[int]], dict[tuple[int, Optional[int]], "Branch"]],
+] = {}
 
 
-@attr.s(frozen=True, slots=True, repr=False)
-class Arc:
-    fname: str = attr.ib()
-    start_line: int = attr.ib()
-    end_line: int = attr.ib()
+@dataclass(frozen=True, repr=False)
+class Branch:
+    # filename, line, column
+    start: LocationT
+    end: LocationT
+
+    __slots__ = ("end", "start")
 
     @staticmethod
-    def make(fname: str, start: int, end: int) -> "Arc":
+    def make(start: LocationT, end: LocationT) -> "Branch":
+        start_file = start[0]
+        start_key = start[1:]
+        end_file = end[0]
+        end_key = end[1:]
         try:
-            return _ARC_CACHE[fname][start][end]
+            return _BRANCH_CACHE[start_file, end_file][start_key][end_key]
         except KeyError:
-            arc = Arc(fname, start, end)
-            _ARC_CACHE.setdefault(fname, {}).setdefault(start, {})[end] = arc
-            return arc
+            branch = Branch(start, end)
+            _BRANCH_CACHE.setdefault((start_file, end_file), {}).setdefault(
+                start_key, {}
+            )[end_key] = branch
+            return branch
 
     def __str__(self) -> str:
-        return f"{self.fname}:{self.start_line}::{self.end_line}"
+        location1 = f"{self.start[1]}:{self.start[2]}"
+        location2 = f"{self.end[1]}:{self.end[2]}"
+        if self.start[0] == self.end[0]:
+            return f"{self.start[0]}:{location1}::{location2}"
+        return f"{self.start[0]}:{location1}::{self.end[0]}:{location2}"
 
     __repr__ = __str__
 
@@ -58,6 +81,12 @@ is_hypothesis_file = belongs_to(hypothesis)
 is_hypofuzz_file = belongs_to(hypofuzz)
 is_pytest_file = belongs_to(pytest)
 is__pytest_file = belongs_to(_pytest)
+is_sortedcontainers_file = belongs_to(sortedcontainers)
+# hypofuzz doesn't use attrs, but hypothesis does.
+# TODO migrate hypothesis off attrs and then drop this blacklist?
+is_attr_file = belongs_to(attr)
+is_attrs_file = belongs_to(attrs)
+
 
 stdlib_path = Path(os.__file__).parent
 
@@ -82,11 +111,14 @@ def should_trace(fname: str) -> bool:
         or is_generated_file(fname)
         or is_pytest_file(fname)
         or is__pytest_file(fname)
+        or is_sortedcontainers_file(fname)
+        or is_attr_file(fname)
+        or is_attrs_file(fname)
     )
 
 
 # use 3.12's sys.monitoring where possible, and sys.settrace otherwise.
-class CoverageCollectionContext:
+class CoverageCollector:
     """Collect coverage data as a context manager.
 
     The context manager can be reused; each use updates the ``.branches``
@@ -106,15 +138,17 @@ class CoverageCollectionContext:
         }
 
     def __init__(self) -> None:
-        self.branches: set[tuple] = set()
-        self.last: Optional[tuple] = None
+        self.branches: set[Branch] = set()
+        self.last: Optional[LocationT] = None
 
     def trace_pre_312(self, frame: Any, event: Any, arg: Any) -> Any:
         if event == "line":
             fname = frame.f_code.co_filename
             if should_trace(fname):
-                this = (fname, frame.f_lineno)
-                self.branches.add((self.last, this))
+                # we don't get column information pre-3.11 (see co_positions)
+                this: LocationT = (fname, frame.f_lineno, None)
+                if self.last is not None:
+                    self.branches.add(Branch.make(self.last, this))
                 self.last = this
         return self.trace_pre_312
 
@@ -142,10 +176,23 @@ class CoverageCollectionContext:
         (d_start_line, _d_end_line, d_start_column, _d_end_column) = positions[
             dest_offset // 2
         ]
+        # if anything is None, skip this branch. This can happen for various reasons.
+        # Most notably with -X no_debug_ranges, in which case we will get *zero*
+        # position information.
+        # TODO detect when python is running with no_debug_ranges and warn or error?
+        #
+        # see https://docs.python.org/3/reference/datamodel.html#codeobject.co_positions.
+        if (
+            s_start_line is None
+            or d_start_line is None
+            or s_start_column is None
+            or d_start_column is None
+        ):
+            return sys.monitoring.DISABLE  # type: ignore
 
         source = (code.co_filename, s_start_line, s_start_column)
         dest = (code.co_filename, d_start_line, d_start_column)
-        self.branches.add((source, dest))
+        self.branches.add(Branch.make(source, dest))
 
     def __enter__(self) -> None:
         self.last = None
