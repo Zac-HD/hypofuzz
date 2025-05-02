@@ -37,7 +37,7 @@ class Branch:
     start: LocationT
     end: LocationT
 
-    __slots__ = ("start", "end")
+    __slots__ = ("end", "start")
 
     @staticmethod
     def make(start: LocationT, end: LocationT) -> "Branch":
