@@ -3,6 +3,7 @@
 __latexindent_temp.tex
 pycrunch-recordings/
 .cursor
+.vscode
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
