@@ -3,6 +3,7 @@
 import os
 import sys
 import types
+from dataclasses import dataclass
 from functools import cache
 from pathlib import Path
 from typing import Any, Optional
@@ -20,11 +21,11 @@ import hypofuzz
 _ARC_CACHE: dict[str, dict[int, dict[int, "Arc"]]] = {}
 
 
-@attr.s(frozen=True, slots=True, repr=False)
+@dataclass(frozen=True, slots=True, repr=False)
 class Arc:
-    fname: str = attr.ib()
-    start_line: int = attr.ib()
-    end_line: int = attr.ib()
+    fname: str
+    start_line: int
+    end_line: int
 
     @staticmethod
     def make(fname: str, start: int, end: int) -> "Arc":
