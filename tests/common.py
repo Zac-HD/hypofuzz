@@ -17,7 +17,7 @@ from hypothesis.internal.escalation import InterestingOrigin
 from hypothesis.internal.reflection import get_pretty_function_description
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True)
 class Dashboard:
     port: int
     process: subprocess.Popen
