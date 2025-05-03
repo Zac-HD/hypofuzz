@@ -54,7 +54,7 @@ class WorkerIdentity:
     def from_json(data: dict) -> "WorkerIdentity":
         return WorkerIdentity(**data)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"WorkerIdentity(uuid={self.uuid!r})"
 
     __str__ = __repr__

@@ -4,7 +4,6 @@ import abc
 import dataclasses
 import json
 import math
-from base64 import b64decode
 from dataclasses import dataclass, field
 from functools import cache
 from pathlib import Path
@@ -291,47 +290,6 @@ async def api_backing_state(request: Request) -> Response:
             "patches": _patches(),
         },
     )
-
-
-async def api_db_tests(request: Request) -> Response:
-    tests = [
-        {
-            "database_key": test.database_key,
-            "nodeid": test.nodeid,
-        }
-        for test in TESTS.values()
-    ]
-    return HypofuzzJSONResponse(tests)
-
-
-async def api_db_test_counts(request: Request) -> Response:
-    key = b64decode(request.path_params["database_key"])
-    db = get_db()
-    counts = {
-        "reports": len(list(db.fetch_reports(key))),
-        "observations": len(list(db.fetch_observations(key))),
-        "corpus": len(list(db.fetch_corpus(key))),
-        "failures": len(list(db.fetch_failures(key))),
-    }
-    return HypofuzzJSONResponse(counts)
-
-
-async def api_db_test_category(request: Request) -> Response:
-    key = b64decode(request.path_params["database_key"])
-    category = request.path_params["category"]
-    db = get_db()
-    if category == "reports":
-        data = db.fetch_reports(key)
-    elif category == "observations":
-        data = db.fetch_observations(key)
-    elif category == "corpus":
-        data = db.fetch_corpus(key)
-    elif category == "failures":
-        data = db.fetch_failures(key)
-    else:
-        raise ValueError(f"unknown category {category}")
-
-    return HypofuzzJSONResponse(list(data))
 
 
 dist = Path(__file__).parent / "frontend" / "dist"

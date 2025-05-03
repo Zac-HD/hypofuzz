@@ -129,7 +129,7 @@ class Corpus:
         # Our sorted corpus of covering examples, ready to be sampled from.
         # TODO: One suggestion to reduce effective corpus size/redundancy is to skip
         #       over earlier inputs whose coverage is a subset of later inputs.
-        self.results: SortedDict[NodesT, ConjectureResult] = SortedDict(sort_key)
+        self.results: dict[NodesT, ConjectureResult] = SortedDict(sort_key)
 
         # For each branch, what's the minimal covering example?
         self.covering_nodes: dict[Branch, NodesT] = {}
