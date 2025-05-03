@@ -1,7 +1,6 @@
 # Top-level dependencies for `tox -e check`
 ruff
 mypy
-attrs  # to let mypy pick up on dataclass_transform
 pep8-naming
 shed
 types-requests

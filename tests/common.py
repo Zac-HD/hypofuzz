@@ -8,19 +8,19 @@ import tempfile
 import time
 from collections.abc import Generator
 from contextlib import contextmanager
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
-import attr
 import requests
 from hypothesis.internal.escalation import InterestingOrigin
 from hypothesis.internal.reflection import get_pretty_function_description
 
 
-@attr.s(frozen=True, slots=True)
+@dataclass(frozen=True)
 class Dashboard:
-    port: int = attr.ib()
-    process: subprocess.Popen = attr.ib()
+    port: int
+    process: subprocess.Popen
 
     def state(self, *, id=None):
         r = requests.get(
