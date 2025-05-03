@@ -1,8 +1,8 @@
 from hypothesis import given, strategies as st
 
-from hypofuzz.coverage import _BRANCH_CACHE, Branch
+from hypofuzz.coverage import _BRANCH_CACHE, Branch, Location
 
-locations = st.tuples(st.text(), st.integers(min_value=0), st.integers(min_value=0))
+locations = st.builds(Location)
 
 
 @given(locations, locations)

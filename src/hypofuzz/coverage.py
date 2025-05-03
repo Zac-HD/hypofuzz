@@ -5,7 +5,7 @@ import sys
 import types
 from functools import cache
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, NamedTuple, Optional
+from typing import Any, NamedTuple, Optional
 
 import _pytest
 import attr
@@ -18,11 +18,6 @@ from hypothesis.internal.escalation import belongs_to
 
 import hypofuzz
 
-if TYPE_CHECKING:
-    from typing import TypeAlias
-
-# column might be None if we're on pre-3.12
-LocationT: "TypeAlias" = tuple[str, int, Optional[int]]
 # (start_file, end_file): {start: {end: branch}}
 _BRANCH_CACHE: dict[
     tuple[str, str],
@@ -32,17 +27,23 @@ _BRANCH_CACHE: dict[
 
 # NamedTuple is ~2x faster to instantiate and uses ~3% less memory than a slotted
 # dataclass. We're storing a *lot* of branches, so this is worthwhile.
+class Location(NamedTuple):
+    filename: str
+    line: int
+    # column might be None if we're on pre-3.12
+    column: Optional[int]
+
+
 class Branch(NamedTuple):
-    # filename, line, column
-    start: LocationT
-    end: LocationT
+    start: Location
+    end: Location
 
     @staticmethod
-    def make(start: LocationT, end: LocationT) -> "Branch":
-        start_file = start[0]
-        start_key = start[1:]
-        end_file = end[0]
-        end_key = end[1:]
+    def make(start: Location, end: Location) -> "Branch":
+        start_file = start.filename
+        start_key = (start.line, start.column)
+        end_file = end.filename
+        end_key = (end.line, end.column)
         try:
             return _BRANCH_CACHE[start_file, end_file][start_key][end_key]
         except KeyError:
@@ -139,14 +140,14 @@ class CoverageCollector:
 
     def __init__(self) -> None:
         self.branches: set[Branch] = set()
-        self.last: Optional[LocationT] = None
+        self.last: Optional[Location] = None
 
     def trace_pre_312(self, frame: Any, event: Any, arg: Any) -> Any:
         if event == "line":
             fname = frame.f_code.co_filename
             if should_trace(fname):
                 # we don't get column information pre-3.11 (see co_positions)
-                this: LocationT = (fname, frame.f_lineno, None)
+                this = Location(fname, frame.f_lineno, None)
                 if self.last is not None:
                     self.branches.add(Branch.make(self.last, this))
                 self.last = this
@@ -190,8 +191,8 @@ class CoverageCollector:
         ):
             return sys.monitoring.DISABLE  # type: ignore
 
-        source = (code.co_filename, s_start_line, s_start_column)
-        dest = (code.co_filename, d_start_line, d_start_column)
+        source = Location(code.co_filename, s_start_line, s_start_column)
+        dest = Location(code.co_filename, d_start_line, d_start_column)
         self.branches.add(Branch.make(source, dest))
 
     def __enter__(self) -> None:
