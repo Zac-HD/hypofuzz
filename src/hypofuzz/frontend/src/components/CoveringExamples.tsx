@@ -5,23 +5,24 @@ import hljs from "highlight.js/lib/core"
 import "highlight.js/styles/github.css"
 import python from "highlight.js/lib/languages/python"
 import { useEffect } from "react"
+import { Observation } from "../types/dashboard"
 
 hljs.registerLanguage("python", python)
 
 interface Props {
-  seedPool: Array<[string, string, any]>
+  observations: Observation[]
 }
 
-export function CoveringExamples({ seedPool }: Props) {
+export function CoveringExamples({ observations }: Props) {
   const [isOpen, setIsOpen] = useState(false)
 
-  if (!seedPool || seedPool.length === 0) {
+  if (observations.length === 0) {
     return null
   }
 
   useEffect(() => {
     hljs.highlightAll()
-  }, [seedPool])
+  }, [observations])
 
   return (
     <div className="covering-examples">
@@ -45,9 +46,11 @@ export function CoveringExamples({ seedPool }: Props) {
             Each example shown below covers at least one branch not covered by
             any previous, more-minimal, example.
           </p>
-          {seedPool.map(([_, callRepr], index) => (
+          {observations.map((observation, index) => (
             <pre key={index} className="covering-examples__example">
-              <code className="language-python">{callRepr}</code>
+              <code className="language-python">
+                {observation.representation}
+              </code>
             </pre>
           ))}
         </div>

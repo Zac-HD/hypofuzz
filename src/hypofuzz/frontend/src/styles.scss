@@ -229,6 +229,10 @@ select {
         background: rgba(237, 120, 107, 0.2);
     }
 
+    &__warning {
+        background: rgba(255, 215, 0, 0.2);
+    }
+
     &__success {
         background: rgba(71, 204, 126, 0.2);
     }

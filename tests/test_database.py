@@ -1,14 +1,16 @@
 import subprocess
 
 from common import BASIC_TEST_CODE, fuzz, wait_for, write_test_code
-from hypothesis.database import DirectoryBasedExampleDatabase
+from hypothesis import given, settings, strategies as st
+from hypothesis.database import DirectoryBasedExampleDatabase, InMemoryExampleDatabase
+from hypothesis.internal.conjecture.data import ConjectureData
 
-from hypofuzz.database import HypofuzzDatabase
+from hypofuzz.database import HypofuzzDatabase, Phase
+from hypofuzz.hypofuzz import FuzzProcess
 
 
 def test_database_stores_reports_and_metadata_correctly():
-    # test that things of type Report are saved to reports_key, and things of type
-    # Metadata are saved to metadata_key.
+    # test that things of type Report are saved to reports_key.
     #
     # Nowadays, this is validated by our dataclass parsing step.
 
@@ -33,8 +35,59 @@ def test_database_stores_reports_and_metadata_correctly():
                 timeout=15,
                 interval=0.05,
             )
-            list(db.fetch_reports(key))
-            list(db.fetch_metadata(key))
+
+
+def test_database_state():
+    hypothesis_db = InMemoryExampleDatabase()
+
+    @given(st.integers())
+    @settings(database=hypothesis_db)
+    def test_a(x):
+        if x:
+            pass
+
+    process = FuzzProcess.from_hypothesis_test(test_a)
+    process._start_phase(Phase.GENERATE)
+    process._run_test_on(ConjectureData.for_choices([2]))
+
+    db = HypofuzzDatabase(hypothesis_db)
+    key = process.database_key
+
+    # the database state should be:
+    # * database_key.hypofuzz.corpus                    (1 element)
+    # * database_key.hypofuzz.corpus.<hash>.observation (1 element)
+    # * database_key.hypofuzz.reports                   (1 element)
+    assert len(hypothesis_db.data.keys()) == 3
+    assert list(db.fetch_corpus(key)) == [(2,)]
+
+    observations = list(db.fetch_corpus_observations(key, (2,)))
+    assert len(observations) == 1
+    assert observations[0].property == "test_a"
+
+    reports = list(db.fetch_reports(key))
+    assert len(reports) == 1
+    assert reports[0].branches == 1
+
+    # now we run a second input, which is better than the first input in coverage.
+    # This should clear out both the corpus and observation entry for the old
+    # input.
+    # The database state should be:
+    # * database_key.hypofuzz.corpus                    (1 element) (a new one)
+    # * database_key.hypofuzz.corpus.<hash>.observation (1 element) (a new one)
+    # * database_key.hypofuzz.reports                   (2 elements)
+    process._run_test_on(ConjectureData.for_choices([1]))
+    # the key for the deleted observation sticks around in the database, it's
+    # just an empty mapping.
+    assert len([k for k, v in hypothesis_db.data.items() if v]) == 3
+    assert list(db.fetch_corpus(key)) == [(1,)]
+
+    observations = list(db.fetch_corpus_observations(key, (1,)))
+    assert len(observations) == 1
+    assert observations[0].property == "test_a"
+
+    reports = list(db.fetch_reports(key))
+    assert len(reports) == 1
+    assert reports[0].branches == 1
 
 
 def test_database_keys_incorporate_parametrization():

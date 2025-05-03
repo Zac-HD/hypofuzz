@@ -1,22 +1,20 @@
-import React, { createContext, useContext, useEffect, useState } from "react"
-import {
-  Report,
-  Metadata,
-  LinearReports,
-  Phase,
-  Status,
-} from "../types/dashboard"
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useRef,
+} from "react"
+import { Report, Test } from "../types/dashboard"
+import JSON5 from "json5"
 
 interface WebSocketEvent {
-  type: "save" | "initial" | "metadata"
-  data: unknown
-  reports?: unknown
-  metadata?: unknown
+  type: "save" | "initial"
+  data: any
 }
 
 interface DataContextType {
-  reports: Map<string, Report[]>
-  metadata: Map<string, Metadata>
+  tests: Map<string, Test>
   socket: WebSocket | null
 }
 
@@ -27,51 +25,22 @@ interface DataProviderProps {
   nodeid?: string
 }
 
-function addStatusCounts(
-  statuses1: Map<Status, number>,
-  statuses2: Map<Status, number>,
-) {
-  const newStatuses = new Map(statuses1)
-  for (const [status, count] of statuses2.entries()) {
-    newStatuses.set(status, (newStatuses.get(status) ?? 0) + count)
-  }
-  return newStatuses
-}
-
-function subStatusCounts(
-  statuses1: Map<Status, number>,
-  statuses2: Map<Status, number>,
-) {
-  const newStatusCounts = new Map(statuses1)
-  for (const [status, count] of statuses2.entries()) {
-    newStatusCounts.set(status, (newStatusCounts.get(status) ?? 0) - count)
-  }
-  return newStatusCounts
-}
-
-function parseReports(reports: any): Map<string, LinearReports> {
-  return new Map(
-    Object.entries(reports).map(([nodeid, data]) => [
-      nodeid,
-      LinearReports.fromJson(data),
-    ]),
-  )
-}
-
-function parseMetadata(metadata: any): Map<string, Metadata> {
-  return new Map(
-    Object.entries(metadata).map(([nodeid, data]) => [
-      nodeid,
-      Metadata.fromJson(data),
-    ]),
-  )
-}
-
 export function DataProvider({ children, nodeid }: DataProviderProps) {
   const [socket, setSocket] = useState<WebSocket | null>(null)
-  const [reports, setReports] = useState<Map<string, LinearReports>>(new Map())
-  const [metadata, setMetadata] = useState<Map<string, Metadata>>(new Map())
+  const [tests, setTests] = useState<Map<string, Test>>(new Map())
   const [isLoading, setIsLoading] = useState(true)
+  const testsRef = useRef(tests)
+
+  // we want access to the latest value of `tests` inside the "save" event. React only
+  // updates the value of `tests` when the component re-renders, which I think is only
+  // when the useEffect triggers? so never, because we only load once per page.
+  //
+  // Instead, hold a ref handle to the current tests so it's always up to date.
+  //
+  // there's probably a better way to do this...
+  useEffect(() => {
+    testsRef.current = tests
+  }, [tests])
 
   useEffect(() => {
     // import.meta.url is relative to the assets/ directory, so this is assets/dashboard_state.json
@@ -79,8 +48,14 @@ export function DataProvider({ children, nodeid }: DataProviderProps) {
       .then(response => response.json())
       .then(data => {
         if (data) {
-          setReports(parseReports(data.reports))
-          setMetadata(parseMetadata(data.metadata))
+          setTests(
+            new Map(
+              Object.entries(data.tests).map(([nodeid, data]) => [
+                nodeid,
+                Test.fromJson(data),
+              ]),
+            ),
+          )
           setIsLoading(false)
           return
         }
@@ -95,104 +70,42 @@ export function DataProvider({ children, nodeid }: DataProviderProps) {
         `ws${window.location.protocol === "https:" ? "s" : ""}://${window.location.host}/ws`,
       )
       if (nodeid) {
-        url.searchParams.set("node_id", nodeid)
+        url.searchParams.set("nodeid", nodeid)
       }
 
       const ws = new WebSocket(url)
 
       ws.onmessage = event => {
-        const message = JSON.parse(event.data) as WebSocketEvent
+        // observability reports use e.g. Infinity, which is invalid in standard json but valid
+        // in json5.
+        const message = JSON5.parse(event.data) as WebSocketEvent
 
         switch (message.type) {
           case "initial":
-            setReports(parseReports(message.reports))
-            setMetadata(parseMetadata(message.metadata))
+            setTests(
+              new Map(
+                Object.entries(message.data).map(([nodeid, data]) => [
+                  nodeid,
+                  Test.fromJson(data),
+                ]),
+              ),
+            )
             setIsLoading(false)
             break
           case "save":
-            setReports(currentReports => {
-              const report = Report.fromJson(message.data)
-              if (report.phase === Phase.REPLAY) {
-                return currentReports
-              }
-              const newReports = new Map(currentReports)
-              // this happens if we start working on a nodeid that wasn't in our "initial"
-              // report from the dashboard. TODO do we want to send the structure for *all*
-              // collected tests from the dashboard, even if empty?
-              if (!newReports.has(report.nodeid)) {
-                newReports.set(report.nodeid, {
-                  reports: [],
-                  offsets: {
-                    status_counts: new Map<string, Map<Status, number>>(),
-                    elapsed_time: new Map<string, number>(),
-                  },
-                })
-              }
-              const nodeReports = newReports.get(report.nodeid)!.reports
-              const offsets = newReports.get(report.nodeid)!.offsets
-              if (!offsets.status_counts.has(report.worker.uuid)) {
-                offsets.status_counts.set(
-                  report.worker.uuid,
-                  new Map([
-                    [Status.OVERRUN, 0],
-                    [Status.INVALID, 0],
-                    [Status.VALID, 0],
-                    [Status.INTERESTING, 0],
-                  ]),
-                )
-                offsets.elapsed_time.set(report.worker.uuid, 0)
-              }
-              const offsetsStatuses = offsets.status_counts.get(
-                report.worker.uuid,
-              )!
-              const newStatuses = subStatusCounts(
-                report.status_counts,
-                offsetsStatuses,
-              )
-
-              const newElapsedTime =
-                report.elapsed_time -
-                offsets.elapsed_time.get(report.worker.uuid)!
-
-              if (nodeReports.length > 0) {
-                const latestReport = nodeReports[nodeReports.length - 1]
-                const updatedReport = new Report(
-                  report.database_key,
-                  report.nodeid,
-                  latestReport.elapsed_time + newElapsedTime,
-                  report.timestamp,
-                  report.worker,
-                  addStatusCounts(latestReport.status_counts, newStatuses),
-                  report.branches,
-                  report.since_new_cov,
-                  report.phase,
-                )
-                nodeReports.push(updatedReport)
-              } else {
-                nodeReports.push(report)
-              }
-
-              offsets.elapsed_time.set(
-                report.worker.uuid,
-                offsets.elapsed_time.get(report.worker.uuid)! + newElapsedTime,
-              )
-              offsets.status_counts.set(
-                report.worker.uuid,
-                addStatusCounts(
-                  offsets.status_counts.get(report.worker.uuid)!,
-                  newStatuses,
-                ),
-              )
-              return newReports
-            })
-            break
-          case "metadata":
-            setMetadata(currentMetadata => {
-              const newMetadata = new Map(currentMetadata)
-              const metadata = Metadata.fromJson(message.data)
-              newMetadata.set(metadata.nodeid, metadata)
-              return newMetadata
-            })
+            // this is a differential message. depending on the type of the save event, we'll do
+            // something to the appropriate attribute on Test.
+            switch (message.data.type) {
+              case "report":
+                const report = Report.fromJson(message.data.data)
+                const test = testsRef.current.get(report.nodeid)!
+                test.addReport(report)
+                // update react state to trigger a re-render on outside components that have a
+                // useEffect dependency on `tests`
+                setTests(new Map(testsRef.current))
+                break
+              // TODO: save events for test.failures, test.rolling_observations, test.covering_observations
+            }
             break
         }
       }
@@ -209,18 +122,8 @@ export function DataProvider({ children, nodeid }: DataProviderProps) {
     return null
   }
 
-  // the offsets are an internal detail of the websocket, for use in implementing
-  // the "save" event linearization. Don't return them outside of the websocket,
-  // for convenience.
-  const justReports = new Map<string, Report[]>(
-    Array.from(reports.entries()).map(([nodeid, reports]) => [
-      nodeid,
-      reports.reports,
-    ]),
-  )
-
   return (
-    <DataContext.Provider value={{ reports: justReports, metadata, socket }}>
+    <DataContext.Provider value={{ tests, socket }}>
       {children}
     </DataContext.Provider>
   )

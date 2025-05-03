@@ -1,8 +1,10 @@
 """Tests for the hypofuzz library."""
 
-from hypothesis import given, strategies as st
+from hypothesis import given, settings, strategies as st
+from hypothesis.database import InMemoryExampleDatabase
 from hypothesis.internal.conjecture.data import Status
 
+from hypofuzz.database import HypofuzzDatabase
 from hypofuzz.hypofuzz import FuzzProcess
 
 
@@ -25,21 +27,23 @@ class CustomError(Exception):
     pass
 
 
-@given(st.integers(0, 10), st.integers(0, 10))
-def failing_pbt(x, y):
-    if x:
-        raise CustomError(f"x={x}")
-
-
 def test_fuzz_one_process_explain_mode():
-    # This is a terrible test but better than nothing
-    fp = FuzzProcess.from_hypothesis_test(failing_pbt)
+    hypothesis_db = InMemoryExampleDatabase()
+
+    @given(st.integers(0, 10), st.integers(0, 10))
+    @settings(database=hypothesis_db)
+    def test_fails(x, y):
+        if x:
+            raise CustomError(f"x={x}")
+
+    fp = FuzzProcess.from_hypothesis_test(test_fails)
     for _ in range(10):
         fp.run_one()
 
-    # Check that we got the expected failure, including message + explain-mode output.
+    db = HypofuzzDatabase(hypothesis_db)
     assert fp.status_counts[Status.INTERESTING] >= 1
-    (call_repr, _, _, tb_repr), *rest = fp._metadata.failures
-    assert not rest  # expected only one failure
-    assert tb_repr.endswith("test_fuzz_process.CustomError: x=1\n")
-    assert call_repr == "failing_pbt(\n    x=1,\n    y=0,\n)"
+    failures = list(db.fetch_failures(fp.database_key))
+    assert len(failures) == 1
+    representation = db.fetch_failure_representation(fp.database_key, failures[0])
+    assert "CustomError" in representation.traceback
+    assert representation.call_repr == "test_fails(\n    x=1,\n    y=0,\n)"

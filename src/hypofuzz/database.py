@@ -3,16 +3,21 @@ import hashlib
 import json
 from collections import defaultdict, deque
 from collections.abc import Iterable
-from contextlib import suppress
 from dataclasses import dataclass, is_dataclass
 from enum import Enum
-from functools import cache, lru_cache
-from typing import Any, Optional
+from functools import lru_cache
+from typing import Any, Literal, Optional, TypeAlias
 
-from hypothesis import settings
-from hypothesis.database import BackgroundWriteDatabase, ExampleDatabase
+from hypothesis.database import (
+    ExampleDatabase,
+    choices_from_bytes,
+    choices_to_bytes,
+)
+from hypothesis.internal.conjecture.choice import ChoiceT
 from hypothesis.internal.conjecture.data import Status
 from sortedcontainers import SortedList
+
+ChoicesT: "TypeAlias" = tuple[ChoiceT, ...]
 
 
 class HypofuzzEncoder(json.JSONEncoder):
@@ -43,8 +48,67 @@ class WorkerIdentity:
     git_hash: Optional[str]
 
     @staticmethod
-    def from_dict(data: dict) -> "WorkerIdentity":
+    def from_json(data: dict) -> "WorkerIdentity":
         return WorkerIdentity(**data)
+
+    def __repr__(self):
+        return f"WorkerIdentity(uuid={self.uuid!r})"
+
+    __str__ = __repr__
+
+
+class ObservationStatus(Enum):
+    PASSED = "passed"
+    FAILED = "failed"
+    GAVE_UP = "gave_up"
+
+
+@dataclass(frozen=True)
+class Observation:
+    # attributes from
+    # https://hypothesis.readthedocs.io/en/latest/reference/integrations.html#test-case
+
+    # we're only storing test_case reports for now. We may store information
+    # messages in the future as well.
+    type: Literal["test_case"]
+    status: ObservationStatus
+    status_reason: str
+    representation: str
+    arguments: dict[str, Any]
+    how_generated: str
+    features: dict[str, Any]
+    timing: dict[str, Any]
+    metadata: dict[str, Any]
+    property: str
+    run_start: int
+
+    @staticmethod
+    def from_json(data: dict) -> Optional["Observation"]:
+        data = dict(data)
+        # we disable observability coverage, but hypothesis still gives us a key
+        # for it.
+        if "coverage" in data:
+            data.pop("coverage")
+        try:
+            data["status"] = ObservationStatus(data["status"])
+            return Observation(**data)
+        except Exception:
+            return None
+
+
+@dataclass(frozen=True)
+class FailureRepresentation:
+    traceback: str
+    call_repr: str
+    reproduction_decorator: str
+
+    @staticmethod
+    def from_json(data: dict) -> Optional["FailureRepresentation"]:
+        data = dict(data)
+        try:
+            return FailureRepresentation(**data)
+        except Exception:
+            return None
 
 
 class Phase(Enum):
@@ -80,14 +144,16 @@ class StatusCounts(dict):
         return all(self[status] < other[status] for status in self)
 
 
-# Conceptually:
 # * A report is an incremental progress marker which we don't want to delete,
 #   because seeing intermediary stages in e.g. a graph is useful information
-# * Metadata is the latest status of a test, which we might update to something
-#   different if new information comes along. Intermediate metadata steps are
-#   not saved because they are not interesting.
 @dataclass(frozen=True)
 class Report:
+    """
+    An incremental progress marker of a fuzzing campaign. We save a new report
+    whenever we discover new coverage, switch phases, or something particularly
+    interesting happens.
+    """
+
     database_key: str
     nodeid: str
     elapsed_time: float
@@ -99,10 +165,10 @@ class Report:
     phase: Phase
 
     @staticmethod
-    def from_dict(data: dict) -> Optional["Report"]:
+    def from_json(data: dict) -> Optional["Report"]:
         data = dict(data)
         try:
-            data["worker"] = WorkerIdentity.from_dict(data["worker"])
+            data["worker"] = WorkerIdentity.from_json(data["worker"])
             data["status_counts"] = StatusCounts(
                 {Status(int(k)): v for k, v in data["status_counts"].items()}
             )
@@ -112,36 +178,39 @@ class Report:
             return None
 
 
-@dataclass(frozen=True)
-class Metadata:
-    nodeid: str
-    seed_pool: list[list[str]]
-    failures: list[list[str]]
-
-    @staticmethod
-    def from_dict(data: dict) -> Optional["Metadata"]:
-        data = dict(data)
-        try:
-            return Metadata(**data)
-        except Exception:
-            return None
-
-
 reports_key = b".hypofuzz.reports"
-observe_key = b".hypofuzz.observe"
-metadata_key = b".hypofuzz.metadata"
+observations_key = b".hypofuzz.observations"
+corpus_key = b".hypofuzz.corpus"
+failures_key = b".hypofuzz.failures"
 
 
 @lru_cache(maxsize=512)
-def cov_obs_key(fuzz_key: bytes, covering_example: bytes) -> bytes:
-    return fuzz_key + b".observe." + hashlib.sha1(covering_example).digest()
+def corpus_observation_key(key: bytes, choices: ChoicesT) -> bytes:
+    return (
+        key
+        + corpus_key
+        + b"."
+        + hashlib.sha1(choices_to_bytes(choices)).digest()
+        + b".observation"
+    )
+
+
+@lru_cache(maxsize=512)
+def failure_representation_key(key: bytes, choices: ChoicesT) -> bytes:
+    return (
+        key
+        + failures_key
+        + b"."
+        + hashlib.sha1(choices_to_bytes(choices)).digest()
+        + b".representation"
+    )
 
 
 class HypofuzzDatabase:
     def __init__(self, db: ExampleDatabase) -> None:
         self._db = db
-        # track a per-test observability queue
-        self._obs_queues: dict[bytes, deque[bytes]] = defaultdict(deque)
+        # track a per-test observability buffer, so we can discard when we go over
+        self._obs_buffers: dict[bytes, deque[Observation]] = defaultdict(deque)
 
     def __str__(self) -> str:
         return f"HypofuzzDatabase({self._db!r})"
@@ -151,14 +220,18 @@ class HypofuzzDatabase:
     def _encode(self, data: Any) -> bytes:
         return bytes(json.dumps(data, cls=HypofuzzEncoder), "ascii")
 
+    # standard (no key)
+
     def save(self, key: bytes, value: bytes) -> None:
         self._db.save(key, value)
 
     def fetch(self, key: bytes) -> Iterable[bytes]:
-        return self._db.fetch(key)
+        yield from self._db.fetch(key)
 
     def delete(self, key: bytes, value: bytes) -> None:
         self._db.delete(key, value)
+
+    # reports (reports_key)
 
     def save_report(self, key: bytes, report: Report) -> None:
         self.save(key + reports_key, self._encode(report))
@@ -168,79 +241,136 @@ class HypofuzzDatabase:
 
     def fetch_reports(self, key: bytes) -> list[Report]:
         reports = [
-            Report.from_dict(json.loads(v)) for v in self.fetch(key + reports_key)
+            Report.from_json(json.loads(v)) for v in self.fetch(key + reports_key)
         ]
         return [r for r in reports if r is not None]
 
-    def fetch_metadata(self, key: bytes) -> list[Metadata]:
-        metadata = [
-            Metadata.from_dict(json.loads(v)) for v in self.fetch(key + metadata_key)
-        ]
-        return [m for m in metadata if m is not None]
-
-    def replace_metadata(self, key: bytes, metadata: Metadata) -> None:
-        # save and then delete to avoid intermediary state where no metadata is
-        # in the db. > 1 metadata is better than 0
-        old_metadatas = list(self.fetch_metadata(key))
-
-        self.save(key + metadata_key, self._encode(metadata))
-        for old_metadata in old_metadatas:
-            if old_metadata == metadata:
-                # don't remove something equal to the thing we just saved. This
-                # would cause us to reset to zero entries.
-                continue
-            self.delete(key + metadata_key, self._encode(old_metadata))
+    # observations (observe_key)
 
     def save_observation(
-        self, key: bytes, observation: dict, *, discard_over: int
+        self, key: bytes, observation: Observation, *, discard_over: int
     ) -> None:
-        obs_queue = self._obs_queues[key]
-        if not obs_queue:
-            # If we don't have anything at all, load from the database
-            seen = []
-            for as_bytes in self._db.fetch(key + observe_key):
-                try:
-                    start = json.loads(as_bytes)["run_start"]
-                except Exception:
-                    continue
-                seen.append((start, as_bytes))
-            obs_queue.extend([v for _, v in sorted(seen)])
+        obs_buffer = self._obs_buffers[key]
+        if not obs_buffer:
+            # If we don't have anything at all, load from the database - earliest
+            # first so we drop those first
+            obs_buffer.extend(
+                sorted(
+                    list(self.fetch_observations(key)),
+                    key=lambda x: x.run_start,
+                )
+            )
 
-        encoded = self._encode(observation)
-        obs_queue.append(encoded)
-        self.save(key + observe_key, encoded)
+        obs_buffer.append(observation)
+        self.save(key + observations_key, self._encode(observation))
 
         # If we have more elements in the buffer than we need, clear them out.
-        while len(obs_queue) > discard_over:
-            self.delete(key + observe_key, obs_queue.popleft())
+        while len(obs_buffer) > discard_over:
+            self.delete_observation(key, obs_buffer.popleft())
 
-    def fetch_observations(self, key: bytes) -> Iterable[dict]:
-        for as_bytes in self.fetch(key + observe_key):
-            with suppress(Exception):
-                value = json.loads(as_bytes)
-            yield value
+    def delete_observation(self, key: bytes, observation: Observation) -> None:
+        self.delete(key + observations_key, self._encode(observation))
 
-    def fetch_covering_observations(self, key: bytes) -> Iterable[dict]:
-        covering_examples = set(self.fetch(key))
-        for as_bytes in covering_examples:
-            for x in self.fetch(cov_obs_key(key, as_bytes)):
-                with suppress(Exception):
-                    value = json.loads(x)
-                yield value
+    def fetch_observations(self, key: bytes) -> Iterable[Observation]:
+        for as_bytes in self.fetch(key + observations_key):
+            if (observation := Observation.from_json(json.loads(as_bytes))) is not None:
+                yield observation
 
+    # corpus (corpus_key)
 
-# cache to make the db a singleton. We defer creation until first-usage to ensure
-# that we use the test-time database setting, rather than init-time.
-@cache
-def get_db() -> HypofuzzDatabase:
-    db = settings().database
-    if isinstance(db, BackgroundWriteDatabase):
-        return HypofuzzDatabase(db)
-    return HypofuzzDatabase(BackgroundWriteDatabase(db))
+    def save_corpus(self, key: bytes, choices: ChoicesT) -> None:
+        self.save(key + corpus_key, choices_to_bytes(choices))
+
+    def delete_corpus(self, key: bytes, choices: ChoicesT) -> None:
+        self.delete(key + corpus_key, choices_to_bytes(choices))
+
+    def fetch_corpus(self, key: bytes) -> Iterable[ChoicesT]:
+        for value in self.fetch(key + corpus_key):
+            if (choices := choices_from_bytes(value)) is not None:
+                yield choices
+
+    # corpus observations (corpus_observe_key)
+
+    def save_corpus_observation(
+        self, key: bytes, choices: ChoicesT, observation: Observation
+    ) -> None:
+        self.save(corpus_observation_key(key, choices), self._encode(observation))
+
+    def delete_corpus_observation(
+        self, key: bytes, choices: ChoicesT, observation: Observation
+    ) -> None:
+        self.delete(corpus_observation_key(key, choices), self._encode(observation))
+
+    def fetch_corpus_observation(
+        self,
+        key: bytes,
+        choices: ChoicesT,
+    ) -> Optional[Observation]:
+        # We expect there to be only a single entry. If there are multiple, we
+        # arbitrarily pick one to return.
+        observations = iter(self.fetch(corpus_observation_key(key, choices)))
+        try:
+            value = next(observations)
+        except StopIteration:
+            return None
+        return Observation.from_json(json.loads(value))
+
+    def fetch_corpus_observations(
+        self,
+        key: bytes,
+        choices: ChoicesT,
+    ) -> Iterable[Observation]:
+        for value in self.fetch(corpus_observation_key(key, choices)):
+            if (observation := Observation.from_json(json.loads(value))) is not None:
+                yield observation
+
+    # failures (failures_key)
+
+    def save_failure(self, key: bytes, choices: ChoicesT) -> None:
+        self.save(key + failures_key, choices_to_bytes(choices))
+
+    def delete_failure(self, key: bytes, choices: ChoicesT) -> None:
+        self.delete(key + failures_key, choices_to_bytes(choices))
+
+    def fetch_failures(self, key: bytes) -> Iterable[ChoicesT]:
+        for value in self.fetch(key + failures_key):
+            if (choices := choices_from_bytes(value)) is not None:
+                yield choices
+
+    # failure representation (failure_representation_key)
+
+    def save_failure_representation(
+        self, key: bytes, choices: ChoicesT, representation: FailureRepresentation
+    ) -> None:
+        self.save(
+            failure_representation_key(key, choices), self._encode(representation)
+        )
+
+    def delete_failure_representation(
+        self, key: bytes, choices: ChoicesT, representation: FailureRepresentation
+    ) -> None:
+        self.delete(
+            failure_representation_key(key, choices), self._encode(representation)
+        )
+
+    def fetch_failure_representation(
+        self, key: bytes, choices: ChoicesT
+    ) -> Optional[FailureRepresentation]:
+        value = next(iter(self.fetch(failure_representation_key(key, choices))))
+        return FailureRepresentation.from_json(json.loads(value))
+
+    def fetch_failure_representations(
+        self, key: bytes, choices: ChoicesT
+    ) -> Iterable[FailureRepresentation]:
+        for value in self.fetch(failure_representation_key(key, choices)):
+            if (
+                representation := FailureRepresentation.from_json(json.loads(value))
+            ) is not None:
+                yield representation
 
 
 @dataclass
-class Offsets:
+class ReportOffsets:
     status_counts: dict[str, StatusCounts]
     elapsed_time: dict[str, float]
 
@@ -248,7 +378,7 @@ class Offsets:
 @dataclass
 class LinearReports:
     reports: list[Report]
-    offsets: Offsets
+    offsets: ReportOffsets
 
 
 def linearize_reports(reports: list[Report]) -> LinearReports:
@@ -309,7 +439,7 @@ def linearize_reports(reports: list[Report]) -> LinearReports:
         # TODO we should probably NOT count inputs or elapsed time from
         # Phase.REPLAY, because this is not time we spent looking for bugs?
         # Be careful when factoring this into e.g. "cost per bug", though - it's
-        # still cpu time you're paying for.
+        # still cpu time being paid for.
         total_statuses += statuses_diff
         total_elapsed_time += elapsed_time_diff
         offsets_statuses[report.worker.uuid] = report.status_counts
@@ -317,8 +447,8 @@ def linearize_reports(reports: list[Report]) -> LinearReports:
 
     return LinearReports(
         reports=linearized_reports,
-        offsets=Offsets(
-            status_counts=offsets_statuses,
-            elapsed_time=offsets_elapsed_time,
+        offsets=ReportOffsets(
+            status_counts=dict(offsets_statuses),
+            elapsed_time=dict(offsets_elapsed_time),
         ),
     )

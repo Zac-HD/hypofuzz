@@ -5,7 +5,7 @@ import { fetchData } from "../utils/api"
 
 interface CollectionResult {
   database_key: string
-  node_id: string
+  nodeid: string
   status: string
   status_reason?: string
 }
@@ -46,14 +46,14 @@ export function CollectionStatusPage() {
     result => [
       statusOrder[result.status as keyof typeof statusOrder],
       result.status_reason,
-      result.node_id,
+      result.nodeid,
     ],
   )
 
   const headers = [
     {
       content: "Test",
-      sortKey: (item: CollectionResult) => item.node_id,
+      sortKey: (item: CollectionResult) => item.nodeid,
     },
     {
       content: "Status",
@@ -71,13 +71,13 @@ export function CollectionStatusPage() {
         {/* don't link to a nonexistent page */}
         {item.status == "collected" ? (
           <Link
-            to={`/tests/${encodeURIComponent(item.node_id)}`}
+            to={`/tests/${encodeURIComponent(item.nodeid)}`}
             className="test__link"
           >
-            {item.node_id}
+            {item.nodeid}
           </Link>
         ) : (
-          item.node_id
+          item.nodeid
         )}
       </div>
     )
@@ -105,7 +105,7 @@ export function CollectionStatusPage() {
         row={row}
         getKey={item => item.database_key}
         filterStrings={item => [
-          item.node_id,
+          item.nodeid,
           item.status === "collected"
             ? "Collected"
             : `Not collected (${item.status_reason})`,

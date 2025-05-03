@@ -23,9 +23,10 @@ from hypothesis import HealthCheck, settings
 from hypothesis.core import (
     StateForActualGivenExecution,
     Stuff,
+    encode_failure,
     process_arguments_to_given,
 )
-from hypothesis.database import ExampleDatabase
+from hypothesis.database import ExampleDatabase, choices_to_bytes
 from hypothesis.errors import StopTest
 from hypothesis.internal.conjecture.choice import ChoiceT, ChoiceTemplate
 from hypothesis.internal.conjecture.data import (
@@ -43,24 +44,33 @@ from sortedcontainers import SortedKeyList
 import hypofuzz
 from hypofuzz.corpus import (
     BlackBoxMutator,
+    Corpus,
     CrossOverMutator,
-    Pool,
     get_shrinker,
 )
 from hypofuzz.coverage import CoverageCollector
 from hypofuzz.database import (
-    Metadata,
+    ChoicesT,
+    FailureRepresentation,
+    HypofuzzDatabase,
+    Observation,
     Phase,
     Report,
     StatusCounts,
     WorkerIdentity,
-    get_db,
 )
 from hypofuzz.provider import HypofuzzProvider
 
 T = TypeVar("T")
 
 process_uuid = uuid4().hex
+
+
+def reproduction_decorator(choices: ChoicesT) -> str:
+    """Return `@reproduce_failure` decorator for the given choices."""
+    return (
+        f"@reproduce_failure({hypothesis.__version__!r}, {encode_failure(choices)!r})"
+    )
 
 
 # hypothesis.utils.dynamicvaraible, but without the with_value context manager.
@@ -150,7 +160,9 @@ class FuzzProcess:
         self._stuff = stuff
         self.nodeid = nodeid or test_fn.__qualname__
         self.database_key = database_key
-
+        self.database_key_str = b64encode(self.database_key).decode()
+        self.db = HypofuzzDatabase(hypothesis_database)
+        self.hypothesis_db = hypothesis_database
         self.state = HypofuzzStateForActualGivenExecution(  # type: ignore
             stuff,
             self._test_fn,
@@ -161,12 +173,12 @@ class FuzzProcess:
             wrapped_test,
         )
 
-        # The seed pool is responsible for managing all seed state, including saving
+        # The corpus is responsible for managing all seed state, including saving
         # novel seeds to the database.  This includes tracking how often each branch
         # has been hit, minimal covering examples, and so on.
-        self.pool = Pool(hypothesis_database, database_key)
-        self._mutator_blackbox = BlackBoxMutator(self.pool, self.random)
-        self._mutator_crossover = CrossOverMutator(self.pool, self.random)
+        self.corpus = Corpus(self.hypothesis_db, database_key)
+        self._mutator_blackbox = BlackBoxMutator(self.corpus, self.random)
+        self._mutator_crossover = CrossOverMutator(self.corpus, self.random)
 
         # Set up the basic data that we'll track while fuzzing
         self.ninputs = 0
@@ -183,18 +195,17 @@ class FuzzProcess:
         self._last_report: Report | None = None
 
         # Track observability data
-        self._observations_key = database_key + b".observations"
         self._last_observed = 0.0
 
     def startup(self) -> None:
         """Set up initial state and prepare to replay the saved behaviour."""
         # Report that we've started this fuzz target
-        get_db().save(b"hypofuzz-test-keys", self.database_key)
+        self.db.save(b"hypofuzz-test-keys", self.database_key)
         # Next, restore progress made in previous runs by loading our saved examples.
         # This is meant to be the minimal set of inputs that exhibits all distinct
         # behaviours we've observed to date.  Replaying takes longer than restoring
         # our data structures directly, but copes much better with changed behaviour.
-        self._replay_queue.extend(self.pool.fetch())
+        self._replay_queue.extend(self.corpus.fetch())
         self._replay_queue.append((ChoiceTemplate(type="simplest", count=None),))
 
     def _start_phase(self, phase: Phase) -> None:
@@ -203,7 +214,6 @@ class FuzzProcess:
         if self.phase is not None:
             # don't save a report the very first time we start a phase
             self._save_report(self._report)
-            self._replace_metadata(self._metadata)
         self.phase = phase
 
     def generate_data(self) -> ConjectureData:
@@ -251,10 +261,9 @@ class FuzzProcess:
         # know of other concurrent runs, there may be e.g. a test process sharing the
         # database.  We do make it infrequent to manage the overhead though.
         if self.ninputs % 1000 == 0 and self.since_new_cov > 1000:
-            self._replay_queue.extend(self.pool.fetch())
+            self._replay_queue.extend(self.corpus.fetch())
 
-        # seen_count = len(self.pool.arc_counts)
-        # Run the input
+        # seen_count = len(self.corpus.branch_counts)
         result = self._run_test_on(self.generate_data())
 
         if result.status is Status.INTERESTING:
@@ -262,7 +271,8 @@ class FuzzProcess:
             # Shrink to our minimal failing example, since we'll stop after this.
             self._start_phase(Phase.SHRINK)
             shrinker = get_shrinker(
-                self.pool,
+                self.hypothesis_db,
+                self.database_key,
                 self._run_test_on,  # type: ignore
                 initial=result,
                 predicate=lambda d: d.status is Status.INTERESTING,
@@ -273,8 +283,27 @@ class FuzzProcess:
             with contextlib.suppress(HitShrinkTimeoutError, RunIsComplete):
                 shrinker.shrink()
             self._start_phase(Phase.FAILED)
+            # now that the test has failed and we've fully shrunk it, add its
+            # choices under the default hypothesis key so hypothesis will
+            # reproduce it.
+            self.db.save(self.database_key, choices_to_bytes(result.choices))
             self._save_report(self._report)
-            self._replace_metadata(self._metadata)
+            self.db.save_failure(self.database_key, shrinker.choices)
+
+            assert shrinker.shrink_target.expected_traceback
+            representation = FailureRepresentation(
+                traceback=shrinker.shrink_target.expected_traceback,
+                call_repr=getattr(
+                    shrinker.shrink_target.extra_information,
+                    "string_repr",
+                    "<unknown>",
+                ),
+                # TODO also store `result.extra_information.reports`?
+                reproduction_decorator=reproduction_decorator(shrinker.choices),
+            )
+            self.db.save_failure_representation(
+                self.database_key, shrinker.choices, representation
+            )
 
         # Consider switching out of blackbox mode.
         if self.since_new_cov >= 1000 and not self._replay_queue:
@@ -282,9 +311,9 @@ class FuzzProcess:
 
         # NOTE: this distillation logic works fine, it's just discovering new coverage
         # much more slowly than jumping directly to mutational mode.
-        # if len(self.pool.arc_counts) > seen_count and not self._early_blackbox_mode:
+        # if len(self.corpus.branch_counts) > seen_count and not self._early_blackbox_mode:
         #     self._start_phase(Phase.DISTILL)
-        #     self.pool.distill(self._run_test_on, self.random)
+        #     self.corpus.distill(self._run_test_on, self.random)
 
     def _run_test_on(
         self,
@@ -331,17 +360,16 @@ class FuzzProcess:
         )
 
         data.freeze()
-        # Update the pool and report any changes immediately for new coverage.  If no
+        # Update the corpus and report any changes immediately for new coverage.  If no
         # new coverage, occasionally send an update anyway so we don't look stalled.
         self.status_counts[data.status] += 1
         assert observation.value is not None
-        if self.pool.add(data.as_result(), observation=observation.value):
+        if self.corpus.add(data.as_result(), observation=observation.value):
             self.since_new_cov = 0
         else:
             self.since_new_cov += 1
         if 0 in (self.since_new_cov, self.ninputs % 100):
             self._save_report(self._report)
-            self._replace_metadata(self._metadata)
 
         self.elapsed_time += time.perf_counter() - start
         if self.elapsed_time > self.stop_shrinking_at:
@@ -351,7 +379,9 @@ class FuzzProcess:
         return data.as_result()
 
     @contextlib.contextmanager
-    def _maybe_observe_for_tyche(self) -> Generator[Value[Optional[dict]], None, None]:
+    def _maybe_observe_for_tyche(
+        self,
+    ) -> Generator[Value[Optional[Observation]], None, None]:
         # We're aiming for a rolling buffer of the last 300 observations, downsampling
         # to one per second if we're executing more than one test case per second.
         # Decide here, so that runtime doesn't bias our choice of what to observe.
@@ -360,13 +390,20 @@ class FuzzProcess:
         )
         # we want to refer to and set this value inside and outside of the context
         # manager. Use a wrapping Value class as a reference-forwarder.
-        observation: Value[Optional[dict]] = Value(None)
+        observation: Value[Optional[Observation]] = Value(None)
 
         def callback(test_case: dict) -> None:
             if test_case["type"] != "test_case":
                 return
+
+            # we should only get one observation per ConjectureData
             assert observation.value is None
-            observation.value = test_case
+
+            value = Observation.from_json(test_case)
+            # we're getting this straight from hypothesis, so parsing shouldn't
+            # fail
+            assert value is not None
+            observation.value = value
 
         TESTCASE_CALLBACKS.append(callback)
         try:
@@ -375,39 +412,33 @@ class FuzzProcess:
             TESTCASE_CALLBACKS.pop()
         if will_save:
             assert observation.value is not None
-            get_db().save_observation(
-                self._observations_key, observation.value, discard_over=300
+            self.db.save_observation(
+                self.database_key, observation.value, discard_over=300
             )
 
     def _save_report(self, report: Report) -> None:
-        db = get_db()
-        db.save_report(self.database_key, report)
+        self.db.save_report(self.database_key, report)
 
-        # Having written the latest report, we can avoid bloating the database
-        # by dropping the previous report if it differs from the latest in more
-        # than just runtime.
+        # Having written the latest report, we can keep the database small
+        # by dropping the previous report unless it differs from the latest in
+        # an important way.
         if self._last_report and not (
             self._last_report.branches != report.branches
             or self._last_report.phase != report.phase
-            or self.pool.interesting_examples
+            or self.corpus.interesting_examples
             # always keep reports which discovered new coverage
             or self._last_report.since_new_cov == 0
         ):
-            db.delete_report(self.database_key, self._last_report)
+            self.db.delete_report(self.database_key, self._last_report)
 
         self._last_report = report
 
-    def _replace_metadata(self, metadata: Metadata) -> None:
-        db = get_db()
-        db.replace_metadata(self.database_key, metadata)
-
     @property
     def _report(self) -> Report:
-        """Summarise current state to send to dashboard."""
         assert sum(self.status_counts.values()) == self.ninputs
         assert self.phase is not None
         return Report(
-            database_key=b64encode(self.database_key).decode(),
+            database_key=self.database_key_str,
             nodeid=self.nodeid,
             elapsed_time=self.elapsed_time,
             timestamp=time.time(),
@@ -415,27 +446,19 @@ class FuzzProcess:
                 in_directory=Path(inspect.getfile(self._test_fn)).parent
             ),
             status_counts=StatusCounts(self.status_counts),
-            branches=len(self.pool.branch_counts),
+            branches=len(self.corpus.branch_counts),
             since_new_cov=(
                 None
-                if (self.ninputs == 0 or self.pool.interesting_examples)
+                if (self.ninputs == 0 or self.corpus.interesting_examples)
                 else self.since_new_cov
             ),
             phase=self.phase,
         )
 
     @property
-    def _metadata(self) -> Metadata:
-        return Metadata(
-            nodeid=self.nodeid,
-            seed_pool=self.pool.json_report,
-            failures=[ls for _, ls in self.pool.interesting_examples.values()],
-        )
-
-    @property
     def has_found_failure(self) -> bool:
         """If we've already found a failing example we might reprioritize."""
-        return bool(self.pool.interesting_examples)
+        return bool(self.corpus.interesting_examples)
 
 
 def fuzz_several(*targets_: FuzzProcess, random_seed: Optional[int] = None) -> None:

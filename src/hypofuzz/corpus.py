@@ -2,16 +2,20 @@
 
 import abc
 import enum
-import json
 from collections import Counter
 from collections.abc import Callable, Iterable, Iterator
 from random import Random
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Optional, TypeAlias, Union
 
-from hypothesis import __version__ as hypothesis_version, settings
-from hypothesis.core import encode_failure
-from hypothesis.database import ExampleDatabase, choices_from_bytes, choices_to_bytes
-from hypothesis.internal.conjecture.choice import ChoiceNode, ChoiceT, choices_key
+from hypothesis import settings
+from hypothesis.database import (
+    ExampleDatabase,
+)
+from hypothesis.internal.conjecture.choice import (
+    ChoiceNode,
+    ChoiceT,
+    choices_key,
+)
 from hypothesis.internal.conjecture.data import (
     ConjectureData,
     ConjectureResult,
@@ -22,12 +26,12 @@ from hypothesis.internal.conjecture.engine import ConjectureRunner
 from hypothesis.internal.conjecture.shrinker import Shrinker, sort_key as _sort_key
 from hypothesis.internal.escalation import InterestingOrigin
 from sortedcontainers import SortedDict
-from hypofuzz.database import cov_obs_key
+
+from hypofuzz.database import ChoicesT, HypofuzzDatabase, Observation
 
 if TYPE_CHECKING:
     from typing import TypeAlias
 
-ChoicesT: "TypeAlias" = tuple[ChoiceT, ...]
 NodesT: "TypeAlias" = tuple[ChoiceNode, ...]
 # (start, end) where start = end = (filename, line, column)
 Branch: "TypeAlias" = tuple[tuple[str, int, int], tuple[str, int, int]]
@@ -83,13 +87,9 @@ def sort_key(nodes: Union[NodesT, ConjectureResult]) -> tuple[int, tuple[int, ..
     return _sort_key(nodes)
 
 
-def reproduction_decorator(choices: ChoicesT) -> str:
-    """Return `@reproduce_failure` decorator for the given choices."""
-    return f"@reproduce_failure({hypothesis_version!r}, {encode_failure(choices)!r})"
-
-
 def get_shrinker(
-    pool: "Pool",
+    database: ExampleDatabase,
+    database_key: bytes,
     fn: Callable[[ConjectureData], None],
     *,
     initial: Union[ConjectureData, ConjectureResult],
@@ -97,9 +97,13 @@ def get_shrinker(
     random: Random,
     explain: bool = False,
 ) -> Shrinker:
-    s = settings(database=pool._database, deadline=None)
     return Shrinker(
-        ConjectureRunner(fn, random=random, database_key=pool._key, settings=s),
+        ConjectureRunner(
+            fn,
+            random=random,
+            database_key=database_key,
+            settings=settings(database=database, deadline=None),
+        ),
         initial=initial,
         predicate=predicate,
         allow_transition=None,
@@ -107,22 +111,25 @@ def get_shrinker(
     )
 
 
-class Pool:
-    """Manage the seed pool for a fuzz target.
+class Corpus:
+    """Manage the corpus for a fuzz target.
 
     The class tracks the minimal valid example which covers each known branch.
     """
 
-    def __init__(self, database: ExampleDatabase, key: bytes) -> None:
-        # The database and our database key are the stable identifiers for a corpus.
+    def __init__(
+        self, hypothesis_database: ExampleDatabase, database_key: bytes
+    ) -> None:
+        # The database and our database key is the stable identifiers for a corpus.
         # Everything else is reconstructed each run, and tracked only in memory.
-        self._database = database
-        self._key = key
+        self._database_key = database_key
+        self._db = HypofuzzDatabase(hypothesis_database)
+        self._hypothesis_db = hypothesis_database
 
-        # Our sorted pool of covering examples, ready to be sampled from.
-        # TODO: One suggestion to reduce effective pool size/redundancy is to skip
+        # Our sorted corpus of covering examples, ready to be sampled from.
+        # TODO: One suggestion to reduce effective corpus size/redundancy is to skip
         #       over earlier inputs whose coverage is a subset of later inputs.
-        self.results: dict[NodesT, ConjectureResult] = SortedDict(sort_key)
+        self.results: SortedDict[NodesT, ConjectureResult] = SortedDict(sort_key)
 
         # For each branch, what's the minimal covering example?
         self.covering_nodes: dict[Branch, NodesT] = {}
@@ -130,19 +137,14 @@ class Pool:
         self.branch_counts: Counter[Branch] = Counter()
 
         # And various internal attributes and metadata
-        self.interesting_examples: dict[
-            InterestingOrigin, tuple[ConjectureResult, list[str]]
-        ] = {}
+        self.interesting_examples: dict[InterestingOrigin, ConjectureResult] = {}
         self._loaded_from_database: set[Choices] = set()
         self.__shrunk_to_nodes: set[NodesT] = set()
-
-        # To show the current state of the pool in the dashboard
-        self.json_report: list[list[str]] = []
 
     def __repr__(self) -> str:
         rs = {b: r.extra_information.branches for b, r in self.results.items()}  # type: ignore
         return (
-            f"<Pool\n    results={rs}\n    branch_counts={self.branch_counts}\n    "
+            f"<Corpus\n    results={rs}\n    branch_counts={self.branch_counts}\n    "
             f"covering_nodes={self.covering_nodes}\n>"
         )
 
@@ -163,9 +165,6 @@ class Pool:
         assert seen == set(self.covering_nodes), seen.symmetric_difference(
             self.covering_nodes
         )
-        assert seen == set(self.covering_nodes), seen.symmetric_difference(
-            self.branch_counts
-        )
 
         # Every covering choice was either read from the database, or saved to it.
         covering_choices = {
@@ -174,15 +173,11 @@ class Pool:
         }
         assert self._loaded_from_database.issuperset(covering_choices)
 
-    @property
-    def _fuzz_key(self) -> bytes:
-        return self._key + b".fuzz"
-
     def add(
         self,
         result: Union[ConjectureResult, _Overrun],
         *,
-        observation: Optional[dict] = None,
+        observation: Optional[Observation] = None,
     ) -> Optional[bool]:
         """Update the corpus with the result of running a test.
 
@@ -191,31 +186,20 @@ class Pool:
         if result.status < Status.VALID:
             return None
         assert isinstance(result, ConjectureResult)
-
         assert result.extra_information is not None
+
         # We now know that we have a ConjectureResult representing a valid test
         # execution, either passing or possibly failing.
         branches = result.extra_information.branches  # type: ignore
         nodes = result.nodes
 
-        # If the example is "interesting", i.e. the test failed, add the choices to
-        # the database under Hypothesis' default key so it will be reproduced.
         if result.status == Status.INTERESTING:
             origin = result.interesting_origin
             assert origin is not None
             if origin not in self.interesting_examples or (
-                sort_key(result) < sort_key(self.interesting_examples[origin][0])
+                sort_key(result) < sort_key(self.interesting_examples[origin])
             ):
-                self._database.save(self._key, choices_to_bytes(result.choices))
-                self.interesting_examples[origin] = (
-                    result,
-                    [
-                        getattr(result.extra_information, "string_repr", "<unknown>"),
-                        result.extra_information.reports,  # type: ignore
-                        reproduction_decorator(result.choices),
-                        result.expected_traceback,  # type: ignore
-                    ],
-                )
+                self.interesting_examples[origin] = result
                 return True
 
         # If we haven't just discovered new branches and our example is larger than the
@@ -233,16 +217,18 @@ class Pool:
             # We do this the stupid-but-obviously-correct way: add the new choices to
             # our tracked corpus, and then run a distillation step.
             self.results[result.nodes] = result
-            as_bytes = choices_to_bytes(result.choices)
-            self._database.save(self._fuzz_key, choices_to_bytes(result.choices))
+            self._db.save_corpus(self._database_key, result.choices)
             if observation is not None:
-                assert isinstance(observation, dict)
-                obs_key = cov_obs_key(self._fuzz_key, as_bytes)
-                encoded = json.dumps(observation).encode()
-                self._database.save(obs_key, encoded)
-                for value in self._database.fetch(obs_key):
-                    if value != encoded:
-                        self._database.delete(obs_key, value)
+                self._db.save_corpus_observation(
+                    self._database_key, result.choices, observation
+                )
+                for existing in self._db.fetch_corpus_observations(
+                    self._database_key, result.choices
+                ):
+                    if existing != observation:
+                        self._db.delete_corpus_observation(
+                            self._database_key, result.choices, existing
+                        )
 
             self._loaded_from_database.add(Choices(result.choices))
             # Clear out any redundant entries
@@ -250,48 +236,50 @@ class Pool:
             self.covering_nodes = {}
             for res in list(self.results.values()):
                 assert res.extra_information is not None
-                covers = res.extra_information.branches - seen_branches  # type: ignore
+                # branches which are new in res compared to all smaller results
+                new_branches = res.extra_information.branches - seen_branches  # type: ignore
                 seen_branches.update(res.extra_information.branches)  # type: ignore
-                if not covers:
-                    del self.results[res.nodes]
-                    as_bytes = choices_to_bytes(res.choices)
-                    self._database.delete(self._fuzz_key, as_bytes)
-                    # also clear out any observations
-                    obs_key = cov_obs_key(self._fuzz_key, as_bytes)
-                    for value in list(self._database.fetch(obs_key)):
-                        self._database.delete(obs_key, value)
+                if new_branches:
+                    for arc in new_branches:
+                        self.covering_nodes[arc] = res.nodes
                 else:
-                    for branch in covers:
-                        self.covering_nodes[branch] = res.nodes
+                    # The branches in result are a strict superset of the branches
+                    # in res (can't be equal because we're only executing this if
+                    # we found new coverage in result). Delete res in favor of
+                    # result.
+                    del self.results[res.nodes]
+                    self._db.delete_corpus(self._database_key, res.choices)
+                    # also clear out any observations
+                    for observation in list(
+                        self._db.fetch_corpus_observations(
+                            self._database_key, res.choices
+                        )
+                    ):
+                        self._db.delete_corpus_observation(
+                            self._database_key, res.choices, observation
+                        )
+
             # We add newly-discovered branches to the counter later; so here our only
             # unseen branches should be the newly discovered branches.
             assert seen_branches - set(self.branch_counts) == branches - set(
                 self.branch_counts
             )
-            self.json_report = [
-                [
-                    reproduction_decorator(res.choices),
-                    getattr(res.extra_information, "string_repr", "<unknown>"),
-                    res.extra_information.reports,  # type: ignore
-                ]
-                for res in self.results.values()
-            ]
 
         # Either update the branch counts so we can prioritize rarer branches in future,
         # or save an example with new coverage and reset the counter because we'll
-        # have a different distribution with a new seed pool.
+        # have a different distribution with a new corpus.
         if branches.issubset(self.branch_counts):
             self.branch_counts.update(branches)
         else:
             # Reset our seen branch counts.  This is essential because changing our
-            # seed pool alters the probability of seeing each branch in future.
+            # corpus alters the probability of seeing each branch in future.
             # For details see AFL-fast, esp. the markov-chain trick.
             self.branch_counts = Counter(branches.union(self.branch_counts))
 
             # Save this choices as our minimal-known covering example for each new branch.
             if result.nodes not in self.results:
                 self.results[result.nodes] = result
-            self._database.save(self._fuzz_key, choices_to_bytes(result.choices))
+            self._db.save_corpus(self._database_key, result.choices)
             for branch in branches - set(self.covering_nodes):
                 self.covering_nodes[branch] = nodes
 
@@ -302,11 +290,9 @@ class Pool:
 
         return False
 
-    def _choices_for_key(self, key: bytes) -> set[Choices]:
+    def _choices(self) -> set[Choices]:
         return {
-            Choices(choices)
-            for b in self._database.fetch(key)
-            if (choices := choices_from_bytes(b)) is not None
+            Choices(choices) for choices in self._db.fetch_corpus(self._database_key)
         }
 
     def fetch(self) -> Iterable[ChoicesT]:
@@ -325,7 +311,7 @@ class Pool:
         #       too large; should only include interesting files + skip branchless
         #       lines of code to keep the size manageable.
         saved = sorted(
-            self._choices_for_key(self._key) - self._loaded_from_database,
+            self._choices() - self._loaded_from_database,
             key=len,
             reverse=True,
         )
@@ -334,7 +320,7 @@ class Pool:
             if saved:
                 yield saved.pop(idx).choices
         seeds = sorted(
-            self._choices_for_key(self._key + b".fuzz") - self._loaded_from_database,
+            self._choices() - self._loaded_from_database,
             key=len,
             reverse=True,
         )
@@ -344,7 +330,7 @@ class Pool:
         self._check_invariants()
 
     def distill(self, fn: Callable[[ConjectureData], None], random: Random) -> None:
-        """Shrink to a pool of *minimal* covering examples.
+        """Shrink to a corpus of *minimal* covering examples.
 
         We have a couple of unusual structures here.
 
@@ -372,7 +358,8 @@ class Pool:
                 key=lambda b: sort_key(self.covering_nodes[b]),
             )
             shrinker = get_shrinker(
-                self,
+                self._hypothesis_db,
+                self._database_key,
                 fn,
                 initial=self.results[self.covering_nodes[branch_to_shrink]],
                 predicate=lambda d, b=branch_to_shrink: b
@@ -390,13 +377,16 @@ class Pool:
 
 
 class Mutator(abc.ABC):
-    def __init__(self, pool: Pool, random: Random) -> None:
-        self.pool = pool
+    def __init__(self, corpus: Corpus, random: Random) -> None:
+        self.corpus = corpus
         self.random = random
 
     @abc.abstractmethod
     def generate_choices(self) -> ChoicesT:
-        """Generate a choice sequence, usually by choosing and mutating examples from pool."""
+        """
+        Generate a choice sequence, usually by choosing and mutating examples from
+        the corpus.
+        """
         raise NotImplementedError
 
 
@@ -416,8 +406,8 @@ class CrossOverMutator(Mutator):
         # This is related to the AFL-fast trick, but doesn't track the transition
         # probabilities - just node densities in the markov chain.
         weights = [
-            1 / min(self.pool.branch_counts[branch] for branch in res.extra_information.branches)  # type: ignore
-            for res in self.pool.results.values()
+            1 / min(self.corpus.branch_counts[branch] for branch in res.extra_information.branches)  # type: ignore
+            for res in self.corpus.results.values()
         ]
         total = sum(weights)
         return [x / total for x in weights]
@@ -428,13 +418,13 @@ class CrossOverMutator(Mutator):
         This is a pretty poor mutator, and not structure-aware, but works better than
         the blackbox one already.
         """
-        if not self.pool.results:
+        if not self.corpus.results:
             return ()
         # Choose two previously-seen choice sequences to form a prefix and postfix,
         # plus some random bytes in the middle to pad it out a bit.
         # TODO: exploit the .examples tracking for structured mutation.
         choices = self.random.choices(
-            list(self.pool.results.values()), weights=self._get_weights(), k=2
+            list(self.corpus.results.values()), weights=self._get_weights(), k=2
         )
         prefix = choices[0].choices
         suffix = choices[1].choices
