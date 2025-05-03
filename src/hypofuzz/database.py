@@ -6,7 +6,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass, is_dataclass
 from enum import Enum
 from functools import lru_cache
-from typing import Any, Literal, Optional, TypeAlias
+from typing import TYPE_CHECKING, Any, Literal, Optional
 
 from hypothesis.database import (
     ExampleDatabase,
@@ -16,6 +16,9 @@ from hypothesis.database import (
 from hypothesis.internal.conjecture.choice import ChoiceT
 from hypothesis.internal.conjecture.data import Status
 from sortedcontainers import SortedList
+
+if TYPE_CHECKING:
+    from typing import TypeAlias
 
 ChoicesT: "TypeAlias" = tuple[ChoiceT, ...]
 
