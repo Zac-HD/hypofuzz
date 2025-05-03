@@ -3,10 +3,9 @@
 import os
 import sys
 import types
-from dataclasses import dataclass
 from functools import cache
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any, NamedTuple, Optional
 
 import _pytest
 import attr
@@ -31,13 +30,12 @@ _BRANCH_CACHE: dict[
 ] = {}
 
 
-@dataclass(frozen=True, repr=False)
-class Branch:
+# NamedTuple is ~2x faster to instantiate and uses ~3% less memory than a slotted
+# dataclass. We're storing a *lot* of branches, so this is worthwhile.
+class Branch(NamedTuple):
     # filename, line, column
     start: LocationT
     end: LocationT
-
-    __slots__ = ("end", "start")
 
     @staticmethod
     def make(start: LocationT, end: LocationT) -> "Branch":
