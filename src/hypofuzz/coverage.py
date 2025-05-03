@@ -59,7 +59,9 @@ class Branch(NamedTuple):
             return f"{self.start[0]}:{location1}::{location2}"
         return f"{self.start[0]}:{location1}::{self.end[0]}:{location2}"
 
-    __repr__ = __str__
+    # __repr__ = __str__ triggers a mypy bug (?)
+    def __repr__(self) -> str:
+        return self.__str__()
 
 
 def get_coverage_instance(**kwargs: Any) -> coverage.Coverage:
