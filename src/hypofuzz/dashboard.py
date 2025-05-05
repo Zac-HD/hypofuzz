@@ -28,7 +28,6 @@ from starlette.websockets import WebSocket, WebSocketDisconnect
 from trio import MemoryReceiveChannel
 
 from hypofuzz.database import (
-    FailureRepresentation,
     HypofuzzDatabase,
     HypofuzzEncoder,
     Observation,
@@ -56,7 +55,7 @@ class Test:
     reports_offsets: ReportOffsets
     rolling_observations: list[Observation]
     corpus_observations: list[Observation]
-    failure: Optional[FailureRepresentation]
+    failure: Optional[Observation]
     status_counts: StatusCounts = field(init=False)
     elapsed_time: float = field(init=False)
 
@@ -337,6 +336,7 @@ async def handle_event(receive_channel: MemoryReceiveChannel) -> None:
 
 # cache to make the db a singleton. We defer creation until first-usage to ensure
 # that we use the test-time database setting, rather than init-time.
+# TODO we want to use BackgroundWriteDatabase in workers to, not just dashboard
 @cache
 def get_db() -> HypofuzzDatabase:
     db = settings().database
@@ -386,10 +386,13 @@ async def run_dashboard(port: int, host: str) -> None:
             for observation in corpus_observations
             if observation is not None
         ]
-        failure_representation = None
-        if failures := list(db.fetch_failures(key)):
-            # if there are multiple failures, arbitrarily pick the first one.
-            failure_representation = db.fetch_failure_representation(key, failures[0])
+        failure = None
+        if failures := (
+            list(db.fetch_failures(key, shrunk=True))
+            + list(db.fetch_failures(key, shrunk=False))
+        ):
+            # if there are multiple failures, pick the first one
+            failure = db.fetch_failure_observation(key, failures[0])
 
         TESTS[fuzz_target.nodeid] = Test(
             database_key=fuzz_target.database_key_str,
@@ -398,7 +401,7 @@ async def run_dashboard(port: int, host: str) -> None:
             reports_offsets=reports.offsets,
             rolling_observations=rolling_observations,
             corpus_observations=corpus_observations,
-            failure=failure_representation,
+            failure=failure,
         )
 
     # Any database events that get submitted while we're computing initial state

@@ -99,21 +99,6 @@ class Observation:
             return None
 
 
-@dataclass(frozen=True)
-class FailureRepresentation:
-    traceback: str
-    call_repr: str
-    reproduction_decorator: str
-
-    @staticmethod
-    def from_json(data: dict) -> Optional["FailureRepresentation"]:
-        data = dict(data)
-        try:
-            return FailureRepresentation(**data)
-        except Exception:
-            return None
-
-
 class Phase(Enum):
     GENERATE = "generate"
     REPLAY = "replay"
@@ -198,14 +183,18 @@ def corpus_observation_key(key: bytes, choices: ChoicesT) -> bytes:
     )
 
 
+def failure_key(key: bytes, *, shrunk: bool) -> bytes:
+    return key + (b"" if shrunk else b".secondary")
+
+
 @lru_cache(maxsize=512)
-def failure_representation_key(key: bytes, choices: ChoicesT) -> bytes:
+def failure_observation_key(key: bytes, choices: ChoicesT) -> bytes:
     return (
         key
         + failures_key
         + b"."
         + hashlib.sha1(choices_to_bytes(choices)).digest()
-        + b".representation"
+        + b".observation"
     )
 
 
@@ -295,9 +284,21 @@ class HypofuzzDatabase:
     # corpus observations (corpus_observe_key)
 
     def save_corpus_observation(
-        self, key: bytes, choices: ChoicesT, observation: Observation
+        self,
+        key: bytes,
+        choices: ChoicesT,
+        observation: Observation,
+        *,
+        delete: bool = True,
     ) -> None:
+        if not delete:
+            self.save(corpus_observation_key(key, choices), self._encode(observation))
+            return
+
+        existing = list(self.fetch_corpus_observations(key, choices))
         self.save(corpus_observation_key(key, choices), self._encode(observation))
+        for observation in existing:
+            self.delete_corpus_observation(key, choices, observation)
 
     def delete_corpus_observation(
         self, key: bytes, choices: ChoicesT, observation: Observation
@@ -329,47 +330,57 @@ class HypofuzzDatabase:
 
     # failures (failures_key)
 
-    def save_failure(self, key: bytes, choices: ChoicesT) -> None:
-        self.save(key + failures_key, choices_to_bytes(choices))
+    def save_failure(self, key: bytes, choices: ChoicesT, *, shrunk: bool) -> None:
+        self.save(failure_key(key, shrunk=shrunk), choices_to_bytes(choices))
 
-    def delete_failure(self, key: bytes, choices: ChoicesT) -> None:
-        self.delete(key + failures_key, choices_to_bytes(choices))
+    def delete_failure(self, key: bytes, choices: ChoicesT, *, shrunk: bool) -> None:
+        self.delete(failure_key(key, shrunk=shrunk), choices_to_bytes(choices))
 
-    def fetch_failures(self, key: bytes) -> Iterable[ChoicesT]:
-        for value in self.fetch(key + failures_key):
+    def fetch_failures(self, key: bytes, *, shrunk: bool) -> Iterable[ChoicesT]:
+        for value in self.fetch(failure_key(key, shrunk=shrunk)):
             if (choices := choices_from_bytes(value)) is not None:
                 yield choices
 
-    # failure representation (failure_representation_key)
+    # failure observation (failure_observation_key)
 
-    def save_failure_representation(
-        self, key: bytes, choices: ChoicesT, representation: FailureRepresentation
+    def save_failure_observation(
+        self,
+        key: bytes,
+        choices: ChoicesT,
+        observation: Observation,
+        *,
+        delete: bool = True,
     ) -> None:
-        self.save(
-            failure_representation_key(key, choices), self._encode(representation)
-        )
+        if not delete:
+            self.save(failure_observation_key(key, choices), self._encode(observation))
+            return
 
-    def delete_failure_representation(
-        self, key: bytes, choices: ChoicesT, representation: FailureRepresentation
+        existing = list(self.fetch_failure_observations(key, choices))
+        self.save(failure_observation_key(key, choices), self._encode(observation))
+        for observation in existing:
+            self.delete_failure_observation(key, choices, observation)
+
+    def delete_failure_observation(
+        self, key: bytes, choices: ChoicesT, observation: Observation
     ) -> None:
-        self.delete(
-            failure_representation_key(key, choices), self._encode(representation)
-        )
+        self.delete(failure_observation_key(key, choices), self._encode(observation))
 
-    def fetch_failure_representation(
+    def fetch_failure_observation(
         self, key: bytes, choices: ChoicesT
-    ) -> Optional[FailureRepresentation]:
-        value = next(iter(self.fetch(failure_representation_key(key, choices))))
-        return FailureRepresentation.from_json(json.loads(value))
+    ) -> Optional[Observation]:
+        observations = iter(self.fetch(failure_observation_key(key, choices)))
+        try:
+            value = next(observations)
+        except StopIteration:
+            return None
+        return Observation.from_json(json.loads(value))
 
-    def fetch_failure_representations(
+    def fetch_failure_observations(
         self, key: bytes, choices: ChoicesT
-    ) -> Iterable[FailureRepresentation]:
-        for value in self.fetch(failure_representation_key(key, choices)):
-            if (
-                representation := FailureRepresentation.from_json(json.loads(value))
-            ) is not None:
-                yield representation
+    ) -> Iterable[Observation]:
+        for value in self.fetch(failure_observation_key(key, choices)):
+            if (observation := Observation.from_json(json.loads(value))) is not None:
+                yield observation
 
 
 @dataclass

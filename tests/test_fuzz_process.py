@@ -42,8 +42,8 @@ def test_fuzz_one_process_explain_mode():
 
     db = HypofuzzDatabase(hypothesis_db)
     assert fp.status_counts[Status.INTERESTING] >= 1
-    failures = list(db.fetch_failures(fp.database_key))
+    failures = list(db.fetch_failures(fp.database_key, shrunk=True))
     assert len(failures) == 1
-    representation = db.fetch_failure_representation(fp.database_key, failures[0])
-    assert "CustomError" in representation.traceback
-    assert representation.call_repr == "test_fails(\n    x=1,\n    y=0,\n)"
+    observation = db.fetch_failure_observation(fp.database_key, failures[0])
+    assert "CustomError" in observation.metadata["traceback"]
+    assert observation.representation == "test_fails(\n    x=1,\n    y=0,\n)"

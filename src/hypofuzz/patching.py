@@ -40,7 +40,7 @@ def make_and_save_patches(
         covering_examples = []
 
         if test.failure:
-            failing_examples.append((test.failure.traceback, FAIL_MSG))
+            failing_examples.append((test.failure.metadata["traceback"], FAIL_MSG))
 
         if test.phase is not Phase.REPLAY:
             covering_examples = [

@@ -149,14 +149,16 @@ function _TestPage() {
             <h3>Call</h3>
             <pre>
               <code className="language-python">
-                {test.failure.reproduction_decorator +
+                {test.failure.metadata.get("reproduction_decorator") +
                   "\n" +
-                  test.failure.call_repr}
+                  test.failure.representation}
               </code>
             </pre>
             <h3>Traceback</h3>
             <pre>
-              <code className="language-python">{test.failure.traceback}</code>
+              <code className="language-python">
+                {test.failure.metadata.get("traceback")}
+              </code>
             </pre>
           </div>
         </div>

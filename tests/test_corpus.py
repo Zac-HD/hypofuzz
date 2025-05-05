@@ -1,11 +1,10 @@
 """Tests for the hypofuzz library."""
 
-from collections import defaultdict
 from types import SimpleNamespace
 
 from common import interesting_origin
 from hypothesis import event, given, note, settings, strategies as st
-from hypothesis.database import InMemoryExampleDatabase, choices_to_bytes
+from hypothesis.database import InMemoryExampleDatabase
 from hypothesis.internal.conjecture.data import ConjectureData
 from strategies import nodes
 from test_coverage import Collector
@@ -36,7 +35,6 @@ def results(statuses=st.sampled_from(Status)) -> st.SearchStrategy[ConjectureRes
         extra_information=st.builds(
             SimpleNamespace,
             branches=branches(),
-            call_repr=st.just(""),
             reports=st.builds(list),
             traceback=st.just(""),
         ),
@@ -83,32 +81,6 @@ def test_corpus_covering_nodes(args):
                 covering_nodes[branch] = res.nodes
 
     assert covering_nodes == corpus.covering_nodes
-
-
-@given(corpus_args())
-def test_interesting_results_are_added_to_database(args):
-    db = InMemoryExampleDatabase()
-    key = b""
-    corpus = Corpus(hypothesis_database=db, database_key=key)
-
-    saved = defaultdict(set)
-    for res in args:
-        corpus.add(res)
-        if res.status is not Status.INTERESTING:
-            continue
-
-        assert res.interesting_origin in corpus.interesting_examples
-        origin_nodes = saved[res.interesting_origin]
-        # we only save a failure to the db if it's smaller than all other
-        # choice sequences we've seen for that failure
-        if any(sort_key(res.nodes) >= sort_key(nodes) for nodes in origin_nodes):
-            continue
-
-        origin_nodes.add(res.nodes)
-        all_nodes = set.union(*saved.values())
-        assert set(db.fetch(key)) == {
-            choices_to_bytes([n.value for n in nodes]) for nodes in all_nodes
-        }
 
 
 def test_corpus_resets_branch_counts_on_new_coverage():

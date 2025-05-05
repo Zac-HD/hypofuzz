@@ -5,7 +5,7 @@ import enum
 from collections import Counter
 from collections.abc import Callable, Iterable, Iterator
 from random import Random
-from typing import TYPE_CHECKING, Optional, TypeAlias, Union
+from typing import TYPE_CHECKING, Optional, Union
 
 from hypothesis import settings
 from hypothesis.database import (
@@ -88,8 +88,6 @@ def sort_key(nodes: Union[NodesT, ConjectureResult]) -> tuple[int, tuple[int, ..
 
 
 def get_shrinker(
-    database: ExampleDatabase,
-    database_key: bytes,
     fn: Callable[[ConjectureData], None],
     *,
     initial: Union[ConjectureData, ConjectureResult],
@@ -98,11 +96,12 @@ def get_shrinker(
     explain: bool = False,
 ) -> Shrinker:
     return Shrinker(
+        # don't pass our database to the shrinker; we'll manage writing failures
+        # to the database ourselves, outside of the shrinker context.
         ConjectureRunner(
             fn,
             random=random,
-            database_key=database_key,
-            settings=settings(database=database, deadline=None),
+            settings=settings(deadline=None),
         ),
         initial=initial,
         predicate=predicate,
@@ -199,7 +198,17 @@ class Corpus:
             if origin not in self.interesting_examples or (
                 sort_key(result) < sort_key(self.interesting_examples[origin])
             ):
+                existing = self.interesting_examples.get(origin)
                 self.interesting_examples[origin] = result
+                # We save interesting examples to the unshrunk/secondary database
+                # so they can appear immediately without waiting for shrinking to
+                # finish. (also in case of a fatal hypofuzz error etc).
+                self._db.save_failure(self._database_key, result.choices, shrunk=False)
+                if existing is not None:
+                    # remove the now-redundant failure we had previously saved.
+                    self._db.delete_failure(
+                        self._database_key, existing.choices, shrunk=False
+                    )
                 return True
 
         # If we haven't just discovered new branches and our example is larger than the
@@ -222,13 +231,6 @@ class Corpus:
                 self._db.save_corpus_observation(
                     self._database_key, result.choices, observation
                 )
-                for existing in self._db.fetch_corpus_observations(
-                    self._database_key, result.choices
-                ):
-                    if existing != observation:
-                        self._db.delete_corpus_observation(
-                            self._database_key, result.choices, existing
-                        )
 
             self._loaded_from_database.add(Choices(result.choices))
             # Clear out any redundant entries
@@ -358,8 +360,6 @@ class Corpus:
                 key=lambda b: sort_key(self.covering_nodes[b]),
             )
             shrinker = get_shrinker(
-                self._hypothesis_db,
-                self._database_key,
                 fn,
                 initial=self.results[self.covering_nodes[branch_to_shrink]],
                 predicate=lambda d, b=branch_to_shrink: b

@@ -143,22 +143,6 @@ export class Observation {
   }
 }
 
-export class FailureRepresentation {
-  constructor(
-    readonly traceback: string,
-    readonly call_repr: string,
-    readonly reproduction_decorator: string,
-  ) {}
-
-  static fromJson(data: any): FailureRepresentation {
-    return new FailureRepresentation(
-      data.traceback,
-      data.call_repr,
-      data.reproduction_decorator,
-    )
-  }
-}
-
 export enum TestStatus {
   FAILED = 0,
   SHRINKING = 1,
@@ -200,7 +184,7 @@ export class Test {
     readonly reports_offsets: ReportOffsets,
     readonly rolling_observations: Observation[],
     readonly corpus_observations: Observation[],
-    readonly failure: FailureRepresentation | null,
+    readonly failure: Observation | null,
   ) {
     this.elapsed_time = sum(this.reports_offsets.elapsed_time.values())
     let status_counts = new StatusCounts()
@@ -218,7 +202,7 @@ export class Test {
       ReportOffsets.fromJson(data.reports_offsets),
       data.rolling_observations.map(Observation.fromJson),
       data.corpus_observations.map(Observation.fromJson),
-      data.failure ? FailureRepresentation.fromJson(data.failure) : null,
+      data.failure ? Observation.fromJson(data.failure) : null,
     )
   }
 

@@ -3,6 +3,7 @@
 import contextlib
 import inspect
 import itertools
+import math
 import os
 import platform
 import socket
@@ -23,10 +24,9 @@ from hypothesis import HealthCheck, settings
 from hypothesis.core import (
     StateForActualGivenExecution,
     Stuff,
-    encode_failure,
     process_arguments_to_given,
 )
-from hypothesis.database import ExampleDatabase, choices_to_bytes
+from hypothesis.database import ExampleDatabase
 from hypothesis.errors import StopTest
 from hypothesis.internal.conjecture.choice import ChoiceT, ChoiceTemplate
 from hypothesis.internal.conjecture.data import (
@@ -50,8 +50,6 @@ from hypofuzz.corpus import (
 )
 from hypofuzz.coverage import CoverageCollector
 from hypofuzz.database import (
-    ChoicesT,
-    FailureRepresentation,
     HypofuzzDatabase,
     Observation,
     Phase,
@@ -64,13 +62,6 @@ from hypofuzz.provider import HypofuzzProvider
 T = TypeVar("T")
 
 process_uuid = uuid4().hex
-
-
-def reproduction_decorator(choices: ChoicesT) -> str:
-    """Return `@reproduce_failure` decorator for the given choices."""
-    return (
-        f"@reproduce_failure({hypothesis.__version__!r}, {encode_failure(choices)!r})"
-    )
 
 
 # hypothesis.utils.dynamicvaraible, but without the with_value context manager.
@@ -195,7 +186,7 @@ class FuzzProcess:
         self._last_report: Report | None = None
 
         # Track observability data
-        self._last_observed = 0.0
+        self._last_observed = -math.inf
 
     def startup(self) -> None:
         """Set up initial state and prepare to replay the saved behaviour."""
@@ -271,8 +262,6 @@ class FuzzProcess:
             # Shrink to our minimal failing example, since we'll stop after this.
             self._start_phase(Phase.SHRINK)
             shrinker = get_shrinker(
-                self.hypothesis_db,
-                self.database_key,
                 self._run_test_on,  # type: ignore
                 initial=result,
                 predicate=lambda d: d.status is Status.INTERESTING,
@@ -283,26 +272,24 @@ class FuzzProcess:
             with contextlib.suppress(HitShrinkTimeoutError, RunIsComplete):
                 shrinker.shrink()
             self._start_phase(Phase.FAILED)
-            # now that the test has failed and we've fully shrunk it, add its
-            # choices under the default hypothesis key so hypothesis will
-            # reproduce it.
-            self.db.save(self.database_key, choices_to_bytes(result.choices))
-            self._save_report(self._report)
-            self.db.save_failure(self.database_key, shrinker.choices)
 
-            assert shrinker.shrink_target.expected_traceback
-            representation = FailureRepresentation(
-                traceback=shrinker.shrink_target.expected_traceback,
-                call_repr=getattr(
-                    shrinker.shrink_target.extra_information,
-                    "string_repr",
-                    "<unknown>",
-                ),
-                # TODO also store `result.extra_information.reports`?
-                reproduction_decorator=reproduction_decorator(shrinker.choices),
-            )
-            self.db.save_failure_representation(
-                self.database_key, shrinker.choices, representation
+            # we re-execute the failing example under observability. In practice
+            # the shrinker was already running under observability via _run_test_on,
+            # but threading that result through to here is tricky.
+            data = ConjectureData.for_choices(shrinker.shrink_target.choices)
+            with self.observe() as observation:
+                try:
+                    self.state._execute_once_for_engine(data)
+                except StopTest:
+                    pass
+
+            self._save_report(self._report)
+            # move this failure from the unshrunk to the shrunk key.
+            self.db.save_failure(self.database_key, shrinker.choices, shrunk=True)
+            self.db.delete_failure(self.database_key, shrinker.choices, shrunk=False)
+            assert observation.value is not None
+            self.db.save_failure_observation(
+                self.database_key, shrinker.choices, observation.value
             )
 
         # Consider switching out of blackbox mode.
@@ -341,10 +328,6 @@ class FuzzProcess:
                 self.state._execute_once_for_engine(data)
         except StopTest:
             pass
-        # pass current string_repr through to ConjectureResult.
-        # Note that observability has to be enabled (i.e. something has to be
-        # in TESTCASE_CALLBACKS) for hypothesis to fill _string_repr.
-        data.extra_information.string_repr = self.state._string_repr  # type: ignore
         data.extra_information.reports = "\n".join(map(str, reports))  # type: ignore
 
         # In addition to coverage branches, use psudeo-coverage information provided via
@@ -379,17 +362,10 @@ class FuzzProcess:
         return data.as_result()
 
     @contextlib.contextmanager
-    def _maybe_observe_for_tyche(
-        self,
-    ) -> Generator[Value[Optional[Observation]], None, None]:
-        # We're aiming for a rolling buffer of the last 300 observations, downsampling
-        # to one per second if we're executing more than one test case per second.
-        # Decide here, so that runtime doesn't bias our choice of what to observe.
-        will_save = self.phase is Phase.GENERATE and (
-            self.elapsed_time > self._last_observed + 1
-        )
-        # we want to refer to and set this value inside and outside of the context
-        # manager. Use a wrapping Value class as a reference-forwarder.
+    def observe(self) -> Generator[Value[Optional[Observation]], None, None]:
+        # we want to yield back to the caller without actually having gotten the
+        # observation in the callback yet, but still be able to set its value from
+        # inside the context manager. Yield a reference-forwarding Value instance.
         observation: Value[Optional[Observation]] = Value(None)
 
         def callback(test_case: dict) -> None:
@@ -409,12 +385,27 @@ class FuzzProcess:
         try:
             yield observation
         finally:
-            TESTCASE_CALLBACKS.pop()
+            TESTCASE_CALLBACKS.remove(callback)
+
+    @contextlib.contextmanager
+    def _maybe_observe_for_tyche(
+        self,
+    ) -> Generator[Value[Optional[Observation]], None, None]:
+        # We're aiming for a rolling buffer of the last 300 observations, downsampling
+        # to one per second if we're executing more than one test case per second.
+        # Decide here, so that runtime doesn't bias our choice of what to observe.
+        will_save = self.phase is Phase.GENERATE and (
+            self.elapsed_time > self._last_observed + 1
+        )
+        with self.observe() as observation:
+            yield observation
+
         if will_save:
             assert observation.value is not None
             self.db.save_observation(
                 self.database_key, observation.value, discard_over=300
             )
+            self._last_observed = self.elapsed_time
 
     def _save_report(self, report: Report) -> None:
         self.db.save_report(self.database_key, report)
