@@ -391,7 +391,7 @@ export function CoverageGraph({ tests, filterString = "" }: Props) {
   const svgRef = useRef<SVGSVGElement>(null)
   const [scaleSetting, setScaleSetting] = useSetting<string>(
     "graph_scale",
-    "linear",
+    "log",
   )
   const [axisSetting, setAxisSetting] = useSetting<string>(
     "graph_x_axis",
