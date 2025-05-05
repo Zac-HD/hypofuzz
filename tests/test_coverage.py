@@ -25,6 +25,7 @@ class Collector:
 
     def __init__(self, f):
         self.offset = f.__code__.co_firstlineno
+        self.filename = f.__code__.co_filename
         self.context = CoverageCollector()
 
     @property
@@ -34,13 +35,15 @@ class Collector:
         for branch in self.context.branches:
             files.add(branch.start[0])
             files.add(branch.end[0])
-            branches.add(
-                (
-                    (branch.start[1] - self.offset, branch.start[2]),
-                    (branch.end[1] - self.offset, branch.end[2]),
+            if branch.start[0] == branch.end[0] == self.filename:
+                # only collect branches from the same file the function is in
+                branches.add(
+                    (
+                        (branch.start[1] - self.offset, branch.start[2]),
+                        (branch.end[1] - self.offset, branch.end[2]),
+                    )
                 )
-            )
-        # all branches are in the same file
+
         assert len(files) <= 1
         return branches
 
