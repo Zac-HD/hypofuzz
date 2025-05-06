@@ -133,7 +133,7 @@ class HypofuzzJSONResponse(JSONResponse):
             ensure_ascii=False,
             separators=(",", ":"),
             cls=HypofuzzEncoder,
-        ).encode("utf-8")
+        ).encode("utf-8", errors="surrogatepass")
 
 
 class HypofuzzWebsocket(abc.ABC):
@@ -216,7 +216,8 @@ async def websocket(websocket: WebSocket) -> None:
 
 
 async def broadcast_event(event_type: str, data: Any) -> None:
-    for websocket in websockets:
+    # avoid websocket disconnecting during iteration and causing a RuntimeError
+    for websocket in websockets.copy():
         await websocket.on_event(event_type, data)
 
 

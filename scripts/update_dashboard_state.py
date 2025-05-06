@@ -17,5 +17,5 @@ output_file = Path(__file__).parent.parent / "docs-src" / "dashboard_state.json"
 with open(output_file, "w") as f:
     json.dump(response.json(), f, indent=2)
 
-# use like:
+# usage:
 # python scripts/update_dashboard_state.py http://localhost:9999/

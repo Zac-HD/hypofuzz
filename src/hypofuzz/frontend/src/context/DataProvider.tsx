@@ -45,8 +45,8 @@ export function DataProvider({ children, nodeid }: DataProviderProps) {
   useEffect(() => {
     // import.meta.url is relative to the assets/ directory, so this is assets/dashboard_state.json
     fetch(new URL("dashboard_state.json", import.meta.url))
-      .then(response => response.json())
-      .then(data => {
+      .then(async response => {
+        const data = await JSON5.parse(await response.text())
         if (data) {
           setTests(
             new Map(

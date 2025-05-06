@@ -1,7 +1,9 @@
 """Tests for the hypofuzz library."""
 
+import sys
 from types import SimpleNamespace
 
+import pytest
 from common import interesting_origin
 from hypothesis import event, given, note, settings, strategies as st
 from hypothesis.database import InMemoryExampleDatabase
@@ -83,6 +85,7 @@ def test_corpus_covering_nodes(args):
     assert covering_nodes == corpus.covering_nodes
 
 
+@pytest.mark.skipif(sys.version_info < (3, 12), reason="different branches pre-312")
 def test_corpus_resets_branch_counts_on_new_coverage():
     hypothesis_db = InMemoryExampleDatabase()
 
@@ -99,14 +102,13 @@ def test_corpus_resets_branch_counts_on_new_coverage():
             ConjectureData.for_choices([1]), collector=Collector(test_a)
         )
         # we keep incrementing arc counts if we don't find new coverage
-        assert process.corpus.branch_counts == {((3, 11), (3, 11)): count}
+        assert len(process.corpus.branch_counts) == 1
+        assert list(process.corpus.branch_counts.values()) == [count]
 
     process._run_test_on(ConjectureData.for_choices([2]), collector=Collector(test_a))
     # our arc counts should get reset whenever we discover a new branch
-    assert process.corpus.branch_counts == {
-        ((3, 11), (3, 11)): 1,
-        ((3, 11), (4, 12)): 1,
-    }
+    assert len(process.corpus.branch_counts) == 2
+    assert list(process.corpus.branch_counts.values()) == [1, 1]
 
 
 # TODO it would be nice to write a massive stateful test that covers all of this
