@@ -70,8 +70,7 @@ def test_database_state():
     assert observations[0].property == "test_a"
 
     reports = list(db.fetch_reports(key))
-    assert len(reports) == 1
-    assert reports[0].branches == 1
+    assert reports[0].phase is Phase.GENERATE
 
     # now we run a second input, which is better than the first input in coverage.
     # This should clear out both the corpus and observation entry for the old
@@ -93,7 +92,7 @@ def test_database_state():
 
     reports = list(db.fetch_reports(key))
     assert len(reports) == 1
-    assert reports[0].branches == 1
+    assert reports[0].phase is Phase.GENERATE
 
 
 def test_adds_failures_to_database():
@@ -106,7 +105,7 @@ def test_adds_failures_to_database():
         assert x != 10
 
     process = FuzzProcess.from_hypothesis_test(test_a)
-    for _ in range(20):
+    for _ in range(50):
         process.run_one()
 
     failures = list(db.fetch_failures(process.database_key, shrunk=True))

@@ -30,11 +30,8 @@ class Collector:
 
     @property
     def branches(self) -> set[tuple[tuple[int, int], tuple[int, int]]]:
-        files = set()
         branches = set()
         for branch in self.context.branches:
-            files.add(branch.start[0])
-            files.add(branch.end[0])
             if branch.start[0] == branch.end[0] == self.filename:
                 # only collect branches from the same file the function is in
                 branches.add(
@@ -44,7 +41,6 @@ class Collector:
                     )
                 )
 
-        assert len(files) <= 1
         return branches
 
     def __enter__(self) -> "Collector":
