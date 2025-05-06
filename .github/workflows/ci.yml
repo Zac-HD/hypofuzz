@@ -10,7 +10,7 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: Set up Python 3.11
       uses: actions/setup-python@v4
       with:
@@ -50,7 +50,9 @@ jobs:
       statuses: write
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
+      with:
+        lfs: true
     - name: Set up Python 3.11
       uses: actions/setup-python@v4
       with:
@@ -130,7 +132,7 @@ jobs:
         toxenv: ["test", "pytest7"]
       fail-fast: false
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v4
       with:
@@ -145,7 +147,7 @@ jobs:
     needs: [check, docs, test]
     if: github.repository == 'Zac-HD/hypofuzz' &&  github.ref == 'refs/heads/master'
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: Set up Python 3.11
       uses: actions/setup-python@v4
       with:
