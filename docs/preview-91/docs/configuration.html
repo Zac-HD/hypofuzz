@@ -108,10 +108,10 @@ scheduler to do its thing, and computer time is much cheaper than yours.</p>
 code - but we know that there are many things code can do that aren’t captured by
 the set of executed branches.  <a class="reference external" href="https://blog.foretellix.com/2016/12/23/verification-coverage-and-maximization-the-big-picture/">This blog post</a>
 gives a good overview of coverage-driven verification workflows.</p>
-<p>We therefore treat each <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.event" title="(in Hypothesis v6.131.12)"><code class="xref py py-func docutils literal notranslate"><span class="pre">hypothesis.event()</span></code></a> as a “virtual” branch - while it’s
+<p>We therefore treat each <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.event" title="(in Hypothesis v6.131.14)"><code class="xref py py-func docutils literal notranslate"><span class="pre">hypothesis.event()</span></code></a> as a “virtual” branch - while it’s
 not part of the control-flow graph, we keep track of inputs which produced each
 observed event in the same way that we track the inputs which produce each branch.</p>
-<p>You can therefore use the <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.event" title="(in Hypothesis v6.131.12)"><code class="xref py py-func docutils literal notranslate"><span class="pre">event()</span></code></a> function in your tests to
+<p>You can therefore use the <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.event" title="(in Hypothesis v6.131.14)"><code class="xref py py-func docutils literal notranslate"><span class="pre">event()</span></code></a> function in your tests to
 mark out categories of behaviour, boundary conditions, and so on, and then let the
 fuzzer exploit that to generate more diverse and better-targeted inputs.
 And as a bonus, you’ll get useful summary statistics when running Hypothesis!</p>
@@ -127,9 +127,9 @@ Hypothesis - regardless of how or where you run it.</p>
 failing examples on a single developer’s machine, and does so via the filesystem.
 If you want to share the database between your team members and your CI server
 though, this isn’t going to work so well - either set the
-<a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.settings.database" title="(in Hypothesis v6.131.12)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">database</span></code></a> setting to an
-<a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.database.ExampleDatabase" title="(in Hypothesis v6.131.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">ExampleDatabase</span></code></a> backed by a network
-datastore, or use a <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.database.DirectoryBasedExampleDatabase" title="(in Hypothesis v6.131.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">DirectoryBasedExampleDatabase</span></code></a>
+<a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.settings.database" title="(in Hypothesis v6.131.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">database</span></code></a> setting to an
+<a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.database.ExampleDatabase" title="(in Hypothesis v6.131.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">ExampleDatabase</span></code></a> backed by a network
+datastore, or use a <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.database.DirectoryBasedExampleDatabase" title="(in Hypothesis v6.131.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">DirectoryBasedExampleDatabase</span></code></a>
 pointed to a shared filesystem.</p>
 </section>
 </section>
