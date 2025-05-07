@@ -198,8 +198,16 @@ def failure_observation_key(key: bytes, choices: ChoicesT) -> bytes:
     )
 
 
+def is_observation_key(key: bytes) -> bool:
+    return key.endswith(observations_key)
+
+
 def is_failure_observation_key(key: bytes) -> bool:
     return key.endswith(b".observation") and failures_key in key
+
+
+def is_corpus_observation_key(key: bytes) -> bool:
+    return key.endswith(b".observation") and corpus_key in key
 
 
 class HypofuzzDatabase:

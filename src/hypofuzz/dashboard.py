@@ -35,9 +35,11 @@ from hypofuzz.database import (
     Report,
     ReportOffsets,
     StatusCounts,
+    is_corpus_observation_key,
+    is_failure_observation_key,
+    is_observation_key,
     linearize_reports,
     reports_key,
-    is_failure_observation_key,
 )
 from hypofuzz.interface import CollectionResult
 from hypofuzz.patching import make_and_save_patches
@@ -150,12 +152,17 @@ class HypofuzzWebsocket(abc.ABC):
     async def send_json(self, data: Any) -> None:
         await self.websocket.send_text(json.dumps(data, cls=HypofuzzEncoder))
 
+    async def send_event(self, header: dict[str, Any], data: Any) -> None:
+        await self.websocket.send_text(
+            f"{json.dumps(header)}|{json.dumps(data, cls=HypofuzzEncoder)}"
+        )
+
     @abc.abstractmethod
     async def initial(self, tests: dict[str, Test]) -> None:
         pass
 
     @abc.abstractmethod
-    async def on_event(self, event_type: str, data: Any) -> None:
+    async def on_event(self, header: dict[str, Any], data: Any) -> None:
         pass
 
 
@@ -169,11 +176,14 @@ class OverviewWebsocket(HypofuzzWebsocket):
             )
             for nodeid, test in tests.items()
         }
-        await self.send_json({"type": "initial", "data": tests})
+        await self.send_event({"type": "initial"}, tests)
 
-    async def on_event(self, event_type: str, data: Any) -> None:
-        if event_type == "save":
-            await self.send_json({"type": "save", "data": data})
+    async def on_event(self, header: dict[str, Any], data: Any) -> None:
+        if header["type"] == "save":
+            # overview page doesn't use observations
+            if header["save_type"] in ["rolling_observation", "corpus_observation"]:
+                return
+            await self.send_event(header, data)
 
 
 class TestWebsocket(HypofuzzWebsocket):
@@ -183,24 +193,28 @@ class TestWebsocket(HypofuzzWebsocket):
 
     async def initial(self, tests: dict[str, Test]) -> None:
         tests = {self.nodeid: tests[self.nodeid]}
-        await self.send_json({"type": "initial", "data": tests})
+        await self.send_event({"type": "initial"}, tests)
 
-    async def on_event(self, event_type: str, data: Any) -> None:
-        if event_type == "save":
-            if data["type"] == "report":
-                report: Report = data["data"]
-                nodeid = report.nodeid
-            elif data["type"] == "failure":
-                failure: Observation = data["data"]
-                nodeid = failure.property
+    async def on_event(self, header: dict[str, Any], data: Any) -> None:
+        if header["type"] == "save":
+            if header["save_type"] == "report":
+                assert isinstance(data, Report)
+                nodeid = data.nodeid
+            elif header["save_type"] in [
+                "failure",
+                "rolling_observation",
+                "corpus_observation",
+            ]:
+                assert isinstance(data, Observation)
+                nodeid = data.property
             else:
-                assert False
+                raise AssertionError()
 
             # only broadcast event for this nodeid
             if nodeid != self.nodeid:
                 return
 
-            await self.send_json({"type": "save", "data": data})
+            await self.send_event(header, data)
 
 
 async def websocket(websocket: WebSocket) -> None:
@@ -224,10 +238,10 @@ async def websocket(websocket: WebSocket) -> None:
         websockets.remove(websocket)
 
 
-async def broadcast_event(event_type: str, data: Any) -> None:
+async def broadcast_event(header: dict[str, Any], data: Any) -> None:
     # avoid websocket disconnecting during iteration and causing a RuntimeError
     for websocket in websockets.copy():
-        await websocket.on_event(event_type, data)
+        await websocket.on_event(header, data)
 
 
 def try_format(code: str) -> str:
@@ -336,12 +350,28 @@ async def handle_event(receive_channel: MemoryReceiveChannel) -> None:
                 # date with the Report schema
                 assert report is not None
                 TESTS[report.nodeid].add_report(report)
-                await broadcast_event("save", {"type": "report", "data": report})
+                await broadcast_event({"type": "save", "save_type": "report"}, report)
             elif is_failure_observation_key(key):
-                failure = Observation.from_json(json.loads(value))
-                assert failure is not None
-                TESTS[failure.property].failure = failure
-                await broadcast_event("save", {"type": "failure", "data": failure})
+                observation = Observation.from_json(json.loads(value))
+                assert observation is not None
+                TESTS[observation.property].failure = observation
+                await broadcast_event(
+                    {"type": "save", "save_type": "failure"}, observation
+                )
+            elif is_observation_key(key):
+                observation = Observation.from_json(json.loads(value))
+                assert observation is not None
+                TESTS[observation.property].rolling_observations.append(observation)
+                await broadcast_event(
+                    {"type": "save", "save_type": "rolling_observation"}, observation
+                )
+            elif is_corpus_observation_key(key):
+                observation = Observation.from_json(json.loads(value))
+                assert observation is not None
+                TESTS[observation.property].corpus_observations.append(observation)
+                await broadcast_event(
+                    {"type": "save", "save_type": "corpus_observation"}, observation
+                )
 
         # we'll want to send the relinearized history to the dashboard every now
         # and then (via a "refresh" event), to avoid falling too far out of sync.

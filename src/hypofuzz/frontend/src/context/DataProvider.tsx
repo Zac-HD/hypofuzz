@@ -8,11 +8,6 @@ import React, {
 import { Observation, Report, Test } from "../types/dashboard"
 import JSON5 from "json5"
 
-interface WebSocketEvent {
-  type: "save" | "initial"
-  data: any
-}
-
 interface DataContextType {
   tests: Map<string, Test>
   socket: WebSocket | null
@@ -76,15 +71,20 @@ export function DataProvider({ children, nodeid }: DataProviderProps) {
       const ws = new WebSocket(url)
 
       ws.onmessage = event => {
-        // observability reports use e.g. Infinity, which is invalid in standard json but valid
-        // in json5.
-        const message = JSON5.parse(event.data) as WebSocketEvent
+        // split the message into the header and the body, to allow for parsing the
+        // body with either JSON (faster) or JSON5 (allows e.g. Infinity) depending on
+        // the type of the data. We don't want to use JSON5 where not necessary.
+        //
+        // The format is an extremely simple pipe separator.
+        let [header, data] = event.data.split("|", 2)
+        header = JSON.parse(header)
 
-        switch (message.type) {
+        switch (header.type) {
           case "initial":
+            data = JSON5.parse(data)
             setTests(
               new Map(
-                Object.entries(message.data).map(([nodeid, data]) => [
+                Object.entries(data).map(([nodeid, data]) => [
                   nodeid,
                   Test.fromJson(data),
                 ]),
@@ -95,9 +95,10 @@ export function DataProvider({ children, nodeid }: DataProviderProps) {
           case "save":
             // this is a differential message. depending on the type of the save event, we'll do
             // something to the appropriate attribute on Test.
-            switch (message.data.type) {
+            switch (header.save_type) {
               case "report": {
-                const report = Report.fromJson(message.data.data)
+                data = JSON.parse(data)
+                const report = Report.fromJson(data)
                 const test = testsRef.current.get(report.nodeid)!
                 test.addReport(report)
                 // update react state to trigger a re-render on outside components that have a
@@ -106,14 +107,32 @@ export function DataProvider({ children, nodeid }: DataProviderProps) {
                 break
               }
               case "failure": {
-                const failure = Observation.fromJson(message.data.data)
+                // observability reports use e.g. Infinity, which is invalid in standard json
+                // but valid in json5.
+                data = JSON5.parse(data)
+                const failure = Observation.fromJson(data)
                 const test = testsRef.current.get(failure.property)!
                 test.failure = failure
                 // trigger react re-render
                 setTests(new Map(testsRef.current))
                 break
               }
-              // TODO: save events for test.rolling_observations and test.covering_observations
+              case "rolling_observation": {
+                data = JSON5.parse(data)
+                const observation = Observation.fromJson(data)
+                const test = testsRef.current.get(observation.property)!
+                test.rolling_observations.push(observation)
+                setTests(new Map(testsRef.current))
+                break
+              }
+              case "corpus_observation": {
+                data = JSON5.parse(data)
+                const observation = Observation.fromJson(data)
+                const test = testsRef.current.get(observation.property)!
+                test.corpus_observations.push(observation)
+                setTests(new Map(testsRef.current))
+                break
+              }
             }
             break
         }
