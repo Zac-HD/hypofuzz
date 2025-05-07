@@ -5,7 +5,7 @@ import React, {
   useState,
   useRef,
 } from "react"
-import { Report, Test } from "../types/dashboard"
+import { Observation, Report, Test } from "../types/dashboard"
 import JSON5 from "json5"
 
 interface WebSocketEvent {
@@ -96,7 +96,7 @@ export function DataProvider({ children, nodeid }: DataProviderProps) {
             // this is a differential message. depending on the type of the save event, we'll do
             // something to the appropriate attribute on Test.
             switch (message.data.type) {
-              case "report":
+              case "report": {
                 const report = Report.fromJson(message.data.data)
                 const test = testsRef.current.get(report.nodeid)!
                 test.addReport(report)
@@ -104,7 +104,16 @@ export function DataProvider({ children, nodeid }: DataProviderProps) {
                 // useEffect dependency on `tests`
                 setTests(new Map(testsRef.current))
                 break
-              // TODO: save events for test.failures, test.rolling_observations, test.covering_observations
+              }
+              case "failure": {
+                const failure = Observation.fromJson(message.data.data)
+                const test = testsRef.current.get(failure.property)!
+                test.failure = failure
+                // trigger react re-render
+                setTests(new Map(testsRef.current))
+                break
+              }
+              // TODO: save events for test.rolling_observations and test.covering_observations
             }
             break
         }

@@ -1,6 +1,16 @@
 import { mapsEqual, sum } from "../utils/utils"
 
-class StatusCounts {
+abstract class Dataclass<T> {
+  withProperties(props: Partial<T>): T {
+    return Object.assign(
+      Object.create(this.constructor.prototype),
+      this,
+      props,
+    ) as T
+  }
+}
+
+class StatusCounts extends Dataclass<StatusCounts> {
   constructor(
     readonly counts: Map<Status, number> = new Map([
       [Status.OVERRUN, 0],
@@ -8,7 +18,9 @@ class StatusCounts {
       [Status.VALID, 0],
       [Status.INTERESTING, 0],
     ]),
-  ) {}
+  ) {
+    super()
+  }
 
   static fromJson(data: any): StatusCounts {
     const counts = new Map<Status, number>([
@@ -73,7 +85,7 @@ export interface WorkerIdentity {
   git_hash: string | null
 }
 
-export class Report {
+export class Report extends Dataclass<Report> {
   constructor(
     readonly database_key: string,
     readonly nodeid: string,
@@ -84,7 +96,9 @@ export class Report {
     readonly branches: number,
     readonly since_new_cov: number | null,
     readonly phase: Phase,
-  ) {}
+  ) {
+    super()
+  }
 
   get ninputs() {
     return sum(this.status_counts.counts.values())
@@ -111,7 +125,7 @@ enum ObservationStatus {
   GAVE_UP = "gave_up",
 }
 
-export class Observation {
+export class Observation extends Dataclass<Observation> {
   // https://hypothesis.readthedocs.io/en/latest/reference/integrations.html#test-case
   constructor(
     readonly type: string,
@@ -124,8 +138,11 @@ export class Observation {
     readonly features: Map<string, any>,
     readonly timing: Map<string, any>,
     readonly metadata: Map<string, any>,
+    readonly property: string,
     readonly run_start: number,
-  ) {}
+  ) {
+    super()
+  }
 
   static fromJson(data: any): Observation {
     return new Observation(
@@ -138,6 +155,7 @@ export class Observation {
       new Map(Object.entries(data.features)),
       new Map(Object.entries(data.timing)),
       new Map(Object.entries(data.metadata)),
+      data.property,
       data.run_start,
     )
   }
@@ -150,11 +168,13 @@ export enum TestStatus {
   WAITING = 3,
 }
 
-export class ReportOffsets {
+export class ReportOffsets extends Dataclass<ReportOffsets> {
   constructor(
     readonly elapsed_time: Map<string, number>,
     readonly status_counts: Map<string, StatusCounts>,
-  ) {}
+  ) {
+    super()
+  }
 
   static fromJson(data: any): ReportOffsets {
     return new ReportOffsets(
@@ -169,13 +189,14 @@ export class ReportOffsets {
   }
 }
 
-export class Test {
+export class Test extends Dataclass<Test> {
   // if it's been this long since the last report in seconds, consider the test status
   // to be "waiting" instead of "running"
   static WAITING_STATUS_DURATION = 120
 
   elapsed_time: number
   status_counts: StatusCounts
+  failure: Observation | null
 
   constructor(
     readonly database_key: string,
@@ -184,14 +205,16 @@ export class Test {
     readonly reports_offsets: ReportOffsets,
     readonly rolling_observations: Observation[],
     readonly corpus_observations: Observation[],
-    readonly failure: Observation | null,
+    failure: Observation | null,
   ) {
+    super()
     this.elapsed_time = sum(this.reports_offsets.elapsed_time.values())
     let status_counts = new StatusCounts()
     for (const counts of this.reports_offsets.status_counts.values()) {
       status_counts = status_counts.add(counts)
     }
     this.status_counts = status_counts
+    this.failure = failure
   }
 
   static fromJson(data: any): Test {
@@ -250,17 +273,10 @@ export class Test {
     )
     console.assert(elapsed_diff >= 0.0)
 
-    const newReport = new Report(
-      report.database_key,
-      report.nodeid,
-      this.elapsed_time + elapsed_diff,
-      report.timestamp,
-      report.worker,
-      this.status_counts.add(counts_diff),
-      report.branches,
-      report.since_new_cov,
-      report.phase,
-    )
+    const newReport = report.withProperties({
+      elapsed_time: this.elapsed_time + elapsed_diff,
+      status_counts: this.status_counts.add(counts_diff),
+    })
 
     this.status_counts = this.status_counts.add(counts_diff)
     this.elapsed_time += elapsed_diff

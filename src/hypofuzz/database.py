@@ -198,6 +198,10 @@ def failure_observation_key(key: bytes, choices: ChoicesT) -> bytes:
     )
 
 
+def is_failure_observation_key(key: bytes) -> bool:
+    return key.endswith(b".observation") and failures_key in key
+
+
 class HypofuzzDatabase:
     def __init__(self, db: ExampleDatabase) -> None:
         self._db = db

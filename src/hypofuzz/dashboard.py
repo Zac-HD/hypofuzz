@@ -37,6 +37,7 @@ from hypofuzz.database import (
     StatusCounts,
     linearize_reports,
     reports_key,
+    is_failure_observation_key,
 )
 from hypofuzz.interface import CollectionResult
 from hypofuzz.patching import make_and_save_patches
@@ -186,11 +187,19 @@ class TestWebsocket(HypofuzzWebsocket):
 
     async def on_event(self, event_type: str, data: Any) -> None:
         if event_type == "save":
-            # TODO proper switch statement when we add other save events
-            assert data["type"] == "report"
-            report: Report = data["data"]
-            if report.nodeid != self.nodeid:
+            if data["type"] == "report":
+                report: Report = data["data"]
+                nodeid = report.nodeid
+            elif data["type"] == "failure":
+                failure: Observation = data["data"]
+                nodeid = failure.property
+            else:
+                assert False
+
+            # only broadcast event for this nodeid
+            if nodeid != self.nodeid:
                 return
+
             await self.send_json({"type": "save", "data": data})
 
 
@@ -328,6 +337,11 @@ async def handle_event(receive_channel: MemoryReceiveChannel) -> None:
                 assert report is not None
                 TESTS[report.nodeid].add_report(report)
                 await broadcast_event("save", {"type": "report", "data": report})
+            elif is_failure_observation_key(key):
+                failure = Observation.from_json(json.loads(value))
+                assert failure is not None
+                TESTS[failure.property].failure = failure
+                await broadcast_event("save", {"type": "failure", "data": failure})
 
         # we'll want to send the relinearized history to the dashboard every now
         # and then (via a "refresh" event), to avoid falling too far out of sync.

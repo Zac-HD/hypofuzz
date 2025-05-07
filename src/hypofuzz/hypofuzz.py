@@ -180,6 +180,7 @@ class FuzzProcess:
         self.phase: Optional[Phase] = None
         # Any new examples from the database will be added to this replay queue
         self._replay_queue: list[tuple[Union[ChoiceT, ChoiceTemplate], ...]] = []
+        self._failure_queue: list[tuple[ChoiceT, ...]] = []
         # After replay, we stay in blackbox mode for a while, until we've generated
         # 1000 consecutive examples without new coverage, and then switch to mutation.
         self._early_blackbox_mode = True
@@ -198,6 +199,10 @@ class FuzzProcess:
         # our data structures directly, but copes much better with changed behaviour.
         self._replay_queue.extend(self.corpus.fetch())
         self._replay_queue.append((ChoiceTemplate(type="simplest", count=None),))
+        for shrunk in [True, False]:
+            self._failure_queue.extend(
+                self.db.fetch_failures(self.database_key, shrunk=shrunk)
+            )
 
     def _start_phase(self, phase: Phase) -> None:
         if phase is self.phase:
@@ -253,10 +258,24 @@ class FuzzProcess:
         # database.  We do make it infrequent to manage the overhead though.
         if self.ninputs % 1000 == 0 and self.since_new_cov > 1000:
             self._replay_queue.extend(self.corpus.fetch())
+            # TODO: also fetch any new failures into self._failure_queue?
+
+        if self._failure_queue:
+            self._start_phase(Phase.REPLAY)
+            choices = self._failure_queue.pop()
+            data = ConjectureData.for_choices(choices)
+            result = self._run_test_on(data)
+            if result.status is not Status.INTERESTING:
+                # this failure didn't reproduce. It's either been fixed, is flaky,
+                # or is specific to the worker's environment (e.g. only fails on
+                # python 3.11, while this worker is on python 3.12).
+                # In any case, remove it from the db.
+                self.db.delete_failure(self.database_key, choices, shrunk=True)
+                self.db.delete_failure(self.database_key, choices, shrunk=False)
+        else:
+            result = self._run_test_on(self.generate_data())
 
         # seen_count = len(self.corpus.branch_counts)
-        result = self._run_test_on(self.generate_data())
-
         if result.status is Status.INTERESTING:
             assert not isinstance(result, _Overrun)
             # Shrink to our minimal failing example, since we'll stop after this.
@@ -374,7 +393,12 @@ class FuzzProcess:
 
             # we should only get one observation per ConjectureData
             assert observation.value is None
-
+            # we rely on this for dashboard event mapping. Overwrite instead of
+            # adding a new "nodeid" field so that tyche also gets a matching nodeid.
+            # Hypothesis provides the function name here instead of the nodeid
+            # because it doesn't find a pytest item context (I didn't look further
+            # than that).
+            test_case["property"] = self.nodeid
             value = Observation.from_json(test_case)
             # we're getting this straight from hypothesis, so parsing shouldn't
             # fail
@@ -454,31 +478,37 @@ class FuzzProcess:
 
 def fuzz_several(*targets_: FuzzProcess, random_seed: Optional[int] = None) -> None:
     """Take N fuzz targets and run them all."""
-    # TODO: this isn't actually multi-process yet, and that's bad.
-    rand = Random(random_seed)
+    random = Random(random_seed)
     targets = SortedKeyList(targets_, lambda t: t.since_new_cov)
 
     # Loop forever: at each timestep, we choose a target using an epsilon-greedy
     # strategy for simplicity (TODO: improve this later) and run it once.
     # TODO: make this aware of test runtime, so it adapts for branches-per-second
     #       rather than branches-per-input.
-    for t in targets:
-        t.startup()
-    for i in itertools.count():
-        if i % 20 == 0:
-            t = targets.pop(rand.randrange(len(targets)))
-            t.run_one()
-            targets.add(t)
+    for target in targets:
+        target.startup()
+
+    resort = False
+    for count in itertools.count():
+        if count % 20 == 0:
+            resort = True
+            i = random.randrange(len(targets))
         else:
-            targets[0].run_one()
-            if len(targets) > 1 and targets.key(targets[0]) > targets.key(targets[1]):
-                # pay our log-n cost to keep the list sorted
-                targets.add(targets.pop(0))
-            elif targets[0].has_found_failure:
-                print(f"found failing example for {targets[0].nodeid}")
-                targets.pop(0)
-            if not targets:
-                return
+            i = 0
+        target = targets[i]
+        target.run_one()
+        if target.has_found_failure:
+            print(f"found failing example for {target.nodeid}")
+            targets.pop(i)
+
+        if resort or (
+            len(targets) > 1 and targets.key(targets[0]) > targets.key(targets[1])
+        ):
+            # pay our log-n cost to keep the list sorted
+            targets.add(targets.pop(0))
+
+        if not targets:
+            return
     raise NotImplementedError("unreachable")
 
 
