@@ -362,8 +362,9 @@ class Corpus:
             shrinker = get_shrinker(
                 fn,
                 initial=self.results[self.covering_nodes[branch_to_shrink]],
-                predicate=lambda d, b=branch_to_shrink: b
-                in d.extra_information.branches,
+                predicate=lambda d, b=branch_to_shrink: (
+                    b in d.extra_information.branches
+                ),
                 random=random,
             )
             shrinker.shrink()

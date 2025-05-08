@@ -259,6 +259,7 @@ class FuzzProcess:
         if self.ninputs % 1000 == 0 and self.since_new_cov > 1000:
             self._replay_queue.extend(self.corpus.fetch())
             # TODO: also fetch any new failures into self._failure_queue?
+            # TODO: use the listener for this rather than fetching everything
 
         if self._failure_queue:
             self._start_phase(Phase.REPLAY)
@@ -393,17 +394,14 @@ class FuzzProcess:
 
             # we should only get one observation per ConjectureData
             assert observation.value is None
+
             # we rely on this for dashboard event mapping. Overwrite instead of
             # adding a new "nodeid" field so that tyche also gets a matching nodeid.
             # Hypothesis provides the function name here instead of the nodeid
             # because it doesn't find a pytest item context (I didn't look further
             # than that).
             test_case["property"] = self.nodeid
-            value = Observation.from_json(test_case)
-            # we're getting this straight from hypothesis, so parsing shouldn't
-            # fail
-            assert value is not None
-            observation.value = value
+            observation.value = Observation.from_dict(test_case)
 
         TESTCASE_CALLBACKS.append(callback)
         try:
@@ -519,7 +517,12 @@ def _git_head(*, in_directory: Optional[Path] = None) -> Optional[str]:
 
     try:
         return subprocess.check_output(
-            ["git", "rev-parse", "HEAD"], timeout=10, text=True, cwd=in_directory
+            ["git", "rev-parse", "HEAD"],
+            timeout=10,
+            text=True,
+            cwd=in_directory,
+            # stdout is captured by default; hide stderr too
+            stderr=subprocess.PIPE,
         ).strip()
     except Exception:
         return None
