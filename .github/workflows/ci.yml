@@ -85,7 +85,7 @@ jobs:
         rm -rf docs/${BASE}/example-dashboard
         mkdir -p docs/${BASE}/example-dashboard
         cp -r src/hypofuzz/frontend/dist/* docs/${BASE}/example-dashboard
-        cp docs-src/dashboard_state.json docs/${BASE}/example-dashboard/assets/dashboard_state.json
+        cp -r docs-src/dashboard_state docs/${BASE}/example-dashboard/assets/
     - name: Commit website update
       run: |
         mkdir $RUNNER_TEMP/hypofuzz_site
