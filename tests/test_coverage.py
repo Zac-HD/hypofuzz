@@ -15,25 +15,32 @@ pytestmark = pytest.mark.skipif(
 
 
 class Collector:
+    """
+    A Corpus-compatible collector (can be used in FuzzProcess._run_test_on) which
+    improves branch readability in tests:
+    * drop the filename from branches (assumes single-file usage)
+    * offset branches relative to the first line of the passed function (decorators
+      count as part of the definition)
+    """
+
     def __init__(self, f):
         self.offset = f.__code__.co_firstlineno
+        self.filename = f.__code__.co_filename
         self.context = CoverageCollector()
 
     @property
     def branches(self) -> set[tuple[tuple[int, int], tuple[int, int]]]:
-        files = set()
         branches = set()
         for branch in self.context.branches:
-            files.add(branch.start[0])
-            files.add(branch.end[0])
-            branches.add(
-                (
-                    (branch.start[1] - self.offset, branch.start[2]),
-                    (branch.end[1] - self.offset, branch.end[2]),
+            if branch.start[0] == branch.end[0] == self.filename:
+                # only collect branches from the same file the function is in
+                branches.add(
+                    (
+                        (branch.start[1] - self.offset, branch.start[2]),
+                        (branch.end[1] - self.offset, branch.end[2]),
+                    )
                 )
-            )
-        # all branches are in the same file
-        assert len(files) <= 1
+
         return branches
 
     def __enter__(self) -> "Collector":

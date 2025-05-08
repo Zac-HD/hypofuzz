@@ -1,12 +1,6 @@
 import { Link } from "react-router-dom"
-import { Report, Metadata } from "../types/dashboard"
 import { Table } from "./Table"
-import {
-  getTestStats,
-  inputsPerSecond,
-  getStatus,
-  Status,
-} from "../utils/testStats"
+import { getTestStats, inputsPerSecond } from "../utils/testStats"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
 import {
   faHashtag,
@@ -18,6 +12,7 @@ import {
 import { StatusPill } from "./StatusPill"
 import { Tooltip } from "./Tooltip"
 import { IconDefinition } from "@fortawesome/fontawesome-svg-core"
+import { Status, Test } from "../types/dashboard"
 
 function Icon({ icon, tooltip }: { icon: IconDefinition; tooltip: string }) {
   return (
@@ -48,29 +43,16 @@ function InlineStatistic({
 }
 
 interface Props {
-  reports: Map<string, Report[]>
-  metadata: Map<string, Metadata>
+  tests: Map<string, Test>
   onFilterChange?: (filter: string) => void
 }
 
-interface TestRow {
-  reports: Report[]
-  metadata: Metadata
-}
-
-export function TestTable({ reports, metadata, onFilterChange }: Props) {
-  const sortedTests = Array.from(reports.entries())
-    .filter(([nodeid, reports]) => {
-      if (reports.length === 0) {
-        return false
-      }
-      return metadata.has(nodeid)
+export function TestTable({ tests, onFilterChange }: Props) {
+  const sortedTests = Array.from(tests)
+    .sortKey(([nodeid, test]) => {
+      return [test.status, nodeid]
     })
-    .sortKey(([nodeid, reports]) => {
-      const latest = reports[reports.length - 1]
-      return [getStatus(latest, metadata.get(nodeid)!), nodeid]
-    })
-    .map(([nodeid, reports]) => ({ reports, metadata: metadata.get(nodeid)! }))
+    .map(([nodeid, test]) => test)
 
   const inputsIcon = <Icon icon={faHashtag} tooltip="Number of inputs" />
   const iconBranches = (
@@ -89,64 +71,56 @@ export function TestTable({ reports, metadata, onFilterChange }: Props) {
   const headers = [
     {
       content: "Test",
-      sortKey: (item: TestRow) => item.metadata.nodeid,
+      sortKey: (test: Test) => test.nodeid,
     },
     {
       content: "Status",
-      sortKey: (item: TestRow) => {
-        const latest = item.reports[item.reports.length - 1]
-        if (item.metadata.failures?.length) return 0
-        if (latest.ninputs === 0) return 1
-        return 2
-      },
+      sortKey: (test: Test) => test.status,
       align: "center",
     },
     {
       content: inputsIcon,
       align: "right",
-      sortKey: (item: TestRow) => item.reports[item.reports.length - 1].ninputs,
+      sortKey: (test: Test) => test.reports[test.reports.length - 1].ninputs,
     },
     {
       content: iconBranches,
       align: "right",
-      sortKey: (item: TestRow) =>
-        item.reports[item.reports.length - 1].branches,
+      sortKey: (test: Test) => test.reports[test.reports.length - 1].branches,
     },
     {
       content: iconExecutions,
       align: "right",
-      sortKey: (item: TestRow) =>
-        inputsPerSecond(item.reports[item.reports.length - 1]),
+      sortKey: (test: Test) =>
+        inputsPerSecond(test.reports[test.reports.length - 1]),
     },
     {
       content: iconSinceNewBranch,
       align: "right",
-      sortKey: (item: TestRow) =>
-        item.reports[item.reports.length - 1].since_new_cov ?? 0,
+      sortKey: (test: Test) =>
+        test.reports[test.reports.length - 1].since_new_cov ?? 0,
     },
     {
       content: iconTimeSpent,
       align: "right",
-      sortKey: (item: TestRow) =>
-        item.reports[item.reports.length - 1].elapsed_time,
+      sortKey: (test: Test) =>
+        test.reports[test.reports.length - 1].elapsed_time,
     },
   ]
 
-  const row = (item: TestRow): React.ReactNode[] => {
-    const latest = item.reports[item.reports.length - 1]
-    const stats = getTestStats(latest)
-    const status = getStatus(latest, item.metadata)
+  const row = (test: Test): React.ReactNode[] => {
+    const stats = getTestStats(test)
 
     return [
       <Link
-        to={`/tests/${encodeURIComponent(latest.nodeid)}`}
+        to={`/tests/${encodeURIComponent(test.nodeid)}`}
         className="test__link"
         style={{ wordBreak: "break-all" }}
       >
-        {latest.nodeid}
+        {test.nodeid}
       </Link>,
       <div style={{ textAlign: "center" }}>
-        <StatusPill status={status} />
+        <StatusPill status={test.status} />
       </div>,
       <div style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
         {stats.inputs}
@@ -166,22 +140,20 @@ export function TestTable({ reports, metadata, onFilterChange }: Props) {
     ]
   }
 
-  function mobileRow(item: TestRow) {
-    const latest = item.reports[item.reports.length - 1]
-    const stats = getTestStats(latest)
-    const status = getStatus(latest, item.metadata)
+  function mobileRow(test: Test) {
+    const stats = getTestStats(test)
 
     return (
       <div className="table__mobile-row">
         <div className="table__mobile-row__header">
           <Link
-            to={`/tests/${encodeURIComponent(latest.nodeid)}`}
+            to={`/tests/${encodeURIComponent(test.nodeid)}`}
             className="test__link"
             style={{ wordBreak: "break-all" }}
           >
-            {latest.nodeid}
+            {test.nodeid}
           </Link>
-          <StatusPill status={status} />
+          <StatusPill status={test.status} />
         </div>
         <div className="table__mobile-row__statistics">
           <InlineStatistic icon={inputsIcon} value={stats.inputs} />
@@ -197,10 +169,8 @@ export function TestTable({ reports, metadata, onFilterChange }: Props) {
     )
   }
 
-  function filterStrings(item: TestRow) {
-    const latest = item.reports[item.reports.length - 1]
-    const status = getStatus(latest, item.metadata)
-    return [latest.nodeid, Status[status]]
+  function filterStrings(test: Test) {
+    return [test.nodeid, Status[test.status]]
   }
 
   return (
@@ -211,7 +181,7 @@ export function TestTable({ reports, metadata, onFilterChange }: Props) {
         data={sortedTests}
         row={row}
         mobileRow={mobileRow}
-        getKey={item => item.reports[item.reports.length - 1].database_key}
+        getKey={test => test.database_key}
         filterStrings={filterStrings}
         onFilterChange={onFilterChange}
       />

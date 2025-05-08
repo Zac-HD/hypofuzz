@@ -15,7 +15,7 @@ from hypothesis.internal.conjecture.providers import (
 )
 from hypothesis.internal.intervalsets import IntervalSet
 
-from hypofuzz.corpus import ChoicesT
+from hypofuzz.database import ChoicesT
 
 
 def fresh_choice(

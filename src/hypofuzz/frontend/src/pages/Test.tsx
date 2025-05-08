@@ -12,7 +12,6 @@ import {
   faClock,
   faSeedling,
 } from "@fortawesome/free-solid-svg-icons"
-import { getStatus } from "../utils/testStats"
 import { StatusPill } from "../components/StatusPill"
 import { Tooltip } from "../components/Tooltip"
 import hljs from "highlight.js/lib/core"
@@ -34,21 +33,18 @@ export function TestPage() {
 
 function _TestPage() {
   const { nodeid } = useParams<{ nodeid: string }>()
-  const { reports, metadata } = useData()
+  const { tests } = useData()
 
   useEffect(() => {
     hljs.highlightAll()
-  }, [reports, metadata])
+  }, [tests])
 
-  if (!nodeid || !reports.has(nodeid)) {
+  if (!nodeid || !tests.has(nodeid)) {
     return <div>Test not found</div>
   }
 
-  const testReports = reports.get(nodeid)!
-  const testMetadata = metadata.get(nodeid)!
-  const latest = testReports[testReports.length - 1]
-  const stats = getTestStats(latest)
-  const status = getStatus(latest, testMetadata)
+  const test = tests.get(nodeid)!
+  const stats = getTestStats(test)
 
   const headers = [
     {
@@ -129,7 +125,7 @@ function _TestPage() {
         >
           {nodeid}
         </span>
-        <StatusPill status={status} />
+        <StatusPill status={test.status} />
       </div>
       <div style={{ paddingTop: "1rem", paddingBottom: "1rem" }}>
         <Table
@@ -144,32 +140,32 @@ function _TestPage() {
           ]}
         />
       </div>
-      <CoverageGraph reports={new Map([[nodeid, testReports]])} />
+      <CoverageGraph tests={new Map([[nodeid, test]])} />
 
-      {testMetadata.failures && testMetadata.failures.length > 0 && (
+      {test.failure && (
         <div className="test-failure">
           <h2>Failure</h2>
-          {testMetadata.failures.map(
-            ([callRepr, _, reproductionDecorator, traceback], index) => (
-              <div key={index} className="test-failure__item">
-                <h3>Call</h3>
-                <pre>
-                  <code className="language-python">
-                    {reproductionDecorator + "\n" + callRepr}
-                  </code>
-                </pre>
-                <h3>Traceback</h3>
-                <pre>
-                  <code className="language-python">{traceback}</code>
-                </pre>
-              </div>
-            ),
-          )}
+          <div className="test-failure__item">
+            <h3>Call</h3>
+            <pre>
+              <code className="language-python">
+                {test.failure.metadata.get("reproduction_decorator") +
+                  "\n" +
+                  test.failure.representation}
+              </code>
+            </pre>
+            <h3>Traceback</h3>
+            <pre>
+              <code className="language-python">
+                {test.failure.metadata.get("traceback")}
+              </code>
+            </pre>
+          </div>
         </div>
       )}
 
-      {testMetadata.seed_pool && (
-        <CoveringExamples seedPool={testMetadata.seed_pool} />
+      {test.corpus_observations && (
+        <CoveringExamples observations={test.corpus_observations} />
       )}
     </div>
   )

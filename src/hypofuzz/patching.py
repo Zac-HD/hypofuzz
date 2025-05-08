@@ -1,29 +1,25 @@
 import shutil
 from functools import lru_cache
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING
 
 from hypothesis.configuration import storage_directory
 from hypothesis.extra._patching import FAIL_MSG, get_patch_for, make_patch, save_patch
 
-from hypofuzz.database import Metadata, Phase, Report
+from hypofuzz.database import Phase
+from hypofuzz.hypofuzz import FuzzProcess
+
+if TYPE_CHECKING:
+    from hypofuzz.dashboard import Test
 
 COV_MSG = "HypoFuzz covering example"
 get_patch_for_cached = lru_cache(maxsize=8192)(get_patch_for)
 make_patch_cached = lru_cache(maxsize=1024)(make_patch)
 
 
-@lru_cache
-def get_all_tests(pytest_args: Any) -> list:
-    from hypofuzz.interface import _get_hypothesis_tests_with_pytest
-
-    return _get_hypothesis_tests_with_pytest(pytest_args).fuzz_targets
-
-
 def make_and_save_patches(
-    pytest_args: Any,
-    reports: dict[str, list[Report]],
-    metadata: dict[str, Metadata],
+    fuzz_targets: list[FuzzProcess],
+    tests: dict[str, "Test"],
     *,
     canonical: bool = True,
 ) -> dict[str, Path]:
@@ -31,24 +27,26 @@ def make_and_save_patches(
     triples_cov: list = []
     triples_fail: list = []
 
-    tests = {t.nodeid: t._test_fn for t in get_all_tests(pytest_args)}
-    for nodeid, test_fn in tests.items():
-        if nodeid not in reports or nodeid not in metadata or not reports[nodeid]:
-            continue
-        report = reports[nodeid][-1]
-        node_metadata = metadata[nodeid]
+    test_functions = {t.nodeid: t._test_fn for t in fuzz_targets}
+    for nodeid, test in tests.items():
         # for each func
         #   - only strip_via if replay is complete
         #   - only add failing if not currently shrinking
         #   - tag covering examples with covering-via
+        assert nodeid in test_functions
+        test_fn = test_functions[nodeid]
+
         failing_examples = []
         covering_examples = []
-        if node_metadata.failures and report.phase != Phase.DISTILL:
-            failing_examples = [
-                (ex, FAIL_MSG) for ex, _, _, _ in node_metadata.failures
+
+        if test.failure:
+            failing_examples.append((test.failure.metadata["traceback"], FAIL_MSG))
+
+        if test.phase is not Phase.REPLAY:
+            covering_examples = [
+                (observation.representation, COV_MSG)
+                for observation in test.corpus_observations
             ]
-        if node_metadata.seed_pool and report.phase != Phase.REPLAY:
-            covering_examples = [(ex, COV_MSG) for _, ex, _ in node_metadata.seed_pool]
 
         for out, examples, strip_via in [
             (triples_fail, failing_examples, ()),

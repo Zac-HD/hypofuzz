@@ -1,4 +1,4 @@
-import { Metadata, Report } from "../types/dashboard"
+import { Report, Test } from "../types/dashboard"
 
 export interface TestStats {
   inputs: string
@@ -6,30 +6,6 @@ export interface TestStats {
   executions: string
   inputsSinceBranch: string
   timeSpent: string
-}
-
-export enum Status {
-  FAILED = 0,
-  RUNNING = 1,
-  WAITING = 2,
-}
-
-// if it's been this long since the last report in seconds, consider the test status
-// to be "waiting" instead of "running"
-const WAITING_STATUS_DURATION = 120
-
-export function getStatus(report: Report, metadata: Metadata): Status {
-  if (metadata.failures?.length) {
-    return Status.FAILED
-  }
-  const timestamp = new Date().getTime() / 1000
-  if (
-    report.ninputs === 0 ||
-    report.timestamp < timestamp - WAITING_STATUS_DURATION
-  ) {
-    return Status.WAITING
-  }
-  return Status.RUNNING
 }
 
 function formatTime(t: number): string {
@@ -50,12 +26,23 @@ export function inputsPerSecond(report: Report): number {
   return report.elapsed_time > 0 ? report.ninputs / report.elapsed_time : 0
 }
 
-export function getTestStats(report: Report): TestStats {
+export function getTestStats(test: Test): TestStats {
+  if (test.reports.length === 0) {
+    return {
+      inputs: "—",
+      branches: "—",
+      executions: "—",
+      inputsSinceBranch: "—",
+      timeSpent: "—",
+    }
+  }
+
+  const latest = test.reports[test.reports.length - 1]
   return {
-    inputs: report.ninputs.toLocaleString(),
-    branches: report.branches.toLocaleString(),
-    executions: `${inputsPerSecond(report).toFixed(1).toLocaleString()}/s`,
-    inputsSinceBranch: report.since_new_cov?.toLocaleString() ?? "—",
-    timeSpent: formatTime(report.elapsed_time),
+    inputs: latest.ninputs.toLocaleString(),
+    branches: latest.branches.toLocaleString(),
+    executions: `${inputsPerSecond(latest).toFixed(1).toLocaleString()}/s`,
+    inputsSinceBranch: latest.since_new_cov?.toLocaleString() ?? "—",
+    timeSpent: formatTime(latest.elapsed_time),
   }
 }

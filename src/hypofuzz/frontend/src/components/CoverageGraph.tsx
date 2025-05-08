@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useMemo } from "react"
 import * as d3 from "d3"
-import { Report } from "../types/dashboard"
+import { Report, Test } from "../types/dashboard"
 import { Toggle } from "./Toggle"
 import { useSetting } from "../hooks/useSetting"
 import { useNavigate } from "react-router-dom"
@@ -17,7 +17,7 @@ if (typeof window !== "undefined") {
 }
 
 interface Props {
-  reports: Map<string, Report[]>
+  tests: Map<string, Test>
   filterString?: string
 }
 
@@ -387,11 +387,11 @@ class Graph {
   }
 }
 
-export function CoverageGraph({ reports, filterString = "" }: Props) {
+export function CoverageGraph({ tests, filterString = "" }: Props) {
   const svgRef = useRef<SVGSVGElement>(null)
   const [scaleSetting, setScaleSetting] = useSetting<string>(
     "graph_scale",
-    "linear",
+    "log",
   )
   const [axisSetting, setAxisSetting] = useSetting<string>(
     "graph_x_axis",
@@ -404,6 +404,15 @@ export function CoverageGraph({ reports, filterString = "" }: Props) {
   }>({ transform: null, zoomY: false })
   const [boxSelectEnabled, setBoxSelectEnabled] = useState(false)
   const navigate = useNavigate()
+
+  const reports = useMemo(() => {
+    return new Map(
+      Array.from(tests.entries()).map(([nodeid, test]) => [
+        nodeid,
+        test.reports,
+      ]),
+    )
+  }, [tests])
 
   const filteredReports = useMemo(() => {
     if (!filterString) return reports
