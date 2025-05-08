@@ -3,7 +3,9 @@ import JSON5 from "json5"
 
 export async function fetchData<T>(endpoint: string): Promise<T | null> {
   try {
-    const response = await fetch(new URL("dashboard_state.json", import.meta.url))
+    const response = await fetch(
+      new URL(/* @vite-ignore */ "dashboard_state.json", import.meta.url),
+    )
     const data = JSON5.parse(await response.text())
     return data[endpoint]
   } catch (e) {

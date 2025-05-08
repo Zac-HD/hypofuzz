@@ -312,18 +312,35 @@ async def api_collected_tests(request: Request) -> Response:
     return HypofuzzJSONResponse({"collection_status": _collection_status()})
 
 
-async def api_backing_state(request: Request) -> Response:
-    # get the backing state of the dashboard, suitable for use by
-    # dashboard_state.json.
-    # The data returned here looks very similar to other endpoints for now, but
-    # I'm keeping it separate because the data required to back a dashboard may
-    # change over time.
+# get the backing state of the dashboard, suitable for use by dashboard_state/*.json.
+async def api_backing_state_tests(request: Request) -> Response:
+    tests = {
+        nodeid: dataclasses.replace(
+            test, rolling_observations=[], corpus_observations=[]
+        )
+        for nodeid, test in TESTS.items()
+    }
+
+    return HypofuzzJSONResponse(tests)
+
+
+async def api_backing_state_observations(request: Request) -> Response:
+    observations = {
+        nodeid: {
+            "rolling": test.rolling_observations,
+            "corpus": test.corpus_observations,
+        }
+        for nodeid, test in TESTS.items()
+    }
+    return HypofuzzJSONResponse(observations)
+
+
+async def api_backing_state_api(request: Request) -> Response:
     return HypofuzzJSONResponse(
         {
-            "tests": TESTS,
             "collected_tests": {"collection_status": _collection_status()},
             "patches": _patches(),
-        },
+        }
     )
 
 
@@ -336,7 +353,9 @@ routes = [
     Route("/api/patches/", api_patches),
     Route("/api/patches/{patch_name}", api_patch),
     Route("/api/collected_tests/", api_collected_tests),
-    Route("/api/backing_state/", api_backing_state),
+    Route("/api/backing_state/tests", api_backing_state_tests),
+    Route("/api/backing_state/observations", api_backing_state_observations),
+    Route("/api/backing_state/api", api_backing_state_api),
     Mount("/assets", StaticFiles(directory=dist / "assets")),
     # catchall fallback. react will handle the routing of dynamic urls here,
     # such as to a node id.

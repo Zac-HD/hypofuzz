@@ -35,27 +35,47 @@ export function DataProvider({ children, nodeid }: DataProviderProps) {
     // load data from local dashboard state json files iff the appropriate env var was set
     // during building.
     if (import.meta.env.VITE_USE_DASHBOARD_STATE === "1") {
-      fetch(new URL("dashboard_state.json", import.meta.url))
-        .then(async response => {
-          const data = await JSON5.parse(await response.text())
-          if (data) {
-            setTests(
-              new Map(
-                Object.entries(data.tests).map(([nodeid, data]) => [
-                  nodeid,
-                  Test.fromJson(data),
-                ]),
-              ),
-            )
-          }
-        })
-        .catch(error => {
-          console.error("Failed to load dashboard state: ", error)
-        })
-        .finally(() => {
+      fetch(new URL(/* @vite-ignore */ "dashboard_state/tests.json", import.meta.url))
+        .then(response => response.text())
+        .then(text => JSON5.parse(text) as Record<string, any>)
+        .then(data => {
+          const tests = new Map(
+            Object.entries(data).map(([nodeid, data]) => [nodeid, Test.fromJson(data)]),
+          )
+          setTests(tests)
           setIsLoading(false)
         })
-      return
+
+      // json.parse is sync (blocks ui) and expensive. Push it to a background worker to make it async.
+      // We pay a small serialization cost; ~5% by my measurement.
+      const worker = new Worker(new URL("./jsonWorker.js", import.meta.url))
+      fetch(
+        new URL(
+          /* @vite-ignore */ "dashboard_state/observations.json",
+          import.meta.url,
+        ),
+      )
+        .then(response => response.text())
+        .then(text => {
+          return new Promise<Record<string, { rolling: any[]; corpus: any[] }>>(
+            resolve => {
+              worker.onmessage = e => resolve(e.data)
+              worker.postMessage(text)
+            },
+          )
+        })
+        .then(observationsData => {
+          for (const [test_id, testObservations] of Object.entries(observationsData)) {
+            const test = testsRef.current.get(test_id)!
+            test.rolling_observations = testObservations.rolling.map(
+              Observation.fromJson,
+            )
+            test.corpus_observations = testObservations.corpus.map(Observation.fromJson)
+          }
+          setTests(new Map(testsRef.current))
+        })
+
+      return () => worker.terminate()
     }
 
     const url = new URL(
