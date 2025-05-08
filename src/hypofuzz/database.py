@@ -152,6 +152,13 @@ class Report:
     since_new_cov: Optional[int]
     phase: Phase
 
+    def __post_init__(self) -> None:
+        assert self.elapsed_time >= 0, f"{self.elapsed_time=}"
+        assert self.branches >= 0, f"{self.branches=}"
+        assert self.phase in Phase, f"{self.phase=}"
+        if self.since_new_cov is not None:
+            assert self.since_new_cov >= 0, f"{self.since_new_cov=}"
+
     @staticmethod
     def from_json(data: dict) -> Optional["Report"]:
         data = dict(data)

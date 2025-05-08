@@ -208,7 +208,7 @@ class TestWebsocket(HypofuzzWebsocket):
                 assert isinstance(data, Observation)
                 nodeid = data.property
             else:
-                raise AssertionError()
+                raise NotImplementedError(f"unhandled event {header}")
 
             # only broadcast event for this nodeid
             if nodeid != self.nodeid:
