@@ -339,34 +339,34 @@ async def serve_app(app: Any, host: str, port: str) -> None:
     await serve(app, config)
 
 
-async def handle_event(receive_channel: MemoryReceiveChannel) -> None:
+async def handle_event(receive_channel: MemoryReceiveChannel[ListenerEventT]) -> None:
     async for event_type, args in receive_channel:
         if event_type == "save":
             key, value = args
             assert value is not None
             if key.endswith(reports_key):
-                report = Report.from_json(json.loads(value))
+                report = Report.from_json(value)
                 # this is an in-process transmission, it should never be out of
                 # date with the Report schema
                 assert report is not None
                 TESTS[report.nodeid].add_report(report)
                 await broadcast_event({"type": "save", "save_type": "report"}, report)
             elif is_failure_observation_key(key):
-                observation = Observation.from_json(json.loads(value))
+                observation = Observation.from_json(value)
                 assert observation is not None
                 TESTS[observation.property].failure = observation
                 await broadcast_event(
                     {"type": "save", "save_type": "failure"}, observation
                 )
             elif is_observation_key(key):
-                observation = Observation.from_json(json.loads(value))
+                observation = Observation.from_json(value)
                 assert observation is not None
                 TESTS[observation.property].rolling_observations.append(observation)
                 await broadcast_event(
                     {"type": "save", "save_type": "rolling_observation"}, observation
                 )
             elif is_corpus_observation_key(key):
-                observation = Observation.from_json(json.loads(value))
+                observation = Observation.from_json(value)
                 assert observation is not None
                 TESTS[observation.property].corpus_observations.append(observation)
                 await broadcast_event(

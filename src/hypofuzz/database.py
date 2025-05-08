@@ -85,16 +85,17 @@ class Observation:
     property: str
     run_start: int
 
-    @staticmethod
-    def from_json(data: dict) -> Optional["Observation"]:
-        data = dict(data)
-        # we disable observability coverage, but hypothesis still gives us a key
-        # for it.
-        if "coverage" in data:
-            data.pop("coverage")
+    @classmethod
+    def from_dict(cls, data: dict[str, Any], /) -> "Observation":
+        # we disable observability coverage, so discard the empty key
+        data.pop("coverage", None)
+        data["status"] = ObservationStatus(data["status"])
+        return cls(**data)
+
+    @classmethod
+    def from_json(cls, encoded: bytes, /) -> Optional["Observation"]:
         try:
-            data["status"] = ObservationStatus(data["status"])
-            return Observation(**data)
+            return cls.from_dict(json.loads(encoded))
         except Exception:
             return None
 
@@ -160,9 +161,9 @@ class Report:
             assert self.since_new_cov >= 0, f"{self.since_new_cov=}"
 
     @staticmethod
-    def from_json(data: dict) -> Optional["Report"]:
-        data = dict(data)
+    def from_json(encoded: bytes, /) -> Optional["Report"]:
         try:
+            data = json.loads(encoded)
             data["worker"] = WorkerIdentity.from_json(data["worker"])
             data["status_counts"] = StatusCounts(
                 {Status(int(k)): v for k, v in data["status_counts"].items()}
@@ -336,7 +337,7 @@ class HypofuzzDatabase:
             value = next(observations)
         except StopIteration:
             return None
-        return Observation.from_json(json.loads(value))
+        return Observation.from_json(value)
 
     def fetch_corpus_observations(
         self,
@@ -344,7 +345,7 @@ class HypofuzzDatabase:
         choices: ChoicesT,
     ) -> Iterable[Observation]:
         for value in self.fetch(corpus_observation_key(key, choices)):
-            if (observation := Observation.from_json(json.loads(value))) is not None:
+            if (observation := Observation.from_json(value)) is not None:
                 yield observation
 
     # failures (failures_key)
@@ -392,13 +393,13 @@ class HypofuzzDatabase:
             value = next(observations)
         except StopIteration:
             return None
-        return Observation.from_json(json.loads(value))
+        return Observation.from_json(value)
 
     def fetch_failure_observations(
         self, key: bytes, choices: ChoicesT
     ) -> Iterable[Observation]:
         for value in self.fetch(failure_observation_key(key, choices)):
-            if (observation := Observation.from_json(json.loads(value))) is not None:
+            if (observation := Observation.from_json(value)) is not None:
                 yield observation
 
 

@@ -393,17 +393,14 @@ class FuzzProcess:
 
             # we should only get one observation per ConjectureData
             assert observation.value is None
+
             # we rely on this for dashboard event mapping. Overwrite instead of
             # adding a new "nodeid" field so that tyche also gets a matching nodeid.
             # Hypothesis provides the function name here instead of the nodeid
             # because it doesn't find a pytest item context (I didn't look further
             # than that).
             test_case["property"] = self.nodeid
-            value = Observation.from_json(test_case)
-            # we're getting this straight from hypothesis, so parsing shouldn't
-            # fail
-            assert value is not None
-            observation.value = value
+            observation.value = Observation.from_dict(test_case)
 
         TESTCASE_CALLBACKS.append(callback)
         try:
