@@ -168,19 +168,17 @@ class HypofuzzWebsocket(abc.ABC):
 
 class OverviewWebsocket(HypofuzzWebsocket):
     async def initial(self, tests: dict[str, Test]) -> None:
-        # drop observations from the report. The overview page doesn't use them,
-        # and they are very large.
         tests = {
             nodeid: dataclasses.replace(
                 test, rolling_observations=[], corpus_observations=[]
             )
             for nodeid, test in tests.items()
         }
-        await self.send_event({"type": "initial"}, tests)
+        await self.send_event({"type": "initial", "initial_type": "tests"}, tests)
+        # don't send observations event, overview page doesn't use them
 
     async def on_event(self, header: dict[str, Any], data: Any) -> None:
         if header["type"] == "save":
-            # overview page doesn't use observations
             if header["save_type"] in ["rolling_observation", "corpus_observation"]:
                 return
             await self.send_event(header, data)
@@ -192,8 +190,23 @@ class TestWebsocket(HypofuzzWebsocket):
         self.nodeid = nodeid
 
     async def initial(self, tests: dict[str, Test]) -> None:
-        tests = {self.nodeid: tests[self.nodeid]}
-        await self.send_event({"type": "initial"}, tests)
+        test = tests[self.nodeid]
+        # split initial event in two pieces: test (without observations), and observations.
+        tests = {
+            self.nodeid: dataclasses.replace(
+                test, rolling_observations=[], corpus_observations=[]
+            )
+        }
+        observations = {
+            self.nodeid: {
+                "rolling": test.rolling_observations,
+                "corpus": test.corpus_observations,
+            }
+        }
+        await self.send_event({"type": "initial", "initial_type": "tests"}, tests)
+        await self.send_event(
+            {"type": "initial", "initial_type": "observations"}, observations
+        )
 
     async def on_event(self, header: dict[str, Any], data: Any) -> None:
         if header["type"] == "save":
@@ -208,7 +221,7 @@ class TestWebsocket(HypofuzzWebsocket):
                 assert isinstance(data, Observation)
                 nodeid = data.property
             else:
-                raise AssertionError()
+                raise AssertionError
 
             # only broadcast event for this nodeid
             if nodeid != self.nodeid:
@@ -228,8 +241,7 @@ async def websocket(websocket: WebSocket) -> None:
     await websocket.accept()
     websockets.add(websocket)
 
-    tests = {test.nodeid: test for test in TESTS.values()}
-    await websocket.initial(tests)
+    await websocket.initial(TESTS)
 
     try:
         while True:

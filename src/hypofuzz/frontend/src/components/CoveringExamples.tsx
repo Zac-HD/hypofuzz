@@ -16,13 +16,13 @@ interface Props {
 export function CoveringExamples({ observations }: Props) {
   const [isOpen, setIsOpen] = useState(false)
 
-  if (observations.length === 0) {
-    return null
-  }
-
   useEffect(() => {
     hljs.highlightAll()
   }, [observations])
+
+  if (observations.length === 0) {
+    return null
+  }
 
   return (
     <div className="covering-examples">

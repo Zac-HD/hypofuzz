@@ -8,7 +8,7 @@ abstract class Dataclass<T> {
 
 class StatusCounts extends Dataclass<StatusCounts> {
   constructor(
-    readonly counts: Map<Status, number> = new Map([
+    public counts: Map<Status, number> = new Map([
       [Status.OVERRUN, 0],
       [Status.INVALID, 0],
       [Status.VALID, 0],
@@ -83,15 +83,15 @@ export interface WorkerIdentity {
 
 export class Report extends Dataclass<Report> {
   constructor(
-    readonly database_key: string,
-    readonly nodeid: string,
-    readonly elapsed_time: number,
-    readonly timestamp: number,
-    readonly worker: WorkerIdentity,
-    readonly status_counts: StatusCounts,
-    readonly branches: number,
-    readonly since_new_cov: number | null,
-    readonly phase: Phase,
+    public database_key: string,
+    public nodeid: string,
+    public elapsed_time: number,
+    public timestamp: number,
+    public worker: WorkerIdentity,
+    public status_counts: StatusCounts,
+    public branches: number,
+    public since_new_cov: number | null,
+    public phase: Phase,
   ) {
     super()
   }
@@ -124,18 +124,18 @@ enum ObservationStatus {
 export class Observation extends Dataclass<Observation> {
   // https://hypothesis.readthedocs.io/en/latest/reference/integrations.html#test-case
   constructor(
-    readonly type: string,
-    readonly status: ObservationStatus,
-    readonly status_reason: string,
-    readonly representation: string,
+    public type: string,
+    public status: ObservationStatus,
+    public status_reason: string,
+    public representation: string,
     // arguments is a reserved keyword in javascript
-    readonly arguments_: Map<string, any>,
-    readonly how_generated: string,
-    readonly features: Map<string, any>,
-    readonly timing: Map<string, any>,
-    readonly metadata: Map<string, any>,
-    readonly property: string,
-    readonly run_start: number,
+    public arguments_: Map<string, any>,
+    public how_generated: string,
+    public features: Map<string, any>,
+    public timing: Map<string, any>,
+    public metadata: Map<string, any>,
+    public property: string,
+    public run_start: number,
   ) {
     super()
   }
@@ -166,8 +166,8 @@ export enum TestStatus {
 
 export class ReportOffsets extends Dataclass<ReportOffsets> {
   constructor(
-    readonly elapsed_time: Map<string, number>,
-    readonly status_counts: Map<string, StatusCounts>,
+    public elapsed_time: Map<string, number>,
+    public status_counts: Map<string, StatusCounts>,
   ) {
     super()
   }
@@ -190,18 +190,17 @@ export class Test extends Dataclass<Test> {
   // to be "waiting" instead of "running"
   static WAITING_STATUS_DURATION = 120
 
-  elapsed_time: number
-  status_counts: StatusCounts
-  failure: Observation | null
+  public elapsed_time: number
+  public status_counts: StatusCounts
 
   constructor(
-    readonly database_key: string,
-    readonly nodeid: string,
-    readonly reports: Report[],
-    readonly reports_offsets: ReportOffsets,
-    readonly rolling_observations: Observation[],
-    readonly corpus_observations: Observation[],
-    failure: Observation | null,
+    public database_key: string,
+    public nodeid: string,
+    public reports: Report[],
+    public reports_offsets: ReportOffsets,
+    public rolling_observations: Observation[],
+    public corpus_observations: Observation[],
+    public failure: Observation | null,
   ) {
     super()
     this.elapsed_time = sum(this.reports_offsets.elapsed_time.values())
@@ -210,7 +209,6 @@ export class Test extends Dataclass<Test> {
       status_counts = status_counts.add(counts)
     }
     this.status_counts = status_counts
-    this.failure = failure
   }
 
   static fromJson(data: any): Test {
@@ -219,8 +217,9 @@ export class Test extends Dataclass<Test> {
       data.nodeid,
       data.reports.map(Report.fromJson),
       ReportOffsets.fromJson(data.reports_offsets),
-      data.rolling_observations.map(Observation.fromJson),
-      data.corpus_observations.map(Observation.fromJson),
+      // observations will be updated later by another websocket event
+      [],
+      [],
       data.failure ? Observation.fromJson(data.failure) : null,
     )
   }
