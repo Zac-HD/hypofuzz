@@ -31,6 +31,7 @@ from hypofuzz.database import (
     HypofuzzDatabase,
     HypofuzzEncoder,
     Observation,
+    ObservationStatus,
     Phase,
     Report,
     ReportOffsets,
@@ -84,7 +85,7 @@ class Test:
                 for r1, r2 in zip(self.reports, self.reports[1:])
             ), (attribute, [getattr(r, attribute) for r in self.reports])
 
-        # we tracak a separate attibute for the total count for efficiency, but
+        # we track a separate attibute for the total count for efficiency, but
         # they should be equal.
         assert self.status_counts == sum(
             self.reports_offsets.status_counts.values(),
@@ -373,11 +374,6 @@ async def handle_event(receive_channel: MemoryReceiveChannel[ListenerEventT]) ->
                     {"type": "save", "save_type": "corpus_observation"}, observation
                 )
 
-        # we'll want to send the relinearized history to the dashboard every now
-        # and then (via a "refresh" event), to avoid falling too far out of sync.
-        # Unclear whether we want this on a long debounce for any arbitrary event,
-        # or on a timer.
-
 
 # cache to make the db a singleton. We defer creation until first-usage to ensure
 # that we use the test-time database setting, rather than init-time.
@@ -431,13 +427,20 @@ async def run_dashboard(port: int, host: str) -> None:
             for observation in corpus_observations
             if observation is not None
         ]
-        failure = None
-        if failures := (
-            list(db.fetch_failures(key, shrunk=True))
-            + list(db.fetch_failures(key, shrunk=False))
+
+        failure_observations = {}
+        for maybe_observed in (
+            *sorted(db.fetch_failures(key, shrunk=True), key=len),
+            *sorted(db.fetch_failures(key, shrunk=False), key=len),
         ):
-            # if there are multiple failures, pick the first one
-            failure = db.fetch_failure_observation(key, failures[0])
+            if failure := db.fetch_failure_observation(key, maybe_observed):
+                if failure.status is not ObservationStatus.FAILED:
+                    # This should never happen, but database corruption *can*.
+                    continue  # pragma: no cover
+                # For failures, Hypothesis records the interesting_origin string
+                # as the status_reason, which is how we dedupe errors upstream.
+                if failure.status_reason not in failure_observations:
+                    failure_observations[failure.status_reason] = failure
 
         TESTS[fuzz_target.nodeid] = Test(
             database_key=fuzz_target.database_key_str,
@@ -446,7 +449,8 @@ async def run_dashboard(port: int, host: str) -> None:
             reports_offsets=reports.offsets,
             rolling_observations=rolling_observations,
             corpus_observations=corpus_observations,
-            failure=failure,
+            # TODO: refactor Test, and our frontend, to support multiple failures.
+            failure=next(iter(failure_observations.values()), None),
         )
 
     # Any database events that get submitted while we're computing initial state

@@ -259,6 +259,7 @@ class FuzzProcess:
         if self.ninputs % 1000 == 0 and self.since_new_cov > 1000:
             self._replay_queue.extend(self.corpus.fetch())
             # TODO: also fetch any new failures into self._failure_queue?
+            # TODO: use the listener for this rather that fetching everything
 
         if self._failure_queue:
             self._start_phase(Phase.REPLAY)
