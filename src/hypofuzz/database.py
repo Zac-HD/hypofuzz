@@ -332,12 +332,10 @@ class HypofuzzDatabase:
     ) -> Optional[Observation]:
         # We expect there to be only a single entry. If there are multiple, we
         # arbitrarily pick one to return.
-        observations = iter(self.fetch(corpus_observation_key(key, choices)))
         try:
-            value = next(observations)
+            return next(iter(self.fetch_corpus_observations(key, choices)))
         except StopIteration:
             return None
-        return Observation.from_json(value)
 
     def fetch_corpus_observations(
         self,
@@ -345,7 +343,7 @@ class HypofuzzDatabase:
         choices: ChoicesT,
     ) -> Iterable[Observation]:
         for value in self.fetch(corpus_observation_key(key, choices)):
-            if (observation := Observation.from_json(value)) is not None:
+            if observation := Observation.from_json(value):
                 yield observation
 
     # failures (failures_key)
@@ -388,18 +386,16 @@ class HypofuzzDatabase:
     def fetch_failure_observation(
         self, key: bytes, choices: ChoicesT
     ) -> Optional[Observation]:
-        observations = iter(self.fetch(failure_observation_key(key, choices)))
         try:
-            value = next(observations)
+            return next(iter(self.fetch_failure_observations(key, choices)))
         except StopIteration:
             return None
-        return Observation.from_json(value)
 
     def fetch_failure_observations(
         self, key: bytes, choices: ChoicesT
     ) -> Iterable[Observation]:
         for value in self.fetch(failure_observation_key(key, choices)):
-            if (observation := Observation.from_json(value)) is not None:
+            if observation := Observation.from_json(value):
                 yield observation
 
 
