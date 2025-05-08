@@ -252,9 +252,7 @@ class HypofuzzDatabase:
         self.delete(key + reports_key, self._encode(report))
 
     def fetch_reports(self, key: bytes) -> list[Report]:
-        reports = [
-            Report.from_json(json.loads(v)) for v in self.fetch(key + reports_key)
-        ]
+        reports = [Report.from_json(v) for v in self.fetch(key + reports_key)]
         return [r for r in reports if r is not None]
 
     # observations (observe_key)
