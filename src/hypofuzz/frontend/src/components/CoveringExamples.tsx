@@ -26,10 +26,7 @@ export function CoveringExamples({ observations }: Props) {
 
   return (
     <div className="covering-examples">
-      <button
-        className="covering-examples__toggle"
-        onClick={() => setIsOpen(!isOpen)}
-      >
+      <button className="covering-examples__toggle" onClick={() => setIsOpen(!isOpen)}>
         <span className="covering-examples__toggle-icon">
           {isOpen ? (
             <FontAwesomeIcon icon={faCaretDown} />
@@ -43,14 +40,12 @@ export function CoveringExamples({ observations }: Props) {
       {isOpen && (
         <div className="covering-examples__content">
           <p className="covering-examples__description">
-            Each example shown below covers at least one branch not covered by
-            any previous, more-minimal, example.
+            Each example shown below covers at least one branch not covered by any
+            previous, more-minimal, example.
           </p>
           {observations.map((observation, index) => (
             <pre key={index} className="covering-examples__example">
-              <code className="language-python">
-                {observation.representation}
-              </code>
+              <code className="language-python">{observation.representation}</code>
             </pre>
           ))}
         </div>

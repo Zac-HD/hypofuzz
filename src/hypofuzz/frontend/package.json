@@ -36,6 +36,7 @@
   "prettier": {
     "semi": false,
     "arrowParens": "avoid",
+    "printWidth": 88,
     "overrides": [
       {
         "files": "*.scss",

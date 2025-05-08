@@ -151,9 +151,7 @@ export function DataProvider({ children, nodeid }: DataProviderProps) {
   }
 
   return (
-    <DataContext.Provider value={{ tests, socket }}>
-      {children}
-    </DataContext.Provider>
+    <DataContext.Provider value={{ tests, socket }}>{children}</DataContext.Provider>
   )
 }
 

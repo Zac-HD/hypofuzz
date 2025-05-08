@@ -246,9 +246,7 @@ class Graph {
         .on("mouseover", () => {
           this.g
             .selectAll<SVGPathElement, Report[]>("path")
-            .filter(
-              d => Array.isArray(d) && d.length > 0 && d[0].nodeid === nodeid,
-            )
+            .filter(d => Array.isArray(d) && d.length > 0 && d[0].nodeid === nodeid)
             .classed("coverage-line__selected", true)
           d3.select(legendItem.node()).style("font-weight", "bold")
         })
@@ -389,14 +387,8 @@ class Graph {
 
 export function CoverageGraph({ tests, filterString = "" }: Props) {
   const svgRef = useRef<SVGSVGElement>(null)
-  const [scaleSetting, setScaleSetting] = useSetting<string>(
-    "graph_scale",
-    "log",
-  )
-  const [axisSetting, setAxisSetting] = useSetting<string>(
-    "graph_x_axis",
-    "time",
-  )
+  const [scaleSetting, setScaleSetting] = useSetting<string>("graph_scale", "log")
+  const [axisSetting, setAxisSetting] = useSetting<string>("graph_x_axis", "time")
   const [forceUpdate, setForceUpdate] = useState(true)
   const [zoomTransform, setZoomTransform] = useState<{
     transform: d3.ZoomTransform | null
@@ -407,10 +399,7 @@ export function CoverageGraph({ tests, filterString = "" }: Props) {
 
   const reports = useMemo(() => {
     return new Map(
-      Array.from(tests.entries()).map(([nodeid, test]) => [
-        nodeid,
-        test.reports,
-      ]),
+      Array.from(tests.entries()).map(([nodeid, test]) => [nodeid, test.reports]),
     )
   }, [tests])
 
@@ -424,9 +413,7 @@ export function CoverageGraph({ tests, filterString = "" }: Props) {
   }, [reports, filterString])
 
   // use the unfiltered reports as the domain so colors are stable across filtering.
-  const reportsColor = d3
-    .scaleOrdinal(d3.schemeCategory10)
-    .domain(reports.keys())
+  const reportsColor = d3.scaleOrdinal(d3.schemeCategory10).domain(reports.keys())
 
   useEffect(() => {
     if (!svgRef.current) {
@@ -470,10 +457,7 @@ export function CoverageGraph({ tests, filterString = "" }: Props) {
       graph.zoom.transform(graph.chartArea, zoomTransform.transform)
     }
 
-    graph.zoomTo(
-      zoomTransform.transform ?? d3.zoomIdentity,
-      zoomTransform.zoomY,
-    )
+    graph.zoomTo(zoomTransform.transform ?? d3.zoomIdentity, zoomTransform.zoomY)
 
     graph.zoom.on(
       "zoom.saveTransform",

@@ -2,11 +2,7 @@ import { mapsEqual, sum } from "../utils/utils"
 
 abstract class Dataclass<T> {
   withProperties(props: Partial<T>): T {
-    return Object.assign(
-      Object.create(this.constructor.prototype),
-      this,
-      props,
-    ) as T
+    return Object.assign(Object.create(this.constructor.prototype), this, props) as T
   }
 }
 
@@ -231,9 +227,7 @@ export class Test extends Dataclass<Test> {
 
   _check_invariants() {
     for (let i = 0; i < this.reports.length - 1; i++) {
-      console.assert(
-        this.reports[i].elapsed_time <= this.reports[i + 1].elapsed_time,
-      )
+      console.assert(this.reports[i].elapsed_time <= this.reports[i + 1].elapsed_time)
     }
 
     // we track a separate attribute for the total count for efficiency, but
@@ -265,12 +259,9 @@ export class Test extends Dataclass<Test> {
     const counts_diff = report.status_counts.subtract(
       status_counts.get(report.worker.uuid)!,
     )
-    const elapsed_diff =
-      report.elapsed_time - elapsed_time.get(report.worker.uuid)!
+    const elapsed_diff = report.elapsed_time - elapsed_time.get(report.worker.uuid)!
 
-    console.assert(
-      Array.from(counts_diff.counts.values()).every(count => count >= 0),
-    )
+    console.assert(Array.from(counts_diff.counts.values()).every(count => count >= 0))
     console.assert(elapsed_diff >= 0.0)
 
     const newReport = report.withProperties({

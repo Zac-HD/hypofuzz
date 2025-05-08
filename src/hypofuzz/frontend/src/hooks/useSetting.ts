@@ -1,9 +1,6 @@
 import { useState, useEffect } from "react"
 
-export function useSetting<T>(
-  key: string,
-  defaultValue: T,
-): [T, (value: T) => void] {
+export function useSetting<T>(key: string, defaultValue: T): [T, (value: T) => void] {
   const [value, setValue] = useState<T>(() => {
     const saved = sessionStorage.getItem(key)
     if (saved === null) return defaultValue

@@ -1,10 +1,6 @@
 import React, { useState, useMemo, ReactNode, useEffect } from "react"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
-import {
-  faArrowUp,
-  faArrowDown,
-  faTimes,
-} from "@fortawesome/free-solid-svg-icons"
+import { faArrowUp, faArrowDown, faTimes } from "@fortawesome/free-solid-svg-icons"
 
 interface TableHeader<T> {
   content: ReactNode
@@ -67,9 +63,7 @@ export function Table<T>({
       return displayData
     }
 
-    const sorted = [...displayData].sortKey(item =>
-      headers[sortColumn].sortKey!(item),
-    )
+    const sorted = [...displayData].sortKey(item => headers[sortColumn].sortKey!(item))
     return sortDirection === SortOrder.ASC ? sorted : sorted.reverse()
   }, [
     data,
@@ -114,10 +108,7 @@ export function Table<T>({
             className="table__filter__input"
           />
           {filterString && (
-            <span
-              className="table__filter__clear"
-              onClick={() => doFilterChange("")}
-            >
+            <span className="table__filter__clear" onClick={() => doFilterChange("")}>
               <FontAwesomeIcon icon={faTimes} />
             </span>
           )}
