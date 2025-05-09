@@ -201,6 +201,7 @@ export class Test extends Dataclass<Test> {
     public rolling_observations: Observation[],
     public corpus_observations: Observation[],
     public failure: Observation | null,
+    public observations_loaded: boolean,
   ) {
     super()
     this.elapsed_time = sum(this.reports_offsets.elapsed_time.values())
@@ -221,6 +222,7 @@ export class Test extends Dataclass<Test> {
       [],
       [],
       data.failure ? Observation.fromJson(data.failure) : null,
+      false,
     )
   }
 

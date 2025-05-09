@@ -164,9 +164,17 @@ function _TestPage() {
         </div>
       )}
 
-      {test.corpus_observations && (
-        <CoveringExamples observations={test.corpus_observations} />
+      {test.observations_loaded ? (
+        test.corpus_observations && (
+          <CoveringExamples observations={test.corpus_observations} />
+        )
+      ) : (
+        <div className="covering-examples">
+          <div className="covering-examples__toggle">Loading covering examples...</div>
+        </div>
       )}
+
+      {}
     </div>
   )
 }

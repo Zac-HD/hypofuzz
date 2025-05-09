@@ -131,6 +131,7 @@ export function DataProvider({ children, nodeid }: DataProviderProps) {
                 test.corpus_observations = (observationsData as any).corpus.map(
                   Observation.fromJson,
                 )
+                test.observations_loaded = true
                 setTests(new Map(testsRef.current))
               }
               break
