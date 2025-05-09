@@ -20,8 +20,9 @@ const statusOrder = {
 }
 
 export function CollectionStatusPage() {
-  const [collectionStatus, setCollectionStatus] =
-    useState<CollectionResults | null>(null)
+  const [collectionStatus, setCollectionStatus] = useState<CollectionResults | null>(
+    null,
+  )
 
   useEffect(() => {
     fetchData<CollectionResults>("collected_tests").then(data => {
@@ -42,13 +43,11 @@ export function CollectionStatusPage() {
     )
   }
 
-  const sortedResults = [...collectionStatus.collection_status].sortKey(
-    result => [
-      statusOrder[result.status as keyof typeof statusOrder],
-      result.status_reason,
-      result.nodeid,
-    ],
-  )
+  const sortedResults = [...collectionStatus.collection_status].sortKey(result => [
+    statusOrder[result.status as keyof typeof statusOrder],
+    result.status_reason,
+    result.nodeid,
+  ])
 
   const headers = [
     {
@@ -70,10 +69,7 @@ export function CollectionStatusPage() {
       <div style={{ wordBreak: "break-all" }}>
         {/* don't link to a nonexistent page */}
         {item.status == "collected" ? (
-          <Link
-            to={`/tests/${encodeURIComponent(item.nodeid)}`}
-            className="test__link"
-          >
+          <Link to={`/tests/${encodeURIComponent(item.nodeid)}`} className="test__link">
             {item.nodeid}
           </Link>
         ) : (

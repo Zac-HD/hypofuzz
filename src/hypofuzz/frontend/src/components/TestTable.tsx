@@ -58,15 +58,11 @@ export function TestTable({ tests, onFilterChange }: Props) {
   const iconBranches = (
     <Icon icon={faCodeBranch} tooltip="Number of branches executed" />
   )
-  const iconExecutions = (
-    <Icon icon={faTachometerAlt} tooltip="Inputs per second" />
-  )
+  const iconExecutions = <Icon icon={faTachometerAlt} tooltip="Inputs per second" />
   const iconSinceNewBranch = (
     <Icon icon={faSeedling} tooltip="Number of inputs since a new branch" />
   )
-  const iconTimeSpent = (
-    <Icon icon={faClock} tooltip="Total time spent running" />
-  )
+  const iconTimeSpent = <Icon icon={faClock} tooltip="Total time spent running" />
 
   const headers = [
     {
@@ -91,20 +87,17 @@ export function TestTable({ tests, onFilterChange }: Props) {
     {
       content: iconExecutions,
       align: "right",
-      sortKey: (test: Test) =>
-        inputsPerSecond(test.reports[test.reports.length - 1]),
+      sortKey: (test: Test) => inputsPerSecond(test.reports[test.reports.length - 1]),
     },
     {
       content: iconSinceNewBranch,
       align: "right",
-      sortKey: (test: Test) =>
-        test.reports[test.reports.length - 1].since_new_cov ?? 0,
+      sortKey: (test: Test) => test.reports[test.reports.length - 1].since_new_cov ?? 0,
     },
     {
       content: iconTimeSpent,
       align: "right",
-      sortKey: (test: Test) =>
-        test.reports[test.reports.length - 1].elapsed_time,
+      sortKey: (test: Test) => test.reports[test.reports.length - 1].elapsed_time,
     },
   ]
 
@@ -159,10 +152,7 @@ export function TestTable({ tests, onFilterChange }: Props) {
           <InlineStatistic icon={inputsIcon} value={stats.inputs} />
           <InlineStatistic icon={iconBranches} value={stats.branches} />
           <InlineStatistic icon={iconExecutions} value={stats.executions} />
-          <InlineStatistic
-            icon={iconSinceNewBranch}
-            value={stats.inputsSinceBranch}
-          />
+          <InlineStatistic icon={iconSinceNewBranch} value={stats.inputsSinceBranch} />
           <InlineStatistic icon={iconTimeSpent} value={stats.timeSpent} />
         </div>
       </div>

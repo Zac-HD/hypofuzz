@@ -12,10 +12,7 @@ export function Layout() {
 
   useEffect(() => {
     function listener(event: MouseEvent) {
-      if (
-        sidebarOpen &&
-        sidebarRef.current?.contains(event.target as Node) === false
-      ) {
+      if (sidebarOpen && sidebarRef.current?.contains(event.target as Node) === false) {
         setSidebarOpen(false)
       }
     }
@@ -42,10 +39,7 @@ export function Layout() {
          TODO this dims the sidebar itself as well I think, probably don't want
          to do that*/}
       {sidebarOpen && <div className="opacity-overlay" />}
-      <div
-        ref={sidebarRef}
-        className={`sidebar ${sidebarOpen ? "sidebar--open" : ""}`}
-      >
+      <div ref={sidebarRef} className={`sidebar ${sidebarOpen ? "sidebar--open" : ""}`}>
         <Link to="/" className="sidebar__title">
           HypoFuzz
         </Link>

@@ -1,10 +1,4 @@
-import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-  useRef,
-} from "react"
+import React, { createContext, useContext, useEffect, useState, useRef } from "react"
 import { Observation, Report, Test } from "../types/dashboard"
 import JSON5 from "json5"
 
@@ -38,111 +32,163 @@ export function DataProvider({ children, nodeid }: DataProviderProps) {
   }, [tests])
 
   useEffect(() => {
-    // import.meta.url is relative to the assets/ directory, so this is assets/dashboard_state.json
-    fetch(new URL("dashboard_state.json", import.meta.url))
-      .then(async response => {
-        const data = await JSON5.parse(await response.text())
-        if (data) {
-          setTests(
-            new Map(
-              Object.entries(data.tests).map(([nodeid, data]) => [
-                nodeid,
-                Test.fromJson(data),
-              ]),
-            ),
+    // load data from local dashboard state json files iff the appropriate env var was set
+    // during building.
+    if (import.meta.env.VITE_USE_DASHBOARD_STATE === "1") {
+      fetch(new URL(/* @vite-ignore */ "dashboard_state/tests.json", import.meta.url))
+        .then(response => response.text())
+        .then(text => JSON5.parse(text) as Record<string, any>)
+        .then(data => {
+          const tests = new Map(
+            Object.entries(data).map(([nodeid, data]) => [nodeid, Test.fromJson(data)]),
           )
+          setTests(tests)
           setIsLoading(false)
-          return
-        }
-        setupWebSocket()
-      })
-      .catch(() => {
-        setupWebSocket()
-      })
+        })
 
-    function setupWebSocket() {
-      const url = new URL(
-        `ws${window.location.protocol === "https:" ? "s" : ""}://${window.location.host}/ws`,
+      // json.parse is sync (blocks ui) and expensive. Push it to a background worker to make it async.
+      // We pay a small serialization cost; ~5% by my measurement.
+      const worker = new Worker(new URL("./jsonWorker.js", import.meta.url))
+      fetch(
+        new URL(
+          /* @vite-ignore */ "dashboard_state/observations.json",
+          import.meta.url,
+        ),
       )
-      if (nodeid) {
-        url.searchParams.set("nodeid", nodeid)
-      }
-
-      const ws = new WebSocket(url)
-
-      ws.onmessage = event => {
-        // split the message into the header and the body, to allow for parsing the
-        // body with either JSON (faster) or JSON5 (allows e.g. Infinity) depending on
-        // the type of the data. We don't want to use JSON5 where not necessary.
-        //
-        // The format is an extremely simple pipe separator.
-        let [header, data] = event.data.split("|", 2)
-        header = JSON.parse(header)
-
-        switch (header.type) {
-          case "initial":
-            data = JSON5.parse(data)
-            setTests(
-              new Map(
-                Object.entries(data).map(([nodeid, data]) => [
-                  nodeid,
-                  Test.fromJson(data),
-                ]),
-              ),
+        .then(response => response.text())
+        .then(text => {
+          return new Promise<Record<string, { rolling: any[]; corpus: any[] }>>(
+            resolve => {
+              worker.onmessage = e => resolve(e.data)
+              worker.postMessage(text)
+            },
+          )
+        })
+        .then(observationsData => {
+          for (const [test_id, testObservations] of Object.entries(observationsData)) {
+            const test = testsRef.current.get(test_id)!
+            test.rolling_observations = testObservations.rolling.map(
+              Observation.fromJson,
             )
-            setIsLoading(false)
-            break
-          case "save":
-            // this is a differential message. depending on the type of the save event, we'll do
-            // something to the appropriate attribute on Test.
-            switch (header.save_type) {
-              case "report": {
-                data = JSON.parse(data)
-                const report = Report.fromJson(data)
-                const test = testsRef.current.get(report.nodeid)!
-                test.addReport(report)
-                // update react state to trigger a re-render on outside components that have a
-                // useEffect dependency on `tests`
-                setTests(new Map(testsRef.current))
-                break
-              }
-              case "failure": {
-                // observability reports use e.g. Infinity, which is invalid in standard json
-                // but valid in json5.
-                data = JSON5.parse(data)
-                const failure = Observation.fromJson(data)
-                const test = testsRef.current.get(failure.property)!
-                test.failure = failure
-                // trigger react re-render
-                setTests(new Map(testsRef.current))
-                break
-              }
-              case "rolling_observation": {
-                data = JSON5.parse(data)
-                const observation = Observation.fromJson(data)
-                const test = testsRef.current.get(observation.property)!
-                test.rolling_observations.push(observation)
-                setTests(new Map(testsRef.current))
-                break
-              }
-              case "corpus_observation": {
-                data = JSON5.parse(data)
-                const observation = Observation.fromJson(data)
-                const test = testsRef.current.get(observation.property)!
-                test.corpus_observations.push(observation)
-                setTests(new Map(testsRef.current))
-                break
-              }
+            test.corpus_observations = testObservations.corpus.map(Observation.fromJson)
+            test.observations_loaded = true
+          }
+          setTests(new Map(testsRef.current))
+        })
+
+      return () => worker.terminate()
+    }
+
+    const url = new URL(
+      `ws${window.location.protocol === "https:" ? "s" : ""}://${window.location.host}/ws`,
+    )
+    if (nodeid) {
+      url.searchParams.set("nodeid", nodeid)
+    }
+
+    const ws = new WebSocket(url)
+
+    ws.onmessage = event => {
+      // split the message into the header and the body, to allow for parsing the
+      // body with either JSON (faster) or JSON5 (allows e.g. Infinity) depending on
+      // the type of the data. We don't want to parse with JSON5 unless necessary.
+      //
+      // The format is an extremely simple pipe separator.
+
+      // note: data.split("|", 2) is incorrect, as it drops everything after the second pipe, unlike python's split
+      const pipeIndex = event.data.indexOf("|")
+      let header = event.data.slice(0, pipeIndex)
+      let data = event.data.slice(pipeIndex + 1)
+      header = JSON.parse(header)
+
+      switch (header.type) {
+        case "initial":
+          switch (header.initial_type) {
+            case "tests": {
+              // this is only json 5 because test.failure is an observation. Should we split that out to "observations"
+              // as well?
+              data = JSON5.parse(data)
+              setTests(
+                new Map(
+                  Object.entries(data).map(([nodeid, data]) => [
+                    nodeid,
+                    Test.fromJson(data),
+                  ]),
+                ),
+              )
+              setIsLoading(false)
+              break
             }
-            break
-        }
+            case "observations": {
+              data = JSON5.parse(data)
+              for (const [test_id, observationsData] of Object.entries(data)) {
+                // this relies on initial_type == "tests" being parsed first, but I don't think
+                // this is guaranteed in async land. need to refactor each initial_type to create an
+                // empty test and set its attributes appropriately.
+                const test = testsRef.current.get(test_id)!
+                test.rolling_observations = (observationsData as any).rolling.map(
+                  Observation.fromJson,
+                )
+                test.corpus_observations = (observationsData as any).corpus.map(
+                  Observation.fromJson,
+                )
+                test.observations_loaded = true
+                setTests(new Map(testsRef.current))
+              }
+              break
+            }
+          }
+          break
+        case "save":
+          // this is a differential message. depending on the type of the save event, we'll do
+          // something to the appropriate attribute on Test.
+          switch (header.save_type) {
+            case "report": {
+              data = JSON.parse(data)
+              const report = Report.fromJson(data)
+              const test = testsRef.current.get(report.nodeid)!
+              test.addReport(report)
+              // update react state to trigger a re-render on outside components that have a
+              // useEffect dependency on `tests`
+              setTests(new Map(testsRef.current))
+              break
+            }
+            case "failure": {
+              // observability reports use e.g. Infinity, which is invalid in standard json
+              // but valid in json5.
+              data = JSON5.parse(data)
+              const failure = Observation.fromJson(data)
+              const test = testsRef.current.get(failure.property)!
+              test.failure = failure
+              // trigger react re-render
+              setTests(new Map(testsRef.current))
+              break
+            }
+            case "rolling_observation": {
+              data = JSON5.parse(data)
+              const observation = Observation.fromJson(data)
+              const test = testsRef.current.get(observation.property)!
+              test.rolling_observations.push(observation)
+              setTests(new Map(testsRef.current))
+              break
+            }
+            case "corpus_observation": {
+              data = JSON5.parse(data)
+              const observation = Observation.fromJson(data)
+              const test = testsRef.current.get(observation.property)!
+              test.corpus_observations.push(observation)
+              setTests(new Map(testsRef.current))
+              break
+            }
+          }
+          break
       }
+    }
 
-      setSocket(ws)
+    setSocket(ws)
 
-      return () => {
-        ws.close()
-      }
+    return () => {
+      ws.close()
     }
   }, [nodeid])
 
@@ -151,9 +197,7 @@ export function DataProvider({ children, nodeid }: DataProviderProps) {
   }
 
   return (
-    <DataContext.Provider value={{ tests, socket }}>
-      {children}
-    </DataContext.Provider>
+    <DataContext.Provider value={{ tests, socket }}>{children}</DataContext.Provider>
   )
 }
 
