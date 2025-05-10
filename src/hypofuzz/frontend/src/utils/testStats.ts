@@ -22,12 +22,12 @@ function formatTime(t: number): string {
   return `${hours > 0 ? `${hours}:${minutes.toString().padStart(2, "0")}` : minutes}:${seconds.toString().padStart(2, "0")}`
 }
 
-export function inputsPerSecond(report: Report): number {
-  return report.elapsed_time > 0 ? report.ninputs / report.elapsed_time : 0
+export function inputsPerSecond(test: Test): number {
+  return test.elapsed_time > 0 ? test.ninputs / test.elapsed_time : 0
 }
 
 export function getTestStats(test: Test): TestStats {
-  if (test.reports.length === 0) {
+  if (test.linear_reports.length === 0) {
     return {
       inputs: "—",
       branches: "—",
@@ -37,12 +37,11 @@ export function getTestStats(test: Test): TestStats {
     }
   }
 
-  const latest = test.reports[test.reports.length - 1]
   return {
-    inputs: latest.ninputs.toLocaleString(),
-    branches: latest.branches.toLocaleString(),
-    executions: `${inputsPerSecond(latest).toFixed(1).toLocaleString()}/s`,
-    inputsSinceBranch: latest.since_new_cov?.toLocaleString() ?? "—",
-    timeSpent: formatTime(latest.elapsed_time),
+    inputs: test.ninputs.toLocaleString(),
+    branches: test.branches.toLocaleString(),
+    executions: `${inputsPerSecond(test).toFixed(1).toLocaleString()}/s`,
+    inputsSinceBranch: test.since_new_cov?.toLocaleString() ?? "—",
+    timeSpent: formatTime(test.elapsed_time),
   }
 }

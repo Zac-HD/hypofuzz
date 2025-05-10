@@ -173,8 +173,6 @@ function _TestPage() {
           <div className="covering-examples__toggle">Loading covering examples...</div>
         </div>
       )}
-
-      {}
     </div>
   )
 }

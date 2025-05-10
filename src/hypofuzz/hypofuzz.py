@@ -499,8 +499,10 @@ def fuzz_several(*targets_: FuzzProcess, random_seed: Optional[int] = None) -> N
             print(f"found failing example for {target.nodeid}")
             targets.pop(i)
 
-        if resort or (
-            len(targets) > 1 and targets.key(targets[0]) > targets.key(targets[1])
+        if targets and (
+            resort
+            or len(targets) > 1
+            and targets.key(targets[0]) > targets.key(targets[1])
         ):
             # pay our log-n cost to keep the list sorted
             targets.add(targets.pop(0))

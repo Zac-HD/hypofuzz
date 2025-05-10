@@ -1,4 +1,4 @@
-import { mapsEqual, sum } from "../utils/utils"
+import { mapsEqual, setsEqual, sum } from "../utils/utils"
 
 abstract class Dataclass<T> {
   withProperties(props: Partial<T>): T {
@@ -164,124 +164,134 @@ export enum TestStatus {
   WAITING = 3,
 }
 
-export class ReportOffsets extends Dataclass<ReportOffsets> {
-  constructor(
-    public elapsed_time: Map<string, number>,
-    public status_counts: Map<string, StatusCounts>,
-  ) {
-    super()
-  }
-
-  static fromJson(data: any): ReportOffsets {
-    return new ReportOffsets(
-      new Map(Object.entries(data.elapsed_time)),
-      new Map(
-        Object.entries(data.status_counts).map(([key, value]) => [
-          key,
-          StatusCounts.fromJson(value),
-        ]),
-      ),
-    )
-  }
-}
-
 export class Test extends Dataclass<Test> {
   // if it's been this long since the last report in seconds, consider the test status
   // to be "waiting" instead of "running"
   static WAITING_STATUS_DURATION = 120
 
-  public elapsed_time: number
+  public observations_loaded: boolean
   public status_counts: StatusCounts
+  public elapsed_time: number
+  public linear_reports: Report[]
 
   constructor(
     public database_key: string,
     public nodeid: string,
-    public reports: Report[],
-    public reports_offsets: ReportOffsets,
     public rolling_observations: Observation[],
     public corpus_observations: Observation[],
     public failure: Observation | null,
-    public observations_loaded: boolean,
+    public reports_by_worker: Map<string, Report[]>,
   ) {
     super()
-    this.elapsed_time = sum(this.reports_offsets.elapsed_time.values())
-    let status_counts = new StatusCounts()
-    for (const counts of this.reports_offsets.status_counts.values()) {
-      status_counts = status_counts.add(counts)
+    this.observations_loaded = false
+    this.status_counts = new StatusCounts()
+    this.elapsed_time = 0.0
+    this.linear_reports = []
+
+    const reports_by_worker_ = this.reports_by_worker
+    this.reports_by_worker = new Map()
+
+    // TODO: use k-way merge for performance?
+    const sorted_reports = Array.from(reports_by_worker_.values())
+      .flat()
+      .sortKey(report => report.timestamp)
+    for (const report of sorted_reports) {
+      this.add_report(report)
     }
-    this.status_counts = status_counts
+    this._check_invariants()
   }
 
   static fromJson(data: any): Test {
     return new Test(
       data.database_key,
       data.nodeid,
-      data.reports.map(Report.fromJson),
-      ReportOffsets.fromJson(data.reports_offsets),
       // observations will be updated later by another websocket event
       [],
       [],
       data.failure ? Observation.fromJson(data.failure) : null,
-      false,
+      new Map(
+        Object.entries(data.reports_by_worker).map(([key, value]) => [
+          key,
+          (value as any[]).map(Report.fromJson),
+        ]),
+      ),
     )
+  }
+
+  _assert_reports_ordered(reports: Report[]) {
+    for (let i = 0; i < reports.length - 1; i++) {
+      console.assert(reports[i].elapsed_time <= reports[i + 1].elapsed_time)
+      console.assert(reports[i].status_counts <= reports[i + 1].status_counts)
+      console.assert(reports[i].timestamp <= reports[i + 1].timestamp)
+    }
   }
 
   _check_invariants() {
-    for (let i = 0; i < this.reports.length - 1; i++) {
-      console.assert(this.reports[i].elapsed_time <= this.reports[i + 1].elapsed_time)
+    this._assert_reports_ordered(this.linear_reports)
+
+    for (const [worker_uuid, reports] of this.reports_by_worker.entries()) {
+      console.assert(
+        setsEqual(new Set(reports.map(r => r.nodeid)), new Set([this.nodeid])),
+      )
+      console.assert(
+        setsEqual(
+          new Set(reports.map(r => r.database_key)),
+          new Set([this.database_key]),
+        ),
+      )
+      console.assert(
+        setsEqual(new Set(reports.map(r => r.worker.uuid)), new Set([worker_uuid])),
+      )
+      this._assert_reports_ordered(reports)
     }
 
-    // we track a separate attribute for the total count for efficiency, but
-    // they should be equal.
-    let expectedCounts = new StatusCounts()
-    for (const counts of this.reports_offsets.status_counts.values()) {
-      expectedCounts = expectedCounts.add(counts)
+    let total_status_counts = new StatusCounts()
+    for (const reports of this.reports_by_worker.values()) {
+      total_status_counts = total_status_counts.add(
+        reports[reports.length - 1].status_counts,
+      )
     }
-    console.assert(mapsEqual(this.status_counts.counts, expectedCounts.counts))
-
-    // not always true due to floating point error accumulation.
-    // console.assert(
-    //   this.elapsed_time == sum(this.reports_offsets.elapsed_time.values()),
-    // )
+    console.assert(mapsEqual(this.status_counts.counts, total_status_counts.counts))
   }
 
-  addReport(report: Report) {
+  add_report(report: Report) {
     // This function implements Test.add_report in python. Make sure to keep the
     // two versions in sync.
-    const status_counts = this.reports_offsets.status_counts
-    const elapsed_time = this.reports_offsets.elapsed_time
 
-    if (!status_counts.has(report.worker.uuid)) {
-      status_counts.set(report.worker.uuid, new StatusCounts())
+    const workerReports = this.reports_by_worker.get(report.worker.uuid)
+    const last_report = workerReports ? workerReports[workerReports.length - 1] : null
+
+    if (last_report && last_report.timestamp > report.timestamp) {
+      // out of order report
+      return
     }
-    if (!elapsed_time.has(report.worker.uuid)) {
-      elapsed_time.set(report.worker.uuid, 0.0)
-    }
-    const counts_diff = report.status_counts.subtract(
-      status_counts.get(report.worker.uuid)!,
+
+    const last_status_counts = last_report
+      ? last_report.status_counts
+      : new StatusCounts()
+    const last_elapsed_time = last_report ? last_report.elapsed_time : 0.0
+
+    const status_counts_diff = report.status_counts.subtract(last_status_counts)
+    const elapsed_time_diff = report.elapsed_time - last_elapsed_time
+    console.assert(
+      Array.from(status_counts_diff.counts.values()).every(count => count >= 0),
     )
-    const elapsed_diff = report.elapsed_time - elapsed_time.get(report.worker.uuid)!
+    console.assert(elapsed_time_diff >= 0.0)
 
-    console.assert(Array.from(counts_diff.counts.values()).every(count => count >= 0))
-    console.assert(elapsed_diff >= 0.0)
-
-    const newReport = report.withProperties({
-      elapsed_time: this.elapsed_time + elapsed_diff,
-      status_counts: this.status_counts.add(counts_diff),
+    const linearized_report = report.withProperties({
+      status_counts: this.status_counts.add(status_counts_diff),
+      elapsed_time: this.elapsed_time + elapsed_time_diff,
     })
 
-    this.status_counts = this.status_counts.add(counts_diff)
-    this.elapsed_time += elapsed_diff
-    status_counts.set(
-      report.worker.uuid,
-      status_counts.get(report.worker.uuid)!.add(counts_diff),
-    )
-    elapsed_time.set(
-      report.worker.uuid,
-      elapsed_time.get(report.worker.uuid)! + elapsed_diff,
-    )
+    this.status_counts = this.status_counts.add(status_counts_diff)
+    this.elapsed_time += elapsed_time_diff
+    if (!(report.worker.uuid in this.reports_by_worker)) {
+      this.reports_by_worker.set(report.worker.uuid, [])
+    }
+    this.reports_by_worker.get(report.worker.uuid)!.push(report)
+
     if (report.phase !== Phase.REPLAY) {
-      this.reports.push(newReport)
+      this.linear_reports.push(linearized_report)
     }
 
     this._check_invariants()
@@ -291,11 +301,11 @@ export class Test extends Dataclass<Test> {
     if (this.failure) {
       return TestStatus.FAILED
     }
-    if (this.reports.length === 0) {
+    if (this.linear_reports.length === 0) {
       return TestStatus.WAITING
     }
 
-    const latest = this.reports[this.reports.length - 1]
+    const latest = this.linear_reports[this.linear_reports.length - 1]
     const timestamp = new Date().getTime() / 1000
     if (latest.phase == Phase.SHRINK) {
       return TestStatus.SHRINKING
@@ -307,5 +317,23 @@ export class Test extends Dataclass<Test> {
       return TestStatus.WAITING
     }
     return TestStatus.RUNNING
+  }
+
+  get ninputs() {
+    return sum(this.status_counts.counts.values())
+  }
+
+  get branches() {
+    if (this.linear_reports.length === 0) {
+      return 0
+    }
+    return this.linear_reports[this.linear_reports.length - 1].branches
+  }
+
+  get since_new_cov() {
+    if (this.linear_reports.length === 0) {
+      return null
+    }
+    return this.linear_reports[this.linear_reports.length - 1].since_new_cov
   }
 }
