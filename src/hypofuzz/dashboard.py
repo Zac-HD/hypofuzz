@@ -376,13 +376,7 @@ async def api_collected_tests(request: Request) -> Response:
 
 # get the backing state of the dashboard, suitable for use by dashboard_state/*.json.
 async def api_backing_state_tests(request: Request) -> Response:
-    tests = {
-        nodeid: dataclasses.replace(
-            test, rolling_observations=[], corpus_observations=[]
-        )
-        for nodeid, test in TESTS.items()
-    }
-
+    tests = {nodeid: test_for_websocket(test) for nodeid, test in TESTS.items()}
     return HypofuzzJSONResponse(tests)
 
 
