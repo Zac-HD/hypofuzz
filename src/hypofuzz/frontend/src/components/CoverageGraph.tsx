@@ -399,7 +399,10 @@ export function CoverageGraph({ tests, filterString = "" }: Props) {
 
   const reports = useMemo(() => {
     return new Map(
-      Array.from(tests.entries()).map(([nodeid, test]) => [nodeid, test.reports]),
+      Array.from(tests.entries()).map(([nodeid, test]) => [
+        nodeid,
+        test.linear_reports,
+      ]),
     )
   }, [tests])
 

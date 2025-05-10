@@ -1,8 +1,9 @@
 import dataclasses
+from collections import defaultdict
 from typing import Optional
 
 import pytest
-from hypothesis import given, note, strategies as st
+from hypothesis import given, strategies as st
 from hypothesis.internal.conjecture.data import Status
 
 from hypofuzz.dashboard import Test
@@ -11,7 +12,6 @@ from hypofuzz.database import (
     Report,
     StatusCounts,
     WorkerIdentity,
-    linearize_reports,
 )
 
 
@@ -85,8 +85,9 @@ def reports(
             report = draw(
                 st.builds(
                     Report,
-                    database_key=st.text(st.characters(codec="ascii")),
-                    nodeid=st.text(st.characters(codec="ascii")),
+                    # TODO draw consistent database_key and nodeid per-worker
+                    database_key=st.just(b""),
+                    nodeid=st.just(""),
                     elapsed_time=st.just(elapsed_time),
                     timestamp=st.just(timestamp),
                     worker=workers(uuid=uuid),
@@ -115,12 +116,27 @@ def assert_reports_almost_equal(reports1, reports2):
                 assert v1 == v2
 
 
+def _test_for_reports(reports):
+    reports_by_worker = defaultdict(list)
+    for report in sorted(reports, key=lambda r: r.timestamp):
+        reports_by_worker[report.worker.uuid].append(report)
+
+    return Test(
+        database_key=b"",
+        nodeid="",
+        rolling_observations=[],
+        corpus_observations=[],
+        reports_by_worker=reports_by_worker,
+        failure=None,
+    )
+
+
 @given(reports(count_workers=1))
 def test_single_worker(reports):
     assert len({r.worker.uuid for r in reports}) <= 1
     # linearizing reports from a single worker just puts them in a sorted order,
-    # ignorig any Phase.REPLAY reports.
-    actual = linearize_reports(reports).reports
+    # ignoring any Phase.REPLAY reports.
+    actual = _test_for_reports(reports).linear_reports
     expected = sorted(
         (r for r in reports if r.phase is not Phase.REPLAY), key=lambda r: r.timestamp
     )
@@ -129,7 +145,7 @@ def test_single_worker(reports):
 
 @given(reports(overlap=False))
 def test_non_overlapping_reports(reports):
-    linearized = linearize_reports(reports).reports
+    linearized = _test_for_reports(reports).linear_reports
     # If none of the reports overlap, then timestamp, ninputs, and elapsed_time
     # should all be monotonically increasing
     assert all(
@@ -157,26 +173,16 @@ def test_linearize_decomposes_with_addition(data):
     # the decomposition property is only actually true if we add reports in a sorted
     # order. This may not happen in practice, because e.g. reports from workers may
     # arrive out of order.
+    # (e: this may no longer be true now that we correctly drop/handle out-of-order
+    # reports in Test.add_report?)
     reports_ = sorted(reports_, key=lambda r: r.timestamp)
     i = data.draw(st.integers(0, len(reports_)))
-    linearized = linearize_reports(reports_)
+    test1 = _test_for_reports(reports_)
 
-    initial = linearize_reports(reports_[:i])
-    note(f"initial offsets: {initial.offsets}")
-    test = Test(
-        database_key=b"",
-        nodeid="",
-        reports=initial.reports,
-        reports_offsets=initial.offsets,
-        rolling_observations=[],
-        corpus_observations=[],
-        failure=None,
-    )
+    test2 = _test_for_reports(reports_[:i])
     for report in reports_[i:]:
-        test.add_report(report)
+        test2.add_report(report)
 
-    assert test.reports_offsets.status_counts == linearized.offsets.status_counts
-    assert test.reports_offsets.elapsed_time == pytest.approx(
-        linearized.offsets.elapsed_time
-    )
-    assert_reports_almost_equal(test.reports, linearized.reports)
+    assert test1.status_counts == test2.status_counts
+    assert test1.elapsed_time == pytest.approx(test2.elapsed_time)
+    assert_reports_almost_equal(test1.linear_reports, test2.linear_reports)
