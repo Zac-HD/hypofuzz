@@ -88,7 +88,7 @@ class Test:
         self._check_invariants()
 
     @staticmethod
-    def _assert_reports_ordered(reports: list[Report], attributes: list[str]) -> bool:
+    def _assert_reports_ordered(reports: list[Report], attributes: list[str]) -> None:
         for attribute in attributes:
             assert all(
                 getattr(r1, attribute) <= getattr(r2, attribute)
