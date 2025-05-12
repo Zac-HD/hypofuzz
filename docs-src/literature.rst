@@ -10,10 +10,6 @@ prior art for fuzzing property-based tests for Python.
 
     `See HypoFuzz in action here! <../example-dashboard/>`__
 
-.. contents::
-    :local:
-
-
 Fuzzing background
 ------------------
 

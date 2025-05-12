@@ -66,8 +66,8 @@ def fuzz(
     """[hypofuzz] runs tests with an adaptive coverage-guided fuzzer.
 
     Unrecognised arguments are passed through to `pytest` to select the tests
-    to run, with the additional constraint that only tests using Hypothesis
-    but not any pytest fixtures can be fuzzed.
+    to run, with the additional constraint that only Hypothesis tests can be
+    fuzzed.
 
     This process will run forever unless stopped with e.g. ctrl-C.
     """
