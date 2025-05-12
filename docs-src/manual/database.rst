@@ -18,6 +18,7 @@ To configure which database HypoFuzz uses, register and load a Hypothesis settin
 .. code-block:: python
 
     from hypothesis import settings
+
     # pip install hypothesis[redis]
     from hypothesis.extra.redis import RedisExampleDatabase
 
@@ -48,15 +49,17 @@ Once you've written your own database, you can tell HypoFuzz to use it like any 
     from hypothesis import settings
     from hypothesis.database import ExampleDatabase
 
+
     class MyDatabase(ExampleDatabase):
         def fetch(self, key: bytes):
-            ...
+            pass
 
         def save(self, key: bytes, value: bytes):
-            ...
+            pass
 
         def delete(self, key: bytes, value: bytes):
-            ...
+            pass
+
 
     db = MyDatabase()
     settings.register_profile("custom_db", database=db)
