@@ -258,14 +258,29 @@
         <article role="main" id="furo-main-content">
           <section id="command-line-interface">
 <h1>Command-line interface<a class="headerlink" href="#command-line-interface" title="Link to this heading">¶</a></h1>
-<p>The <code class="docutils literal notranslate"><span class="pre">hypothesis</span> <span class="pre">fuzz</span></code> command is the main entrypoint to HypoFuzz. Installing HypoFuzz automatically adds the <code class="docutils literal notranslate"><span class="pre">fuzz</span></code> sub-command to the existing <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/reference/integrations.html#hypothesis-cli" title="(in Hypothesis v6.131.15)"><span class="xref std std-ref">Hypothesis CLI</span></a>.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">hypothesis</span> <span class="pre">fuzz</span></code> command is the main entrypoint to HypoFuzz. Installing HypoFuzz automatically adds the <code class="docutils literal notranslate"><span class="pre">fuzz</span></code> sub-command to the existing <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/reference/integrations.html#hypothesis-cli" title="(in Hypothesis v6.131.16)"><span class="xref std std-ref">Hypothesis CLI</span></a>.</p>
 <section id="hypothesis-fuzz">
 <h2><code class="docutils literal notranslate"><span class="pre">hypothesis</span> <span class="pre">fuzz</span></code><a class="headerlink" href="#hypothesis-fuzz" title="Link to this heading">¶</a></h2>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>$ hypothesis fuzz --help
-Traceback (most recent call last):
-  File &quot;/home/runner/work/hypofuzz/hypofuzz/.tox/docs/bin/hypothesis&quot;, line 5, in &lt;module&gt;
-    from hypothesis.extra.cli import main
-ModuleNotFoundError: No module named &#39;hypothesis&#39;
+Usage: hypothesis fuzz [OPTIONS] [-- PYTEST_ARGS]
+
+  [hypofuzz] runs tests with an adaptive coverage-guided fuzzer.
+
+  Unrecognised arguments are passed through to `pytest` to select the tests to
+  run, with the additional constraint that only Hypothesis tests can be
+  fuzzed.
+
+  This process will run forever unless stopped with e.g. ctrl-C.
+
+Options:
+  -n, --numprocesses NUM        default: all available cores  [x&gt;=1]
+  --dashboard / --no-dashboard  serve / don&#39;t serve a live dashboard page
+  -d, --dashboard-only          serve a live dashboard page without launching
+                                associated fuzzing processes
+  --host HOST                   Optional host for the dashboard
+  --port PORT                   Optional port for the dashboard (if any). 0 to
+                                request an arbitrary open port  [0&lt;=x&lt;=65535]
+  -h, --help                    Show this message and exit.
 </pre></div>
 </div>
 <section id="example-usage">

@@ -6,7 +6,8 @@ The ``hypothesis fuzz`` command is the main entrypoint to HypoFuzz. Installing H
 ``hypothesis fuzz``
 -------------------
 
-.. command-output:: hypothesis fuzz --help
+.. literalinclude:: ../cli_output_fuzz.txt
+   :language: text
 
 Example usage
 ~~~~~~~~~~~~~

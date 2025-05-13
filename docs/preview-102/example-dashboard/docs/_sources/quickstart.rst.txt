@@ -35,4 +35,4 @@ Any arguments after ``hypothesis fuzz --`` are passed through to pytest. See :do
 
 .. note::
 
-    See the :doc:`command-line interface </manual/cli>` user manual for a full reference.
+    See the :doc:`command-line interface </manual/cli>` docs for a full command reference, and the :doc:`operating guide </manual/operating>` for advice on configuring HypoFuzz.
