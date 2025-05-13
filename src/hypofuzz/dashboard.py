@@ -73,12 +73,8 @@ class Test:
     def __post_init__(self) -> None:
         self.linear_reports = []
         # map of since: float to (start_idx, list[StatusCounts])
-        self._status_counts_cumsum: LRUCache[float, tuple[int, list[StatusCounts]]] = (
-            LRUCache(16)
-        )
-        self._elapsed_time_cumsum: LRUCache[float, tuple[int, list[float]]] = LRUCache(
-            16
-        )
+        self._status_counts_cumsum = LRUCache(16)
+        self._elapsed_time_cumsum = LRUCache(16)
 
         reports_by_worker = self.reports_by_worker
         self.reports_by_worker = {}
@@ -173,7 +169,7 @@ class Test:
             report.timestamp
             if last_report is None
             else max(
-                report.timestamp, last_report.timestamp_monotonic + elapsed_time_diff
+                report.timestamp, last_report.timestamp_monotonic + elapsed_time_diff  # type: ignore
             )
         )
         assert all(count >= 0 for count in status_counts_diff.values())
@@ -220,7 +216,7 @@ class Test:
     def _cumsum(
         self,
         *,
-        cache: LRUCache[float, tuple[int, list[T]]],
+        cache: LRUCache,
         attr: str,
         since: Optional[float],
         initial: T,
@@ -228,6 +224,7 @@ class Test:
         if since is None:
             since = -math.inf
 
+        cumsum: list[T]
         if since in cache:
             (start_idx, cumsum) = cache[since]
             if len(cumsum) < len(self.linear_reports[start_idx:]):
