@@ -116,8 +116,6 @@ def _fuzz_impl(numprocesses: int, pytest_args: tuple[str, ...]) -> None:
         )
 
     print(f"collected {len(tests)} property-based tests")
-    if numprocesses > len(tests):
-        numprocesses = len(tests)
 
     testnames = "\n    ".join(t.nodeid for t in tests)
     print(f"using up to {numprocesses} processes to fuzz:\n    {testnames}\n")
@@ -127,7 +125,13 @@ def _fuzz_impl(numprocesses: int, pytest_args: tuple[str, ...]) -> None:
     else:
         processes = []
         for i in range(numprocesses):
-            nodes = {t.nodeid for t in tests[i::numprocesses]}
+            # Round-robin for large test suites; all-on-all for tiny, etc.
+            nodes = set()
+            for ix in range(numprocesses):
+                nodes.update(t.nodeid for t in tests[i+ix::numprocesses])
+                if len(nodes) >= 10:  # enough to prioritize between
+                    break
+
             p = Process(
                 target=_fuzz_several,
                 kwargs={"pytest_args": pytest_args, "nodeids": nodes},
