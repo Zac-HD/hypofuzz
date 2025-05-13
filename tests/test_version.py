@@ -22,7 +22,9 @@ class Version(NamedTuple):
 @lru_cache
 def get_releases():
     pattern = re.compile(r"^## (\d\d\.\d\d\.\d+)$")
-    with open(Path(__file__).parent.parent / "docs-src/changelog.md") as f:
+    with open(
+        Path(__file__).parent.parent / "src" / "hypofuzz" / "docs" / "changelog.md"
+    ) as f:
         return tuple(
             Version.from_string(match.group(1))
             for match in map(pattern.match, f)

@@ -6,7 +6,7 @@ from pathlib import Path
 project = "HypoFuzz"
 copyright = f"{date.today().year}, Zac Hatfield-Dodds"
 author = "Zac Hatfield-Dodds"
-init_file = Path(__file__).parent.parent / "src/hypofuzz/__init__.py"
+init_file = Path(__file__).parent.parent / "__init__.py"
 for line in init_file.read_text().splitlines():
     if line.startswith("__version__ = "):
         _, version, _ = line.split('"')

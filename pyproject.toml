@@ -69,11 +69,13 @@ hypofuzz = [
     # frontend/dist in the sdist because we expect that to be built from source anyway, but I
     # think such a rule would require MANIFEST.in.
     "frontend/**/*",
+    "docs/**/*"
 ]
 
 [tool.setuptools.exclude-package-data]
 hypofuzz = [
-    "frontend/node_modules/**/*"
+    "frontend/node_modules/**/*",
+    "docs/dashboard_state"
 ]
 
 [tool.setuptools.dynamic]
