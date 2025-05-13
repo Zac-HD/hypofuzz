@@ -1,6 +1,5 @@
 # Top-level dependencies for `tox -e docs`
-myst-parser
 sphinx
-sphinx-rtd-theme
+furo
+myst-parser
 sphinxcontrib-bibtex
-sphinxcontrib-programoutput

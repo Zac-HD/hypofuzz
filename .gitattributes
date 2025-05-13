@@ -1,2 +1,2 @@
-docs-src/dashboard_state.json filter=lfs diff=lfs merge=lfs -text
-docs-src/dashboard_state/*.json filter=lfs diff=lfs merge=lfs -text
+src/hypofuzz/docs/dashboard_state.json filter=lfs diff=lfs merge=lfs -text
+src/hypofuzz/docs/dashboard_state/*.json filter=lfs diff=lfs merge=lfs -text

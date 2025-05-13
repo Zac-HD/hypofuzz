@@ -1,5 +1,14 @@
 [build-system]
-requires = ["setuptools", "wheel"]
+requires = [
+    # base build requirements
+    "setuptools",
+    "wheel",
+    # required for build_docs in build.py
+    "sphinx",
+    "furo",
+    "myst-parser",
+    "sphinxcontrib-bibtex",
+]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -56,14 +65,17 @@ _ = "hypofuzz.entrypoint"
 
 [tool.setuptools.package-data]
 hypofuzz = [
-    # including /dist, for bdist. ideally we wouldn't include /dist in sdist because we expect
-    # that to be build from source anyway, but I think such a rule requires MANIFEST.in.
+    # Making sure to include frontend/dist as well, for the bdist. Ideally we wouldn't include
+    # frontend/dist in the sdist because we expect that to be built from source anyway, but I
+    # think such a rule would require MANIFEST.in.
     "frontend/**/*",
+    "docs/**/*"
 ]
 
 [tool.setuptools.exclude-package-data]
 hypofuzz = [
-    "frontend/node_modules/**/*"
+    "frontend/node_modules/**/*",
+    "docs/dashboard_state/*",
 ]
 
 [tool.setuptools.dynamic]

@@ -5,27 +5,6 @@ The core principle of HypoFuzz is that it should be effortless to adopt:
 if you have Hypothesis tests, everything else is automatic.  If you're
 curious about what that "everything else" involves, this page is for you.
 
-.. contents::
-    :local:
-
-
-Collecting tests
-----------------
-
-HypoFuzz uses :pypi:`pytest` to collect the test functions to fuzz,
-with almost identical command-line interfaces.  If you're using
-:command:`pytest ...` to run your tests, :command:`hypothesis fuzz -- ...`
-will fuzz them.
-
-Note that tests which use `pytest fixtures <https://docs.pytest.org/en/stable/fixture.html>`__,
-including ``autouse`` fixtures, are not collected as they may behave
-differently outside of the pytest runtime.  We recommend using a context
-manager and the ``with`` statement instead.
-
-Support for other test runners, such as :mod:`python:unittest`,
-is :doc:`on our roadmap <roadmap>`.
-
-
 Execution model
 ---------------
 
@@ -107,3 +86,21 @@ Ensemble fuzzing can also be modelled as a mixture of the ensembled behaviours,
 and HypoFuzz therefore attempts to run an *adaptive* mixture of all the useful
 behaviours we can implement.  To the extent that this works, we get the benefits
 of ensembling and consume the minimum possible resources to required to do so.
+
+
+A glance under the hood
+-----------------------
+
+HypoFuzz isn't "better" than Hypothesis - it's playing a different game,
+and the main difference is that it runs for much longer.  That means:
+
+- The performance overhead of coverage instrumentation pays off, as we can
+  tell when inputs do something unusual and spend more time generating similar
+  things in future.
+
+- Instead of running 100 examples for each test before moving on to the next,
+  we can interleave them, run different numbers of examples for each test, and
+  focus on the ones where we're discovering new behaviours fastest.
+
+We spend our time generating more interesting examples, focussed on the most
+complex tests, and do so *without any human input at all*.

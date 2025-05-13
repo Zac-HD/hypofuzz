@@ -1,5 +1,6 @@
 ## Project-specific ignore patterns
 /docs/docs/
+/src/hypofuzz/frontend/public/docs/
 __latexindent_temp.tex
 pycrunch-recordings/
 .cursor

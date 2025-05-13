@@ -13,7 +13,9 @@ parser.add_argument("url", nargs="?", default="http://localhost:9999/")
 args = parser.parse_args()
 url = urlparse(args.url)
 
-dashboard_state = Path(__file__).parent.parent / "docs-src" / "dashboard_state"
+dashboard_state = (
+    Path(__file__).parent.parent / "src" / "hypofuzz" / "docs" / "dashboard_state"
+)
 dashboard_state.mkdir(exist_ok=True)
 
 for page in ["tests", "observations", "api"]:
