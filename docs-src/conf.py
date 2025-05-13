@@ -24,7 +24,6 @@ extensions = [
     "sphinx.ext.viewcode",
     "sphinx.ext.intersphinx",
     "sphinxcontrib.bibtex",
-    "sphinxcontrib.programoutput",
 ]
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3/", None),
