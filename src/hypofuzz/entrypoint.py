@@ -44,11 +44,6 @@ import psutil
     metavar="PORT",
     help="Optional port for the dashboard (if any). 0 to request an arbitrary open port",
 )
-@click.option(
-    "--unsafe",
-    is_flag=True,
-    help="Allow concurrent execution of each test (dashboard may report wrong results)",
-)
 @click.argument(
     "pytest_args",
     nargs=-1,
@@ -60,7 +55,6 @@ def fuzz(
     dashboard_only: bool,
     host: Optional[str],
     port: Optional[int],
-    unsafe: bool,
     pytest_args: tuple[str, ...],
 ) -> NoReturn:
     """[hypofuzz] runs tests with an adaptive coverage-guided fuzzer.
@@ -88,7 +82,6 @@ def fuzz(
     try:
         _fuzz_impl(
             numprocesses=numprocesses,
-            unsafe=unsafe,
             pytest_args=pytest_args,
         )
     except BaseException:
@@ -102,7 +95,7 @@ def fuzz(
     raise NotImplementedError("unreachable")
 
 
-def _fuzz_impl(numprocesses: int, unsafe: bool, pytest_args: tuple[str, ...]) -> None:
+def _fuzz_impl(numprocesses: int, pytest_args: tuple[str, ...]) -> None:
     # Before doing anything with our arguments, we'll check that none
     # of HypoFuzz's arguments will be passed on to pytest instead.
     misplaced: set = set(pytest_args) & set().union(*(p.opts for p in fuzz.params))
@@ -123,7 +116,7 @@ def _fuzz_impl(numprocesses: int, unsafe: bool, pytest_args: tuple[str, ...]) ->
         )
 
     print(f"collected {len(tests)} property-based tests")
-    if numprocesses > len(tests) and not unsafe:
+    if numprocesses > len(tests):
         numprocesses = len(tests)
 
     testnames = "\n    ".join(t.nodeid for t in tests)
@@ -134,7 +127,7 @@ def _fuzz_impl(numprocesses: int, unsafe: bool, pytest_args: tuple[str, ...]) ->
     else:
         processes = []
         for i in range(numprocesses):
-            nodes = {t.nodeid for t in (tests if unsafe else tests[i::numprocesses])}
+            nodes = {t.nodeid for t in tests[i::numprocesses]}
             p = Process(
                 target=_fuzz_several,
                 kwargs={"pytest_args": pytest_args, "nodeids": nodes},

@@ -42,6 +42,10 @@ Writing your own database
 
 The HypoFuzz database is a standard :ref:`hypothesis database <hypothesis:database>`, which is a simple key-value store that maps bytestrings to lists of bytestrings. Writing your own database requires implementing only the ``.fetch(key: bytes)``, ``.save(key: bytes, value: bytes)``, and ``.delete(key: bytes, value: bytes)`` methods. See the Hypothesis database documentation for details on how to implement this.
 
+.. note::
+
+    We've already sketched designs for Hypothesis databases backed by S3, DynamoDB, and other cloud storage solutions. If something in this space would be useful for you, please <a href="mailto:sales@hypofuzz.com?subject=HypoFuzz%20database%20support">get in touch</a> and we can bump it up our todo list!
+
 Once you've written your own database, you can tell HypoFuzz to use it like any other database:
 
 .. code-block:: python
