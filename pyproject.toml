@@ -75,7 +75,7 @@ hypofuzz = [
 [tool.setuptools.exclude-package-data]
 hypofuzz = [
     "frontend/node_modules/**/*",
-    "docs/dashboard_state"
+    "docs/dashboard_state/*",
 ]
 
 [tool.setuptools.dynamic]
