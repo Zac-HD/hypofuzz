@@ -3,4 +3,3 @@ sphinx
 furo
 myst-parser
 sphinxcontrib-bibtex
-sphinxcontrib-programoutput

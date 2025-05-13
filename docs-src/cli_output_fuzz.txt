@@ -1,0 +1,20 @@
+$ hypothesis fuzz --help
+Usage: hypothesis fuzz [OPTIONS] [-- PYTEST_ARGS]
+
+  [hypofuzz] runs tests with an adaptive coverage-guided fuzzer.
+
+  Unrecognised arguments are passed through to `pytest` to select the tests to
+  run, with the additional constraint that only Hypothesis tests can be
+  fuzzed.
+
+  This process will run forever unless stopped with e.g. ctrl-C.
+
+Options:
+  -n, --numprocesses NUM        default: all available cores  [x>=1]
+  --dashboard / --no-dashboard  serve / don't serve a live dashboard page
+  -d, --dashboard-only          serve a live dashboard page without launching
+                                associated fuzzing processes
+  --host HOST                   Optional host for the dashboard
+  --port PORT                   Optional port for the dashboard (if any). 0 to
+                                request an arbitrary open port  [0<=x<=65535]
+  -h, --help                    Show this message and exit.
