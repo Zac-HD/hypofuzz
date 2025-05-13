@@ -202,6 +202,7 @@
   <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
 <li class="toctree-l1 current has-children"><a class="reference internal" href="index.html">User manual</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of User manual</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="operating.html">Operating HypoFuzz</a></li>
 <li class="toctree-l2"><a class="reference internal" href="cli.html">Command-line interface</a></li>
 <li class="toctree-l2"><a class="reference internal" href="collection.html">Test collection</a></li>
 <li class="toctree-l2"><a class="reference internal" href="database.html">HypoFuzz database</a></li>
@@ -258,15 +259,27 @@
           <section id="custom-coverage-events">
 <h1>Custom coverage events<a class="headerlink" href="#custom-coverage-events" title="Link to this heading">¶</a></h1>
 <p>HypoFuzz collects branch coverage of your code on every input. However, we know that there are many things code can do that aren’t captured by
-the set of executed branches.  <a class="reference external" href="https://blog.foretellix.com/2016/12/23/verification-coverage-and-maximization-the-big-picture/">This blog post</a>
-gives a good overview of coverage-driven verification workflows.</p>
-<p>We therefore treat each <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.event" title="(in Hypothesis v6.131.15)"><code class="xref py py-func docutils literal notranslate"><span class="pre">hypothesis.event()</span></code></a> as a “virtual” branch - while it’s
-not part of the control-flow graph, we keep track of inputs which produced each
-observed event in the same way that we track the inputs which produce each branch.</p>
-<p>You can therefore use the <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.event" title="(in Hypothesis v6.131.15)"><code class="xref py py-func docutils literal notranslate"><span class="pre">event()</span></code></a> function in your tests to
-mark out categories of behaviour, boundary conditions, and so on, and then let the
-fuzzer exploit that to generate more diverse and better-targeted inputs.
-And as a bonus, you’ll get useful summary statistics when running Hypothesis!</p>
+the set of executed branches.</p>
+<p>We therefore treat the <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.event" title="(in Hypothesis v6.131.15)"><code class="xref py py-func docutils literal notranslate"><span class="pre">hypothesis.event()</span></code></a> function as a “virtual” branch. While not
+part of the control-flow graph, we treat inputs which produce a new event the same
+as inputs which execute a new branch.</p>
+<p>You can take advantage of this by using <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.event" title="(in Hypothesis v6.131.15)"><code class="xref py py-func docutils literal notranslate"><span class="pre">hypothesis.event()</span></code></a> to guide HypoFuzz towards
+interesting parts of your code. This might include categories of behavior, boundary conditions, etc; particularly those which are not already represented by a branch in your code. HypoFuzz will direct its fuzzing efforts towards these areas. (And as a bonus, you’ll get <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/reference/integrations.html#statistics" title="(in Hypothesis v6.131.15)"><span class="xref std std-ref">summary statistics</span></a> about the events when running Hypothesis!)</p>
+<p>For example, if you are testing a url parser, you might consider strings with multiple domains to be a particularly interesting case. You can give HypoFuzz a virtual branch in this case with <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.event" title="(in Hypothesis v6.131.15)"><code class="xref py py-func docutils literal notranslate"><span class="pre">hypothesis.event()</span></code></a>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">hypothesis</span><span class="w"> </span><span class="kn">import</span> <span class="n">event</span><span class="p">,</span> <span class="n">given</span><span class="p">,</span> <span class="n">strategies</span> <span class="k">as</span> <span class="n">st</span>
+
+
+<span class="nd">@given</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">urls</span><span class="p">())</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">test_parse_url</span><span class="p">(</span><span class="n">url</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">url</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="n">event</span><span class="p">(</span><span class="s2">&quot;multiple_domains&quot;</span><span class="p">)</span>
+
+    <span class="n">parse_url</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>(Though if <code class="docutils literal notranslate"><span class="pre">parse_url</span></code> already has a branch for the multiple-domain case, then adding a virtual branch like this is unlikely to help.)</p>
+<p>Finally, <a class="reference external" href="https://blog.foretellix.com/2016/12/23/verification-coverage-and-maximization-the-big-picture/">this blog post</a>
+gives a good overview of this coverage-driven verification workflow.</p>
 </section>
 
         </article>

@@ -3,7 +3,7 @@
   <head><meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Test collection" href="collection.html" /><link rel="prev" title="User manual" href="index.html" />
+<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Test collection" href="collection.html" /><link rel="prev" title="Operating HypoFuzz" href="operating.html" />
         <link rel="canonical" href="https://hypofuzz.com/docs/manual/cli.html" />
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2024.08.06 -->
@@ -202,6 +202,7 @@
   <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
 <li class="toctree-l1 current has-children"><a class="reference internal" href="index.html">User manual</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of User manual</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="operating.html">Operating HypoFuzz</a></li>
 <li class="toctree-l2 current current-page"><a class="current reference internal" href="#">Command-line interface</a></li>
 <li class="toctree-l2"><a class="reference internal" href="collection.html">Test collection</a></li>
 <li class="toctree-l2"><a class="reference internal" href="database.html">HypoFuzz database</a></li>
@@ -257,7 +258,7 @@
         <article role="main" id="furo-main-content">
           <section id="command-line-interface">
 <h1>Command-line interface<a class="headerlink" href="#command-line-interface" title="Link to this heading">¶</a></h1>
-<p>The <code class="docutils literal notranslate"><span class="pre">hypothesis</span> <span class="pre">fuzz</span></code> command is the main entrypoint to HypoFuzz.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">hypothesis</span> <span class="pre">fuzz</span></code> command is the main entrypoint to HypoFuzz. Installing HypoFuzz automatically adds the <code class="docutils literal notranslate"><span class="pre">fuzz</span></code> sub-command to the existing <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/reference/integrations.html#hypothesis-cli" title="(in Hypothesis v6.131.15)"><span class="xref std std-ref">Hypothesis CLI</span></a>.</p>
 <section id="hypothesis-fuzz">
 <h2><code class="docutils literal notranslate"><span class="pre">hypothesis</span> <span class="pre">fuzz</span></code><a class="headerlink" href="#hypothesis-fuzz" title="Link to this heading">¶</a></h2>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>$ hypothesis fuzz --help
@@ -279,11 +280,19 @@ Options:
   --host HOST                   Optional host for the dashboard
   --port PORT                   Optional port for the dashboard (if any). 0 to
                                 request an arbitrary open port  [0&lt;=x&lt;=65535]
-  --unsafe                      Allow concurrent execution of each test
-                                (dashboard may report wrong results)
   -h, --help                    Show this message and exit.
 </pre></div>
 </div>
+<section id="example-usage">
+<h3>Example usage<a class="headerlink" href="#example-usage" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">hypothesis</span> <span class="pre">fuzz</span></code> starts the dashboard and fuzz workers, using all available cores.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">hypothesis</span> <span class="pre">fuzz</span> <span class="pre">-n</span> <span class="pre">2</span></code> starts the dashboard and fuzz workers, using 2 cores.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">hypothesis</span> <span class="pre">fuzz</span> <span class="pre">--dashboard-only</span></code> starts just the dashboard. The dashboard works even if no fuzz workers are running.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">hypothesis</span> <span class="pre">fuzz</span> <span class="pre">--no-dashboard</span> <span class="pre">-n</span> <span class="pre">4</span></code> starts just the fuzz workers, using 4 cores.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">hypothesis</span> <span class="pre">fuzz</span> <span class="pre">--</span> <span class="pre">-k</span> <span class="pre">parse</span></code> starts the dashboard and fuzz workers only for test names with the string <code class="docutils literal notranslate"><span class="pre">parse</span></code> in them.</p></li>
+</ul>
+</section>
 </section>
 </section>
 
@@ -301,14 +310,14 @@ Options:
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>
-          <a class="prev-page" href="index.html">
+          <a class="prev-page" href="operating.html">
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
               <div class="page-info">
                 <div class="context">
                   <span>Previous</span>
                 </div>
                 
-                <div class="title">User manual</div>
+                <div class="title">Operating HypoFuzz</div>
                 
               </div>
             </a>
@@ -342,7 +351,10 @@ Options:
           <div class="toc-tree">
             <ul>
 <li><a class="reference internal" href="#">Command-line interface</a><ul>
-<li><a class="reference internal" href="#hypothesis-fuzz"><code class="docutils literal notranslate"><span class="pre">hypothesis</span> <span class="pre">fuzz</span></code></a></li>
+<li><a class="reference internal" href="#hypothesis-fuzz"><code class="docutils literal notranslate"><span class="pre">hypothesis</span> <span class="pre">fuzz</span></code></a><ul>
+<li><a class="reference internal" href="#example-usage">Example usage</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>

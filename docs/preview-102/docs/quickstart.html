@@ -202,6 +202,7 @@
   <ul class="current">
 <li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Quickstart</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="manual/index.html">User manual</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of User manual</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="manual/operating.html">Operating HypoFuzz</a></li>
 <li class="toctree-l2"><a class="reference internal" href="manual/cli.html">Command-line interface</a></li>
 <li class="toctree-l2"><a class="reference internal" href="manual/collection.html">Test collection</a></li>
 <li class="toctree-l2"><a class="reference internal" href="manual/database.html">HypoFuzz database</a></li>
@@ -271,7 +272,7 @@
 </section>
 <section id="running-hypofuzz">
 <h2>Running HypoFuzz<a class="headerlink" href="#running-hypofuzz" title="Link to this heading">¶</a></h2>
-<p>The main entrypoint to HypoFuzz is <code class="docutils literal notranslate"><span class="pre">hypothesis</span> <span class="pre">fuzz</span></code>. This sub-command of the <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/reference/integrations.html#hypothesis-cli" title="(in Hypothesis v6.131.15)"><span class="xref std std-ref">hypothesis command line</span></a> is automatically created when installing HypoFuzz.</p>
+<p>The main entrypoint to HypoFuzz is <code class="docutils literal notranslate"><span class="pre">hypothesis</span> <span class="pre">fuzz</span></code>. Installing HypoFuzz automatically adds this <code class="docutils literal notranslate"><span class="pre">fuzz</span></code> sub-command to the existing <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/reference/integrations.html#hypothesis-cli" title="(in Hypothesis v6.131.15)"><span class="xref std std-ref">Hypothesis CLI</span></a>.</p>
 <p>The no-argument command <code class="docutils literal notranslate"><span class="pre">hypothesis</span> <span class="pre">fuzz</span></code> does two things:</p>
 <ul class="simple">
 <li><p>Starts a local dashboard webserver, and</p></li>
@@ -284,36 +285,6 @@
 <p class="admonition-title">Note</p>
 <p>See the <a class="reference internal" href="manual/cli.html"><span class="doc">command-line interface</span></a> user manual for a full reference.</p>
 </div>
-</section>
-<section id="running-on-your-laptop">
-<h2>Running on your laptop<a class="headerlink" href="#running-on-your-laptop" title="Link to this heading">¶</a></h2>
-<p>For running HypoFuzz locally on your laptop, we recommend simply using <code class="docutils literal notranslate"><span class="pre">hypothesis</span> <span class="pre">fuzz</span></code>, which launches both the dashboard and the associated fuzz workers.</p>
-<p>If you like, you can run <code class="docutils literal notranslate"><span class="pre">hypothesis</span> <span class="pre">fuzz</span> <span class="pre">--dashboard-only</span></code> and <code class="docutils literal notranslate"><span class="pre">hypothesis</span> <span class="pre">fuzz</span> <span class="pre">--no-dashboard</span></code> as separate concurrent commands, so you can stop the fuzz workers while still being able to view the dashboard.</p>
-</section>
-<section id="running-on-a-server">
-<h2>Running on a server<a class="headerlink" href="#running-on-a-server" title="Link to this heading">¶</a></h2>
-<p>This section is for running HypoFuzz on a single, centralized server.</p>
-<p>We recommend running a permanent dashboard with <code class="docutils literal notranslate"><span class="pre">hypothesis</span> <span class="pre">fuzz</span> <span class="pre">--dashboard-only</span></code>, and launching separate fuzz workers with <code class="docutils literal notranslate"><span class="pre">hypothesis</span> <span class="pre">fuzz</span> <span class="pre">--no-dashboard</span></code> whenever appropriate. (This might be “after every commit, for an hour”, or “once a day for an hour”, or on a manual trigger). You can of course combine both with <code class="docutils literal notranslate"><span class="pre">hypothesis</span> <span class="pre">fuzz</span></code> if you want to configure your server to search for bugs indefinitely.</p>
-<section id="reproducing-failures-locally">
-<h3>Reproducing failures locally<a class="headerlink" href="#reproducing-failures-locally" title="Link to this heading">¶</a></h3>
-<p>Since HypoFuzz is running on a server, developers will need to connect to the server’s Hypothesis database in order to locally reproduce failures found by HypoFuzz.</p>
-<p>The details of configuring this depends on your network topology. For instance, if you have a shared filesystem with the server, you can simply configure your database as a <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.database.DirectoryBasedExampleDatabase" title="(in Hypothesis v6.131.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">DirectoryBasedExampleDatabase</span></code></a> pointed to the location of the <code class="docutils literal notranslate"><span class="pre">.hypothesis</span></code> database on the server. In more complex cases, you may need to use a networked database such as <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.extra.redis.RedisExampleDatabase" title="(in Hypothesis v6.131.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">RedisExampleDatabase</span></code></a>, or write your own database class.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>See <a class="reference internal" href="manual/database.html"><span class="doc">HypoFuzz database</span></a> for details on the HypoFuzz database, and how to write your own database class.</p>
-</div>
-<p>In the worst case (and if the server is using <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.database.DirectoryBasedExampleDatabase" title="(in Hypothesis v6.131.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">DirectoryBasedExampleDatabase</span></code></a>), you can copy the <code class="docutils literal notranslate"><span class="pre">.hypothesis</span></code> directory on the server to your local copy of the codebase to reproduce failures.</p>
-</section>
-</section>
-<section id="running-on-a-distributed-system">
-<h2>Running on a distributed system<a class="headerlink" href="#running-on-a-distributed-system" title="Link to this heading">¶</a></h2>
-<p>This section is for running HypoFuzz on a distributed system, where distributed workers might come and go, with varying degrees of compute load.</p>
-<p>As with the single-server case, we recommend running a permanent dashboard with <code class="docutils literal notranslate"><span class="pre">hypothesis</span> <span class="pre">fuzz</span> <span class="pre">--dashboard-only</span></code>, and running <code class="docutils literal notranslate"><span class="pre">hypothesis</span> <span class="pre">fuzz</span> <span class="pre">--no-dashboard</span></code> on each distributed worker. Starting a fuzz process with <code class="docutils literal notranslate"><span class="pre">hypothesis</span> <span class="pre">fuzz</span></code> has some amount of overhead before it starts to be effective, so the longer each distributed worker lives, the better.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>We plan to reduce the per-worker overhead in the future.</p>
-</div>
-<p>For the database on a distributed system, we recommend using Redis with <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.extra.redis.RedisExampleDatabase" title="(in Hypothesis v6.131.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">RedisExampleDatabase</span></code></a>. Alternatively, you can easily write your own database class (see <a class="reference internal" href="manual/database.html"><span class="doc">HypoFuzz database</span></a>), and contributions of database class implementations to Hypothesis are most welcome as well!</p>
 </section>
 </section>
 
@@ -375,12 +346,6 @@
 <li><a class="reference internal" href="#prerequisite-have-some-hypothesis-tests">Prerequisite: Have some Hypothesis tests</a></li>
 <li><a class="reference internal" href="#installation">Installation</a></li>
 <li><a class="reference internal" href="#running-hypofuzz">Running HypoFuzz</a></li>
-<li><a class="reference internal" href="#running-on-your-laptop">Running on your laptop</a></li>
-<li><a class="reference internal" href="#running-on-a-server">Running on a server</a><ul>
-<li><a class="reference internal" href="#reproducing-failures-locally">Reproducing failures locally</a></li>
-</ul>
-</li>
-<li><a class="reference internal" href="#running-on-a-distributed-system">Running on a distributed system</a></li>
 </ul>
 </li>
 </ul>

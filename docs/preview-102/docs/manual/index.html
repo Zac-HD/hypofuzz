@@ -3,7 +3,7 @@
   <head><meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Command-line interface" href="cli.html" /><link rel="prev" title="Quickstart" href="../quickstart.html" />
+<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Operating HypoFuzz" href="operating.html" /><link rel="prev" title="Quickstart" href="../quickstart.html" />
         <link rel="canonical" href="https://hypofuzz.com/docs/manual/index.html" />
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2024.08.06 -->
@@ -202,6 +202,7 @@
   <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
 <li class="toctree-l1 current has-children current-page"><a class="current reference internal" href="#">User manual</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of User manual</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="operating.html">Operating HypoFuzz</a></li>
 <li class="toctree-l2"><a class="reference internal" href="cli.html">Command-line interface</a></li>
 <li class="toctree-l2"><a class="reference internal" href="collection.html">Test collection</a></li>
 <li class="toctree-l2"><a class="reference internal" href="database.html">HypoFuzz database</a></li>
@@ -260,8 +261,20 @@
 <p>The user manual contains reference material on how to use HypoFuzz.</p>
 <div class="toctree-wrapper compound">
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="operating.html">Operating HypoFuzz</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="operating.html#running-on-your-laptop">Running on your laptop</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operating.html#running-on-a-server">Running on a server</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="operating.html#reproducing-failures-locally">Reproducing failures locally</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="operating.html#running-on-a-distributed-system">Running on a distributed system</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="cli.html">Command-line interface</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="cli.html#hypothesis-fuzz"><code class="docutils literal notranslate"><span class="pre">hypothesis</span> <span class="pre">fuzz</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="cli.html#hypothesis-fuzz"><code class="docutils literal notranslate"><span class="pre">hypothesis</span> <span class="pre">fuzz</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cli.html#example-usage">Example usage</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="collection.html">Test collection</a></li>
@@ -281,12 +294,12 @@
       <footer>
         
         <div class="related-pages">
-          <a class="next-page" href="cli.html">
+          <a class="next-page" href="operating.html">
               <div class="page-info">
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title">Command-line interface</div>
+                <div class="title">Operating HypoFuzz</div>
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>

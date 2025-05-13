@@ -202,6 +202,7 @@
   <ul>
 <li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="manual/index.html">User manual</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of User manual</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="manual/operating.html">Operating HypoFuzz</a></li>
 <li class="toctree-l2"><a class="reference internal" href="manual/cli.html">Command-line interface</a></li>
 <li class="toctree-l2"><a class="reference internal" href="manual/collection.html">Test collection</a></li>
 <li class="toctree-l2"><a class="reference internal" href="manual/database.html">HypoFuzz database</a></li>
@@ -397,9 +398,9 @@ approach to generation for acceptable performance - even when seriously unintuit
 inspired by Hypothesis.  Showing the power of a good intermediate representation,
 recent tools have attempted to build on top of this to provide both <a class="reference external" href="https://github.com/facebookincubator/propfuzz">fuzzing</a> and <a class="reference external" href="https://github.com/project-oak/rust-verification-tools">formal verification</a> with (almost) the same
 user-facing API.</p>
-<p>There are <a class="reference external" href="https://github.com/HypothesisWorks/hypothesis/issues/3086">plans for Hypothesis to support symbolic execution via</a> <a class="extlink-pypi reference external" href="https://pypi.org/project/crosshair-tool">crosshair-tool</a>,
-and a promising proof-of-concept, but no firm timeline unless someone volunteers to
-take on the project.</p>
+<p>Hypothesis supports symbolic execution via the <a class="extlink-pypi reference external" href="https://pypi.org/project/hypothesis-crosshair">hypothesis-crosshair</a>
+<a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/extensions.html#alternative-backends" title="(in Hypothesis v6.131.15)"><span class="xref std std-ref">alternative backend</span></a>, and we plan to incorporate
+this into HypoFuzz with an ensemble-style approach.</p>
 </section>
 <section id="c-c-trailofbits-deepstate-google-s-fuzztest">
 <h4>(C / C++) TrailofBits’ DeepState, Google’s <code class="docutils literal notranslate"><span class="pre">fuzztest</span></code><a class="headerlink" href="#c-c-trailofbits-deepstate-google-s-fuzztest" title="Link to this heading">¶</a></h4>
@@ -666,13 +667,14 @@ fruitful, and very fast given the JIT-friendly repeated execution pattern of fuz
 </section>
 <section id="faster-coverage-measurement-for-python">
 <h3>Faster coverage measurement for Python<a class="headerlink" href="#faster-coverage-measurement-for-python" title="Link to this heading">¶</a></h3>
-<p><a class="extlink-pypi reference external" href="https://pypi.org/project/coverage">coverage</a> typically slows instrumented programs by a factor of several times,
-typically ranging from 2-5x but with as much as 70x known on some workloads.
-There have been several proposals to improve this - e.g. <a class="reference external" href="https://www.drmaciver.com/2017/09/python-coverage-could-be-fast/">Python Coverage could be fast</a> - and relatively
-small grants could make a very large impact.</p>
-<p>Abandoning most of the features in <a class="extlink-pypi reference external" href="https://pypi.org/project/coverage">coverage</a> (reporting, analysis of untaken
-branches, aggregation across interpreters, etc.) to focus solely on the branch-reporting
-logic used by a fuzzer <a class="reference external" href="https://dustri.org/b/fuzzing-python-in-python-and-doing-it-fast.html">can also offer substantial speedups</a>.</p>
+<p>On Python 3.12 and earlier, coverage instrumentation uses <a class="reference external" href="https://docs.python.org/3/library/sys.html#sys.settrace" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">sys.settrace()</span></code></a>,
+which has substantial overhead as it cannot be disabled after the first time a line or
+branch executes. <a class="extlink-pypi reference external" href="https://pypi.org/project/coverage">coverage</a> typically slows instrumented programs
+by a factor of several times, typically ranging from 2-5x but with as much as 70x known
+on some workloads.</p>
+<p>Fortunately, on Python 3.12 and newer, <a class="reference external" href="https://docs.python.org/3/library/sys.monitoring.html#module-sys.monitoring" title="(in Python v3.13)"><code class="xref py py-mod docutils literal notranslate"><span class="pre">sys.monitoring</span></code></a> (via <span class="target" id="index-0"></span><a class="pep reference external" href="https://peps.python.org/pep-0669/"><strong>PEP 669</strong></a>) provides coverage
+instrumentation at a much lower overhead. HypoFuzz uses <code class="docutils literal notranslate"><span class="pre">sys.monitoring</span></code> on 3.12+, and
+falls back to <code class="docutils literal notranslate"><span class="pre">sys.settrace</span></code> on earlier Python versions.</p>
 </section>
 <section id="sensitive-coverage-metrics">
 <h3>Sensitive coverage metrics<a class="headerlink" href="#sensitive-coverage-metrics" title="Link to this heading">¶</a></h3>
@@ -727,9 +729,9 @@ the development of Windows 7 - running <em>after</em> static analysis and other 
 <p>Inputs synthesised by symbolic or concolic approaches could provide the initial
 seed pool for a classic mutational fuzzer, and provide a way to ‘get unstuck’
 on conditions which are hard to satisfy by chance.
-There are <a class="reference external" href="https://github.com/HypothesisWorks/hypothesis/issues/3086">plans for Hypothesis to support symbolic execution via</a> <a class="extlink-pypi reference external" href="https://pypi.org/project/crosshair-tool">crosshair-tool</a>,
-and a promising proof-of-concept, but no firm timeline unless someone volunteers to
-take on the project.</p>
+Hypothesis supports symbolic execution via the <a class="extlink-pypi reference external" href="https://pypi.org/project/hypothesis-crosshair">hypothesis-crosshair</a>
+<a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/extensions.html#alternative-backends" title="(in Hypothesis v6.131.15)"><span class="xref std std-ref">alternative backend</span></a>, and we plan to incorporate
+this into HypoFuzz with an ensemble-style approach.</p>
 </section>
 <section id="scaling-fuzzers-up-to-many-cores">
 <h3>Scaling fuzzers up to many cores<a class="headerlink" href="#scaling-fuzzers-up-to-many-cores" title="Link to this heading">¶</a></h3>
