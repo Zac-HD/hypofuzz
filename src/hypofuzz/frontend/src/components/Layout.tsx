@@ -63,7 +63,10 @@ export function Layout() {
             Collection
           </Link>
           <div className="sidebar__separator"></div>
-          <a href="/docs/" className="sidebar__link">
+          <a
+            href={`${import.meta.env.BASE_URL.replace(/\/$/, "")}/docs/`}
+            className="sidebar__link"
+          >
             Docs
           </a>
         </nav>
