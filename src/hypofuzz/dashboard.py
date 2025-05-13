@@ -24,6 +24,7 @@ from starlette.requests import Request
 from starlette.responses import FileResponse, JSONResponse, RedirectResponse, Response
 from starlette.routing import Mount, Route, WebSocketRoute
 from starlette.staticfiles import StaticFiles
+from starlette.types import Scope
 from starlette.websockets import WebSocket, WebSocketDisconnect
 from trio import MemoryReceiveChannel
 
@@ -346,7 +347,7 @@ async def api_backing_state_api(request: Request) -> Response:
 
 
 class DocsStaticFiles(StaticFiles):
-    async def get_response(self, path: str, scope):
+    async def get_response(self, path: str, scope: Scope) -> Response:
         # with StaticFiles(..., html=True), you can get /docs/ to load index.html.
         # But I'd like it to *redirect* to index.html, so /docs/ is not confused
         # for the canonical /docs/index/html url.
