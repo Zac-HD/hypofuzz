@@ -44,7 +44,7 @@ The HypoFuzz database is a standard :ref:`hypothesis database <hypothesis:databa
 
 .. note::
 
-    We've already sketched designs for Hypothesis databases backed by S3, DynamoDB, and other cloud storage solutions. If something in this space would be useful for you, please <a href="mailto:sales@hypofuzz.com?subject=HypoFuzz%20database%20support">get in touch</a> and we can bump it up our todo list!
+    We've already sketched designs for Hypothesis databases backed by S3, DynamoDB, and other cloud storage solutions. If something in this space would be useful for you, please `get in touch <mailto:sales@hypofuzz.com?subject=HypoFuzz%20database%20support>`__ and we can bump it up our todo list!
 
 Once you've written your own database, you can tell HypoFuzz to use it like any other database:
 
