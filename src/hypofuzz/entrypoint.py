@@ -126,9 +126,9 @@ def _fuzz_impl(numprocesses: int, pytest_args: tuple[str, ...]) -> None:
         processes = []
         for i in range(numprocesses):
             # Round-robin for large test suites; all-on-all for tiny, etc.
-            nodes = set()
+            nodes: set[str] = set()
             for ix in range(numprocesses):
-                nodes.update(t.nodeid for t in tests[i+ix::numprocesses])
+                nodes.update(t.nodeid for t in tests[i + ix :: numprocesses])
                 if len(nodes) >= 10:  # enough to prioritize between
                     break
 
