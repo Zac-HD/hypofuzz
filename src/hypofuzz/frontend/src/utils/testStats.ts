@@ -23,7 +23,9 @@ function formatTime(t: number): string {
 }
 
 export function inputsPerSecond(test: Test): number {
-  return test.elapsed_time > 0 ? test.ninputs / test.elapsed_time : 0
+  return test.linear_reports.length > 0
+    ? test.ninputs(null) / test.elapsed_time(null)
+    : 0
 }
 
 export function getTestStats(test: Test): TestStats {
@@ -38,10 +40,10 @@ export function getTestStats(test: Test): TestStats {
   }
 
   return {
-    inputs: test.ninputs.toLocaleString(),
+    inputs: test.ninputs(null).toLocaleString(),
     branches: test.branches.toLocaleString(),
     executions: `${inputsPerSecond(test).toFixed(1).toLocaleString()}/s`,
-    inputsSinceBranch: test.since_new_cov?.toLocaleString() ?? "—",
-    timeSpent: formatTime(test.elapsed_time),
+    inputsSinceBranch: test.since_new_branch?.toLocaleString() ?? "—",
+    timeSpent: formatTime(test.elapsed_time(null)),
   }
 }

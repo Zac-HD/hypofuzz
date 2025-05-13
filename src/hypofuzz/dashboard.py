@@ -1,6 +1,7 @@
 """Live web dashboard for a fuzzing run."""
 
 import abc
+import bisect
 import dataclasses
 import itertools
 import json
@@ -9,7 +10,7 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from functools import cache
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Optional, TypeVar
 
 import black
 import trio
@@ -20,7 +21,7 @@ from hypothesis.database import (
     BackgroundWriteDatabase,
     ListenerEventT,
 )
-from hypothesis.internal.conjecture.data import Status
+from hypothesis.internal.cache import LRUCache
 from starlette.applications import Starlette
 from starlette.requests import Request
 from starlette.responses import FileResponse, JSONResponse, Response
@@ -49,6 +50,8 @@ TESTS: dict[str, "Test"] = {}
 COLLECTION_RESULT: Optional[CollectionResult] = None
 websockets: set["HypofuzzWebsocket"] = set()
 
+T = TypeVar("T")
+
 
 @dataclass
 class Test:
@@ -59,8 +62,6 @@ class Test:
     failure: Optional[Observation]
     reports_by_worker: dict[str, list[Report]]
 
-    status_counts: StatusCounts = field(init=False)
-    elapsed_time: float = field(init=False)
     linear_reports: list[Report] = field(init=False)
 
     # prevent pytest from trying to collect this class as a test
@@ -70,15 +71,23 @@ class Test:
     # as alternative constructors? reports_by_workers is only to match the dashboard
     # class, we don't actually instantiate Test like that anywhere in python
     def __post_init__(self) -> None:
-        self.status_counts = StatusCounts(dict.fromkeys(Status, 0))
-        self.elapsed_time = 0.0
         self.linear_reports = []
+        # map of since: float to (start_idx, list[StatusCounts])
+        self._status_counts_cumsum: LRUCache[float, tuple[int, list[StatusCounts]]] = (
+            LRUCache(16)
+        )
+        self._elapsed_time_cumsum: LRUCache[float, tuple[int, list[float]]] = LRUCache(
+            16
+        )
 
         reports_by_worker = self.reports_by_worker
         self.reports_by_worker = {}
 
-        # TODO: use k-way merge for O(nlog(k)) performance, since reports_by_worker
-        # is already sorted
+        # TODO: use k-way merge for nlog(k)) performance, since reports_by_worker
+        # is already sorted.
+        # This sorting won't matter for correctness (once we correctly insert
+        # out-of-order reports), but it will for performance, by minimizing the
+        # number of .bisect calls.
         for report in sorted(
             itertools.chain.from_iterable(reports_by_worker.values()),
             key=lambda r: r.timestamp,
@@ -98,24 +107,28 @@ class Test:
     def _check_invariants(self) -> None:
         # this entire function is pretty expensive, move from run-time to test-time
         # once we're more confident
-        self._assert_reports_ordered(
-            self.linear_reports, ["elapsed_time", "status_counts", "timestamp"]
+        self._assert_reports_ordered(self.linear_reports, ["timestamp_monotonic"])
+
+        linear_status_counts = self.linear_status_counts(since=None)
+        assert all(
+            v1 <= v2 for v1, v2 in zip(linear_status_counts, linear_status_counts[1:])
+        ), linear_status_counts
+
+        linear_elapsed_time = self.linear_elapsed_time(since=None)
+        assert all(
+            v1 <= v2 for v1, v2 in zip(linear_elapsed_time, linear_elapsed_time[1:])
+        ), linear_elapsed_time
+        assert (
+            len(linear_elapsed_time)
+            == len(linear_status_counts)
+            == len(self.linear_reports)
         )
 
         for worker_uuid, reports in self.reports_by_worker.items():
             assert {r.nodeid for r in reports} == {self.nodeid}
             assert {r.database_key for r in reports} == {self.database_key}
             assert {r.worker.uuid for r in reports} == {worker_uuid}
-            # timestamp mononicity is guaranteed initially. (This may be broken
-            # after add_report is called, though).
-            self._assert_reports_ordered(
-                self.linear_reports, ["elapsed_time", "status_counts", "timestamp"]
-            )
-
-        total_status_counts = StatusCounts(dict.fromkeys(Status, 0))
-        for reports in self.reports_by_worker.values():
-            total_status_counts += reports[-1].status_counts
-        assert self.status_counts == total_status_counts
+            self._assert_reports_ordered(self.linear_reports, ["timestamp_monotonic"])
 
         # this is not always true due to floating point error accumulation.
         # total_elapsed_time = 0.0
@@ -124,51 +137,71 @@ class Test:
         # assert self.elapsed_time == total_elapsed_time
 
     def add_report(self, report: Report) -> None:
-        last_report = (
+        # we use last_report to compute timestamp_monotonic, and last_report_worker
+        # to compute status_count_diff and elapsed_time_diff
+        last_report = self.linear_reports[-1] if self.linear_reports else None
+        last_report_worker = (
             None
             if report.worker.uuid not in self.reports_by_worker
             else self.reports_by_worker[report.worker.uuid][-1]
         )
-        if last_report is not None and last_report.timestamp > report.timestamp:
-            # If last_report.timestamp > report.timestamp, the reports have arrived
+        if (
+            last_report_worker is not None
+            and last_report_worker.elapsed_time > report.elapsed_time
+        ):
+            # If last_report.elapsed_time > report.elapsed_time, the reports have arrived
             # out of order. we've already accounted for the diff of `report`; last_report
-            # essentially became the combined report of report + last_report. Counting
-            # last_report again here would violate monotonicity invariants, since the diff
-            # would be negative.
+            # essentially became the combined report of report + last_report.
             #
-            # TODO instead of dropping this report, insert it into the lists, but
-            # without updating our statistics like status_counts (we already did that
-            # with the out-of-order report). That way the e.g. dashboard graph
-            # still gets the report.
+            # TODO instead of dropping this report, insert it into the lists at
+            # the appropriate index, and recompute the diff for the next
+            # report. That way the e.g. dashboard graph still gets the report.
             return
 
+        assert last_report is None or last_report.timestamp_monotonic is not None
         last_status_counts = (
-            StatusCounts(dict.fromkeys(Status, 0))
-            if last_report is None
-            else last_report.status_counts
+            StatusCounts()
+            if last_report_worker is None
+            else last_report_worker.status_counts
         )
-        last_elapsed_time = 0.0 if last_report is None else last_report.elapsed_time
+        last_elapsed_time = (
+            0.0 if last_report_worker is None else last_report_worker.elapsed_time
+        )
         status_counts_diff = report.status_counts - last_status_counts
         elapsed_time_diff = report.elapsed_time - last_elapsed_time
+        timestamp_monotonic = (
+            report.timestamp
+            if last_report is None
+            else max(
+                report.timestamp, last_report.timestamp_monotonic + elapsed_time_diff
+            )
+        )
         assert all(count >= 0 for count in status_counts_diff.values())
         assert elapsed_time_diff >= 0.0
+        assert timestamp_monotonic >= 0.0
         linear_report = dataclasses.replace(
             report,
-            status_counts=self.status_counts + status_counts_diff,
-            elapsed_time=self.elapsed_time + elapsed_time_diff,
+            status_counts_diff=status_counts_diff,
+            elapsed_time_diff=elapsed_time_diff,
+            timestamp_monotonic=timestamp_monotonic,
         )
-        # Phase.REPLAY counts towards:
+
+        # this is 2x the memory in exchange for supporting the by-worker access
+        # pattern. We only access index [-1] though - could we store
+        # self.last_reports_by_worker instead?
+        self.reports_by_worker.setdefault(report.worker.uuid, []).append(linear_report)
+        # Phase.REPLAY does not count towards:
         #   * status_counts
         #   * elapsed_time
-        # but not towards:
         #   * reports
         #   * branches
         #   * phase (should we change this? would cause status flipflop with multiple workers)
-        self.status_counts += status_counts_diff
-        self.elapsed_time += elapsed_time_diff
-        self.reports_by_worker.setdefault(report.worker.uuid, []).append(report)
-
-        if report.phase is not Phase.REPLAY:
+        # nor is it displayed on dashboard graphs.
+        # This is fine for display purposes, since these statistics are intended
+        # to convey the time spent searching for bugs. But we should be careful
+        # when measuring cost to compute a separate "overhead" statistic which
+        # takes every input and elapsed_time into account regardless of phase.
+        if linear_report.phase is not Phase.REPLAY:
             self.linear_reports.append(linear_report)
 
         self._check_invariants()
@@ -178,12 +211,65 @@ class Test:
         return self.linear_reports[-1].phase if self.linear_reports else None
 
     @property
-    def ninputs(self) -> int:
-        return sum(self.status_counts.values())
-
-    @property
     def branches(self) -> int:
         return self.linear_reports[-1].branches if self.linear_reports else 0
+
+    def ninputs(self, since: Optional[float] = None) -> int:
+        return sum(self.linear_status_counts(since=since)[-1].values())
+
+    def _cumsum(
+        self,
+        *,
+        cache: LRUCache[float, tuple[int, list[T]]],
+        attr: str,
+        since: Optional[float],
+        initial: T,
+    ) -> list[T]:
+        if since is None:
+            since = -math.inf
+
+        if since in cache:
+            (start_idx, cumsum) = cache[since]
+            if len(cumsum) < len(self.linear_reports[start_idx:]):
+                # extend cumsum with any new reports
+                running = cumsum[-1] if cumsum else initial
+                for report in self.linear_reports[start_idx + len(cumsum) :]:
+                    value = getattr(report, attr)
+                    assert value >= initial
+                    running += value
+                    cumsum.append(running)
+                cache[since] = (start_idx, cumsum)
+
+            return cumsum
+
+        cumsum = []
+        start_idx = bisect.bisect_right(
+            [report.timestamp_monotonic for report in self.linear_reports], since  # type: ignore
+        )
+        running = initial
+        for report in self.linear_reports[start_idx:]:
+            value = getattr(report, attr)
+            assert value >= initial
+            running += value
+            cumsum.append(running)
+        cache[since] = (start_idx, cumsum)
+        return cumsum
+
+    def linear_status_counts(self, *, since: Optional[float]) -> list[StatusCounts]:
+        return self._cumsum(
+            cache=self._status_counts_cumsum,
+            attr="status_counts_diff",
+            since=since,
+            initial=StatusCounts(),
+        )
+
+    def linear_elapsed_time(self, *, since: Optional[float]) -> list[float]:
+        return self._cumsum(
+            cache=self._elapsed_time_cumsum,
+            attr="elapsed_time_diff",
+            since=since,
+            initial=0.0,
+        )
 
 
 def test_for_websocket(test: Test) -> dict[str, Any]:
@@ -195,8 +281,6 @@ def test_for_websocket(test: Test) -> dict[str, Any]:
     del test["rolling_observations"]
     del test["corpus_observations"]
     del test["linear_reports"]
-    del test["status_counts"]
-    del test["elapsed_time"]
     return test
 
 

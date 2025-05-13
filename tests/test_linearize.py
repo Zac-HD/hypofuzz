@@ -79,7 +79,7 @@ def reports(
             ).map(sorted)
         )
         for ninput, timestamp, elapsed_time in zip(ninputs, timestamps, elapsed_times):
-            status_counts = StatusCounts(dict.fromkeys(Status, 0))
+            status_counts = StatusCounts()
             # TODO distribute ninput over all the statuses
             status_counts[Status.VALID] = ninput
             report = draw(
@@ -93,7 +93,7 @@ def reports(
                     worker=workers(uuid=uuid),
                     status_counts=st.just(status_counts),
                     branches=st.integers(min_value=0),
-                    since_new_cov=st.integers(min_value=0),
+                    since_new_branch=st.integers(min_value=0),
                     phase=...,
                 )
             )
@@ -106,7 +106,13 @@ def assert_reports_almost_equal(reports1, reports2):
     # like `assert reports1 == reports2`, but handles floating-point errors
     assert len(reports1) == len(reports2)
     for report1, report2 in zip(reports1, reports2):
-        for attr in dataclasses.asdict(report1):
+        for attr in set(dataclasses.asdict(report1)) - {
+            # these attributes might not be computed yet for one of the report
+            # lists
+            "status_counts_diff",
+            "elapsed_time_diff",
+            "timestamp_monotonic",
+        }:
             v1 = getattr(report1, attr)
             v2 = getattr(report2, attr)
             if attr in ["elapsed_time", "timestamp"]:
@@ -116,7 +122,7 @@ def assert_reports_almost_equal(reports1, reports2):
                 assert v1 == v2
 
 
-def _test_for_reports(reports):
+def _test_for_reports(reports) -> Test:
     reports_by_worker = defaultdict(list)
     for report in sorted(reports, key=lambda r: r.timestamp):
         reports_by_worker[report.worker.uuid].append(report)
@@ -145,19 +151,8 @@ def test_single_worker(reports):
 
 @given(reports(overlap=False))
 def test_non_overlapping_reports(reports):
-    linearized = _test_for_reports(reports).linear_reports
-    # If none of the reports overlap, then timestamp, ninputs, and elapsed_time
-    # should all be monotonically increasing
-    assert all(
-        r1.timestamp <= r2.timestamp for r1, r2 in zip(linearized, linearized[1:])
-    )
-    assert all(
-        r1.status_counts <= r2.status_counts
-        for r1, r2 in zip(linearized, linearized[1:])
-    )
-    assert all(
-        r1.elapsed_time <= r2.elapsed_time for r1, r2 in zip(linearized, linearized[1:])
-    )
+    test = _test_for_reports(reports)
+    test._check_invariants()
 
 
 @given(st.data())
@@ -183,6 +178,10 @@ def test_linearize_decomposes_with_addition(data):
     for report in reports_[i:]:
         test2.add_report(report)
 
-    assert test1.status_counts == test2.status_counts
-    assert test1.elapsed_time == pytest.approx(test2.elapsed_time)
+    assert test1.linear_status_counts(since=None) == test2.linear_status_counts(
+        since=None
+    )
+    assert test1.linear_elapsed_time(since=None) == pytest.approx(
+        test2.linear_elapsed_time(since=None)
+    )
     assert_reports_almost_equal(test1.linear_reports, test2.linear_reports)

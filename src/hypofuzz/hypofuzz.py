@@ -63,6 +63,11 @@ T = TypeVar("T")
 
 process_uuid = uuid4().hex
 
+assert time.get_clock_info("perf_counter").monotonic, (
+    "HypoFuzz relies on perf_counter being monotonic. This is guaranteed on "
+    "CPython. Please open an issue if you hit this assertion."
+)
+
 
 # hypothesis.utils.dynamicvaraible, but without the with_value context manager.
 # Essentially just a reference to a value.
@@ -175,8 +180,8 @@ class FuzzProcess:
         self.ninputs = 0
         self.elapsed_time = 0.0
         self.stop_shrinking_at = float("inf")
-        self.since_new_cov = 0
-        self.status_counts = dict.fromkeys(Status, 0)
+        self.since_new_branch = 0
+        self.status_counts = StatusCounts()
         self.phase: Optional[Phase] = None
         # Any new examples from the database will be added to this replay queue
         self._replay_queue: list[tuple[Union[ChoiceT, ChoiceTemplate], ...]] = []
@@ -256,7 +261,7 @@ class FuzzProcess:
         # database.  We do this unconditionally because even if this fuzzer doesn't
         # know of other concurrent runs, there may be e.g. a test process sharing the
         # database.  We do make it infrequent to manage the overhead though.
-        if self.ninputs % 1000 == 0 and self.since_new_cov > 1000:
+        if self.ninputs % 1000 == 0 and self.since_new_branch > 1000:
             self._replay_queue.extend(self.corpus.fetch())
             # TODO: also fetch any new failures into self._failure_queue?
             # TODO: use the listener for this rather than fetching everything
@@ -313,7 +318,7 @@ class FuzzProcess:
             )
 
         # Consider switching out of blackbox mode.
-        if self.since_new_cov >= 1000 and not self._replay_queue:
+        if self.since_new_branch >= 1000 and not self._replay_queue:
             self._early_blackbox_mode = False
 
         # NOTE: this distillation logic works fine, it's just discovering new coverage
@@ -368,10 +373,13 @@ class FuzzProcess:
         self.status_counts[data.status] += 1
         assert observation.value is not None
         if self.corpus.add(data.as_result(), observation=observation.value):
-            self.since_new_cov = 0
+            # TODO this is wrong for Status.INTERESTING examples (that are smaller
+            # than the previous example for this interesting origin), which are
+            # successfully added to the corpus but don't represent a new branch.
+            self.since_new_branch = 0
         else:
-            self.since_new_cov += 1
-        if 0 in (self.since_new_cov, self.ninputs % 100):
+            self.since_new_branch += 1
+        if 0 in (self.since_new_branch, self.ninputs % 100):
             self._save_report(self._report)
 
         self.elapsed_time += time.perf_counter() - start
@@ -440,7 +448,7 @@ class FuzzProcess:
             or self._last_report.phase != report.phase
             or self.corpus.interesting_examples
             # always keep reports which discovered new coverage
-            or self._last_report.since_new_cov == 0
+            or self._last_report.since_new_branch == 0
         ):
             self.db.delete_report(self.database_key, self._last_report)
 
@@ -460,10 +468,10 @@ class FuzzProcess:
             ),
             status_counts=StatusCounts(self.status_counts),
             branches=len(self.corpus.branch_counts),
-            since_new_cov=(
+            since_new_branch=(
                 None
                 if (self.ninputs == 0 or self.corpus.interesting_examples)
-                else self.since_new_cov
+                else self.since_new_branch
             ),
             phase=self.phase,
         )
@@ -477,7 +485,7 @@ class FuzzProcess:
 def fuzz_several(*targets_: FuzzProcess, random_seed: Optional[int] = None) -> None:
     """Take N fuzz targets and run them all."""
     random = Random(random_seed)
-    targets = SortedKeyList(targets_, lambda t: t.since_new_cov)
+    targets = SortedKeyList(targets_, lambda t: t.since_new_branch)
 
     # Loop forever: at each timestep, we choose a target using an epsilon-greedy
     # strategy for simplicity (TODO: improve this later) and run it once.

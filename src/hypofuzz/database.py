@@ -3,7 +3,7 @@ import hashlib
 import json
 from collections import defaultdict, deque
 from collections.abc import Iterable
-from dataclasses import dataclass, is_dataclass
+from dataclasses import dataclass, field, is_dataclass
 from enum import Enum
 from functools import lru_cache
 from typing import TYPE_CHECKING, Any, Literal, Optional
@@ -109,6 +109,11 @@ class Phase(Enum):
 
 
 class StatusCounts(dict):
+    def __init__(self, value: Optional[dict[Status, int]] = None) -> None:
+        if value is None:
+            value = dict.fromkeys(Status, 0)
+        super().__init__(value)
+
     # add rich operators to the otherwise plain-dict of report.status_counts.
     def __add__(self, other: "StatusCounts") -> "StatusCounts":
         assert self.keys() == other.keys()
@@ -133,7 +138,7 @@ class StatusCounts(dict):
         return all(self[status] < other[status] for status in self)
 
 
-@dataclass
+@dataclass(frozen=True)
 class Report:
     """
     An incremental progress marker of a fuzzing campaign. We save a new report
@@ -148,15 +153,26 @@ class Report:
     worker: WorkerIdentity
     status_counts: StatusCounts
     branches: int
-    since_new_cov: Optional[int]
+    since_new_branch: Optional[int]
     phase: Phase
+
+    # This fields are not stored in the database, but are computed for an
+    # individual Report, relative to another Report.
+    status_counts_diff: Optional[StatusCounts] = field(default=None)
+    elapsed_time_diff: Optional[float] = field(default=None)
+    # The timestamp of consecutive reports is not always monotonic - due to
+    # daylight savings time, for example, or merely NTP clock updates. We therefore
+    # store a separate timestamp_monotonic, which uses timestamp if the timestamp
+    # is monotonic relative to the previous report, and otherwise
+    # previous_report.timestamp_monotonic + elapsed_time_diff.
+    timestamp_monotonic: Optional[float] = field(default=None)
 
     def __post_init__(self) -> None:
         assert self.elapsed_time >= 0, f"{self.elapsed_time=}"
         assert self.branches >= 0, f"{self.branches=}"
         assert self.phase in Phase, f"{self.phase=}"
-        if self.since_new_cov is not None:
-            assert self.since_new_cov >= 0, f"{self.since_new_cov=}"
+        if self.since_new_branch is not None:
+            assert self.since_new_branch >= 0, f"{self.since_new_branch=}"
 
     @staticmethod
     def from_json(encoded: bytes, /) -> Optional["Report"]:
