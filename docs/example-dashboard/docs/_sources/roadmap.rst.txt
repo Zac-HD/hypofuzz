@@ -30,7 +30,7 @@ Direct dependencies
 
 HypoFuzz's direct dependencies are:
 
-.. literalinclude:: ../pyproject.toml
+.. literalinclude:: ../../../pyproject.toml
    :prepend: dependencies = [
    :start-after: dependencies = [
    :end-before: classifiers =
