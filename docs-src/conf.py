@@ -17,13 +17,13 @@ needs_sphinx = "3.2"
 nitpicky = True
 
 extensions = [
+    # for reading changelog.md
     "myst_parser",
     "sphinx.ext.autodoc",
     "sphinx.ext.extlinks",
     "sphinx.ext.viewcode",
     "sphinx.ext.intersphinx",
     "sphinxcontrib.bibtex",
-    "sphinxcontrib.programoutput",
 ]
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3/", None),
@@ -49,8 +49,11 @@ bibtex_bibfiles = ["literature.bib"]
 
 # -- Options for HTML output -------------------------------------------------
 html_title = "HypoFuzz docs"
-html_theme = "sphinx_rtd_theme"
-html_theme_options = {"analytics_id": "UA-176879127-1"}
+html_theme = "furo"
+# https://sphinx-rtd-theme.readthedocs.io/en/stable/configuring.html#confval-analytics_id
+# > Deprecated since version 3.0.0: The analytics_id option is deprecated, use
+# > the sphinxcontrib-googleanalytics extension instead.
+# html_theme_options = {"analytics_id": "UA-176879127-1"}
 # html_favicon = "favicon.ico"
 # html_logo = ""  # path to the project logo, for the top of the sidebar, ~200px
 html_baseurl = "https://hypofuzz.com/docs/"

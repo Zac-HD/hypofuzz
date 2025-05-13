@@ -21,9 +21,10 @@ from hypothesis.database import (
 from hypothesis.internal.conjecture.data import Status
 from starlette.applications import Starlette
 from starlette.requests import Request
-from starlette.responses import FileResponse, JSONResponse, Response
+from starlette.responses import FileResponse, JSONResponse, RedirectResponse, Response
 from starlette.routing import Mount, Route, WebSocketRoute
 from starlette.staticfiles import StaticFiles
+from starlette.types import Scope
 from starlette.websockets import WebSocket, WebSocketDisconnect
 from trio import MemoryReceiveChannel
 
@@ -345,6 +346,16 @@ async def api_backing_state_api(request: Request) -> Response:
     )
 
 
+class DocsStaticFiles(StaticFiles):
+    async def get_response(self, path: str, scope: Scope) -> Response:
+        # with StaticFiles(..., html=True), you can get /docs/ to load index.html.
+        # But I'd like it to *redirect* to index.html, so /docs/ is not confused
+        # for the canonical /docs/index/html url.
+        if path == ".":
+            return RedirectResponse(url=f"{scope['path']}index.html")
+        return await super().get_response(path, scope)
+
+
 dist = Path(__file__).parent / "frontend" / "dist"
 dist.mkdir(exist_ok=True)
 routes = [
@@ -358,8 +369,11 @@ routes = [
     Route("/api/backing_state/observations", api_backing_state_observations),
     Route("/api/backing_state/api", api_backing_state_api),
     Mount("/assets", StaticFiles(directory=dist / "assets")),
+    # StaticFiles only matches /docs/, not /docs, for some reason
+    Route("/docs", lambda request: RedirectResponse(url="/docs/")),
+    Mount("/docs", DocsStaticFiles(directory=dist / "docs")),
     # catchall fallback. react will handle the routing of dynamic urls here,
-    # such as to a node id.
+    # such as to a node id. This also includes the 404 page.
     Route("/{path:path}", FileResponse(dist / "index.html")),
 ]
 app = Starlette(routes=routes)
@@ -380,6 +394,10 @@ async def handle_event(receive_channel: MemoryReceiveChannel[ListenerEventT]) ->
                 report = Report.from_json(value)
                 # this is an in-process transmission, it should never be out of
                 # date with the Report schema
+                # (hmm, this isn't true if this is an e.g.
+                # DirectoryBasedExampleDatabase and the dashboard hypofuzz version
+                # is updated but there is a worker on an old hypofuzz version writing
+                # reports of a different format.)
                 assert report is not None
                 TESTS[report.nodeid].add_report(report)
                 await broadcast_event({"type": "save", "save_type": "report"}, report)

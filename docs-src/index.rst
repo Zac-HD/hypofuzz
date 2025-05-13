@@ -10,14 +10,21 @@ HypoFuzz builds on that success: if you have Hypothesis tests, HypoFuzz
 gives you a fantastic way to spend CPU time - instead of engineering time -
 to find bugs early in your development cycle.
 
+* `HypoFuzz website <https://hypofuzz.com/>`_
+* `HypoFuzz documentation <https://hypofuzz.com/docs/index.html>`_
+* `HypoFuzz source code <https://github.com/Zac-HD/hypofuzz>`_
 
 .. toctree::
-    :maxdepth: 2
+    :hidden:
 
-    Main website <https://hypofuzz.com/>
     quickstart
+    manual/index.rst
     features
-    configuration
+    changelog
+
+.. toctree::
+    :caption: About HypoFuzz
+    :hidden:
+
     roadmap
     literature
-    changelog

@@ -10,10 +10,6 @@ prior art for fuzzing property-based tests for Python.
 
     `See HypoFuzz in action here! <../example-dashboard/>`__
 
-.. contents::
-    :local:
-
-
 Fuzzing background
 ------------------
 
@@ -186,11 +182,9 @@ recent tools have attempted to build on top of this to provide both `fuzzing
 <https://github.com/project-oak/rust-verification-tools>`__ with (almost) the same
 user-facing API.
 
-There are `plans for Hypothesis to support symbolic execution via
-<https://github.com/HypothesisWorks/hypothesis/issues/3086>`__ :pypi:`crosshair-tool`,
-and a promising proof-of-concept, but no firm timeline unless someone volunteers to
-take on the project.
-
+Hypothesis supports symbolic execution via the :pypi:`hypothesis-crosshair`
+:ref:`alternative backend <hypothesis:alternative-backends>`, and we plan to incorporate
+this into HypoFuzz with an ensemble-style approach.
 
 (C / C++) TrailofBits' DeepState, Google's ``fuzztest``
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -528,17 +522,15 @@ fruitful, and very fast given the JIT-friendly repeated execution pattern of fuz
 Faster coverage measurement for Python
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-:pypi:`coverage` typically slows instrumented programs by a factor of several times,
-typically ranging from 2-5x but with as much as 70x known on some workloads.
-There have been several proposals to improve this - e.g. `Python Coverage could be fast
-<https://www.drmaciver.com/2017/09/python-coverage-could-be-fast/>`__ - and relatively
-small grants could make a very large impact.
+On Python 3.11 and earlier, coverage instrumentation uses :func:`python:sys.settrace`,
+which has substantial overhead as it cannot be disabled after the first time a line or
+branch executes. :pypi:`coverage` typically slows instrumented programs
+by a factor of several times, typically ranging from 2-5x but with as much as 70x known
+on some workloads.
 
-Abandoning most of the features in :pypi:`coverage` (reporting, analysis of untaken
-branches, aggregation across interpreters, etc.) to focus solely on the branch-reporting
-logic used by a fuzzer `can also offer substantial speedups
-<https://dustri.org/b/fuzzing-python-in-python-and-doing-it-fast.html>`__.
-
+Fortunately, on Python 3.12 and newer, :mod:`sys.monitoring` (via :pep:`669`) provides coverage
+instrumentation at a much lower overhead. HypoFuzz uses ``sys.monitoring`` on 3.12+, and
+falls back to ``sys.settrace`` on earlier Python versions.
 
 Sensitive coverage metrics
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -607,10 +599,9 @@ the development of Windows 7 - running *after* static analysis and other fuzzers
 Inputs synthesised by symbolic or concolic approaches could provide the initial
 seed pool for a classic mutational fuzzer, and provide a way to 'get unstuck'
 on conditions which are hard to satisfy by chance.
-There are `plans for Hypothesis to support symbolic execution via
-<https://github.com/HypothesisWorks/hypothesis/issues/3086>`__ :pypi:`crosshair-tool`,
-and a promising proof-of-concept, but no firm timeline unless someone volunteers to
-take on the project.
+Hypothesis supports symbolic execution via the :pypi:`hypothesis-crosshair`
+:ref:`alternative backend <hypothesis:alternative-backends>`, and we plan to incorporate
+this into HypoFuzz with an ensemble-style approach.
 
 
 Scaling fuzzers up to many cores
