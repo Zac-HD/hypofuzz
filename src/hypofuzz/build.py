@@ -28,7 +28,7 @@ def build_docs() -> None:
             "Install sphinx-build and add it to your path."
         )
 
-    source_p = Path(__file__).parent.parent.parent / "docs-src"
+    source_p = Path(__file__).parent / "docs"
     out_p = Path(__file__).parent / "frontend" / "public" / "docs"
     out_p.mkdir(exist_ok=True, parents=True)
     subprocess.check_call(["sphinx-build", str(source_p), str(out_p)])
