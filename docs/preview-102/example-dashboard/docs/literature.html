@@ -667,7 +667,7 @@ fruitful, and very fast given the JIT-friendly repeated execution pattern of fuz
 </section>
 <section id="faster-coverage-measurement-for-python">
 <h3>Faster coverage measurement for Python<a class="headerlink" href="#faster-coverage-measurement-for-python" title="Link to this heading">¶</a></h3>
-<p>On Python 3.12 and earlier, coverage instrumentation uses <a class="reference external" href="https://docs.python.org/3/library/sys.html#sys.settrace" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">sys.settrace()</span></code></a>,
+<p>On Python 3.11 and earlier, coverage instrumentation uses <a class="reference external" href="https://docs.python.org/3/library/sys.html#sys.settrace" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">sys.settrace()</span></code></a>,
 which has substantial overhead as it cannot be disabled after the first time a line or
 branch executes. <a class="extlink-pypi reference external" href="https://pypi.org/project/coverage">coverage</a> typically slows instrumented programs
 by a factor of several times, typically ranging from 2-5x but with as much as 70x known

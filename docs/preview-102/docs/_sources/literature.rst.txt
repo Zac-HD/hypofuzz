@@ -522,7 +522,7 @@ fruitful, and very fast given the JIT-friendly repeated execution pattern of fuz
 Faster coverage measurement for Python
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-On Python 3.12 and earlier, coverage instrumentation uses :func:`python:sys.settrace`,
+On Python 3.11 and earlier, coverage instrumentation uses :func:`python:sys.settrace`,
 which has substantial overhead as it cannot be disabled after the first time a line or
 branch executes. :pypi:`coverage` typically slows instrumented programs
 by a factor of several times, typically ranging from 2-5x but with as much as 70x known
