@@ -123,7 +123,7 @@ def assert_reports_almost_equal(reports1, reports2):
 
 def _test_for_reports(reports) -> Test:
     reports_by_worker = defaultdict(list)
-    for report in sorted(reports, key=lambda r: r.timestamp):
+    for report in sorted(reports, key=lambda r: r.elapsed_time):
         reports_by_worker[report.worker.uuid].append(report)
 
     return Test(

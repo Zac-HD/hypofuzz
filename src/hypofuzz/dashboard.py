@@ -638,7 +638,7 @@ async def run_dashboard(port: int, host: str) -> None:
                     failure_observations[failure.status_reason] = failure
 
         reports_by_worker = defaultdict(list)
-        for report in sorted(db.fetch_reports(key), key=lambda r: r.timestamp):
+        for report in sorted(db.fetch_reports(key), key=lambda r: r.elapsed_time):
             reports_by_worker[report.worker.uuid].append(report)
 
         test = Test(
