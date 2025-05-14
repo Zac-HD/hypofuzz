@@ -376,6 +376,9 @@ class FuzzProcess:
         # Update the corpus and report any changes immediately for new coverage.  If no
         # new coverage, occasionally send an update anyway so we don't look stalled.
         self.status_counts[data.status] += 1
+        # status_counts and elapsed_time have to be added to at the same time, without
+        # saving a report between them, or we might violate monotonicity invariants.
+        self.elapsed_time += time.perf_counter() - start
         assert observation.value is not None
         if self.corpus.add(data.as_result(), observation=observation.value):
             # TODO this is wrong for Status.INTERESTING examples (that are smaller
@@ -387,7 +390,6 @@ class FuzzProcess:
         if self.since_new_branch == 0 or self._should_save_timed_report():
             self._save_report(self._report)
 
-        self.elapsed_time += time.perf_counter() - start
         if self.elapsed_time > self.stop_shrinking_at:
             raise HitShrinkTimeoutError
 
