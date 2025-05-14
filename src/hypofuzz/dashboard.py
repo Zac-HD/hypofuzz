@@ -85,10 +85,10 @@ class Test:
         # is already sorted.
         # This sorting won't matter for correctness (once we correctly insert
         # out-of-order reports), but it will for performance, by minimizing the
-        # number of .bisect calls.
+        # number of .bisect calls in the worker reports list.
         for report in sorted(
             itertools.chain.from_iterable(reports_by_worker.values()),
-            key=lambda r: r.timestamp,
+            key=lambda r: r.elapsed_time,
         ):
             self.add_report(report)
 
@@ -109,12 +109,12 @@ class Test:
         # once we're more confident
         self._assert_reports_ordered(self.linear_reports, ["timestamp_monotonic"])
 
-        linear_status_counts = self.linear_status_counts(since=None)
+        linear_status_counts = self.linear_status_counts()
         assert all(
             v1 <= v2 for v1, v2 in zip(linear_status_counts, linear_status_counts[1:])
         ), linear_status_counts
 
-        linear_elapsed_time = self.linear_elapsed_time(since=None)
+        linear_elapsed_time = self.linear_elapsed_time()
         assert all(
             v1 <= v2 for v1, v2 in zip(linear_elapsed_time, linear_elapsed_time[1:])
         ), linear_elapsed_time
@@ -140,14 +140,14 @@ class Test:
         # we use last_report to compute timestamp_monotonic, and last_report_worker
         # to compute status_count_diff and elapsed_time_diff
         last_report = self.linear_reports[-1] if self.linear_reports else None
-        last_report_worker = (
+        last_worker_report = (
             None
             if report.worker.uuid not in self.reports_by_worker
             else self.reports_by_worker[report.worker.uuid][-1]
         )
         if (
-            last_report_worker is not None
-            and last_report_worker.elapsed_time > report.elapsed_time
+            last_worker_report is not None
+            and last_worker_report.elapsed_time > report.elapsed_time
         ):
             # If last_report.elapsed_time > report.elapsed_time, the reports have arrived
             # out of order. we've already accounted for the diff of `report`; last_report
@@ -158,45 +158,11 @@ class Test:
             # report. That way the e.g. dashboard graph still gets the report.
             return
 
-        assert last_report is None or last_report.timestamp_monotonic is not None
-        last_status_counts = (
-            StatusCounts()
-            if last_report_worker is None
-            else last_report_worker.status_counts
+        linear_report = ReportWithDiff.from_reports(
+            report, last_report=last_report, last_worker_report=last_worker_report
         )
-        last_elapsed_time = (
-            0.0 if last_report_worker is None else last_report_worker.elapsed_time
-        )
-        status_counts_diff = report.status_counts - last_status_counts
-        elapsed_time_diff = report.elapsed_time - last_elapsed_time
-        timestamp_monotonic = (
-            report.timestamp
-            if last_report is None
-            else max(
-                report.timestamp, last_report.timestamp_monotonic + elapsed_time_diff
-            )
-        )
-        assert all(count >= 0 for count in status_counts_diff.values())
-        assert elapsed_time_diff >= 0.0
-        assert timestamp_monotonic >= 0.0
-        linear_report = ReportWithDiff(
-            database_key=report.database_key,
-            nodeid=report.nodeid,
-            elapsed_time=report.elapsed_time,
-            timestamp=report.timestamp,
-            worker=report.worker,
-            status_counts=report.status_counts,
-            branches=report.branches,
-            since_new_branch=report.since_new_branch,
-            phase=report.phase,
-            status_counts_diff=status_counts_diff,
-            elapsed_time_diff=elapsed_time_diff,
-            timestamp_monotonic=timestamp_monotonic,
-        )
-
-        # this is 2x the memory in exchange for supporting the by-worker access
-        # pattern. We only access index [-1] though - could we store
-        # self.last_reports_by_worker instead?
+        # support the by-worker access pattern. We only access index [-1] though
+        # - should we store self.last_reports_by_worker instead?
         self.reports_by_worker.setdefault(report.worker.uuid, []).append(linear_report)
         # Phase.REPLAY does not count towards:
         #   * status_counts
@@ -222,7 +188,7 @@ class Test:
     def branches(self) -> int:
         return self.linear_reports[-1].branches if self.linear_reports else 0
 
-    def ninputs(self, since: Optional[float] = None) -> int:
+    def ninputs(self, since: float = -math.inf) -> int:
         return sum(self.linear_status_counts(since=since)[-1].values())
 
     def _cumsum(
@@ -230,12 +196,9 @@ class Test:
         *,
         cache: LRUCache,
         attr: str,
-        since: Optional[float],
+        since: float = -math.inf,
         initial: T,
     ) -> list[T]:
-        if since is None:
-            since = -math.inf
-
         cumsum: list[T]
         if since in cache:
             (start_idx, cumsum) = cache[since]
@@ -264,7 +227,7 @@ class Test:
         cache[since] = (start_idx, cumsum)
         return cumsum
 
-    def linear_status_counts(self, *, since: Optional[float]) -> list[StatusCounts]:
+    def linear_status_counts(self, *, since: float = -math.inf) -> list[StatusCounts]:
         return self._cumsum(
             cache=self._status_counts_cumsum,
             attr="status_counts_diff",
@@ -272,7 +235,7 @@ class Test:
             initial=StatusCounts(),
         )
 
-    def linear_elapsed_time(self, *, since: Optional[float]) -> list[float]:
+    def linear_elapsed_time(self, *, since: float = -math.inf) -> list[float]:
         return self._cumsum(
             cache=self._elapsed_time_cumsum,
             attr="elapsed_time_diff",

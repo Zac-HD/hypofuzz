@@ -192,10 +192,6 @@ def test_linearize_decomposes_with_addition(data):
     for report in reports_[i:]:
         test2.add_report(report)
 
-    assert test1.linear_status_counts(since=None) == test2.linear_status_counts(
-        since=None
-    )
-    assert test1.linear_elapsed_time(since=None) == pytest.approx(
-        test2.linear_elapsed_time(since=None)
-    )
+    assert test1.linear_status_counts() == test2.linear_status_counts()
+    assert test1.linear_elapsed_time() == pytest.approx(test2.linear_elapsed_time())
     assert_reports_almost_equal(test1.linear_reports, test2.linear_reports)
