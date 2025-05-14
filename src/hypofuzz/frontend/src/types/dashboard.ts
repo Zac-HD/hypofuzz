@@ -277,18 +277,23 @@ export class Test extends Dataclass<Test> {
     // two versions in sync.
 
     const workerReports = this.reports_by_worker.get(report.worker.uuid)
-    const last_report = workerReports ? workerReports[workerReports.length - 1] : null
-
-    if (last_report && last_report.elapsed_time > report.elapsed_time) {
+    const last_report =
+      this.linear_reports.length > 0
+        ? this.linear_reports[this.linear_reports.length - 1]
+        : null
+    const last_report_worker = workerReports
+      ? workerReports[workerReports.length - 1]
+      : null
+    if (last_report_worker && last_report_worker.elapsed_time > report.elapsed_time) {
       // out of order report
       return
     }
 
     console.assert(last_report === null || last_report.timestamp_monotonic !== null)
-    const last_status_counts = last_report
-      ? last_report.status_counts
+    const last_status_counts = last_report_worker
+      ? last_report_worker.status_counts
       : new StatusCounts()
-    const last_elapsed_time = last_report ? last_report.elapsed_time : 0.0
+    const last_elapsed_time = last_report_worker ? last_report_worker.elapsed_time : 0.0
     const status_counts_diff = report.status_counts.subtract(last_status_counts)
     const elapsed_time_diff = report.elapsed_time - last_elapsed_time
     const timestamp_monotonic = last_report
