@@ -1,6 +1,7 @@
 import inspect
 import os
 import re
+import select
 import shutil
 import signal
 import subprocess
@@ -69,15 +70,18 @@ def dashboard(
         if process.poll() is not None:
             stdout, stderr = process.communicate()
             raise Exception(
-                f"dashboard invocation exited with return code {process.returncode}. "
+                f"dashboard exited with return code {process.returncode}. "
                 f"args: {args}, cwd: {os.getcwd()}\n"
                 f"stdout:\n{stdout!r}\nstderr:\n{stderr!r}"
             )
 
-        output = process.stderr.readline()
-        if m := re.search(r"Running on http://127.0.0.1:(\d+)", output):
-            port = int(m.group(1))
-            break
+        # wait to call the blocking .readline call until the stderr is readable
+        readable, _writable, _exceptional = select.select([process.stderr], [], [], 0.5)
+        if process.stderr in readable:
+            output = process.stderr.readline()
+            if m := re.search(r"Running on http://127.0.0.1:(\d+)", output):
+                port = int(m.group(1))
+                break
     else:
         raise Exception(
             "dashboard took too long to start up. "
