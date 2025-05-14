@@ -69,6 +69,10 @@ assert time.get_clock_info("perf_counter").monotonic, (
 )
 
 
+def lerp(a: float, b: float, t: float) -> float:
+    return (1 - t) * a + t * b
+
+
 # hypothesis.utils.dynamicvaraible, but without the with_value context manager.
 # Essentially just a reference to a value.
 class Value(Generic[T]):
@@ -190,6 +194,7 @@ class FuzzProcess:
         # 1000 consecutive examples without new coverage, and then switch to mutation.
         self._early_blackbox_mode = True
         self._last_report: Report | None = None
+        self._last_saved_report_at = -math.inf
 
         # Track observability data
         self._last_observed = -math.inf
@@ -379,7 +384,7 @@ class FuzzProcess:
             self.since_new_branch = 0
         else:
             self.since_new_branch += 1
-        if 0 in (self.since_new_branch, self.ninputs % 100):
+        if self.since_new_branch == 0 or self._should_save_timed_report():
             self._save_report(self._report)
 
         self.elapsed_time += time.perf_counter() - start
@@ -388,6 +393,15 @@ class FuzzProcess:
 
         # The shrinker relies on returning the data object to be inspected.
         return data.as_result()
+
+    def _should_save_timed_report(self) -> bool:
+        # linear interpolation from 1 report/s at the start to 1 report/60s after
+        # 5 minutes have passed
+        increment = lerp(1, 60, min(self._last_saved_report_at / 60 * 5, 1))
+        # A "timed report" is one that we expect to be discarded from the database
+        # on the next saved report, but which serves as an incremental progress
+        # marker for the dashboard.
+        return self.elapsed_time > self._last_saved_report_at + increment
 
     @contextlib.contextmanager
     def observe(self) -> Generator[Value[Optional[Observation]], None, None]:
@@ -439,6 +453,7 @@ class FuzzProcess:
 
     def _save_report(self, report: Report) -> None:
         self.db.save_report(self.database_key, report)
+        self._last_saved_report_at = self.elapsed_time
 
         # Having written the latest report, we can keep the database small
         # by dropping the previous report unless it differs from the latest in
