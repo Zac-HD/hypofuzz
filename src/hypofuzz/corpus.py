@@ -303,11 +303,7 @@ class Corpus:
         For the purposes of this method, a choice sequence which we saved to the database
         counts as having been loaded - the idea is to avoid duplicate executions.
         """
-        # TODO: hypothesis uses the bare key only for minimal failing examples;
-        #       we should use the secondary key for unshrunk examples and then
-        #       also the .fuzz key for covering examples.
-        #
-        # Also: consider distinguishing between covers-branch and coverage-fingerprint,
+        # TODO: consider distinguishing between covers-branch and coverage-fingerprint,
         #       and between minimal and other examples.  The fingerprint (set of
         #       branches) isn't currently used because our concept of "branch" is
         #       too large; should only include interesting files + skip branchless
