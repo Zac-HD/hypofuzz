@@ -20,7 +20,7 @@ else:
         else:
             while lo < hi:
                 mid = (lo + hi) // 2
-                if key(x) < key(a[mid]):
+                if x < key(a[mid]):
                     hi = mid
                 else:
                     lo = mid + 1
