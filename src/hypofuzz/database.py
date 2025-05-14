@@ -6,7 +6,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass, is_dataclass
 from enum import Enum
 from functools import lru_cache
-from typing import TYPE_CHECKING, Any, Literal, Optional
+from typing import TYPE_CHECKING, Any, Literal, Optional, Union
 
 from hypothesis.database import (
     ExampleDatabase,
@@ -183,12 +183,57 @@ class ReportWithDiff(Report):
     # individual Report, relative to another Report.
     status_counts_diff: StatusCounts
     elapsed_time_diff: float
-    # The timestamp of consecutive reports is not always monotonic - due to
-    # daylight savings time, for example, or merely NTP clock updates. We therefore
-    # store a separate timestamp_monotonic, which uses timestamp if the timestamp
-    # is monotonic relative to the previous report, and otherwise
-    # previous_report.timestamp_monotonic + elapsed_time_diff.
+    # Clock updates due to e.g. NTP can make time.time() non-monotonic, so
+    # to preserve ordering in edge cases we define `timestamp_monotonic` as
+    # `max(time.time(), previous_timestamp_monotonic + elapsed_time_diff)`.
     timestamp_monotonic: float
+
+    def __post_init__(self) -> None:
+        assert all(count >= 0 for count in self.status_counts_diff.values())
+        assert self.elapsed_time_diff >= 0.0
+        assert self.timestamp_monotonic >= 0.0
+
+    @classmethod
+    def from_reports(
+        cls,
+        report: Report,
+        *,
+        last_report: Union["ReportWithDiff", None],
+        last_worker_report: Union[Report, None],
+    ) -> "ReportWithDiff":
+        assert last_report is None or last_report.timestamp_monotonic is not None
+        last_status_counts = (
+            StatusCounts()
+            if last_worker_report is None
+            else last_worker_report.status_counts
+        )
+        last_elapsed_time = (
+            0.0 if last_worker_report is None else last_worker_report.elapsed_time
+        )
+        status_counts_diff = report.status_counts - last_status_counts
+        elapsed_time_diff = report.elapsed_time - last_elapsed_time
+        timestamp_monotonic = (
+            report.timestamp
+            if last_report is None
+            else max(
+                report.timestamp, last_report.timestamp_monotonic + elapsed_time_diff
+            )
+        )
+
+        return cls(
+            database_key=report.database_key,
+            nodeid=report.nodeid,
+            elapsed_time=report.elapsed_time,
+            timestamp=report.timestamp,
+            worker=report.worker,
+            status_counts=report.status_counts,
+            branches=report.branches,
+            since_new_branch=report.since_new_branch,
+            phase=report.phase,
+            status_counts_diff=status_counts_diff,
+            elapsed_time_diff=elapsed_time_diff,
+            timestamp_monotonic=timestamp_monotonic,
+        )
 
 
 reports_key = b".hypofuzz.reports"
