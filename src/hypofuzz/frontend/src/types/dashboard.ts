@@ -398,8 +398,9 @@ export class Test extends Dataclass<Test> {
 
     const cumsum: T[] = []
     const start_idx = bisectRight(
-      this.linear_reports.map(r => r.timestamp_monotonic!),
+      this.linear_reports,
       since,
+      r => r.timestamp_monotonic!,
     )
     let running = initial
     for (const report of this.linear_reports.slice(start_idx)) {

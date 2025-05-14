@@ -1,7 +1,6 @@
 """Live web dashboard for a fuzzing run."""
 
 import abc
-import bisect
 import dataclasses
 import itertools
 import json
@@ -31,6 +30,7 @@ from starlette.types import Scope
 from starlette.websockets import WebSocket, WebSocketDisconnect
 from trio import MemoryReceiveChannel
 
+from hypofuzz.compat import bisect_right
 from hypofuzz.database import (
     HypofuzzDatabase,
     HypofuzzEncoder,
@@ -252,8 +252,8 @@ class Test:
             return cumsum
 
         cumsum = []
-        start_idx = bisect.bisect_right(
-            [report.timestamp_monotonic for report in self.linear_reports], since  # type: ignore
+        start_idx = bisect_right(
+            self.linear_reports, since, key=lambda r: r.timestamp_monotonic
         )
         running = initial
         for report in self.linear_reports[start_idx:]:

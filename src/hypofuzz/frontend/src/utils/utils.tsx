@@ -15,12 +15,12 @@ export function setsEqual(s1: Set<any>, s2: Set<any>): boolean {
 }
 
 // https://github.com/d3/d3-array/blob/be0ae0d2b36ab91b833294ad2cfc5d5905acbd0f/src/bisector.js#L22
-export function bisectLeft(arr: number[], x: number): number {
+export function bisectLeft(arr: any[], x: number, key?: (x: any) => number): number {
   let low = 0
   let high = arr.length
   while (low < high) {
     const mid = (low + high) >>> 1
-    if (arr[mid] < x) {
+    if (key ? key(arr[mid]) < x : arr[mid] < x) {
       low = mid + 1
     } else {
       high = mid
@@ -29,12 +29,12 @@ export function bisectLeft(arr: number[], x: number): number {
   return low
 }
 
-export function bisectRight(arr: number[], x: number): number {
+export function bisectRight(arr: any[], x: number, key?: (x: any) => number): number {
   let low = 0
   let high = arr.length
   while (low < high) {
     const mid = (low + high) >>> 1
-    if (arr[mid] <= x) {
+    if (key ? key(arr[mid]) <= x : arr[mid] <= x) {
       low = mid + 1
     } else {
       high = mid
