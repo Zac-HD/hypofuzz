@@ -38,6 +38,7 @@ from hypofuzz.database import (
     ObservationStatus,
     Phase,
     Report,
+    ReportWithDiff,
     StatusCounts,
     is_corpus_observation_key,
     is_failure_observation_key,
@@ -63,7 +64,7 @@ class Test:
     failure: Optional[Observation]
     reports_by_worker: dict[str, list[Report]]
 
-    linear_reports: list[Report] = field(init=False)
+    linear_reports: list[ReportWithDiff] = field(init=False)
 
     # prevent pytest from trying to collect this class as a test
     __test__ = False
@@ -94,7 +95,9 @@ class Test:
         self._check_invariants()
 
     @staticmethod
-    def _assert_reports_ordered(reports: list[Report], attributes: list[str]) -> None:
+    def _assert_reports_ordered(
+        reports: list[ReportWithDiff], attributes: list[str]
+    ) -> None:
         for attribute in attributes:
             assert all(
                 getattr(r1, attribute) <= getattr(r2, attribute)
@@ -170,14 +173,22 @@ class Test:
             report.timestamp
             if last_report is None
             else max(
-                report.timestamp, last_report.timestamp_monotonic + elapsed_time_diff  # type: ignore
+                report.timestamp, last_report.timestamp_monotonic + elapsed_time_diff
             )
         )
         assert all(count >= 0 for count in status_counts_diff.values())
         assert elapsed_time_diff >= 0.0
         assert timestamp_monotonic >= 0.0
-        linear_report = dataclasses.replace(
-            report,
+        linear_report = ReportWithDiff(
+            database_key=report.database_key,
+            nodeid=report.nodeid,
+            elapsed_time=report.elapsed_time,
+            timestamp=report.timestamp,
+            worker=report.worker,
+            status_counts=report.status_counts,
+            branches=report.branches,
+            since_new_branch=report.since_new_branch,
+            phase=report.phase,
             status_counts_diff=status_counts_diff,
             elapsed_time_diff=elapsed_time_diff,
             timestamp_monotonic=timestamp_monotonic,

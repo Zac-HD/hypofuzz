@@ -107,8 +107,7 @@ def assert_reports_almost_equal(reports1, reports2):
     assert len(reports1) == len(reports2)
     for report1, report2 in zip(reports1, reports2):
         for attr in set(dataclasses.asdict(report1)) - {
-            # these attributes might not be computed yet for one of the report
-            # lists
+            # (report1 xor report2) might be a ReportWithDiff
             "status_counts_diff",
             "elapsed_time_diff",
             "timestamp_monotonic",

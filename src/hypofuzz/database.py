@@ -3,7 +3,7 @@ import hashlib
 import json
 from collections import defaultdict, deque
 from collections.abc import Iterable
-from dataclasses import dataclass, field, is_dataclass
+from dataclasses import dataclass, is_dataclass
 from enum import Enum
 from functools import lru_cache
 from typing import TYPE_CHECKING, Any, Literal, Optional
@@ -156,17 +156,6 @@ class Report:
     since_new_branch: Optional[int]
     phase: Phase
 
-    # This fields are not stored in the database, but are computed for an
-    # individual Report, relative to another Report.
-    status_counts_diff: Optional[StatusCounts] = field(default=None)
-    elapsed_time_diff: Optional[float] = field(default=None)
-    # The timestamp of consecutive reports is not always monotonic - due to
-    # daylight savings time, for example, or merely NTP clock updates. We therefore
-    # store a separate timestamp_monotonic, which uses timestamp if the timestamp
-    # is monotonic relative to the previous report, and otherwise
-    # previous_report.timestamp_monotonic + elapsed_time_diff.
-    timestamp_monotonic: Optional[float] = field(default=None)
-
     def __post_init__(self) -> None:
         assert self.elapsed_time >= 0, f"{self.elapsed_time=}"
         assert self.branches >= 0, f"{self.branches=}"
@@ -186,6 +175,20 @@ class Report:
             return Report(**data)
         except Exception:
             return None
+
+
+@dataclass(frozen=True)
+class ReportWithDiff(Report):
+    # This fields are not stored in the database, but are computed for an
+    # individual Report, relative to another Report.
+    status_counts_diff: StatusCounts
+    elapsed_time_diff: float
+    # The timestamp of consecutive reports is not always monotonic - due to
+    # daylight savings time, for example, or merely NTP clock updates. We therefore
+    # store a separate timestamp_monotonic, which uses timestamp if the timestamp
+    # is monotonic relative to the previous report, and otherwise
+    # previous_report.timestamp_monotonic + elapsed_time_diff.
+    timestamp_monotonic: float
 
 
 reports_key = b".hypofuzz.reports"
