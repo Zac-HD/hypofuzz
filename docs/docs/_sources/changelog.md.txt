@@ -2,6 +2,10 @@
 HypoFuzz uses [calendar-based versioning](https://calver.org/), with a
 `YY-MM-patch` format.
 
+## 25.05.01
+
+Improve assignment of tests to fuzz workers, and bundle version-specific docs with the dashboard.
+
 ## 25.04.10
 
 Improve test table ui on mobile.
