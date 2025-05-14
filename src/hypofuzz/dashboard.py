@@ -2,12 +2,14 @@
 
 import abc
 import dataclasses
+import itertools
 import json
 import math
+from collections import defaultdict
 from dataclasses import dataclass, field
 from functools import cache
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Optional, TypeVar
 
 import black
 import trio
@@ -18,7 +20,7 @@ from hypothesis.database import (
     BackgroundWriteDatabase,
     ListenerEventT,
 )
-from hypothesis.internal.conjecture.data import Status
+from hypothesis.internal.cache import LRUCache
 from starlette.applications import Starlette
 from starlette.requests import Request
 from starlette.responses import FileResponse, JSONResponse, RedirectResponse, Response
@@ -28,6 +30,7 @@ from starlette.types import Scope
 from starlette.websockets import WebSocket, WebSocketDisconnect
 from trio import MemoryReceiveChannel
 
+from hypofuzz.compat import bisect_right
 from hypofuzz.database import (
     HypofuzzDatabase,
     HypofuzzEncoder,
@@ -35,12 +38,11 @@ from hypofuzz.database import (
     ObservationStatus,
     Phase,
     Report,
-    ReportOffsets,
+    ReportWithDiff,
     StatusCounts,
     is_corpus_observation_key,
     is_failure_observation_key,
     is_observation_key,
-    linearize_reports,
     reports_key,
 )
 from hypofuzz.interface import CollectionResult
@@ -50,89 +52,212 @@ TESTS: dict[str, "Test"] = {}
 COLLECTION_RESULT: Optional[CollectionResult] = None
 websockets: set["HypofuzzWebsocket"] = set()
 
+T = TypeVar("T")
+
 
 @dataclass
 class Test:
     database_key: str
     nodeid: str
-    # we assume these reports have been linearized with linearize_reports.
-    reports: list[Report]
-    reports_offsets: ReportOffsets
     rolling_observations: list[Observation]
     corpus_observations: list[Observation]
     failure: Optional[Observation]
-    status_counts: StatusCounts = field(init=False)
-    elapsed_time: float = field(init=False)
+    reports_by_worker: dict[str, list[Report]]
+
+    linear_reports: list[ReportWithDiff] = field(init=False)
 
     # prevent pytest from trying to collect this class as a test
     __test__ = False
 
+    # TODO: turn into a regular class and add reports= and reports_by_workers
+    # as alternative constructors? reports_by_workers is only to match the dashboard
+    # class, we don't actually instantiate Test like that anywhere in python
     def __post_init__(self) -> None:
-        self.status_counts = sum(
-            self.reports_offsets.status_counts.values(),
-            start=StatusCounts(dict.fromkeys(Status, 0)),
-        )
-        self.elapsed_time = sum(self.reports_offsets.elapsed_time.values())
+        self.linear_reports = []
+        # map of since: float to (start_idx, list[StatusCounts])
+        self._status_counts_cumsum = LRUCache(16)
+        self._elapsed_time_cumsum = LRUCache(16)
+
+        reports_by_worker = self.reports_by_worker
+        self.reports_by_worker = {}
+
+        # TODO: use k-way merge for nlog(k)) performance, since reports_by_worker
+        # is already sorted.
+        # This sorting won't matter for correctness (once we correctly insert
+        # out-of-order reports), but it will for performance, by minimizing the
+        # number of .bisect calls in the worker reports list.
+        for report in sorted(
+            itertools.chain.from_iterable(reports_by_worker.values()),
+            key=lambda r: r.elapsed_time,
+        ):
+            self.add_report(report)
+
         self._check_invariants()
 
-    def _check_invariants(self) -> None:
-        # elapsed_time and status_counts should be monotonically
-        # increasing. Note that timestamp may not be, if reports get added to the
-        # test by add_report out of order. linearize_reports does guarantee
-        # monotonicity of timestamp, though.
-        for attribute in ["elapsed_time", "status_counts"]:
+    @staticmethod
+    def _assert_reports_ordered(
+        reports: list[ReportWithDiff], attributes: list[str]
+    ) -> None:
+        for attribute in attributes:
             assert all(
                 getattr(r1, attribute) <= getattr(r2, attribute)
-                for r1, r2 in zip(self.reports, self.reports[1:])
-            ), (attribute, [getattr(r, attribute) for r in self.reports])
+                for r1, r2 in zip(reports, reports[1:])
+            ), (attribute, [getattr(r, attribute) for r in reports])
 
-        # we track a separate attibute for the total count for efficiency, but
-        # they should be equal.
-        assert self.status_counts == sum(
-            self.reports_offsets.status_counts.values(),
-            start=StatusCounts(dict.fromkeys(Status, 0)),
+    def _check_invariants(self) -> None:
+        # this entire function is pretty expensive, move from run-time to test-time
+        # once we're more confident
+        self._assert_reports_ordered(self.linear_reports, ["timestamp_monotonic"])
+
+        linear_status_counts = self.linear_status_counts()
+        assert all(
+            v1 <= v2 for v1, v2 in zip(linear_status_counts, linear_status_counts[1:])
+        ), linear_status_counts
+
+        linear_elapsed_time = self.linear_elapsed_time()
+        assert all(
+            v1 <= v2 for v1, v2 in zip(linear_elapsed_time, linear_elapsed_time[1:])
+        ), linear_elapsed_time
+        assert (
+            len(linear_elapsed_time)
+            == len(linear_status_counts)
+            == len(self.linear_reports)
         )
+
+        for worker_uuid, reports in self.reports_by_worker.items():
+            assert {r.nodeid for r in reports} == {self.nodeid}
+            assert {r.database_key for r in reports} == {self.database_key}
+            assert {r.worker.uuid for r in reports} == {worker_uuid}
+            self._assert_reports_ordered(self.linear_reports, ["timestamp_monotonic"])
+
         # this is not always true due to floating point error accumulation.
-        # assert self.elapsed_time == sum(self.reports_offsets.elapsed_time.values())
+        # total_elapsed_time = 0.0
+        # for reports in self.reports_by_worker.values():
+        #     total_elapsed_time += reports[-1].elapsed_time
+        # assert self.elapsed_time == total_elapsed_time
 
     def add_report(self, report: Report) -> None:
-        status_counts = self.reports_offsets.status_counts
-        elapsed_time = self.reports_offsets.elapsed_time
-        counts_diff = report.status_counts - status_counts.setdefault(
-            report.worker.uuid, StatusCounts(dict.fromkeys(Status, 0))
+        # we use last_report to compute timestamp_monotonic, and last_report_worker
+        # to compute status_count_diff and elapsed_time_diff
+        last_report = self.linear_reports[-1] if self.linear_reports else None
+        last_worker_report = (
+            None
+            if report.worker.uuid not in self.reports_by_worker
+            else self.reports_by_worker[report.worker.uuid][-1]
         )
-        elapsed_diff = report.elapsed_time - elapsed_time.setdefault(
-            report.worker.uuid, 0.0
+        if (
+            last_worker_report is not None
+            and last_worker_report.elapsed_time > report.elapsed_time
+        ):
+            # If last_report.elapsed_time > report.elapsed_time, the reports have arrived
+            # out of order. we've already accounted for the diff of `report`; last_report
+            # essentially became the combined report of report + last_report.
+            #
+            # TODO instead of dropping this report, insert it into the lists at
+            # the appropriate index, and recompute the diff for the next
+            # report. That way the e.g. dashboard graph still gets the report.
+            return
+
+        linear_report = ReportWithDiff.from_reports(
+            report, last_report=last_report, last_worker_report=last_worker_report
         )
-        assert all(count >= 0 for count in counts_diff.values())
-        assert elapsed_diff >= 0.0
-        report = dataclasses.replace(
-            report,
-            status_counts=self.status_counts + counts_diff,
-            elapsed_time=self.elapsed_time + elapsed_diff,
-        )
-        # we count status counts and elapsed_time from Phase.REPLAY - it's still
-        # cpu time being used, after all. But we do not add reports for Phase.REPLAY,
-        # because it's not progress being made.
-        self.status_counts += counts_diff
-        self.elapsed_time += elapsed_diff
-        status_counts[report.worker.uuid] += counts_diff
-        elapsed_time[report.worker.uuid] += elapsed_diff
-        if report.phase is not Phase.REPLAY:
-            self.reports.append(report)
+        # support the by-worker access pattern. We only access index [-1] though
+        # - should we store self.last_reports_by_worker instead?
+        self.reports_by_worker.setdefault(report.worker.uuid, []).append(linear_report)
+        # Phase.REPLAY does not count towards:
+        #   * status_counts
+        #   * elapsed_time
+        #   * reports
+        #   * branches
+        #   * phase (should we change this? would cause status flipflop with multiple workers)
+        # nor is it displayed on dashboard graphs.
+        # This is fine for display purposes, since these statistics are intended
+        # to convey the time spent searching for bugs. But we should be careful
+        # when measuring cost to compute a separate "overhead" statistic which
+        # takes every input and elapsed_time into account regardless of phase.
+        if linear_report.phase is not Phase.REPLAY:
+            self.linear_reports.append(linear_report)
 
         self._check_invariants()
 
+    @property
     def phase(self) -> Optional[Phase]:
-        if not self.reports:
-            return None
-        return self.reports[-1].phase
+        return self.linear_reports[-1].phase if self.linear_reports else None
+
+    @property
+    def branches(self) -> int:
+        return self.linear_reports[-1].branches if self.linear_reports else 0
+
+    def ninputs(self, since: float = -math.inf) -> int:
+        return sum(self.linear_status_counts(since=since)[-1].values())
+
+    def _cumsum(
+        self,
+        *,
+        cache: LRUCache,
+        attr: str,
+        since: float = -math.inf,
+        initial: T,
+    ) -> list[T]:
+        cumsum: list[T]
+        if since in cache:
+            (start_idx, cumsum) = cache[since]
+            if len(cumsum) < len(self.linear_reports[start_idx:]):
+                # extend cumsum with any new reports
+                running = cumsum[-1] if cumsum else initial
+                for report in self.linear_reports[start_idx + len(cumsum) :]:
+                    value = getattr(report, attr)
+                    assert value >= initial
+                    running += value
+                    cumsum.append(running)
+                cache[since] = (start_idx, cumsum)
+
+            return cumsum
+
+        cumsum = []
+        start_idx = bisect_right(
+            self.linear_reports, since, key=lambda r: r.timestamp_monotonic
+        )
+        running = initial
+        for report in self.linear_reports[start_idx:]:
+            value = getattr(report, attr)
+            assert value >= initial
+            running += value
+            cumsum.append(running)
+        cache[since] = (start_idx, cumsum)
+        return cumsum
+
+    def linear_status_counts(self, *, since: float = -math.inf) -> list[StatusCounts]:
+        return self._cumsum(
+            cache=self._status_counts_cumsum,
+            attr="status_counts_diff",
+            since=since,
+            initial=StatusCounts(),
+        )
+
+    def linear_elapsed_time(self, *, since: float = -math.inf) -> list[float]:
+        return self._cumsum(
+            cache=self._elapsed_time_cumsum,
+            attr="elapsed_time_diff",
+            since=since,
+            initial=0.0,
+        )
+
+
+def test_for_websocket(test: Test) -> dict[str, Any]:
+    # only send necessary attributes for the dashboard
+    test = dataclasses.asdict(test)
+    # report.worker is duplicated among all reports in a reports_by_worker list.
+    # drop them and add them as an attribute to reports_by_workers?
+    # so reports_by_workers: dict[str, tuple[WorkerIdentity, list[Report]]]
+    del test["rolling_observations"]
+    del test["corpus_observations"]
+    del test["linear_reports"]
+    return test
 
 
 class HypofuzzJSONResponse(JSONResponse):
     def render(self, content: Any) -> bytes:
-        # arguments copied from starlette.JSONResponse, with the addition of
-        # cls=HypofuzzEncoder
         return json.dumps(
             content,
             ensure_ascii=False,
@@ -170,12 +295,7 @@ class HypofuzzWebsocket(abc.ABC):
 
 class OverviewWebsocket(HypofuzzWebsocket):
     async def initial(self, tests: dict[str, Test]) -> None:
-        tests = {
-            nodeid: dataclasses.replace(
-                test, rolling_observations=[], corpus_observations=[]
-            )
-            for nodeid, test in tests.items()
-        }
+        tests = {nodeid: test_for_websocket(test) for nodeid, test in tests.items()}
         await self.send_event({"type": "initial", "initial_type": "tests"}, tests)
         # don't send observations event, overview page doesn't use them
 
@@ -194,11 +314,7 @@ class TestWebsocket(HypofuzzWebsocket):
     async def initial(self, tests: dict[str, Test]) -> None:
         test = tests[self.nodeid]
         # split initial event in two pieces: test (without observations), and observations.
-        tests = {
-            self.nodeid: dataclasses.replace(
-                test, rolling_observations=[], corpus_observations=[]
-            )
-        }
+        tests = {self.nodeid: test_for_websocket(test)}
         observations = {
             self.nodeid: {
                 "rolling": test.rolling_observations,
@@ -316,13 +432,7 @@ async def api_collected_tests(request: Request) -> Response:
 
 # get the backing state of the dashboard, suitable for use by dashboard_state/*.json.
 async def api_backing_state_tests(request: Request) -> Response:
-    tests = {
-        nodeid: dataclasses.replace(
-            test, rolling_observations=[], corpus_observations=[]
-        )
-        for nodeid, test in TESTS.items()
-    }
-
+    tests = {nodeid: test_for_websocket(test) for nodeid, test in TESTS.items()}
     return HypofuzzJSONResponse(tests)
 
 
@@ -462,9 +572,8 @@ async def run_dashboard(port: int, host: str) -> None:
         # We may eventually want to track the database_key history of a node id
         # and at least transfer its covering corpus across when we detect a migration,
         # as well as possibly showing a history ui in the dashboard.
+        # (maybe use .hypofuzz-test-keys for this?)
         key = fuzz_target.database_key
-        reports = linearize_reports(list(db.fetch_reports(key)))
-        assert all(fuzz_target.nodeid == report.nodeid for report in reports.reports)
 
         rolling_observations = list(db.fetch_observations(key))
         corpus_observations = [
@@ -491,16 +600,20 @@ async def run_dashboard(port: int, host: str) -> None:
                 if failure.status_reason not in failure_observations:
                     failure_observations[failure.status_reason] = failure
 
-        TESTS[fuzz_target.nodeid] = Test(
+        reports_by_worker = defaultdict(list)
+        for report in sorted(db.fetch_reports(key), key=lambda r: r.elapsed_time):
+            reports_by_worker[report.worker.uuid].append(report)
+
+        test = Test(
             database_key=fuzz_target.database_key_str,
             nodeid=fuzz_target.nodeid,
-            reports=reports.reports,
-            reports_offsets=reports.offsets,
             rolling_observations=rolling_observations,
             corpus_observations=corpus_observations,
+            reports_by_worker=reports_by_worker,
             # TODO: refactor Test, and our frontend, to support multiple failures.
             failure=next(iter(failure_observations.values()), None),
         )
+        TESTS[fuzz_target.nodeid] = test
 
     # Any database events that get submitted while we're computing initial state
     # won't be displayed until a dashboard restart. We could solve this by adding the

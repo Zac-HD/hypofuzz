@@ -132,11 +132,13 @@ function _TestPage() {
           headers={headers}
           data={[stats]}
           row={item => [
-            item.inputs,
-            item.branches,
-            item.executions,
-            item.inputsSinceBranch,
-            item.timeSpent,
+            <div style={{ fontVariantNumeric: "tabular-nums" }}>{item.inputs}</div>,
+            <div style={{ fontVariantNumeric: "tabular-nums" }}>{item.branches}</div>,
+            <div style={{ fontVariantNumeric: "tabular-nums" }}>{item.executions}</div>,
+            <div style={{ fontVariantNumeric: "tabular-nums" }}>
+              {item.inputsSinceBranch}
+            </div>,
+            <div style={{ fontVariantNumeric: "tabular-nums" }}>{item.timeSpent}</div>,
           ]}
         />
       </div>
@@ -173,8 +175,6 @@ function _TestPage() {
           <div className="covering-examples__toggle">Loading covering examples...</div>
         </div>
       )}
-
-      {}
     </div>
   )
 }

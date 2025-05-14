@@ -6,7 +6,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass, is_dataclass
 from enum import Enum
 from functools import lru_cache
-from typing import TYPE_CHECKING, Any, Literal, Optional
+from typing import TYPE_CHECKING, Any, Literal, Optional, Union
 
 from hypothesis.database import (
     ExampleDatabase,
@@ -109,6 +109,11 @@ class Phase(Enum):
 
 
 class StatusCounts(dict):
+    def __init__(self, value: Optional[dict[Status, int]] = None) -> None:
+        if value is None:
+            value = dict.fromkeys(Status, 0)
+        super().__init__(value)
+
     # add rich operators to the otherwise plain-dict of report.status_counts.
     def __add__(self, other: "StatusCounts") -> "StatusCounts":
         assert self.keys() == other.keys()
@@ -133,8 +138,6 @@ class StatusCounts(dict):
         return all(self[status] < other[status] for status in self)
 
 
-# * A report is an incremental progress marker which we don't want to delete,
-#   because seeing intermediary stages in e.g. a graph is useful information
 @dataclass(frozen=True)
 class Report:
     """
@@ -150,15 +153,15 @@ class Report:
     worker: WorkerIdentity
     status_counts: StatusCounts
     branches: int
-    since_new_cov: Optional[int]
+    since_new_branch: Optional[int]
     phase: Phase
 
     def __post_init__(self) -> None:
         assert self.elapsed_time >= 0, f"{self.elapsed_time=}"
         assert self.branches >= 0, f"{self.branches=}"
         assert self.phase in Phase, f"{self.phase=}"
-        if self.since_new_cov is not None:
-            assert self.since_new_cov >= 0, f"{self.since_new_cov=}"
+        if self.since_new_branch is not None:
+            assert self.since_new_branch >= 0, f"{self.since_new_branch=}"
 
     @staticmethod
     def from_json(encoded: bytes, /) -> Optional["Report"]:
@@ -172,6 +175,65 @@ class Report:
             return Report(**data)
         except Exception:
             return None
+
+
+@dataclass(frozen=True)
+class ReportWithDiff(Report):
+    # This fields are not stored in the database, but are computed for an
+    # individual Report, relative to another Report.
+    status_counts_diff: StatusCounts
+    elapsed_time_diff: float
+    # Clock updates due to e.g. NTP can make time.time() non-monotonic, so
+    # to preserve ordering in edge cases we define `timestamp_monotonic` as
+    # `max(time.time(), previous_timestamp_monotonic + elapsed_time_diff)`.
+    timestamp_monotonic: float
+
+    def __post_init__(self) -> None:
+        assert all(count >= 0 for count in self.status_counts_diff.values())
+        assert self.elapsed_time_diff >= 0.0
+        assert self.timestamp_monotonic >= 0.0
+
+    @classmethod
+    def from_reports(
+        cls,
+        report: Report,
+        *,
+        last_report: Union["ReportWithDiff", None],
+        last_worker_report: Union[Report, None],
+    ) -> "ReportWithDiff":
+        assert last_report is None or last_report.timestamp_monotonic is not None
+        last_status_counts = (
+            StatusCounts()
+            if last_worker_report is None
+            else last_worker_report.status_counts
+        )
+        last_elapsed_time = (
+            0.0 if last_worker_report is None else last_worker_report.elapsed_time
+        )
+        status_counts_diff = report.status_counts - last_status_counts
+        elapsed_time_diff = report.elapsed_time - last_elapsed_time
+        timestamp_monotonic = (
+            report.timestamp
+            if last_report is None
+            else max(
+                report.timestamp, last_report.timestamp_monotonic + elapsed_time_diff
+            )
+        )
+
+        return cls(
+            database_key=report.database_key,
+            nodeid=report.nodeid,
+            elapsed_time=report.elapsed_time,
+            timestamp=report.timestamp,
+            worker=report.worker,
+            status_counts=report.status_counts,
+            branches=report.branches,
+            since_new_branch=report.since_new_branch,
+            phase=report.phase,
+            status_counts_diff=status_counts_diff,
+            elapsed_time_diff=elapsed_time_diff,
+            timestamp_monotonic=timestamp_monotonic,
+        )
 
 
 reports_key = b".hypofuzz.reports"
@@ -395,88 +457,3 @@ class HypofuzzDatabase:
         for value in self.fetch(failure_observation_key(key, choices)):
             if observation := Observation.from_json(value):
                 yield observation
-
-
-@dataclass
-class ReportOffsets:
-    status_counts: dict[str, StatusCounts]
-    elapsed_time: dict[str, float]
-
-
-@dataclass
-class LinearReports:
-    reports: list[Report]
-    offsets: ReportOffsets
-
-
-def linearize_reports(reports: list[Report]) -> LinearReports:
-    """
-    Given an (arbitrarily ordered) list of reports, potentially from different
-    workers and potentially with overlapping durations, reconstruct a best-effort
-    linearization suitable for e.g. display in the dashboard.
-    """
-    # The linearization algorithm is as follows:
-    # * Track the total number of inputs and the total elapsed time of the
-    #   current linearized history.
-    # * Examine reports in sorted timestamp order. Compute the new status_counts c
-    #   and new elapsed_time t relative to the previous report from that worker.
-    # * Append a new report to the linearized history, which is the same as the
-    #   actual report but with status counts linearized_status_counts + c and
-    #   elapsed time linearized_elapsed_time + t.
-    #
-    # We could improve lineariztion for time periods with overlapping workers by
-    # taking the maximum of any coverage achieved in that interval, if all the
-    # workers are fuzzing the same code state. If the workers have different code
-    # states (e.g. a different git hash), then we have no choice but to treat
-    # the reported coverage as canonical and accept coverage jitter in the graph.
-
-    total_statuses = StatusCounts(dict.fromkeys(Status, 0))
-    total_elapsed_time = 0.0
-    linearized_reports = []
-    # we track a running total of status counts and elapsed_time for each worker.
-    # This lets us compute new status counts and elapsed_time for each report,
-    # relative to the previous report.
-    #
-    # We could equivalently store statuses_new and elapsed_time_new on the reports.
-    # (but then deletion or loss of arbitrary reports becomes unsound without fixing
-    # up the subsequent report).
-    offsets_statuses: dict[str, StatusCounts] = defaultdict(
-        lambda: StatusCounts(dict.fromkeys(Status, 0))
-    )
-    offsets_elapsed_time: dict[str, float] = defaultdict(float)
-    # We sort by timestamp, and rely on the invariant that reports from an
-    # individual worker always monotonically increase in both status counts and
-    # elapsed_time as the timestamp increases, so that sorting by timestamp is
-    # enough to sort by all three attributes (within an individual worker).
-    for report in sorted(reports, key=lambda report: report.timestamp):
-        statuses_diff = report.status_counts - offsets_statuses[report.worker.uuid]
-        elapsed_time_diff = (
-            report.elapsed_time - offsets_elapsed_time[report.worker.uuid]
-        )
-        assert all(count >= 0 for count in statuses_diff.values())
-        assert elapsed_time_diff >= 0
-
-        if report.phase is not Phase.REPLAY:
-            linearized_report = dataclasses.replace(
-                report,
-                status_counts=total_statuses + statuses_diff,
-                elapsed_time=total_elapsed_time + elapsed_time_diff,
-            )
-            linearized_reports.append(linearized_report)
-
-        # TODO we should probably NOT count inputs or elapsed time from
-        # Phase.REPLAY, because this is not time we spent looking for bugs?
-        # Be careful when factoring this into e.g. "cost per bug", though - it's
-        # still cpu time being paid for.
-        total_statuses += statuses_diff
-        total_elapsed_time += elapsed_time_diff
-        offsets_statuses[report.worker.uuid] = report.status_counts
-        offsets_elapsed_time[report.worker.uuid] = report.elapsed_time
-
-    return LinearReports(
-        reports=linearized_reports,
-        offsets=ReportOffsets(
-            status_counts=dict(offsets_statuses),
-            elapsed_time=dict(offsets_elapsed_time),
-        ),
-    )

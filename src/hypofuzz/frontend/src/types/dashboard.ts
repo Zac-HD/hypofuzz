@@ -1,4 +1,4 @@
-import { mapsEqual, sum } from "../utils/utils"
+import { bisectLeft, bisectRight, setsEqual, sum } from "../utils/utils"
 
 abstract class Dataclass<T> {
   withProperties(props: Partial<T>): T {
@@ -6,7 +6,7 @@ abstract class Dataclass<T> {
   }
 }
 
-class StatusCounts extends Dataclass<StatusCounts> {
+export class StatusCounts extends Dataclass<StatusCounts> {
   constructor(
     public counts: Map<Status, number> = new Map([
       [Status.OVERRUN, 0],
@@ -48,6 +48,10 @@ class StatusCounts extends Dataclass<StatusCounts> {
     }
     return new StatusCounts(newStatusCounts)
   }
+
+  sum(): number {
+    return sum(this.counts.values())
+  }
 }
 
 export enum Status {
@@ -82,6 +86,10 @@ export interface WorkerIdentity {
 }
 
 export class Report extends Dataclass<Report> {
+  public status_counts_diff: StatusCounts | null
+  public elapsed_time_diff: number | null
+  public timestamp_monotonic: number | null
+
   constructor(
     public database_key: string,
     public nodeid: string,
@@ -90,14 +98,17 @@ export class Report extends Dataclass<Report> {
     public worker: WorkerIdentity,
     public status_counts: StatusCounts,
     public branches: number,
-    public since_new_cov: number | null,
+    public since_new_branch: number | null,
     public phase: Phase,
   ) {
     super()
+    this.status_counts_diff = null
+    this.elapsed_time_diff = null
+    this.timestamp_monotonic = null
   }
 
-  get ninputs() {
-    return sum(this.status_counts.counts.values())
+  get ninputs(): number {
+    return this.status_counts.sum()
   }
 
   static fromJson(data: any): Report {
@@ -109,7 +120,7 @@ export class Report extends Dataclass<Report> {
       data.worker,
       StatusCounts.fromJson(data.status_counts),
       data.branches,
-      data.since_new_cov,
+      data.since_new_branch,
       data.phase,
     )
   }
@@ -164,124 +175,148 @@ export enum TestStatus {
   WAITING = 3,
 }
 
-export class ReportOffsets extends Dataclass<ReportOffsets> {
-  constructor(
-    public elapsed_time: Map<string, number>,
-    public status_counts: Map<string, StatusCounts>,
-  ) {
-    super()
-  }
-
-  static fromJson(data: any): ReportOffsets {
-    return new ReportOffsets(
-      new Map(Object.entries(data.elapsed_time)),
-      new Map(
-        Object.entries(data.status_counts).map(([key, value]) => [
-          key,
-          StatusCounts.fromJson(value),
-        ]),
-      ),
-    )
-  }
-}
-
 export class Test extends Dataclass<Test> {
   // if it's been this long since the last report in seconds, consider the test status
   // to be "waiting" instead of "running"
   static WAITING_STATUS_DURATION = 120
 
-  public elapsed_time: number
-  public status_counts: StatusCounts
+  public observations_loaded: boolean
+  public linear_reports: Report[]
+  private _status_counts_cumsum: Map<number, [number, StatusCounts[]]>
+  private _elapsed_time_cumsum: Map<number, [number, number[]]>
 
   constructor(
     public database_key: string,
     public nodeid: string,
-    public reports: Report[],
-    public reports_offsets: ReportOffsets,
     public rolling_observations: Observation[],
     public corpus_observations: Observation[],
     public failure: Observation | null,
-    public observations_loaded: boolean,
+    public reports_by_worker: Map<string, Report[]>,
   ) {
     super()
-    this.elapsed_time = sum(this.reports_offsets.elapsed_time.values())
-    let status_counts = new StatusCounts()
-    for (const counts of this.reports_offsets.status_counts.values()) {
-      status_counts = status_counts.add(counts)
+    this.observations_loaded = false
+    this.linear_reports = []
+    // TODO we should use an actual LRUCache for memory here, like in python.
+    // https://github.com/isaacs/node-lru-cache looks like a good option
+    this._status_counts_cumsum = new Map()
+    this._elapsed_time_cumsum = new Map()
+
+    const reports_by_worker_ = this.reports_by_worker
+    this.reports_by_worker = new Map()
+
+    // TODO: use k-way merge for performance?
+    const sorted_reports = Array.from(reports_by_worker_.values())
+      .flat()
+      .sortKey(report => report.timestamp)
+    for (const report of sorted_reports) {
+      this.add_report(report)
     }
-    this.status_counts = status_counts
+    this._check_invariants()
   }
 
   static fromJson(data: any): Test {
     return new Test(
       data.database_key,
       data.nodeid,
-      data.reports.map(Report.fromJson),
-      ReportOffsets.fromJson(data.reports_offsets),
       // observations will be updated later by another websocket event
       [],
       [],
       data.failure ? Observation.fromJson(data.failure) : null,
-      false,
+      new Map(
+        Object.entries(data.reports_by_worker).map(([key, value]) => [
+          key,
+          (value as any[]).map(Report.fromJson),
+        ]),
+      ),
     )
+  }
+
+  _assert_reports_ordered(reports: Report[]) {
+    for (let i = 0; i < reports.length - 1; i++) {
+      console.assert(
+        reports[i].timestamp_monotonic! <= reports[i + 1].timestamp_monotonic!,
+      )
+    }
   }
 
   _check_invariants() {
-    for (let i = 0; i < this.reports.length - 1; i++) {
-      console.assert(this.reports[i].elapsed_time <= this.reports[i + 1].elapsed_time)
-    }
+    this._assert_reports_ordered(this.linear_reports)
 
-    // we track a separate attribute for the total count for efficiency, but
-    // they should be equal.
-    let expectedCounts = new StatusCounts()
-    for (const counts of this.reports_offsets.status_counts.values()) {
-      expectedCounts = expectedCounts.add(counts)
+    const linear_status_counts = this.linear_status_counts(null)
+    for (let i = 0; i < linear_status_counts.length - 1; i++) {
+      console.assert(linear_status_counts[i].sum() <= linear_status_counts[i + 1].sum())
     }
-    console.assert(mapsEqual(this.status_counts.counts, expectedCounts.counts))
+    const linear_elapsed_time = this.linear_elapsed_time(null)
+    for (let i = 0; i < linear_elapsed_time.length - 1; i++) {
+      console.assert(linear_elapsed_time[i] <= linear_elapsed_time[i + 1])
+    }
+    console.assert(
+      linear_elapsed_time.length === linear_status_counts.length &&
+        linear_status_counts.length === this.linear_reports.length,
+    )
 
-    // not always true due to floating point error accumulation.
-    // console.assert(
-    //   this.elapsed_time == sum(this.reports_offsets.elapsed_time.values()),
-    // )
+    for (const [worker_uuid, reports] of this.reports_by_worker.entries()) {
+      console.assert(
+        setsEqual(new Set(reports.map(r => r.nodeid)), new Set([this.nodeid])),
+      )
+      console.assert(
+        setsEqual(
+          new Set(reports.map(r => r.database_key)),
+          new Set([this.database_key]),
+        ),
+      )
+      console.assert(
+        setsEqual(new Set(reports.map(r => r.worker.uuid)), new Set([worker_uuid])),
+      )
+      this._assert_reports_ordered(reports)
+    }
   }
 
-  addReport(report: Report) {
+  add_report(report: Report) {
     // This function implements Test.add_report in python. Make sure to keep the
     // two versions in sync.
-    const status_counts = this.reports_offsets.status_counts
-    const elapsed_time = this.reports_offsets.elapsed_time
 
-    if (!status_counts.has(report.worker.uuid)) {
-      status_counts.set(report.worker.uuid, new StatusCounts())
+    const workerReports = this.reports_by_worker.get(report.worker.uuid)
+    const last_report =
+      this.linear_reports.length > 0
+        ? this.linear_reports[this.linear_reports.length - 1]
+        : null
+    const last_report_worker = workerReports
+      ? workerReports[workerReports.length - 1]
+      : null
+    if (last_report_worker && last_report_worker.elapsed_time > report.elapsed_time) {
+      // out of order report
+      return
     }
-    if (!elapsed_time.has(report.worker.uuid)) {
-      elapsed_time.set(report.worker.uuid, 0.0)
-    }
-    const counts_diff = report.status_counts.subtract(
-      status_counts.get(report.worker.uuid)!,
+
+    console.assert(last_report === null || last_report.timestamp_monotonic !== null)
+    const last_status_counts = last_report_worker
+      ? last_report_worker.status_counts
+      : new StatusCounts()
+    const last_elapsed_time = last_report_worker ? last_report_worker.elapsed_time : 0.0
+    const status_counts_diff = report.status_counts.subtract(last_status_counts)
+    const elapsed_time_diff = report.elapsed_time - last_elapsed_time
+    const timestamp_monotonic = last_report
+      ? Math.max(report.timestamp, last_report.timestamp_monotonic! + elapsed_time_diff)
+      : report.timestamp
+    console.assert(
+      Array.from(status_counts_diff.counts.values()).every(count => count >= 0),
     )
-    const elapsed_diff = report.elapsed_time - elapsed_time.get(report.worker.uuid)!
+    console.assert(elapsed_time_diff >= 0.0)
+    console.assert(timestamp_monotonic >= 0.0)
 
-    console.assert(Array.from(counts_diff.counts.values()).every(count => count >= 0))
-    console.assert(elapsed_diff >= 0.0)
-
-    const newReport = report.withProperties({
-      elapsed_time: this.elapsed_time + elapsed_diff,
-      status_counts: this.status_counts.add(counts_diff),
+    const linear_report = report.withProperties({
+      status_counts_diff: status_counts_diff,
+      elapsed_time_diff: elapsed_time_diff,
+      timestamp_monotonic: timestamp_monotonic,
     })
 
-    this.status_counts = this.status_counts.add(counts_diff)
-    this.elapsed_time += elapsed_diff
-    status_counts.set(
-      report.worker.uuid,
-      status_counts.get(report.worker.uuid)!.add(counts_diff),
-    )
-    elapsed_time.set(
-      report.worker.uuid,
-      elapsed_time.get(report.worker.uuid)! + elapsed_diff,
-    )
-    if (report.phase !== Phase.REPLAY) {
-      this.reports.push(newReport)
+    if (!(report.worker.uuid in this.reports_by_worker)) {
+      this.reports_by_worker.set(report.worker.uuid, [])
+    }
+    this.reports_by_worker.get(report.worker.uuid)!.push(linear_report)
+    if (linear_report.phase !== Phase.REPLAY) {
+      this.linear_reports.push(linear_report)
     }
 
     this._check_invariants()
@@ -291,11 +326,11 @@ export class Test extends Dataclass<Test> {
     if (this.failure) {
       return TestStatus.FAILED
     }
-    if (this.reports.length === 0) {
+    if (this.linear_reports.length === 0) {
       return TestStatus.WAITING
     }
 
-    const latest = this.reports[this.reports.length - 1]
+    const latest = this.linear_reports[this.linear_reports.length - 1]
     const timestamp = new Date().getTime() / 1000
     if (latest.phase == Phase.SHRINK) {
       return TestStatus.SHRINKING
@@ -307,5 +342,97 @@ export class Test extends Dataclass<Test> {
       return TestStatus.WAITING
     }
     return TestStatus.RUNNING
+  }
+
+  get branches() {
+    if (this.linear_reports.length === 0) {
+      return 0
+    }
+    return this.linear_reports[this.linear_reports.length - 1].branches
+  }
+
+  get since_new_branch() {
+    // TODO take linearization into account properly here. I think we want "linearized
+    // inputs since branch count last increased". Iterate backwards over linear_status_counts?
+    if (this.linear_reports.length === 0) {
+      return null
+    }
+    return this.linear_reports[this.linear_reports.length - 1].since_new_branch
+  }
+
+  elapsed_time(since: number | null): number {
+    const elapsed_times = this.linear_elapsed_time(since)
+    if (elapsed_times.length === 0) {
+      return 0.0
+    }
+    return elapsed_times[elapsed_times.length - 1]
+  }
+
+  ninputs(since: number | null): number {
+    const counts = this.linear_status_counts(since)
+    if (counts.length === 0) {
+      return 0
+    }
+    return counts[counts.length - 1].sum()
+  }
+
+  _cumsum<T>(
+    cache: Map<number, [number, T[]]>,
+    attr: keyof Report,
+    add: (a: T, b: T) => T,
+    since: number | null,
+    initial: T,
+  ): T[] {
+    if (since === null) {
+      since = -Infinity
+    }
+
+    if (cache.has(since)) {
+      const [start_idx, cumsum] = cache.get(since)!
+      if (cumsum.length < this.linear_reports.slice(start_idx).length) {
+        // extend cumsum with any new reports
+        let running = cumsum.length > 0 ? cumsum[cumsum.length - 1] : initial
+        for (const report of this.linear_reports.slice(start_idx + cumsum.length)) {
+          running = add(running, report[attr] as T)
+          cumsum.push(running)
+        }
+        cache.set(since, [start_idx, cumsum])
+      }
+      return cumsum
+    }
+
+    const cumsum: T[] = []
+    const start_idx = bisectRight(
+      this.linear_reports,
+      since,
+      r => r.timestamp_monotonic!,
+    )
+    let running = initial
+    for (const report of this.linear_reports.slice(start_idx)) {
+      running = add(running, report[attr] as T)
+      cumsum.push(running)
+    }
+    cache.set(since, [start_idx, cumsum])
+    return cumsum
+  }
+
+  linear_status_counts(since: number | null): StatusCounts[] {
+    return this._cumsum(
+      this._status_counts_cumsum,
+      "status_counts_diff",
+      (a, b) => a.add(b),
+      since,
+      new StatusCounts(),
+    )
+  }
+
+  linear_elapsed_time(since: number | null): number[] {
+    return this._cumsum(
+      this._elapsed_time_cumsum,
+      "elapsed_time_diff",
+      (a, b) => a + b,
+      since,
+      0.0,
+    )
   }
 }

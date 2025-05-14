@@ -63,6 +63,15 @@ T = TypeVar("T")
 
 process_uuid = uuid4().hex
 
+assert time.get_clock_info("perf_counter").monotonic, (
+    "HypoFuzz relies on perf_counter being monotonic. This is guaranteed on "
+    "CPython. Please open an issue if you hit this assertion."
+)
+
+
+def lerp(a: float, b: float, t: float) -> float:
+    return (1 - t) * a + t * b
+
 
 # hypothesis.utils.dynamicvaraible, but without the with_value context manager.
 # Essentially just a reference to a value.
@@ -175,8 +184,8 @@ class FuzzProcess:
         self.ninputs = 0
         self.elapsed_time = 0.0
         self.stop_shrinking_at = float("inf")
-        self.since_new_cov = 0
-        self.status_counts = dict.fromkeys(Status, 0)
+        self.since_new_branch = 0
+        self.status_counts = StatusCounts()
         self.phase: Optional[Phase] = None
         # Any new examples from the database will be added to this replay queue
         self._replay_queue: list[tuple[Union[ChoiceT, ChoiceTemplate], ...]] = []
@@ -185,6 +194,7 @@ class FuzzProcess:
         # 1000 consecutive examples without new coverage, and then switch to mutation.
         self._early_blackbox_mode = True
         self._last_report: Report | None = None
+        self._last_saved_report_at = -math.inf
 
         # Track observability data
         self._last_observed = -math.inf
@@ -256,7 +266,7 @@ class FuzzProcess:
         # database.  We do this unconditionally because even if this fuzzer doesn't
         # know of other concurrent runs, there may be e.g. a test process sharing the
         # database.  We do make it infrequent to manage the overhead though.
-        if self.ninputs % 1000 == 0 and self.since_new_cov > 1000:
+        if self.ninputs % 1000 == 0 and self.since_new_branch > 1000:
             self._replay_queue.extend(self.corpus.fetch())
             # TODO: also fetch any new failures into self._failure_queue?
             # TODO: use the listener for this rather than fetching everything
@@ -313,7 +323,7 @@ class FuzzProcess:
             )
 
         # Consider switching out of blackbox mode.
-        if self.since_new_cov >= 1000 and not self._replay_queue:
+        if self.since_new_branch >= 1000 and not self._replay_queue:
             self._early_blackbox_mode = False
 
         # NOTE: this distillation logic works fine, it's just discovering new coverage
@@ -366,20 +376,34 @@ class FuzzProcess:
         # Update the corpus and report any changes immediately for new coverage.  If no
         # new coverage, occasionally send an update anyway so we don't look stalled.
         self.status_counts[data.status] += 1
+        # status_counts and elapsed_time have to be added to at the same time, without
+        # saving a report between them, or we might violate monotonicity invariants.
+        self.elapsed_time += time.perf_counter() - start
         assert observation.value is not None
         if self.corpus.add(data.as_result(), observation=observation.value):
-            self.since_new_cov = 0
+            # TODO this is wrong for Status.INTERESTING examples (that are smaller
+            # than the previous example for this interesting origin), which are
+            # successfully added to the corpus but don't represent a new branch.
+            self.since_new_branch = 0
         else:
-            self.since_new_cov += 1
-        if 0 in (self.since_new_cov, self.ninputs % 100):
+            self.since_new_branch += 1
+        if self.since_new_branch == 0 or self._should_save_timed_report():
             self._save_report(self._report)
 
-        self.elapsed_time += time.perf_counter() - start
         if self.elapsed_time > self.stop_shrinking_at:
             raise HitShrinkTimeoutError
 
         # The shrinker relies on returning the data object to be inspected.
         return data.as_result()
+
+    def _should_save_timed_report(self) -> bool:
+        # linear interpolation from 1 report/s at the start to 1 report/60s after
+        # 5 minutes have passed
+        increment = lerp(1, 60, min(self._last_saved_report_at / 60 * 5, 1))
+        # A "timed report" is one that we expect to be discarded from the database
+        # on the next saved report, but which serves as an incremental progress
+        # marker for the dashboard.
+        return self.elapsed_time > self._last_saved_report_at + increment
 
     @contextlib.contextmanager
     def observe(self) -> Generator[Value[Optional[Observation]], None, None]:
@@ -431,6 +455,7 @@ class FuzzProcess:
 
     def _save_report(self, report: Report) -> None:
         self.db.save_report(self.database_key, report)
+        self._last_saved_report_at = self.elapsed_time
 
         # Having written the latest report, we can keep the database small
         # by dropping the previous report unless it differs from the latest in
@@ -440,7 +465,7 @@ class FuzzProcess:
             or self._last_report.phase != report.phase
             or self.corpus.interesting_examples
             # always keep reports which discovered new coverage
-            or self._last_report.since_new_cov == 0
+            or self._last_report.since_new_branch == 0
         ):
             self.db.delete_report(self.database_key, self._last_report)
 
@@ -460,10 +485,10 @@ class FuzzProcess:
             ),
             status_counts=StatusCounts(self.status_counts),
             branches=len(self.corpus.branch_counts),
-            since_new_cov=(
+            since_new_branch=(
                 None
                 if (self.ninputs == 0 or self.corpus.interesting_examples)
-                else self.since_new_cov
+                else self.since_new_branch
             ),
             phase=self.phase,
         )
@@ -477,7 +502,7 @@ class FuzzProcess:
 def fuzz_several(*targets_: FuzzProcess, random_seed: Optional[int] = None) -> None:
     """Take N fuzz targets and run them all."""
     random = Random(random_seed)
-    targets = SortedKeyList(targets_, lambda t: t.since_new_cov)
+    targets = SortedKeyList(targets_, lambda t: t.since_new_branch)
 
     # Loop forever: at each timestep, we choose a target using an epsilon-greedy
     # strategy for simplicity (TODO: improve this later) and run it once.
@@ -499,8 +524,9 @@ def fuzz_several(*targets_: FuzzProcess, random_seed: Optional[int] = None) -> N
             print(f"found failing example for {target.nodeid}")
             targets.pop(i)
 
-        if resort or (
-            len(targets) > 1 and targets.key(targets[0]) > targets.key(targets[1])
+        if targets and (
+            resort
+            or (len(targets) > 1 and targets.key(targets[0]) > targets.key(targets[1]))
         ):
             # pay our log-n cost to keep the list sorted
             targets.add(targets.pop(0))
