@@ -61,5 +61,5 @@ def test_end_to_end(numprocesses, tmp_path):
         resp.raise_for_status()
     finally:
         process.stderr.close()
-        os.killpg(os.getpgid(process.pid), signal.SIGINT)
+        os.killpg(os.getpgid(process.pid), signal.SIGTERM)
         process.wait()
