@@ -98,7 +98,7 @@ def dashboard(
     try:
         yield dashboard
     finally:
-        os.killpg(os.getpgid(process.pid), signal.SIGINT)
+        os.killpg(os.getpgid(process.pid), signal.SIGTERM)
         process.wait()
         stdout, stderr = process.communicate()
         process.stdout.close()
@@ -128,7 +128,7 @@ def fuzz(*, n=1, dashboard=False, test_path=None):
     try:
         yield
     finally:
-        os.killpg(os.getpgid(process.pid), signal.SIGINT)
+        os.killpg(os.getpgid(process.pid), signal.SIGTERM)
         process.wait()
 
 
