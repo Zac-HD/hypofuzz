@@ -51,8 +51,11 @@ class WorkerIdentity:
     git_hash: Optional[str]
 
     @staticmethod
-    def from_json(data: dict) -> "WorkerIdentity":
-        return WorkerIdentity(**data)
+    def from_json(data: bytes) -> Optional["WorkerIdentity"]:
+        try:
+            return WorkerIdentity(**json.loads(data))
+        except Exception:
+            return None
 
     def __repr__(self) -> str:
         return f"WorkerIdentity(uuid={self.uuid!r})"
@@ -150,7 +153,7 @@ class Report:
     nodeid: str
     elapsed_time: float
     timestamp: float
-    worker: WorkerIdentity
+    worker_uuid: str
     status_counts: StatusCounts
     branches: int
     since_new_branch: Optional[int]
@@ -167,7 +170,6 @@ class Report:
     def from_json(encoded: bytes, /) -> Optional["Report"]:
         try:
             data = json.loads(encoded)
-            data["worker"] = WorkerIdentity.from_json(data["worker"])
             data["status_counts"] = StatusCounts(
                 {Status(int(k)): v for k, v in data["status_counts"].items()}
             )
@@ -225,7 +227,7 @@ class ReportWithDiff(Report):
             nodeid=report.nodeid,
             elapsed_time=report.elapsed_time,
             timestamp=report.timestamp,
-            worker=report.worker,
+            worker_uuid=report.worker_uuid,
             status_counts=report.status_counts,
             branches=report.branches,
             since_new_branch=report.since_new_branch,
@@ -240,6 +242,10 @@ reports_key = b".hypofuzz.reports"
 observations_key = b".hypofuzz.observations"
 corpus_key = b".hypofuzz.corpus"
 failures_key = b".hypofuzz.failures"
+
+
+def worker_identity_key(key: bytes, uuid: str) -> bytes:
+    return key + b".worker_identity." + uuid.encode("ascii")
 
 
 @lru_cache(maxsize=512)
@@ -457,3 +463,27 @@ class HypofuzzDatabase:
         for value in self.fetch(failure_observation_key(key, choices)):
             if observation := Observation.from_json(value):
                 yield observation
+
+    # worker identity (worker_identity_key)
+
+    def save_worker_identity(self, key: bytes, worker: WorkerIdentity) -> None:
+        self.save(worker_identity_key(key, worker.uuid), self._encode(worker))
+
+    def delete_worker_identity(self, key: bytes, worker: WorkerIdentity) -> None:
+        self.delete(worker_identity_key(key, worker.uuid), self._encode(worker))
+
+    def fetch_worker_identities(
+        self, key: bytes, worker: WorkerIdentity
+    ) -> Iterable[WorkerIdentity]:
+        for value in self.fetch(worker_identity_key(key, worker.uuid)):
+            if worker_identity := WorkerIdentity.from_json(value):
+                yield worker_identity
+
+    def fetch_worker_identity(
+        self, key: bytes, worker: WorkerIdentity
+    ) -> Optional[WorkerIdentity]:
+        try:
+            return next(iter(self.fetch_worker_identities(key, worker)))
+        except StopIteration:
+            return None
+

@@ -199,12 +199,16 @@ class FuzzProcess:
         # Track observability data
         self._last_observed = -math.inf
 
+        self.worker_identity = worker_identity(
+            in_directory=Path(inspect.getfile(self._test_fn)).parent
+        )
+
     def startup(self) -> None:
         """Set up initial state and prepare to replay the saved behaviour."""
         # Report that we've started this fuzz target
         self.db.save(b"hypofuzz-test-keys", self.database_key)
-        # Next, restore progress made in previous runs by loading our saved examples.
-        # This is meant to be the minimal set of inputs that exhibits all distinct
+        # save the worker identity once at startup
+        self.db.save_worker_identity(self.database_key, self.worker_identity)
         # behaviours we've observed to date.  Replaying takes longer than restoring
         # our data structures directly, but copes much better with changed behaviour.
         self._replay_queue.extend(self.corpus.fetch())

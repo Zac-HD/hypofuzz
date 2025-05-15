@@ -127,7 +127,7 @@ class Test:
         for worker_uuid, reports in self.reports_by_worker.items():
             assert {r.nodeid for r in reports} == {self.nodeid}
             assert {r.database_key for r in reports} == {self.database_key}
-            assert {r.worker.uuid for r in reports} == {worker_uuid}
+            assert {r.worker_uuid for r in reports} == {worker_uuid}
             self._assert_reports_ordered(self.linear_reports, ["timestamp_monotonic"])
 
         # this is not always true due to floating point error accumulation.
@@ -142,8 +142,8 @@ class Test:
         last_report = self.linear_reports[-1] if self.linear_reports else None
         last_worker_report = (
             None
-            if report.worker.uuid not in self.reports_by_worker
-            else self.reports_by_worker[report.worker.uuid][-1]
+            if report.worker_uuid not in self.reports_by_worker
+            else self.reports_by_worker[report.worker_uuid][-1]
         )
         if (
             last_worker_report is not None
@@ -163,7 +163,7 @@ class Test:
         )
         # support the by-worker access pattern. We only access index [-1] though
         # - should we store self.last_reports_by_worker instead?
-        self.reports_by_worker.setdefault(report.worker.uuid, []).append(linear_report)
+        self.reports_by_worker.setdefault(report.worker_uuid, []).append(linear_report)
         # Phase.REPLAY does not count towards:
         #   * status_counts
         #   * elapsed_time
@@ -602,7 +602,7 @@ async def run_dashboard(port: int, host: str) -> None:
 
         reports_by_worker = defaultdict(list)
         for report in sorted(db.fetch_reports(key), key=lambda r: r.elapsed_time):
-            reports_by_worker[report.worker.uuid].append(report)
+            reports_by_worker[report.worker_uuid].append(report)
 
         test = Test(
             database_key=fuzz_target.database_key_str,

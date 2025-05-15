@@ -75,7 +75,7 @@ def reports(
                 st.floats(start_time, end_time),
                 min_size=len(ninputs),
                 max_size=len(ninputs),
-            )
+            ).map(sorted)
         )
         elapsed_times = draw(
             st.lists(
@@ -97,7 +97,7 @@ def reports(
                     nodeid=st.just(nodeid),
                     elapsed_time=st.just(elapsed_time),
                     timestamp=st.just(timestamp),
-                    worker=workers(uuid=uuid),
+                    worker_uuid=st.just(uuid),
                     status_counts=st.just(status_counts),
                     branches=st.integers(min_value=0),
                     since_new_branch=st.integers(min_value=0),
@@ -133,7 +133,7 @@ def _test_for_reports(reports) -> Test:
     database_key = b""
     nodeid = ""
     for report in sorted(reports, key=lambda r: r.elapsed_time):
-        reports_by_worker[report.worker.uuid].append(report)
+        reports_by_worker[report.worker_uuid].append(report)
         database_key = report.database_key
         nodeid = report.nodeid
 
@@ -149,7 +149,7 @@ def _test_for_reports(reports) -> Test:
 
 @given(reports(count_workers=1))
 def test_single_worker(reports):
-    assert len({r.worker.uuid for r in reports}) <= 1
+    assert len({r.worker_uuid for r in reports}) <= 1
     # linearizing reports from a single worker just puts them in a sorted order,
     # ignoring any Phase.REPLAY reports.
     actual = _test_for_reports(reports).linear_reports

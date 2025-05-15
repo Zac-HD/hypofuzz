@@ -95,7 +95,7 @@ export class Report extends Dataclass<Report> {
     public nodeid: string,
     public elapsed_time: number,
     public timestamp: number,
-    public worker: WorkerIdentity,
+    public worker_uuid: string,
     public status_counts: StatusCounts,
     public branches: number,
     public since_new_branch: number | null,
@@ -117,7 +117,7 @@ export class Report extends Dataclass<Report> {
       data.nodeid,
       data.elapsed_time,
       data.timestamp,
-      data.worker,
+      data.worker_uuid,
       StatusCounts.fromJson(data.status_counts),
       data.branches,
       data.since_new_branch,
@@ -266,7 +266,7 @@ export class Test extends Dataclass<Test> {
         ),
       )
       console.assert(
-        setsEqual(new Set(reports.map(r => r.worker.uuid)), new Set([worker_uuid])),
+        setsEqual(new Set(reports.map(r => r.worker_uuid)), new Set([worker_uuid])),
       )
       this._assert_reports_ordered(reports)
     }
@@ -276,7 +276,7 @@ export class Test extends Dataclass<Test> {
     // This function implements Test.add_report in python. Make sure to keep the
     // two versions in sync.
 
-    const workerReports = this.reports_by_worker.get(report.worker.uuid)
+    const workerReports = this.reports_by_worker.get(report.worker_uuid)
     const last_report =
       this.linear_reports.length > 0
         ? this.linear_reports[this.linear_reports.length - 1]
@@ -311,10 +311,10 @@ export class Test extends Dataclass<Test> {
       timestamp_monotonic: timestamp_monotonic,
     })
 
-    if (!(report.worker.uuid in this.reports_by_worker)) {
-      this.reports_by_worker.set(report.worker.uuid, [])
+    if (!(report.worker_uuid in this.reports_by_worker)) {
+      this.reports_by_worker.set(report.worker_uuid, [])
     }
-    this.reports_by_worker.get(report.worker.uuid)!.push(linear_report)
+    this.reports_by_worker.get(report.worker_uuid)!.push(linear_report)
     if (linear_report.phase !== Phase.REPLAY) {
       this.linear_reports.push(linear_report)
     }
