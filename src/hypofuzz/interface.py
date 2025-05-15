@@ -180,11 +180,16 @@ class _ItemsCollector:
                 self.fuzz_targets.append(fuzz)
 
 
-def _get_hypothesis_tests_with_pytest(args: Iterable[str]) -> CollectionResult:
+def _get_hypothesis_tests_with_pytest(
+    args: Iterable[str], *, debug: bool = False
+) -> CollectionResult:
     """Find the hypothesis-only test functions run by pytest.
 
     This basically uses `pytest --collect-only -m hypothesis $args`.
     """
+    args = list(args)
+    if debug:
+        args.append("-s")
     collector = _ItemsCollector()
     out = io.StringIO()
     with redirect_stdout(out):
@@ -201,7 +206,7 @@ def _get_hypothesis_tests_with_pytest(args: Iterable[str]) -> CollectionResult:
         print(out.getvalue())
         print(f"Exiting because pytest returned exit code {ret}")
         sys.exit(ret)
-    elif not collector.fuzz_targets:
+    elif debug or not collector.fuzz_targets:
         print(out.getvalue())
     return CollectionResult(
         fuzz_targets=collector.fuzz_targets, not_collected=collector.not_collected
@@ -222,4 +227,4 @@ def _fuzz_several(pytest_args: tuple[str, ...], nodeids: list[str]) -> None:
         for t in _get_hypothesis_tests_with_pytest(pytest_args).fuzz_targets
         if t.nodeid in nodeids
     ]
-    fuzz_several(*tests)
+    fuzz_several(tests)

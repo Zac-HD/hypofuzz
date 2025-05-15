@@ -499,10 +499,10 @@ class FuzzProcess:
         return bool(self.corpus.interesting_examples)
 
 
-def fuzz_several(*targets_: FuzzProcess, random_seed: Optional[int] = None) -> None:
+def fuzz_several(targets: list[FuzzProcess], random_seed: Optional[int] = None) -> None:
     """Take N fuzz targets and run them all."""
     random = Random(random_seed)
-    targets = SortedKeyList(targets_, lambda t: t.since_new_branch)
+    targets = SortedKeyList(targets, lambda t: t.since_new_branch)
 
     # Loop forever: at each timestep, we choose a target using an epsilon-greedy
     # strategy for simplicity (TODO: improve this later) and run it once.
