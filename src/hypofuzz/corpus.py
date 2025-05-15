@@ -136,8 +136,9 @@ class Corpus:
         self.branch_counts: Counter[Branch] = Counter()
 
         # And various internal attributes and metadata
-        self.interesting_examples: dict[InterestingOrigin, ConjectureResult] = {}
-        self._loaded_from_database: set[Choices] = set()
+        self.interesting_examples: dict[
+            InterestingOrigin, tuple[ConjectureResult, Optional[Observation]]
+        ] = {}
         self.__shrunk_to_nodes: set[NodesT] = set()
 
     def __repr__(self) -> str:
@@ -198,17 +199,27 @@ class Corpus:
             if origin not in self.interesting_examples or (
                 sort_key(result) < sort_key(self.interesting_examples[origin])
             ):
-                existing = self.interesting_examples.get(origin)
-                self.interesting_examples[origin] = result
+                previous = self.interesting_examples.get(origin)
+                self.interesting_examples[origin] = (result, observation)
                 # We save interesting examples to the unshrunk/secondary database
                 # so they can appear immediately without waiting for shrinking to
                 # finish. (also in case of a fatal hypofuzz error etc).
                 self._db.save_failure(self._database_key, result.choices, shrunk=False)
-                if existing is not None:
+                self._db.save_failure_observation(
+                    self._database_key, result.choices, observation
+                )
+                if previous is not None:
+                    (previous_node, previous_observation) = previous
                     # remove the now-redundant failure we had previously saved.
                     self._db.delete_failure(
-                        self._database_key, existing.choices, shrunk=False
+                        self._database_key, previous_node.choices, shrunk=False
                     )
+                    if previous_observation is not None:
+                        self._db.delete_failure_observation(
+                            self._database_key,
+                            previous_node.choices,
+                            previous_observation,
+                        )
                 return True
 
         # If we haven't just discovered new branches and our example is larger than the
