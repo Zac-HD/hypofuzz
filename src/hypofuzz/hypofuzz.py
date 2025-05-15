@@ -203,14 +203,30 @@ class FuzzProcess:
         self.db.save(b"hypofuzz-test-keys", self.database_key)
         # save the worker identity once at startup
         self.db.save_worker_identity(self.database_key, self.worker_identity)
-        # behaviours we've observed to date.  Replaying takes longer than restoring
-        # our data structures directly, but copes much better with changed behaviour.
-        self._replay_queue.extend(self.corpus.fetch())
+        # restore our saved minimal covering corpus, as well as any failures to
+        # replay.
+        self._replay_queue.extend(self.db.fetch_corpus(self.database_key))
         self._replay_queue.append((ChoiceTemplate(type="simplest", count=None),))
         for shrunk in [True, False]:
             self._failure_queue.extend(
                 self.db.fetch_failures(self.database_key, shrunk=shrunk)
             )
+
+    def on_event(self, event: DatabaseEvent) -> None:
+        # Some worker has found a new covering corpus element. Replay it in
+        # this worker.
+        if event.type == "save":
+            if event.key is DatabaseEventKey.CORPUS:
+                # the worker which saved this choice sequence might have been *us*,
+                # or we might have simply already have this choice sequence in our
+                # corpus.
+                if Choices(event.value) in self.corpus.covering_nodes:
+                    return
+                self._replay_queue.append(event.value)
+            # (should we also replay failures found by other workers? we may not
+            # want to stop early, since we could still find a different failure.
+            # but I guess the same logic would apply to the worker which found the
+            # failure..)
 
     def _start_phase(self, phase: Phase) -> None:
         if phase is self.phase:
@@ -506,6 +522,16 @@ def fuzz_several(targets: list[FuzzProcess], random_seed: Optional[int] = None) 
     #       rather than branches-per-input.
     for target in targets:
         target.startup()
+
+    def on_event(listener_event: ListenerEventT):
+        event = DatabaseEvent.from_event(listener_event)
+        if event is None:
+            return
+        for target in targets:
+            if target.database_key == event.database_key:
+                target.on_event(event)
+
+    settings().database.add_listener(on_event)
 
     resort = False
     for count in itertools.count():
