@@ -14,6 +14,7 @@ import coverage
 import hypothesis
 import pytest
 import sortedcontainers
+import watchdog
 from hypothesis.internal.escalation import belongs_to
 
 import hypofuzz
@@ -83,6 +84,7 @@ is_hypofuzz_file = belongs_to(hypofuzz)
 is_pytest_file = belongs_to(pytest)
 is__pytest_file = belongs_to(_pytest)
 is_sortedcontainers_file = belongs_to(sortedcontainers)
+is_watchdog_file = belongs_to(watchdog)
 # hypofuzz doesn't use attrs, but hypothesis does.
 # TODO migrate hypothesis off attrs and then drop this blacklist?
 is_attr_file = belongs_to(attr)
@@ -113,6 +115,7 @@ def should_trace(fname: str) -> bool:
         or is_pytest_file(fname)
         or is__pytest_file(fname)
         or is_sortedcontainers_file(fname)
+        or is_watchdog_file(fname)
         or is_attr_file(fname)
         or is_attrs_file(fname)
     )
