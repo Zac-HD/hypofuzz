@@ -135,10 +135,6 @@ class FuzzProcess:
             stuff=stuff,
             nodeid=nodeid,
             database_key=function_digest(wrapped_test.hypothesis.inner_test),
-            hypothesis_database=getattr(
-                wrapped_test, "_hypothesis_internal_use_settings", settings.default
-            ).database
-            or settings.default.database,
             wrapped_test=wrapped_test,
         )
 
@@ -150,7 +146,6 @@ class FuzzProcess:
         random_seed: int = 0,
         nodeid: Optional[str] = None,
         database_key: bytes,
-        hypothesis_database: ExampleDatabase,
         wrapped_test: Callable,
     ) -> None:
         """Construct a FuzzProcess from specific arguments."""
@@ -161,8 +156,7 @@ class FuzzProcess:
         self.nodeid = nodeid or test_fn.__qualname__
         self.database_key = database_key
         self.database_key_str = b64encode(self.database_key).decode()
-        self.db = HypofuzzDatabase(hypothesis_database)
-        self.hypothesis_db = hypothesis_database
+        self.db = get_db()
         self.state = HypofuzzStateForActualGivenExecution(  # type: ignore
             stuff,
             self._test_fn,
@@ -484,9 +478,7 @@ class FuzzProcess:
             nodeid=self.nodeid,
             elapsed_time=self.elapsed_time,
             timestamp=time.time(),
-            worker=worker_identity(
-                in_directory=Path(inspect.getfile(self._test_fn)).parent
-            ),
+            worker_uuid=self.worker_identity.uuid,
             status_counts=StatusCounts(self.status_counts),
             branches=len(self.corpus.branch_counts),
             since_new_branch=(

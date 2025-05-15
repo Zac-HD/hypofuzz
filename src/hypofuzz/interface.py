@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING, Any, Optional, get_type_hints
 import pytest
 from _pytest.nodes import Item, Node
 from _pytest.skipping import evaluate_condition
+from hypothesis import settings
 from hypothesis.stateful import get_state_machine_test
 from packaging import version
 
@@ -138,6 +139,22 @@ class _ItemsCollector:
             ):
                 self._skip_because("fixture", item.nodeid, {"fixtures": names})
                 continue
+
+            if (
+                test_database := getattr(
+                    item.obj, "_hypothesis_internal_use_settings", settings()
+                ).database
+            ) != settings().database:
+                self._skip_because(
+                    "differing_database",
+                    item.nodeid,
+                    {
+                        "default_database": settings().database,
+                        "test_database": test_database,
+                    },
+                )
+                continue
+
             # Wrap it up in a FuzzTarget and we're done!
             try:
                 if hasattr(item.obj, "_hypothesis_state_machine_class"):
