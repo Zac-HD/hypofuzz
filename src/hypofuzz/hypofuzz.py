@@ -13,6 +13,7 @@ import threading
 import time
 from base64 import b64encode
 from collections.abc import Callable, Generator
+from contextlib import AbstractContextManager, contextmanager
 from functools import lru_cache
 from pathlib import Path
 from random import Random
@@ -26,7 +27,7 @@ from hypothesis.core import (
     Stuff,
     process_arguments_to_given,
 )
-from hypothesis.database import ExampleDatabase
+from hypothesis.database import ListenerEventT
 from hypothesis.errors import StopTest
 from hypothesis.internal.conjecture.choice import ChoiceT, ChoiceTemplate
 from hypothesis.internal.conjecture.data import (
@@ -44,18 +45,21 @@ from sortedcontainers import SortedKeyList
 import hypofuzz
 from hypofuzz.corpus import (
     BlackBoxMutator,
+    Choices,
     Corpus,
     CrossOverMutator,
     get_shrinker,
 )
 from hypofuzz.coverage import CoverageCollector
 from hypofuzz.database import (
-    HypofuzzDatabase,
+    DatabaseEvent,
+    DatabaseEventKey,
     Observation,
     Phase,
     Report,
     StatusCounts,
     WorkerIdentity,
+    get_db,
 )
 from hypofuzz.provider import HypofuzzProvider
 
@@ -111,6 +115,21 @@ class FuzzProcess:
         - checkpointing tools so we can crash and restart without losing progess
 
     etc.  The fuzz controller will then operate on a collection of these objects.
+
+    Execution hierarchy:
+    * run_one
+      * Selects the next input to run, either from a queue like replay_queue or
+        by generating a new input with a mutator.
+      * Calls _run_test_on.
+    * _run_test_on
+      * Executes a ConjectureData, collecting observability and reports, in addition
+        to coverage (from _execute_once).
+      * Updates internal attributes like status_counts and elapsed_time, sends
+        reports, and calls corpus.add.
+      * Calls _execute_once.
+    * _execute_once
+      * Executes a ConjectureData, collecting only coverage information.
+      * Low-level; does not update internal attributes or add to the corpus.
     """
 
     @classmethod
@@ -170,7 +189,7 @@ class FuzzProcess:
         # The corpus is responsible for managing all seed state, including saving
         # novel seeds to the database.  This includes tracking how often each branch
         # has been hit, minimal covering examples, and so on.
-        self.corpus = Corpus(self.hypothesis_db, database_key)
+        self.corpus = Corpus(database_key)
         self._mutator_blackbox = BlackBoxMutator(self.corpus, self.random)
         self._mutator_crossover = CrossOverMutator(self.corpus, self.random)
 
@@ -276,15 +295,6 @@ class FuzzProcess:
         The "more" part is in cases where we discover new coverage, and shrink
         to the minimal covering example.
         """
-        # If we've been stable for a little while, try loading new examples from the
-        # database.  We do this unconditionally because even if this fuzzer doesn't
-        # know of other concurrent runs, there may be e.g. a test process sharing the
-        # database.  We do make it infrequent to manage the overhead though.
-        if self.ninputs % 1000 == 0 and self.since_new_branch > 1000:
-            self._replay_queue.extend(self.corpus.fetch())
-            # TODO: also fetch any new failures into self._failure_queue?
-            # TODO: use the listener for this rather than fetching everything
-
         if self._failure_queue:
             self._start_phase(Phase.REPLAY)
             choices = self._failure_queue.pop()
@@ -295,6 +305,9 @@ class FuzzProcess:
                 # or is specific to the worker's environment (e.g. only fails on
                 # python 3.11, while this worker is on python 3.12).
                 # In any case, remove it from the db.
+                #
+                # We don't know whether this failure is shrunk or not, so remove
+                # it from both.
                 self.db.delete_failure(self.database_key, choices, shrunk=True)
                 self.db.delete_failure(self.database_key, choices, shrunk=False)
         else:
@@ -346,33 +359,20 @@ class FuzzProcess:
         #     self._start_phase(Phase.DISTILL)
         #     self.corpus.distill(self._run_test_on, self.random)
 
-    def _run_test_on(
+    def _execute_once(
         self,
         data: ConjectureData,
         *,
-        collector: Optional[contextlib.AbstractContextManager] = None,
+        collector: Optional[AbstractContextManager] = None,
     ) -> Union[ConjectureResult, _Overrun]:
-        """Run the test_fn on a given data, in a way a Shrinker can handle.
-
-        In normal operation, it's called via run_one (above), but we might also
-        delegate to the shrinker to find minimal covering examples.
-        """
-        start = time.perf_counter()
-        self.ninputs += 1
         collector = collector or CoverageCollector()
-        reports: list[object] = []
         try:
-            with (
-                with_reporter(reports.append),
-                self._maybe_observe_for_tyche() as observation,
-                # Note that the data generation and test execution happen in the same
-                # coverage context.  We may later split this, or tag each separately.
-                collector,
-            ):
+            # Note that the data generation and test execution happen in the same
+            # coverage context.  We may later split this, or tag each separately.
+            with collector:
                 self.state._execute_once_for_engine(data)
         except StopTest:
             pass
-        data.extra_information.reports = "\n".join(map(str, reports))  # type: ignore
 
         # In addition to coverage branches, use psudeo-coverage information provided via
         # the `hypothesis.event()` function - exploiting user-defined partitions
@@ -386,29 +386,71 @@ class FuzzProcess:
             if not k.startswith(("invalid because", "Retried draw from "))
         )
 
+    def _run_test_on(
+        self,
+        data: ConjectureData,
+        *,
+        collector: Optional[AbstractContextManager] = None,
+    ) -> Union[ConjectureResult, _Overrun]:
+        """Run the test_fn on a given data, in a way a Shrinker can handle.
+
+        In normal operation, it's called via run_one (above), but we might also
+        delegate to the shrinker to find minimal covering examples.
+        """
+        start = time.perf_counter()
+        self.ninputs += 1
+        reports: list[object] = []
+        with (
+            with_reporter(reports.append),
+            self._maybe_observe_for_tyche() as observation,
+        ):
+            self._execute_once(data, collector=collector)
+
+        data.extra_information.reports = "\n".join(map(str, reports))  # type: ignore
         data.freeze()
+        result = data.as_result()
+        assert observation.value is not None
+
         # Update the corpus and report any changes immediately for new coverage.  If no
         # new coverage, occasionally send an update anyway so we don't look stalled.
         self.status_counts[data.status] += 1
         # status_counts and elapsed_time have to be added to at the same time, without
         # saving a report between them, or we might violate monotonicity invariants.
         self.elapsed_time += time.perf_counter() - start
-        assert observation.value is not None
-        if self.corpus.add(data.as_result(), observation=observation.value):
-            # TODO this is wrong for Status.INTERESTING examples (that are smaller
-            # than the previous example for this interesting origin), which are
-            # successfully added to the corpus but don't represent a new branch.
-            self.since_new_branch = 0
+
+        # for non-failing examples which would be added to the corpus (because they
+        # cover a new branch or cover an existing branch in a more minimal fashion),
+        # we re-execute the example and only add to the corpus if the coverage is stable.
+        if result.status is not Status.INTERESTING and self.corpus.should_add(result):
+            second_data = ConjectureData.for_choices(result.choices)
+            self._execute_once(second_data)
+            second_data.freeze()
+            if (
+                second_data.extra_information.branches
+                == result.extra_information.branches
+            ):
+                # check if we added a new branch
+                new_branch = not result.extra_information.branches.issubset(
+                    self.corpus.branch_counts
+                )
+                self.corpus.add(result, observation=observation.value)
+                if new_branch:
+                    self.since_new_branch = 0
+                    self._save_report(self._report)
+
+        elif result.status is Status.INTERESTING:
+            self.corpus.add(result, observation=observation.value)
         else:
             self.since_new_branch += 1
-        if self.since_new_branch == 0 or self._should_save_timed_report():
+
+        if self._should_save_timed_report():
             self._save_report(self._report)
 
         if self.elapsed_time > self.stop_shrinking_at:
             raise HitShrinkTimeoutError
 
         # The shrinker relies on returning the data object to be inspected.
-        return data.as_result()
+        return result
 
     def _should_save_timed_report(self) -> bool:
         # linear interpolation from 1 report/s at the start to 1 report/60s after
@@ -419,7 +461,7 @@ class FuzzProcess:
         # marker for the dashboard.
         return self.elapsed_time > self._last_saved_report_at + increment
 
-    @contextlib.contextmanager
+    @contextmanager
     def observe(self) -> Generator[Value[Optional[Observation]], None, None]:
         # we want to yield back to the caller without actually having gotten the
         # observation in the callback yet, but still be able to set its value from
@@ -447,7 +489,7 @@ class FuzzProcess:
         finally:
             TESTCASE_CALLBACKS.remove(callback)
 
-    @contextlib.contextmanager
+    @contextmanager
     def _maybe_observe_for_tyche(
         self,
     ) -> Generator[Value[Optional[Observation]], None, None]:

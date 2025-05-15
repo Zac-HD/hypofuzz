@@ -54,7 +54,7 @@ def corpus_args(statuses=st.sampled_from(Status)):
 
 @given(corpus_args(statuses=st.just(Status.VALID)))
 def test_corpus_coverage_tracking(args):
-    corpus = Corpus(hypothesis_database=InMemoryExampleDatabase(), database_key=b"")
+    corpus = Corpus(database_key=b"")
     total_coverage = set()
     for res in args:
         corpus.add(res)
@@ -68,7 +68,7 @@ def test_corpus_coverage_tracking(args):
 def test_corpus_covering_nodes(args):
     # the corpus tracks the *minimal* covering example for each branch. so if we
     # ever try a smaller one, the corpus should update.
-    corpus = Corpus(hypothesis_database=InMemoryExampleDatabase(), database_key=b"")
+    corpus = Corpus(database_key=b"")
     covering_nodes: dict[Branch, NodesT] = {}
 
     for res in args:
