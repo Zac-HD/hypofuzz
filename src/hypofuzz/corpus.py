@@ -5,7 +5,7 @@ import enum
 from collections import Counter
 from collections.abc import Callable, Iterator
 from random import Random
-from typing import TYPE_CHECKING, Literal, Optional, Union
+from typing import TYPE_CHECKING, Optional, Union
 
 from hypothesis import settings
 from hypothesis.internal.conjecture.choice import (
@@ -168,35 +168,11 @@ class Corpus:
         }
         assert covering_choices.issubset(self._saved_to_database)
 
-    def would_update_corpus(self, result: Union[ConjectureResult, _Overrun]) -> bool:
-        if result.status < Status.VALID:
-            return False
-
-        assert not isinstance(result, _Overrun)
-        # We update if this example either discovered new branches, or is smaller
-        # than the smallest covering example for any of its covered branches
-        # (meaning it will become the new smallest covering example for that branch).
-        #
-        # Otherwise, we skip the expensive calculation.
-
-        branches = result.extra_information.branches  # type: ignore
-        return (not branches.issubset(self.branch_counts)) or (
-            self.results
-            and sort_key(result.nodes)
-            < sort_key(self.results.keys()[-1])  # type: ignore
-            and any(
-                sort_key(result.nodes) < sort_key(known_nodes)
-                for branch, known_nodes in self.covering_nodes.items()
-                if branch in branches
-            )
-        )
-
     def add(
         self,
         result: Union[ConjectureResult, _Overrun],
         *,
         observation: Optional[Observation] = None,
-        stability: Literal["unknown", "stable", "unstable"] = "unknown",
     ) -> bool:
         """Update the corpus with the result of running a test.
 
@@ -239,7 +215,18 @@ class Corpus:
                         )
                 return True
 
-        if self.would_update_corpus(result) and stability == "stable":
+        # If we haven't just discovered new branches and our example is larger than the
+        # current largest minimal example, we can skip the expensive calculation.
+        if (not branches.issubset(self.branch_counts)) or (
+            self.results
+            and sort_key(result.nodes)
+            < sort_key(self.results.keys()[-1])  # type: ignore
+            and any(
+                sort_key(result.nodes) < sort_key(known_nodes)
+                for branch, known_nodes in self.covering_nodes.items()
+                if branch in branches
+            )
+        ):
             # We do this the stupid-but-obviously-correct way: add the new choices to
             # our tracked corpus, and then run a distillation step.
             self.results[result.nodes] = result
@@ -289,22 +276,16 @@ class Corpus:
         # have a different distribution with a new corpus.
         if branches.issubset(self.branch_counts):
             self.branch_counts.update(branches)
-        elif stability == "stable" or result.status is Status.INTERESTING:
-            # we should only be adding a new branch if the input is stable (or
-            # possibly failing)
-            assert self.would_update_corpus(result)
+        else:
             # Reset our seen branch counts.  This is essential because changing our
             # corpus alters the probability of seeing each branch in future.
             # For details see AFL-fast, esp. the markov-chain trick.
             self.branch_counts = Counter(branches.union(self.branch_counts))
 
             # Save this choices as our minimal-known covering example for each new branch.
-            # (TODO: is this redundant with the above code of adding to the corpus
-            # and running a distill step?)
             if result.nodes not in self.results:
                 self.results[result.nodes] = result
             self._db.save_corpus(self._database_key, result.choices)
-            self._saved_to_database.add(Choices(result.choices))
             for branch in branches - set(self.covering_nodes):
                 self.covering_nodes[branch] = result.nodes
 

@@ -59,7 +59,7 @@ def test_corpus_coverage_tracking(args):
     )
     total_coverage = set()
     for res in args:
-        corpus.add(res, stability="stable")
+        corpus.add(res)
         note(repr(corpus))
         corpus._check_invariants()
         total_coverage.update(res.extra_information.branches)
@@ -76,7 +76,7 @@ def test_corpus_covering_nodes(args):
     covering_nodes: dict[Branch, NodesT] = {}
 
     for res in args:
-        corpus.add(res, stability="stable")
+        corpus.add(res)
         note(repr(corpus))
         corpus._check_invariants()
         for branch in res.extra_information.branches:

@@ -13,11 +13,11 @@ import threading
 import time
 from base64 import b64encode
 from collections.abc import Callable, Generator
-from contextlib import AbstractContextManager, contextmanager
+from contextlib import contextmanager
 from functools import lru_cache
 from pathlib import Path
 from random import Random
-from typing import Any, Generic, Literal, Optional, TypeVar, Union
+from typing import Any, Generic, Optional, TypeVar, Union
 from uuid import uuid4
 
 import hypothesis
@@ -115,21 +115,6 @@ class FuzzProcess:
         - checkpointing tools so we can crash and restart without losing progess
 
     etc.  The fuzz controller will then operate on a collection of these objects.
-
-    Execution hierarchy:
-    * run_one
-      * Selects the next input to run, either from a queue like replay_queue or
-        by generating a new input with a mutator.
-      * Calls _run_test_on.
-    * _run_test_on
-      * Executes a ConjectureData, collecting observability and reports, in addition
-        to coverage (from _execute_once).
-      * Updates internal attributes like status_counts and elapsed_time, sends
-        reports, and calls corpus.add.
-      * Calls _execute_once.
-    * _execute_once
-      * Executes a ConjectureData, collecting only coverage information.
-      * Low-level; does not update internal attributes or add to the corpus.
     """
 
     @classmethod
@@ -362,20 +347,33 @@ class FuzzProcess:
         #     self._start_phase(Phase.DISTILL)
         #     self.corpus.distill(self._run_test_on, self.random)
 
-    def _execute_once(
+    def _run_test_on(
         self,
         data: ConjectureData,
         *,
-        collector: Optional[AbstractContextManager] = None,
-    ) -> None:
+        collector: Optional[contextlib.AbstractContextManager] = None,
+    ) -> Union[ConjectureResult, _Overrun]:
+        """Run the test_fn on a given data, in a way a Shrinker can handle.
+
+        In normal operation, it's called via run_one (above), but we might also
+        delegate to the shrinker to find minimal covering examples.
+        """
+        start = time.perf_counter()
+        self.ninputs += 1
         collector = collector or CoverageCollector()
+        reports: list[object] = []
         try:
-            # Note that the data generation and test execution happen in the same
-            # coverage context.  We may later split this, or tag each separately.
-            with collector:
+            with (
+                with_reporter(reports.append),
+                self._maybe_observe_for_tyche() as observation,
+                # Note that the data generation and test execution happen in the same
+                # coverage context.  We may later split this, or tag each separately.
+                collector,
+            ):
                 self.state._execute_once_for_engine(data)
         except StopTest:
             pass
+        data.extra_information.reports = "\n".join(map(str, reports))  # type: ignore
 
         # In addition to coverage branches, use psudeo-coverage information provided via
         # the `hypothesis.event()` function - exploiting user-defined partitions
@@ -389,82 +387,29 @@ class FuzzProcess:
             if not k.startswith(("invalid because", "Retried draw from "))
         )
 
-    def _run_test_on(
-        self,
-        data: ConjectureData,
-        *,
-        collector: Optional[AbstractContextManager] = None,
-    ) -> Union[ConjectureResult, _Overrun]:
-        """Run the test_fn on a given data, in a way a Shrinker can handle.
-
-        In normal operation, it's called via run_one (above), but we might also
-        delegate to the shrinker to find minimal covering examples.
-        """
-        start = time.perf_counter()
-        self.ninputs += 1
-        reports: list[object] = []
-        with (
-            with_reporter(reports.append),
-            self._maybe_observe_for_tyche() as observation,
-        ):
-            self._execute_once(data, collector=collector)
-
-        data.extra_information.reports = "\n".join(map(str, reports))  # type: ignore
         data.freeze()
-        result = data.as_result()
-        assert observation.value is not None
-
         # Update the corpus and report any changes immediately for new coverage.  If no
         # new coverage, occasionally send an update anyway so we don't look stalled.
         self.status_counts[data.status] += 1
         # status_counts and elapsed_time have to be added to at the same time, without
         # saving a report between them, or we might violate monotonicity invariants.
         self.elapsed_time += time.perf_counter() - start
-
-        # for non-failing examples which would be added to the corpus (because they
-        # cover a new branch or cover an existing branch in a more minimal fashion),
-        # we re-execute the example and only add to the corpus if the coverage is stable.
-        stability: Literal["unknown", "stable", "unstable"] = "unknown"
-        save_report = False
-        if result.status is Status.INTERESTING:
-            save_report = True
-        elif self.corpus.would_update_corpus(result):
-            assert not isinstance(result, _Overrun)
-            # check the stability of this input
-            second_data = ConjectureData.for_choices(result.choices)
-            self._execute_once(second_data, collector=collector)
-            second_data.freeze()
-            result_branches = result.extra_information.branches  # type: ignore
-            # TODO this avoids adding any new branches if there's any instability
-            # at all. Instead we should add only the subset of branches which are
-            # stable?
-            stability = (
-                "stable"
-                if (
-                    second_data.status is not Status.OVERRUN
-                    and second_data.extra_information.branches  # type: ignore
-                    == result_branches
-                )
-                else "unstable"
-            )
+        assert observation.value is not None
+        if self.corpus.add(data.as_result(), observation=observation.value):
+            # TODO this is wrong for Status.INTERESTING examples (that are smaller
+            # than the previous example for this interesting origin), which are
+            # successfully added to the corpus but don't represent a new branch.
+            self.since_new_branch = 0
         else:
             self.since_new_branch += 1
-
-        corpus_branches = set(self.corpus.branch_counts)
-        self.corpus.add(result, observation=observation.value, stability=stability)
-        # check if we just added a new branch
-        if corpus_branches != set(self.corpus.branch_counts):
-            self.since_new_branch = 0
-            save_report = True
-
-        if save_report or self._should_save_timed_report():
+        if self.since_new_branch == 0 or self._should_save_timed_report():
             self._save_report(self._report)
 
         if self.elapsed_time > self.stop_shrinking_at:
             raise HitShrinkTimeoutError
 
         # The shrinker relies on returning the data object to be inspected.
-        return result
+        return data.as_result()
 
     def _should_save_timed_report(self) -> bool:
         # linear interpolation from 1 report/s at the start to 1 report/60s after
