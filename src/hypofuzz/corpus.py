@@ -5,7 +5,7 @@ import enum
 from collections import Counter
 from collections.abc import Callable, Iterator
 from random import Random
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Literal, Optional, Union
 
 from hypothesis import settings
 from hypothesis.internal.conjecture.choice import (
@@ -24,7 +24,7 @@ from hypothesis.internal.conjecture.shrinker import Shrinker, sort_key as _sort_
 from hypothesis.internal.escalation import InterestingOrigin
 from sortedcontainers import SortedDict
 
-from hypofuzz.database import ChoicesT, Observation, get_db
+from hypofuzz.database import ChoicesT, HypofuzzDatabase, Observation
 
 if TYPE_CHECKING:
     from typing import TypeAlias
@@ -113,11 +113,11 @@ class Corpus:
     The class tracks the minimal valid example which covers each known branch.
     """
 
-    def __init__(self, database_key: bytes) -> None:
+    def __init__(self, database: HypofuzzDatabase, database_key: bytes) -> None:
         # The database and our database key is the stable identifiers for a corpus.
         # Everything else is reconstructed each run, and tracked only in memory.
         self._database_key = database_key
-        self._db = get_db()
+        self._db = database
 
         # Our sorted corpus of covering examples, ready to be sampled from.
         # TODO: One suggestion to reduce effective corpus size/redundancy is to skip
@@ -166,12 +166,13 @@ class Corpus:
             Choices(tuple(node.value for node in nodes))
             for nodes in self.covering_nodes.values()
         }
-        assert self._saved_to_database.issuperset(covering_choices)
+        assert covering_choices.issubset(self._saved_to_database)
 
-    def should_add(self, result: Union[ConjectureResult, _Overrun]) -> bool:
+    def would_update_corpus(self, result: Union[ConjectureResult, _Overrun]) -> bool:
         if result.status < Status.VALID:
             return False
 
+        assert not isinstance(result, _Overrun)
         # We update if this example either discovered new branches, or is smaller
         # than the smallest covering example for any of its covered branches
         # (meaning it will become the new smallest covering example for that branch).
@@ -195,6 +196,7 @@ class Corpus:
         result: Union[ConjectureResult, _Overrun],
         *,
         observation: Optional[Observation] = None,
+        stability: Literal["unknown", "stable", "unstable"] = "unknown",
     ) -> bool:
         """Update the corpus with the result of running a test.
 
@@ -219,6 +221,7 @@ class Corpus:
                 # so they can appear immediately without waiting for shrinking to
                 # finish. (also in case of a fatal hypofuzz error etc).
                 self._db.save_failure(self._database_key, result.choices, shrunk=False)
+                assert observation is not None
                 self._db.save_failure_observation(
                     self._database_key, result.choices, observation
                 )
@@ -236,7 +239,7 @@ class Corpus:
                         )
                 return True
 
-        if self.should_add(result):
+        if self.would_update_corpus(result) and stability == "stable":
             # We do this the stupid-but-obviously-correct way: add the new choices to
             # our tracked corpus, and then run a distillation step.
             self.results[result.nodes] = result
@@ -286,16 +289,22 @@ class Corpus:
         # have a different distribution with a new corpus.
         if branches.issubset(self.branch_counts):
             self.branch_counts.update(branches)
-        else:
+        elif stability == "stable" or result.status is Status.INTERESTING:
+            # we should only be adding a new branch if the input is stable (or
+            # possibly failing)
+            assert self.would_update_corpus(result)
             # Reset our seen branch counts.  This is essential because changing our
             # corpus alters the probability of seeing each branch in future.
             # For details see AFL-fast, esp. the markov-chain trick.
             self.branch_counts = Counter(branches.union(self.branch_counts))
 
             # Save this choices as our minimal-known covering example for each new branch.
+            # (TODO: is this redundant with the above code of adding to the corpus
+            # and running a distill step?)
             if result.nodes not in self.results:
                 self.results[result.nodes] = result
             self._db.save_corpus(self._database_key, result.choices)
+            self._saved_to_database.add(Choices(result.choices))
             for branch in branches - set(self.covering_nodes):
                 self.covering_nodes[branch] = result.nodes
 

@@ -132,6 +132,9 @@ class DatabaseEvent:
 
     @staticmethod
     def from_event(event: ListenerEventT, /) -> Optional["DatabaseEvent"]:
+        # placate mypy
+        key: Any
+        value: Any
         (event_type, (key, value)) = event
         if b"." not in key:
             return None

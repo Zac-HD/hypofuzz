@@ -17,7 +17,7 @@ from contextlib import AbstractContextManager, contextmanager
 from functools import lru_cache
 from pathlib import Path
 from random import Random
-from typing import Any, Generic, Optional, TypeVar, Union
+from typing import Any, Generic, Literal, Optional, TypeVar, Union
 from uuid import uuid4
 
 import hypothesis
@@ -54,12 +54,12 @@ from hypofuzz.coverage import CoverageCollector
 from hypofuzz.database import (
     DatabaseEvent,
     DatabaseEventKey,
+    HypofuzzDatabase,
     Observation,
     Phase,
     Report,
     StatusCounts,
     WorkerIdentity,
-    get_db,
 )
 from hypofuzz.provider import HypofuzzProvider
 
@@ -137,6 +137,7 @@ class FuzzProcess:
         cls,
         wrapped_test: Any,
         *,
+        database: HypofuzzDatabase,
         nodeid: Optional[str] = None,
         extra_kw: Optional[dict[str, object]] = None,
     ) -> "FuzzProcess":
@@ -153,6 +154,7 @@ class FuzzProcess:
             test_fn=wrapped_test.hypothesis.inner_test,
             stuff=stuff,
             nodeid=nodeid,
+            database=database,
             database_key=function_digest(wrapped_test.hypothesis.inner_test),
             wrapped_test=wrapped_test,
         )
@@ -164,6 +166,7 @@ class FuzzProcess:
         *,
         random_seed: int = 0,
         nodeid: Optional[str] = None,
+        database: HypofuzzDatabase,
         database_key: bytes,
         wrapped_test: Callable,
     ) -> None:
@@ -175,7 +178,7 @@ class FuzzProcess:
         self.nodeid = nodeid or test_fn.__qualname__
         self.database_key = database_key
         self.database_key_str = b64encode(self.database_key).decode()
-        self.db = get_db()
+        self.db = database
         self.state = HypofuzzStateForActualGivenExecution(  # type: ignore
             stuff,
             self._test_fn,
@@ -189,7 +192,7 @@ class FuzzProcess:
         # The corpus is responsible for managing all seed state, including saving
         # novel seeds to the database.  This includes tracking how often each branch
         # has been hit, minimal covering examples, and so on.
-        self.corpus = Corpus(database_key)
+        self.corpus = Corpus(database, database_key)
         self._mutator_blackbox = BlackBoxMutator(self.corpus, self.random)
         self._mutator_crossover = CrossOverMutator(self.corpus, self.random)
 
@@ -364,7 +367,7 @@ class FuzzProcess:
         data: ConjectureData,
         *,
         collector: Optional[AbstractContextManager] = None,
-    ) -> Union[ConjectureResult, _Overrun]:
+    ) -> None:
         collector = collector or CoverageCollector()
         try:
             # Note that the data generation and test execution happen in the same
@@ -421,29 +424,40 @@ class FuzzProcess:
         # for non-failing examples which would be added to the corpus (because they
         # cover a new branch or cover an existing branch in a more minimal fashion),
         # we re-execute the example and only add to the corpus if the coverage is stable.
-        if result.status is not Status.INTERESTING and self.corpus.should_add(result):
+        stability: Literal["unknown", "stable", "unstable"] = "unknown"
+        save_report = False
+        if result.status is Status.INTERESTING:
+            save_report = True
+        elif self.corpus.would_update_corpus(result):
+            assert not isinstance(result, _Overrun)
+            # check the stability of this input
             second_data = ConjectureData.for_choices(result.choices)
-            self._execute_once(second_data)
+            self._execute_once(second_data, collector=collector)
             second_data.freeze()
-            if (
-                second_data.extra_information.branches
-                == result.extra_information.branches
-            ):
-                # check if we added a new branch
-                new_branch = not result.extra_information.branches.issubset(
-                    self.corpus.branch_counts
+            result_branches = result.extra_information.branches  # type: ignore
+            # TODO this avoids adding any new branches if there's any instability
+            # at all. Instead we should add only the subset of branches which are
+            # stable?
+            stability = (
+                "stable"
+                if (
+                    second_data.status is not Status.OVERRUN
+                    and second_data.extra_information.branches  # type: ignore
+                    == result_branches
                 )
-                self.corpus.add(result, observation=observation.value)
-                if new_branch:
-                    self.since_new_branch = 0
-                    self._save_report(self._report)
-
-        elif result.status is Status.INTERESTING:
-            self.corpus.add(result, observation=observation.value)
+                else "unstable"
+            )
         else:
             self.since_new_branch += 1
 
-        if self._should_save_timed_report():
+        corpus_branches = set(self.corpus.branch_counts)
+        self.corpus.add(result, observation=observation.value, stability=stability)
+        # check if we just added a new branch
+        if corpus_branches != set(self.corpus.branch_counts):
+            self.since_new_branch = 0
+            save_report = True
+
+        if save_report or self._should_save_timed_report():
             self._save_report(self._report)
 
         if self.elapsed_time > self.stop_shrinking_at:
@@ -565,7 +579,7 @@ def fuzz_several(targets: list[FuzzProcess], random_seed: Optional[int] = None) 
     for target in targets:
         target.startup()
 
-    def on_event(listener_event: ListenerEventT):
+    def on_event(listener_event: ListenerEventT) -> None:
         event = DatabaseEvent.from_event(listener_event)
         if event is None:
             return

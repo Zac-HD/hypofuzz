@@ -16,6 +16,8 @@ from hypothesis import settings
 from hypothesis.stateful import get_state_machine_test
 from packaging import version
 
+from hypofuzz.database import get_db
+
 if TYPE_CHECKING:
     # We have to defer imports to within functions here, because this module
     # is a Hypothesis entry point and is thus imported earlier than the others.
@@ -185,7 +187,7 @@ class _ItemsCollector:
                     )
                     target = item.obj
                 fuzz = FuzzProcess.from_hypothesis_test(
-                    target, nodeid=item.nodeid, extra_kw=extra_kw
+                    target, database=get_db(), nodeid=item.nodeid, extra_kw=extra_kw
                 )
             except Exception as e:
                 self._skip_because(
