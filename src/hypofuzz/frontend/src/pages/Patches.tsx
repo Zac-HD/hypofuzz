@@ -25,8 +25,8 @@ export function PatchesPage() {
 
   if (loading) {
     return (
-      <div className="patches-page">
-        <h1>Patches</h1>
+      <div className="card">
+        <div className="card__header">Patches</div>
         <p>Loading patches...</p>
       </div>
     )
@@ -34,16 +34,16 @@ export function PatchesPage() {
 
   if (Object.values(patches).length == 0) {
     return (
-      <div className="patches-page">
-        <h1>Patches</h1>
+      <div className="card">
+        <div className="card__header">Patches</div>
         <p>No patches yet</p>
       </div>
     )
   }
 
   return (
-    <div className="patches-page">
-      <h1>Patches</h1>
+    <div className="card">
+      <div className="card__header">Patches</div>
       <div className="patches-list">
         {Object.entries(patches).map(([name, content]) => (
           <div key={name} className="patch">

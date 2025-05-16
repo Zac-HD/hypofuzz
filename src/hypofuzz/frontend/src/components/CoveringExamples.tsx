@@ -16,9 +16,11 @@ interface Props {
 export function CoveringExamples({ observations }: Props) {
   const [isOpen, setIsOpen] = useState(false)
 
+  // the number of useEffect has to be constant in React (afaik), so this has to come before
+  // our return null check.
   useEffect(() => {
     hljs.highlightAll()
-  }, [observations])
+  }, [isOpen])
 
   if (observations.length === 0) {
     return null
