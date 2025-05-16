@@ -13,6 +13,7 @@ import threading
 import time
 from base64 import b64encode
 from collections.abc import Callable, Generator
+from contextlib import contextmanager
 from functools import lru_cache
 from pathlib import Path
 from random import Random
@@ -26,7 +27,7 @@ from hypothesis.core import (
     Stuff,
     process_arguments_to_given,
 )
-from hypothesis.database import ExampleDatabase
+from hypothesis.database import ListenerEventT
 from hypothesis.errors import StopTest
 from hypothesis.internal.conjecture.choice import ChoiceT, ChoiceTemplate
 from hypothesis.internal.conjecture.data import (
@@ -44,12 +45,15 @@ from sortedcontainers import SortedKeyList
 import hypofuzz
 from hypofuzz.corpus import (
     BlackBoxMutator,
+    Choices,
     Corpus,
     CrossOverMutator,
     get_shrinker,
 )
 from hypofuzz.coverage import CoverageCollector
 from hypofuzz.database import (
+    DatabaseEvent,
+    DatabaseEventKey,
     HypofuzzDatabase,
     Observation,
     Phase,
@@ -118,6 +122,7 @@ class FuzzProcess:
         cls,
         wrapped_test: Any,
         *,
+        database: HypofuzzDatabase,
         nodeid: Optional[str] = None,
         extra_kw: Optional[dict[str, object]] = None,
     ) -> "FuzzProcess":
@@ -134,11 +139,8 @@ class FuzzProcess:
             test_fn=wrapped_test.hypothesis.inner_test,
             stuff=stuff,
             nodeid=nodeid,
+            database=database,
             database_key=function_digest(wrapped_test.hypothesis.inner_test),
-            hypothesis_database=getattr(
-                wrapped_test, "_hypothesis_internal_use_settings", settings.default
-            ).database
-            or settings.default.database,
             wrapped_test=wrapped_test,
         )
 
@@ -149,8 +151,8 @@ class FuzzProcess:
         *,
         random_seed: int = 0,
         nodeid: Optional[str] = None,
+        database: HypofuzzDatabase,
         database_key: bytes,
-        hypothesis_database: ExampleDatabase,
         wrapped_test: Callable,
     ) -> None:
         """Construct a FuzzProcess from specific arguments."""
@@ -161,8 +163,7 @@ class FuzzProcess:
         self.nodeid = nodeid or test_fn.__qualname__
         self.database_key = database_key
         self.database_key_str = b64encode(self.database_key).decode()
-        self.db = HypofuzzDatabase(hypothesis_database)
-        self.hypothesis_db = hypothesis_database
+        self.db = database
         self.state = HypofuzzStateForActualGivenExecution(  # type: ignore
             stuff,
             self._test_fn,
@@ -176,7 +177,7 @@ class FuzzProcess:
         # The corpus is responsible for managing all seed state, including saving
         # novel seeds to the database.  This includes tracking how often each branch
         # has been hit, minimal covering examples, and so on.
-        self.corpus = Corpus(self.hypothesis_db, database_key)
+        self.corpus = Corpus(database, database_key)
         self._mutator_blackbox = BlackBoxMutator(self.corpus, self.random)
         self._mutator_crossover = CrossOverMutator(self.corpus, self.random)
 
@@ -199,20 +200,40 @@ class FuzzProcess:
         # Track observability data
         self._last_observed = -math.inf
 
+        self.worker_identity = worker_identity(
+            in_directory=Path(inspect.getfile(self._test_fn)).parent
+        )
+
     def startup(self) -> None:
         """Set up initial state and prepare to replay the saved behaviour."""
         # Report that we've started this fuzz target
         self.db.save(b"hypofuzz-test-keys", self.database_key)
-        # Next, restore progress made in previous runs by loading our saved examples.
-        # This is meant to be the minimal set of inputs that exhibits all distinct
-        # behaviours we've observed to date.  Replaying takes longer than restoring
-        # our data structures directly, but copes much better with changed behaviour.
-        self._replay_queue.extend(self.corpus.fetch())
+        # save the worker identity once at startup
+        self.db.save_worker_identity(self.database_key, self.worker_identity)
+        # restore our saved minimal covering corpus, as well as any failures to
+        # replay.
+        self._replay_queue.extend(self.db.fetch_corpus(self.database_key))
         self._replay_queue.append((ChoiceTemplate(type="simplest", count=None),))
         for shrunk in [True, False]:
             self._failure_queue.extend(
                 self.db.fetch_failures(self.database_key, shrunk=shrunk)
             )
+
+    def on_event(self, event: DatabaseEvent) -> None:
+        # Some worker has found a new covering corpus element. Replay it in
+        # this worker.
+        if event.type == "save":
+            if event.key is DatabaseEventKey.CORPUS:
+                # the worker which saved this choice sequence might have been *us*,
+                # or we might have simply already have this choice sequence in our
+                # corpus.
+                if Choices(event.value) in self.corpus.covering_nodes:
+                    return
+                self._replay_queue.append(event.value)
+            # (should we also replay failures found by other workers? we may not
+            # want to stop early, since we could still find a different failure.
+            # but I guess the same logic would apply to the worker which found the
+            # failure..)
 
     def _start_phase(self, phase: Phase) -> None:
         if phase is self.phase:
@@ -262,15 +283,6 @@ class FuzzProcess:
         The "more" part is in cases where we discover new coverage, and shrink
         to the minimal covering example.
         """
-        # If we've been stable for a little while, try loading new examples from the
-        # database.  We do this unconditionally because even if this fuzzer doesn't
-        # know of other concurrent runs, there may be e.g. a test process sharing the
-        # database.  We do make it infrequent to manage the overhead though.
-        if self.ninputs % 1000 == 0 and self.since_new_branch > 1000:
-            self._replay_queue.extend(self.corpus.fetch())
-            # TODO: also fetch any new failures into self._failure_queue?
-            # TODO: use the listener for this rather than fetching everything
-
         if self._failure_queue:
             self._start_phase(Phase.REPLAY)
             choices = self._failure_queue.pop()
@@ -281,6 +293,9 @@ class FuzzProcess:
                 # or is specific to the worker's environment (e.g. only fails on
                 # python 3.11, while this worker is on python 3.12).
                 # In any case, remove it from the db.
+                #
+                # We don't know whether this failure is shrunk or not, so remove
+                # it from both.
                 self.db.delete_failure(self.database_key, choices, shrunk=True)
                 self.db.delete_failure(self.database_key, choices, shrunk=False)
         else:
@@ -405,7 +420,7 @@ class FuzzProcess:
         # marker for the dashboard.
         return self.elapsed_time > self._last_saved_report_at + increment
 
-    @contextlib.contextmanager
+    @contextmanager
     def observe(self) -> Generator[Value[Optional[Observation]], None, None]:
         # we want to yield back to the caller without actually having gotten the
         # observation in the callback yet, but still be able to set its value from
@@ -433,7 +448,7 @@ class FuzzProcess:
         finally:
             TESTCASE_CALLBACKS.remove(callback)
 
-    @contextlib.contextmanager
+    @contextmanager
     def _maybe_observe_for_tyche(
         self,
     ) -> Generator[Value[Optional[Observation]], None, None]:
@@ -480,9 +495,7 @@ class FuzzProcess:
             nodeid=self.nodeid,
             elapsed_time=self.elapsed_time,
             timestamp=time.time(),
-            worker=worker_identity(
-                in_directory=Path(inspect.getfile(self._test_fn)).parent
-            ),
+            worker_uuid=self.worker_identity.uuid,
             status_counts=StatusCounts(self.status_counts),
             branches=len(self.corpus.branch_counts),
             since_new_branch=(
@@ -499,10 +512,10 @@ class FuzzProcess:
         return bool(self.corpus.interesting_examples)
 
 
-def fuzz_several(*targets_: FuzzProcess, random_seed: Optional[int] = None) -> None:
+def fuzz_several(targets: list[FuzzProcess], random_seed: Optional[int] = None) -> None:
     """Take N fuzz targets and run them all."""
     random = Random(random_seed)
-    targets = SortedKeyList(targets_, lambda t: t.since_new_branch)
+    targets = SortedKeyList(targets, lambda t: t.since_new_branch)
 
     # Loop forever: at each timestep, we choose a target using an epsilon-greedy
     # strategy for simplicity (TODO: improve this later) and run it once.
@@ -510,6 +523,16 @@ def fuzz_several(*targets_: FuzzProcess, random_seed: Optional[int] = None) -> N
     #       rather than branches-per-input.
     for target in targets:
         target.startup()
+
+    def on_event(listener_event: ListenerEventT) -> None:
+        event = DatabaseEvent.from_event(listener_event)
+        if event is None:
+            return
+        for target in targets:
+            if target.database_key == event.database_key:
+                target.on_event(event)
+
+    settings().database.add_listener(on_event)
 
     resort = False
     for count in itertools.count():

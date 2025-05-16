@@ -12,8 +12,11 @@ from typing import TYPE_CHECKING, Any, Optional, get_type_hints
 import pytest
 from _pytest.nodes import Item, Node
 from _pytest.skipping import evaluate_condition
+from hypothesis import settings
 from hypothesis.stateful import get_state_machine_test
 from packaging import version
+
+from hypofuzz.database import get_db
 
 if TYPE_CHECKING:
     # We have to defer imports to within functions here, because this module
@@ -138,6 +141,22 @@ class _ItemsCollector:
             ):
                 self._skip_because("fixture", item.nodeid, {"fixtures": names})
                 continue
+
+            if (
+                test_database := getattr(
+                    item.obj, "_hypothesis_internal_use_settings", settings()
+                ).database
+            ) != settings().database:
+                self._skip_because(
+                    "differing_database",
+                    item.nodeid,
+                    {
+                        "default_database": settings().database,
+                        "test_database": test_database,
+                    },
+                )
+                continue
+
             # Wrap it up in a FuzzTarget and we're done!
             try:
                 if hasattr(item.obj, "_hypothesis_state_machine_class"):
@@ -168,7 +187,7 @@ class _ItemsCollector:
                     )
                     target = item.obj
                 fuzz = FuzzProcess.from_hypothesis_test(
-                    target, nodeid=item.nodeid, extra_kw=extra_kw
+                    target, database=get_db(), nodeid=item.nodeid, extra_kw=extra_kw
                 )
             except Exception as e:
                 self._skip_because(
@@ -180,11 +199,16 @@ class _ItemsCollector:
                 self.fuzz_targets.append(fuzz)
 
 
-def _get_hypothesis_tests_with_pytest(args: Iterable[str]) -> CollectionResult:
+def _get_hypothesis_tests_with_pytest(
+    args: Iterable[str], *, debug: bool = False
+) -> CollectionResult:
     """Find the hypothesis-only test functions run by pytest.
 
     This basically uses `pytest --collect-only -m hypothesis $args`.
     """
+    args = list(args)
+    if debug:
+        args.append("-s")
     collector = _ItemsCollector()
     out = io.StringIO()
     with redirect_stdout(out):
@@ -201,7 +225,7 @@ def _get_hypothesis_tests_with_pytest(args: Iterable[str]) -> CollectionResult:
         print(out.getvalue())
         print(f"Exiting because pytest returned exit code {ret}")
         sys.exit(ret)
-    elif not collector.fuzz_targets:
+    elif debug or not collector.fuzz_targets:
         print(out.getvalue())
     return CollectionResult(
         fuzz_targets=collector.fuzz_targets, not_collected=collector.not_collected
@@ -222,4 +246,4 @@ def _fuzz_several(pytest_args: tuple[str, ...], nodeids: list[str]) -> None:
         for t in _get_hypothesis_tests_with_pytest(pytest_args).fuzz_targets
         if t.nodeid in nodeids
     ]
-    fuzz_several(*tests)
+    fuzz_several(tests)

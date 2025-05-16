@@ -7,7 +7,6 @@ import json
 import math
 from collections import defaultdict
 from dataclasses import dataclass, field
-from functools import cache
 from pathlib import Path
 from typing import Any, Optional, TypeVar
 
@@ -15,9 +14,7 @@ import black
 import trio
 from hypercorn.config import Config
 from hypercorn.trio import serve
-from hypothesis import settings
 from hypothesis.database import (
-    BackgroundWriteDatabase,
     ListenerEventT,
 )
 from hypothesis.internal.cache import LRUCache
@@ -32,7 +29,8 @@ from trio import MemoryReceiveChannel
 
 from hypofuzz.compat import bisect_right
 from hypofuzz.database import (
-    HypofuzzDatabase,
+    DatabaseEvent,
+    DatabaseEventKey,
     HypofuzzEncoder,
     Observation,
     ObservationStatus,
@@ -40,10 +38,7 @@ from hypofuzz.database import (
     Report,
     ReportWithDiff,
     StatusCounts,
-    is_corpus_observation_key,
-    is_failure_observation_key,
-    is_observation_key,
-    reports_key,
+    get_db,
 )
 from hypofuzz.interface import CollectionResult
 from hypofuzz.patching import make_and_save_patches
@@ -127,7 +122,7 @@ class Test:
         for worker_uuid, reports in self.reports_by_worker.items():
             assert {r.nodeid for r in reports} == {self.nodeid}
             assert {r.database_key for r in reports} == {self.database_key}
-            assert {r.worker.uuid for r in reports} == {worker_uuid}
+            assert {r.worker_uuid for r in reports} == {worker_uuid}
             self._assert_reports_ordered(self.linear_reports, ["timestamp_monotonic"])
 
         # this is not always true due to floating point error accumulation.
@@ -142,8 +137,8 @@ class Test:
         last_report = self.linear_reports[-1] if self.linear_reports else None
         last_worker_report = (
             None
-            if report.worker.uuid not in self.reports_by_worker
-            else self.reports_by_worker[report.worker.uuid][-1]
+            if report.worker_uuid not in self.reports_by_worker
+            else self.reports_by_worker[report.worker_uuid][-1]
         )
         if (
             last_worker_report is not None
@@ -163,7 +158,7 @@ class Test:
         )
         # support the by-worker access pattern. We only access index [-1] though
         # - should we store self.last_reports_by_worker instead?
-        self.reports_by_worker.setdefault(report.worker.uuid, []).append(linear_report)
+        self.reports_by_worker.setdefault(report.worker_uuid, []).append(linear_report)
         # Phase.REPLAY does not count towards:
         #   * status_counts
         #   * elapsed_time
@@ -496,53 +491,49 @@ async def serve_app(app: Any, host: str, port: str) -> None:
 
 
 async def handle_event(receive_channel: MemoryReceiveChannel[ListenerEventT]) -> None:
-    async for event_type, args in receive_channel:
-        if event_type == "save":
-            key, value = args
-            assert value is not None
-            if key.endswith(reports_key):
-                report = Report.from_json(value)
-                # this is an in-process transmission, it should never be out of
-                # date with the Report schema
-                # (hmm, this isn't true if this is an e.g.
-                # DirectoryBasedExampleDatabase and the dashboard hypofuzz version
-                # is updated but there is a worker on an old hypofuzz version writing
-                # reports of a different format.)
-                assert report is not None
+    async for listener_event in receive_channel:
+        event = DatabaseEvent.from_event(listener_event)
+        # In the single-command ``hypothesis fuzz`` case, this is a
+        # transmission from a worker launched by that command to the
+        # dashboard launched by that command. The schemas should never
+        # be mismatched in this case.
+        #
+        # However, in the distributed case, a worker might be running an
+        # code version while the dashboard runs a newer version. Here,
+        # a None report from a parse error could occur.
+        if event is None:
+            continue
+        if event.type == "save":
+            if event.key is DatabaseEventKey.REPORT:
+                report = event.value
+                if report.nodeid not in TESTS:
+                    continue
                 TESTS[report.nodeid].add_report(report)
                 await broadcast_event({"type": "save", "save_type": "report"}, report)
-            elif is_failure_observation_key(key):
-                observation = Observation.from_json(value)
-                assert observation is not None
+            elif event.key is DatabaseEventKey.FAILURE_OBSERVATION:
+                observation = event.value
+                if observation.property not in TESTS:
+                    continue
                 TESTS[observation.property].failure = observation
                 await broadcast_event(
                     {"type": "save", "save_type": "failure"}, observation
                 )
-            elif is_observation_key(key):
-                observation = Observation.from_json(value)
-                assert observation is not None
+            elif event.key is DatabaseEventKey.OBSERVATION:
+                observation = event.value
+                if observation.property not in TESTS:
+                    continue
                 TESTS[observation.property].rolling_observations.append(observation)
                 await broadcast_event(
                     {"type": "save", "save_type": "rolling_observation"}, observation
                 )
-            elif is_corpus_observation_key(key):
-                observation = Observation.from_json(value)
-                assert observation is not None
+            elif event.key is DatabaseEventKey.CORPUS_OBSERVATION:
+                observation = event.value
+                if observation.property not in TESTS:
+                    continue
                 TESTS[observation.property].corpus_observations.append(observation)
                 await broadcast_event(
                     {"type": "save", "save_type": "corpus_observation"}, observation
                 )
-
-
-# cache to make the db a singleton. We defer creation until first-usage to ensure
-# that we use the test-time database setting, rather than init-time.
-# TODO we want to use BackgroundWriteDatabase in workers to, not just dashboard
-@cache
-def get_db() -> HypofuzzDatabase:
-    db = settings().database
-    if isinstance(db, BackgroundWriteDatabase):
-        return HypofuzzDatabase(db)
-    return HypofuzzDatabase(BackgroundWriteDatabase(db))
 
 
 async def run_dashboard(port: int, host: str) -> None:
@@ -602,7 +593,7 @@ async def run_dashboard(port: int, host: str) -> None:
 
         reports_by_worker = defaultdict(list)
         for report in sorted(db.fetch_reports(key), key=lambda r: r.elapsed_time):
-            reports_by_worker[report.worker.uuid].append(report)
+            reports_by_worker[report.worker_uuid].append(report)
 
         test = Test(
             database_key=fuzz_target.database_key_str,
