@@ -524,13 +524,17 @@ def fuzz_several(targets: list[FuzzProcess], random_seed: Optional[int] = None) 
     for target in targets:
         target.startup()
 
+    dispatch = {}
+    for target in targets:
+        # each node only gets one fuzz process
+        assert target.database_key not in dispatch
+        dispatch[target.database_key] = target
+
     def on_event(listener_event: ListenerEventT) -> None:
         event = DatabaseEvent.from_event(listener_event)
-        if event is None:
+        if event is None or event.database_key not in dispatch:
             return
-        for target in targets:
-            if target.database_key == event.database_key:
-                target.on_event(event)
+        dispatch[event.database_key].on_event(event)
 
     settings().database.add_listener(on_event)
 
