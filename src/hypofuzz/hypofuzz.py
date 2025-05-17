@@ -213,6 +213,15 @@ class FuzzProcess:
         # restore our saved minimal covering corpus, as well as any failures to
         # replay.
         self._replay_queue.extend(self.db.fetch_corpus(self.database_key))
+        if not self._replay_queue:
+            # if no worker has ever worked on this test before, save an initial
+            # GENERATE report, so the graph displays a point at (0, 0).
+            # This is a bit of a hack. It might be better to do this in the
+            # dashboard plotting code instead, by adding a virtual point at (0, 0).
+            self.phase = Phase.GENERATE
+            self._save_report(self._report)
+            self.phase = None
+
         self._replay_queue.append((ChoiceTemplate(type="simplest", count=None),))
         for shrunk in [True, False]:
             self._failure_queue.extend(
