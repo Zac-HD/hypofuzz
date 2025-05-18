@@ -247,7 +247,7 @@ class FuzzProcess:
                 # the worker which saved this choice sequence might have been *us*,
                 # or we might simply already have this choice sequence in our
                 # corpus.
-                if Choices(event.value) in self.corpus.covering_nodes:
+                if Choices(event.value) in self.corpus._saved_to_database:
                     return
                 self._replay_queue.add(event.value)
             # (should we also replay failures found by other workers? we may not
@@ -278,13 +278,20 @@ class FuzzProcess:
         # Start by replaying any previous failures which we've retrieved from the
         # database.  This is useful to recover state at startup, or to share
         # progress made in other processes.
-        if self._replay_queue:
-            self._start_phase(Phase.REPLAY)
+        while self._replay_queue:
             # we checked if we had this choice sequence when we put it into the
             # replay_queue on on_event, but we check again here, since we might have
             # executed it in the interim.
-            while (choices := self._replay_queue.pop()) in self.corpus.covering_nodes:
-                pass
+            choices = self._replay_queue.pop()
+
+            # Choices doesn't handle ChoiceTemplate
+            if (
+                all(not isinstance(choice, ChoiceTemplate) for choice in choices)
+                and Choices(choices) in self.corpus._saved_to_database
+            ):
+                continue
+
+            self._start_phase(Phase.REPLAY)
             return ConjectureData.for_choices(choices)
 
         self._start_phase(Phase.GENERATE)
