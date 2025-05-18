@@ -280,7 +280,11 @@ class FuzzProcess:
         # progress made in other processes.
         if self._replay_queue:
             self._start_phase(Phase.REPLAY)
-            choices = self._replay_queue.pop()
+            # we checked if we had this choice sequence when we put it into the
+            # replay_queue on on_event, but we check again here, since we might have
+            # executed it in the interim.
+            while (choices := self._replay_queue.pop()) in self.corpus.covering_nodes:
+                pass
             return ConjectureData.for_choices(choices)
 
         self._start_phase(Phase.GENERATE)
