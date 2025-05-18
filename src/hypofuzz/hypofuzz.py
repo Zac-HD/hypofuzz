@@ -29,7 +29,7 @@ from hypothesis.core import (
 )
 from hypothesis.database import ListenerEventT
 from hypothesis.errors import StopTest
-from hypothesis.internal.conjecture.choice import ChoiceT, ChoiceTemplate
+from hypothesis.internal.conjecture.choice import ChoiceT, ChoiceTemplate, choices_size
 from hypothesis.internal.conjecture.data import (
     ConjectureData,
     ConjectureResult,
@@ -40,7 +40,7 @@ from hypothesis.internal.conjecture.engine import RunIsComplete
 from hypothesis.internal.observability import TESTCASE_CALLBACKS
 from hypothesis.internal.reflection import function_digest, get_signature
 from hypothesis.reporting import with_reporter
-from sortedcontainers import SortedKeyList
+from sortedcontainers import SortedKeyList, SortedList
 
 import hypofuzz
 from hypofuzz.corpus import (
@@ -102,6 +102,14 @@ class HypofuzzStateForActualGivenExecution(StateForActualGivenExecution):
         # we're handling our own coverage collection, both for observability and
         # for failing examples (explain phase).
         return False
+
+
+# like choices_size, but handles ChoiceTemplate
+def _choices_size(choices: tuple[Union[ChoiceT, ChoiceTemplate], ...]) -> int:
+    return sum(
+        1 if isinstance(choice, ChoiceTemplate) else choices_size([choice])
+        for choice in choices
+    )
 
 
 class FuzzProcess:
@@ -188,9 +196,12 @@ class FuzzProcess:
         self.since_new_branch = 0
         self.status_counts = StatusCounts()
         self.phase: Optional[Phase] = None
-        # Any new examples from the database will be added to this replay queue
-        self._replay_queue: list[tuple[Union[ChoiceT, ChoiceTemplate], ...]] = []
-        self._failure_queue: list[tuple[ChoiceT, ...]] = []
+        self._replay_queue: SortedList[tuple[Union[ChoiceT, ChoiceTemplate], ...]] = (
+            SortedList(key=_choices_size)
+        )
+        self._failure_queue: SortedList[tuple[ChoiceT, ...]] = SortedList(
+            key=choices_size
+        )
         # After replay, we stay in blackbox mode for a while, until we've generated
         # 1000 consecutive examples without new coverage, and then switch to mutation.
         self._early_blackbox_mode = True
@@ -212,7 +223,7 @@ class FuzzProcess:
         self.db.save_worker_identity(self.database_key, self.worker_identity)
         # restore our saved minimal covering corpus, as well as any failures to
         # replay.
-        self._replay_queue.extend(self.db.fetch_corpus(self.database_key))
+        self._replay_queue.update(self.db.fetch_corpus(self.database_key))
         if not self._replay_queue:
             # if no worker has ever worked on this test before, save an initial
             # GENERATE report, so the graph displays a point at (0, 0).
@@ -222,9 +233,9 @@ class FuzzProcess:
             self._save_report(self._report)
             self.phase = None
 
-        self._replay_queue.append((ChoiceTemplate(type="simplest", count=None),))
+        self._replay_queue.add((ChoiceTemplate(type="simplest", count=None),))
         for shrunk in [True, False]:
-            self._failure_queue.extend(
+            self._failure_queue.update(
                 self.db.fetch_failures(self.database_key, shrunk=shrunk)
             )
 
@@ -234,11 +245,11 @@ class FuzzProcess:
         if event.type == "save":
             if event.key is DatabaseEventKey.CORPUS:
                 # the worker which saved this choice sequence might have been *us*,
-                # or we might have simply already have this choice sequence in our
+                # or we might simply already have this choice sequence in our
                 # corpus.
                 if Choices(event.value) in self.corpus.covering_nodes:
                     return
-                self._replay_queue.append(event.value)
+                self._replay_queue.add(event.value)
             # (should we also replay failures found by other workers? we may not
             # want to stop early, since we could still find a different failure.
             # but I guess the same logic would apply to the worker which found the

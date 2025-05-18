@@ -120,8 +120,10 @@ class Corpus:
         self._db = database
 
         # Our sorted corpus of covering examples, ready to be sampled from.
-        # TODO: One suggestion to reduce effective corpus size/redundancy is to skip
-        #       over earlier inputs whose coverage is a subset of later inputs.
+        #
+        # TODO: track fingerprints (sets of branches) as our level-of-uniqueness.
+        # Add an input to the corpus if its fingerprint is new, not just if it covers
+        # a new branch.
         self.results: dict[NodesT, ConjectureResult] = SortedDict(sort_key)
 
         # For each branch, what's the minimal covering example?
@@ -295,12 +297,6 @@ class Corpus:
             return True
 
         return False
-
-    # TODO: consider distinguishing between covers-branch and coverage-fingerprint,
-    #       and between minimal and other examples.  The fingerprint (set of
-    #       branches) isn't currently used because our concept of "branch" is
-    #       too large; should only include interesting files + skip branchless
-    #       lines of code to keep the size manageable.
 
     def distill(self, fn: Callable[[ConjectureData], None], random: Random) -> None:
         """Shrink to a corpus of *minimal* covering examples.
