@@ -113,7 +113,7 @@ def dashboard(
 
 
 @contextmanager
-def fuzz(*, n=1, dashboard=False, test_path=None):
+def fuzz(*, n=1, dashboard=False, test_path=None, pytest_args=None):
     args = [
         "hypothesis",
         "fuzz",
@@ -122,7 +122,7 @@ def fuzz(*, n=1, dashboard=False, test_path=None):
         "--dashboard" if dashboard else "--no-dashboard",
     ]
     if test_path is not None:
-        args += ["--", str(test_path)]
+        args += ["--", str(test_path), *(pytest_args or [])]
     process = subprocess.Popen(args, start_new_session=True)
 
     try:
@@ -212,7 +212,7 @@ def write_test_code(code):
             settings.load_profile("testing")
             """
         )
-        + "\n"
+        + "\n\n"
         + inspect.cleandoc(code)
     )
     test_file = test_dir / "test_a.py"

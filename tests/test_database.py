@@ -126,7 +126,16 @@ def test_database_keys_incorporate_parametrization():
     db_hypofuzz = HypofuzzDatabase(DirectoryBasedExampleDatabase(db_dir))
     assert not set(db_hypofuzz.fetch(b"hypofuzz-test-keys"))
 
-    with fuzz(test_path=test_dir, n=2):
+    # we split this to explicitly one-test-per-core to not rely on details of
+    # node allocation across cores.
+    with fuzz(test_path=test_dir, pytest_args=["-k", "test_ints[1]"]):
+        wait_for(
+            lambda: len(set(db_hypofuzz.fetch(b"hypofuzz-test-keys"))) == 1,
+            timeout=10,
+            interval=0.1,
+        )
+
+    with fuzz(test_path=test_dir, pytest_args=["-k", "test_ints[2]"]):
         # this will time out if the test keys are the same across parametrizations
         wait_for(
             lambda: len(set(db_hypofuzz.fetch(b"hypofuzz-test-keys"))) == 2,
