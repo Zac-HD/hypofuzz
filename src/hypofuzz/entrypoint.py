@@ -118,7 +118,8 @@ def _fuzz_impl(numprocesses: int, pytest_args: tuple[str, ...]) -> None:
     print(f"collected {len(tests)} property-based tests")
 
     testnames = "\n    ".join(t.nodeid for t in tests)
-    print(f"using up to {numprocesses} processes to fuzz:\n    {testnames}\n")
+    plural = "" if numprocesses == 1 else "es"
+    print(f"using {numprocesses} process{plural} to fuzz:\n    {testnames}\n")
 
     if numprocesses <= 1:
         _fuzz_several(pytest_args=pytest_args, nodeids=[t.nodeid for t in tests])
