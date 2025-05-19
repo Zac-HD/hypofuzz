@@ -126,7 +126,7 @@ class DatabaseEventKey(Enum):
 @dataclass(frozen=True)
 class DatabaseEvent:
     type: Literal["save", "delete"]
-    database_key: str
+    database_key: bytes
     key: DatabaseEventKey
     value: Any
 

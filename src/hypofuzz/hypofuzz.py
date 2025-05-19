@@ -12,8 +12,10 @@ import sys
 import threading
 import time
 from base64 import b64encode
+from collections import defaultdict
 from collections.abc import Callable, Generator
 from contextlib import contextmanager
+from enum import Enum
 from functools import lru_cache
 from pathlib import Path
 from random import Random
@@ -41,7 +43,6 @@ from hypothesis.internal.observability import TESTCASE_CALLBACKS
 from hypothesis.internal.reflection import function_digest, get_signature
 from hypothesis.reporting import with_reporter
 from sortedcontainers import SortedKeyList, SortedList
-from collections import defaultdict
 
 import hypofuzz
 from hypofuzz.corpus import (
@@ -53,6 +54,7 @@ from hypofuzz.corpus import (
 )
 from hypofuzz.coverage import CoverageCollector
 from hypofuzz.database import (
+    ChoicesT,
     DatabaseEvent,
     DatabaseEventKey,
     HypofuzzDatabase,
@@ -111,6 +113,11 @@ def _choices_size(choices: tuple[Union[ChoiceT, ChoiceTemplate], ...]) -> int:
         1 if isinstance(choice, ChoiceTemplate) else choices_size([choice])
         for choice in choices
     )
+
+
+class ReplayFailurePriority(Enum):
+    SHRUNK = 0
+    UNSHRUNK = 1
 
 
 class FuzzProcess:
@@ -200,8 +207,8 @@ class FuzzProcess:
         self._replay_queue: SortedList[tuple[Union[ChoiceT, ChoiceTemplate], ...]] = (
             SortedList(key=_choices_size)
         )
-        self._failure_queue: SortedList[tuple[ChoiceT, ...]] = SortedList(
-            key=choices_size
+        self._failure_queue: SortedList[tuple[ReplayFailurePriority, ChoicesT]] = (
+            SortedList(key=lambda x: (x[0], choices_size(x[1])))
         )
         # After replay, we stay in blackbox mode for a while, until we've generated
         # 1000 consecutive examples without new coverage, and then switch to mutation.
@@ -237,7 +244,8 @@ class FuzzProcess:
         self._replay_queue.add((ChoiceTemplate(type="simplest", count=None),))
         for shrunk in [True, False]:
             self._failure_queue.update(
-                self.db.fetch_failures(self.database_key, shrunk=shrunk)
+                (shrunk, choices)
+                for choices in self.db.fetch_failures(self.database_key, shrunk=shrunk)
             )
 
     def on_event(self, event: DatabaseEvent) -> None:
@@ -317,7 +325,7 @@ class FuzzProcess:
         """
         if self._failure_queue:
             self._start_phase(Phase.REPLAY)
-            choices = self._failure_queue.pop()
+            (_priority, choices) = self._failure_queue.pop()
             data = ConjectureData.for_choices(choices)
             result = self._run_test_on(data)
             if result.status is not Status.INTERESTING:
@@ -326,8 +334,11 @@ class FuzzProcess:
                 # python 3.11, while this worker is on python 3.12).
                 # In any case, remove it from the db.
                 #
-                # We don't know whether this failure is shrunk or not, so remove
-                # it from both.
+                # We know whether this failure was shrunk or not as of when we
+                # took it out of the db (via _priority). But I'm not confident that
+                # it's not possible for another worker to move the same choice
+                # sequence from unshrunk to shrunk - and failures are rare +
+                # deletions cheap. Just try deleting from both.
                 self.db.delete_failure(self.database_key, choices, shrunk=True)
                 self.db.delete_failure(self.database_key, choices, shrunk=False)
         else:
