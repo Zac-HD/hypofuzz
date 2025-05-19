@@ -113,7 +113,7 @@ def dashboard(
 
 
 @contextmanager
-def fuzz(*, n=1, dashboard=False, test_path=None, pytest_args=None):
+def fuzz(*, n=1, dashboard=False, test_path=None, pytest_args=()):
     args = [
         "hypothesis",
         "fuzz",
@@ -122,7 +122,7 @@ def fuzz(*, n=1, dashboard=False, test_path=None, pytest_args=None):
         "--dashboard" if dashboard else "--no-dashboard",
     ]
     if test_path is not None:
-        args += ["--", str(test_path), *(pytest_args or [])]
+        args += ["--", str(test_path), *pytest_args]
     process = subprocess.Popen(args, start_new_session=True)
 
     try:
