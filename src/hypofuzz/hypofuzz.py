@@ -41,6 +41,7 @@ from hypothesis.internal.observability import TESTCASE_CALLBACKS
 from hypothesis.internal.reflection import function_digest, get_signature
 from hypothesis.reporting import with_reporter
 from sortedcontainers import SortedKeyList, SortedList
+from collections import defaultdict
 
 import hypofuzz
 from hypofuzz.corpus import (
@@ -555,17 +556,17 @@ def fuzz_several(targets: list[FuzzProcess], random_seed: Optional[int] = None) 
     for target in targets:
         target.startup()
 
-    dispatch = {}
+    dispatch: dict[bytes, list[FuzzProcess]] = defaultdict(list)
     for target in targets:
-        # each node only gets one fuzz process
-        assert target.database_key not in dispatch
-        dispatch[target.database_key] = target
+        dispatch[target.database_key].append(target)
 
     def on_event(listener_event: ListenerEventT) -> None:
         event = DatabaseEvent.from_event(listener_event)
         if event is None or event.database_key not in dispatch:
             return
-        dispatch[event.database_key].on_event(event)
+
+        for target in dispatch[event.database_key]:
+            target.on_event(event)
 
     settings().database.add_listener(on_event)
 
