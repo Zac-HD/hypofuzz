@@ -438,7 +438,11 @@ class FuzzProcess:
         # saving a report between them, or we might violate monotonicity invariants.
         self.elapsed_time += time.perf_counter() - start
         assert observation.value is not None
-        if self.corpus.add(data.as_result(), observation=observation.value):
+        # don't save observations during replay. Observations are nondeterministic,
+        # (via `run_start`, but also `timing`), and will end up duplicating corpus
+        # observations here.
+        observation = None if self.phase is Phase.REPLAY else observation.value
+        if self.corpus.add(data.as_result(), observation=observation):
             # TODO this is wrong for Status.INTERESTING examples (that are smaller
             # than the previous example for this interesting origin), which are
             # successfully added to the corpus but don't represent a new branch.
@@ -502,14 +506,15 @@ class FuzzProcess:
             self.elapsed_time > self._last_observed + 1
         )
         with self.observe() as observation:
-            yield observation
-
-        if will_save:
-            assert observation.value is not None
-            self.db.save_observation(
-                self.database_key, observation.value, discard_over=300
-            )
-            self._last_observed = self.elapsed_time
+            try:
+                yield observation
+            finally:
+                if will_save:
+                    assert observation.value is not None
+                    self.db.save_observation(
+                        self.database_key, observation.value, discard_over=300
+                    )
+                    self._last_observed = self.elapsed_time
 
     def _save_report(self, report: Report) -> None:
         self.db.save_report(self.database_key, report)

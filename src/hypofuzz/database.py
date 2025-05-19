@@ -419,8 +419,8 @@ class HypofuzzDatabase:
         self.delete(key + observations_key, self._encode(observation))
 
     def fetch_observations(self, key: bytes) -> Iterable[Observation]:
-        for as_bytes in self.fetch(key + observations_key):
-            if (observation := Observation.from_json(json.loads(as_bytes))) is not None:
+        for value in self.fetch(key + observations_key):
+            if observation := Observation.from_json(value):
                 yield observation
 
     # corpus (corpus_key)
