@@ -399,7 +399,7 @@ select {
 
 .card {
     background: white;
-    padding: 20px;
+    padding: 15px 20px;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 
@@ -409,12 +409,12 @@ select {
     }
 
     &__header {
-        font-size: 1.8rem;
-        font-weight: 600;
+        font-size: 1.7rem;
+        font-weight: 550;
     }
 
     @media (max-width: 768px) {
-        padding: 20px 15px;
+        padding: 15px 15px;
 
         & + & {
             margin-top: 15px;
