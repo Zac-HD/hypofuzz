@@ -5,7 +5,7 @@ from types import SimpleNamespace
 
 import pytest
 from common import interesting_origin
-from hypothesis import event, given, note, settings, strategies as st
+from hypothesis import event, given, note, strategies as st
 from hypothesis.database import InMemoryExampleDatabase
 from hypothesis.internal.conjecture.data import ConjectureData
 from strategies import nodes
@@ -19,7 +19,7 @@ from hypofuzz.corpus import (
     Status,
     sort_key,
 )
-from hypofuzz.database import Phase
+from hypofuzz.database import HypofuzzDatabase, Phase
 from hypofuzz.hypofuzz import FuzzProcess
 
 
@@ -54,7 +54,9 @@ def corpus_args(statuses=st.sampled_from(Status)):
 
 @given(corpus_args(statuses=st.just(Status.VALID)))
 def test_corpus_coverage_tracking(args):
-    corpus = Corpus(hypothesis_database=InMemoryExampleDatabase(), database_key=b"")
+    corpus = Corpus(
+        database=HypofuzzDatabase(InMemoryExampleDatabase()), database_key=b""
+    )
     total_coverage = set()
     for res in args:
         corpus.add(res)
@@ -68,7 +70,9 @@ def test_corpus_coverage_tracking(args):
 def test_corpus_covering_nodes(args):
     # the corpus tracks the *minimal* covering example for each branch. so if we
     # ever try a smaller one, the corpus should update.
-    corpus = Corpus(hypothesis_database=InMemoryExampleDatabase(), database_key=b"")
+    corpus = Corpus(
+        database=HypofuzzDatabase(InMemoryExampleDatabase()), database_key=b""
+    )
     covering_nodes: dict[Branch, NodesT] = {}
 
     for res in args:
@@ -87,15 +91,14 @@ def test_corpus_covering_nodes(args):
 
 @pytest.mark.skipif(sys.version_info < (3, 12), reason="different branches pre-312")
 def test_corpus_resets_branch_counts_on_new_coverage():
-    hypothesis_db = InMemoryExampleDatabase()
+    db = HypofuzzDatabase(InMemoryExampleDatabase())
 
     @given(st.integers())
-    @settings(database=hypothesis_db)
     def test_a(x):
         if x == 2:
             pass
 
-    process = FuzzProcess.from_hypothesis_test(test_a)
+    process = FuzzProcess.from_hypothesis_test(test_a, database=db)
     process._start_phase(Phase.GENERATE)
     for count in range(1, 10):
         process._run_test_on(

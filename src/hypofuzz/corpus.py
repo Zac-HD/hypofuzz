@@ -3,14 +3,11 @@
 import abc
 import enum
 from collections import Counter
-from collections.abc import Callable, Iterable, Iterator
+from collections.abc import Callable, Iterator
 from random import Random
 from typing import TYPE_CHECKING, Optional, Union
 
 from hypothesis import settings
-from hypothesis.database import (
-    ExampleDatabase,
-)
 from hypothesis.internal.conjecture.choice import (
     ChoiceNode,
     ChoiceT,
@@ -116,18 +113,17 @@ class Corpus:
     The class tracks the minimal valid example which covers each known branch.
     """
 
-    def __init__(
-        self, hypothesis_database: ExampleDatabase, database_key: bytes
-    ) -> None:
+    def __init__(self, database: HypofuzzDatabase, database_key: bytes) -> None:
         # The database and our database key is the stable identifiers for a corpus.
         # Everything else is reconstructed each run, and tracked only in memory.
         self._database_key = database_key
-        self._db = HypofuzzDatabase(hypothesis_database)
-        self._hypothesis_db = hypothesis_database
+        self._db = database
 
         # Our sorted corpus of covering examples, ready to be sampled from.
-        # TODO: One suggestion to reduce effective corpus size/redundancy is to skip
-        #       over earlier inputs whose coverage is a subset of later inputs.
+        #
+        # TODO: track fingerprints (sets of branches) as our level-of-uniqueness.
+        # Add an input to the corpus if its fingerprint is new, not just if it covers
+        # a new branch.
         self.results: dict[NodesT, ConjectureResult] = SortedDict(sort_key)
 
         # For each branch, what's the minimal covering example?
@@ -136,8 +132,10 @@ class Corpus:
         self.branch_counts: Counter[Branch] = Counter()
 
         # And various internal attributes and metadata
-        self.interesting_examples: dict[InterestingOrigin, ConjectureResult] = {}
-        self._loaded_from_database: set[Choices] = set()
+        self.interesting_examples: dict[
+            InterestingOrigin, tuple[ConjectureResult, Optional[Observation]]
+        ] = {}
+        self._saved_to_database: set[Choices] = set()
         self.__shrunk_to_nodes: set[NodesT] = set()
 
     def __repr__(self) -> str:
@@ -165,50 +163,58 @@ class Corpus:
             self.covering_nodes
         )
 
-        # Every covering choice was either read from the database, or saved to it.
+        # Every covering choice was saved to the database.
         covering_choices = {
             Choices(tuple(node.value for node in nodes))
             for nodes in self.covering_nodes.values()
         }
-        assert self._loaded_from_database.issuperset(covering_choices)
+        assert covering_choices.issubset(self._saved_to_database)
 
     def add(
         self,
         result: Union[ConjectureResult, _Overrun],
         *,
         observation: Optional[Observation] = None,
-    ) -> Optional[bool]:
+    ) -> bool:
         """Update the corpus with the result of running a test.
 
-        Returns None for invalid examples, False if no change, True if changed.
+        Returns False if no change, True if changed.
         """
         if result.status < Status.VALID:
-            return None
+            return False
         assert isinstance(result, ConjectureResult)
         assert result.extra_information is not None
 
-        # We now know that we have a ConjectureResult representing a valid test
-        # execution, either passing or possibly failing.
         branches = result.extra_information.branches  # type: ignore
-        nodes = result.nodes
 
-        if result.status == Status.INTERESTING:
+        if result.status is Status.INTERESTING:
             origin = result.interesting_origin
             assert origin is not None
             if origin not in self.interesting_examples or (
-                sort_key(result) < sort_key(self.interesting_examples[origin])
+                sort_key(result) < sort_key(self.interesting_examples[origin][0])
             ):
-                existing = self.interesting_examples.get(origin)
-                self.interesting_examples[origin] = result
+                previous = self.interesting_examples.get(origin)
+                self.interesting_examples[origin] = (result, observation)
                 # We save interesting examples to the unshrunk/secondary database
                 # so they can appear immediately without waiting for shrinking to
                 # finish. (also in case of a fatal hypofuzz error etc).
                 self._db.save_failure(self._database_key, result.choices, shrunk=False)
-                if existing is not None:
+                assert observation is not None
+                self._db.save_failure_observation(
+                    self._database_key, result.choices, observation
+                )
+                if previous is not None:
+                    (previous_node, previous_observation) = previous
                     # remove the now-redundant failure we had previously saved.
                     self._db.delete_failure(
-                        self._database_key, existing.choices, shrunk=False
+                        self._database_key, previous_node.choices, shrunk=False
                     )
+                    if previous_observation is not None:
+                        self._db.delete_failure_observation(
+                            self._database_key,
+                            previous_node.choices,
+                            previous_observation,
+                        )
                 return True
 
         # If we haven't just discovered new branches and our example is larger than the
@@ -218,7 +224,7 @@ class Corpus:
             and sort_key(result.nodes)
             < sort_key(self.results.keys()[-1])  # type: ignore
             and any(
-                sort_key(nodes) < sort_key(known_nodes)
+                sort_key(result.nodes) < sort_key(known_nodes)
                 for branch, known_nodes in self.covering_nodes.items()
                 if branch in branches
             )
@@ -232,33 +238,33 @@ class Corpus:
                     self._database_key, result.choices, observation
                 )
 
-            self._loaded_from_database.add(Choices(result.choices))
+            self._saved_to_database.add(Choices(result.choices))
             # Clear out any redundant entries
             seen_branches: set[Branch] = set()
             self.covering_nodes = {}
-            for res in list(self.results.values()):
-                assert res.extra_information is not None
-                # branches which are new in res compared to all smaller results
-                new_branches = res.extra_information.branches - seen_branches  # type: ignore
-                seen_branches.update(res.extra_information.branches)  # type: ignore
+            for existing in list(self.results.values()):
+                assert existing.extra_information is not None
+                # branches which are new in existing compared to all smaller results
+                new_branches = existing.extra_information.branches - seen_branches  # type: ignore
+                seen_branches.update(existing.extra_information.branches)  # type: ignore
                 if new_branches:
                     for arc in new_branches:
-                        self.covering_nodes[arc] = res.nodes
+                        self.covering_nodes[arc] = existing.nodes
                 else:
                     # The branches in result are a strict superset of the branches
-                    # in res (can't be equal because we're only executing this if
-                    # we found new coverage in result). Delete res in favor of
+                    # in `existing` (can't be equal because we're only executing this if
+                    # we found new coverage in result). Delete `existing` in favor of
                     # result.
-                    del self.results[res.nodes]
-                    self._db.delete_corpus(self._database_key, res.choices)
+                    del self.results[existing.nodes]
+                    self._db.delete_corpus(self._database_key, existing.choices)
                     # also clear out any observations
                     for observation in list(
                         self._db.fetch_corpus_observations(
-                            self._database_key, res.choices
+                            self._database_key, existing.choices
                         )
                     ):
                         self._db.delete_corpus_observation(
-                            self._database_key, res.choices, observation
+                            self._database_key, existing.choices, observation
                         )
 
             # We add newly-discovered branches to the counter later; so here our only
@@ -283,7 +289,7 @@ class Corpus:
                 self.results[result.nodes] = result
             self._db.save_corpus(self._database_key, result.choices)
             for branch in branches - set(self.covering_nodes):
-                self.covering_nodes[branch] = nodes
+                self.covering_nodes[branch] = result.nodes
 
             # We've just finished making some tricky changes, so this is a good time
             # to assert that all our invariants have been upheld.
@@ -291,41 +297,6 @@ class Corpus:
             return True
 
         return False
-
-    def _choices(self) -> set[Choices]:
-        return {
-            Choices(choices) for choices in self._db.fetch_corpus(self._database_key)
-        }
-
-    def fetch(self) -> Iterable[ChoicesT]:
-        """Yield all choice sequences from the database which have not been loaded before.
-
-        For the purposes of this method, a choice sequence which we saved to the database
-        counts as having been loaded - the idea is to avoid duplicate executions.
-        """
-        # TODO: consider distinguishing between covers-branch and coverage-fingerprint,
-        #       and between minimal and other examples.  The fingerprint (set of
-        #       branches) isn't currently used because our concept of "branch" is
-        #       too large; should only include interesting files + skip branchless
-        #       lines of code to keep the size manageable.
-        saved = sorted(
-            self._choices() - self._loaded_from_database,
-            key=len,
-            reverse=True,
-        )
-        self._loaded_from_database.update(saved)
-        for idx in (0, -1):
-            if saved:
-                yield saved.pop(idx).choices
-        seeds = sorted(
-            self._choices() - self._loaded_from_database,
-            key=len,
-            reverse=True,
-        )
-        self._loaded_from_database.update(seeds)
-        yield from (choices.choices for choices in seeds)
-        yield from (choices.choices for choices in saved)
-        self._check_invariants()
 
     def distill(self, fn: Callable[[ConjectureData], None], random: Random) -> None:
         """Shrink to a corpus of *minimal* covering examples.

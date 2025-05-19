@@ -15,8 +15,9 @@ def collect(code: str) -> list[FuzzProcess]:
         inspect.cleandoc(
             """
             import pytest
-            from hypothesis import given, strategies as st
+            from hypothesis import given, strategies as st, settings
             from hypothesis.stateful import RuleBasedStateMachine, Bundle, initialize, rule
+            from hypothesis.database import InMemoryExampleDatabase
             """
         )
         + "\n"
@@ -220,3 +221,21 @@ def test_collects_custom_xfail():
             pass
         """
     assert collect_names(code) == {"test_a"}
+
+
+def test_skips_differing_database():
+    code = """
+        @given(st.integers())
+        @settings(database=None)
+        def test_a(n):
+            pass
+        """
+    assert not collect_names(code)
+
+    code = """
+        @given(st.integers())
+        @settings(database=InMemoryExampleDatabase())
+        def test_a(n):
+            pass
+        """
+    assert not collect_names(code)

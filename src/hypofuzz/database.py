@@ -4,12 +4,15 @@ import json
 from collections import defaultdict, deque
 from collections.abc import Iterable
 from dataclasses import dataclass, is_dataclass
-from enum import Enum
-from functools import lru_cache
+from enum import Enum, auto
+from functools import cache, lru_cache
 from typing import TYPE_CHECKING, Any, Literal, Optional, Union
 
+from hypothesis import settings
 from hypothesis.database import (
+    BackgroundWriteDatabase,
     ExampleDatabase,
+    ListenerEventT,
     choices_from_bytes,
     choices_to_bytes,
 )
@@ -51,8 +54,11 @@ class WorkerIdentity:
     git_hash: Optional[str]
 
     @staticmethod
-    def from_json(data: dict) -> "WorkerIdentity":
-        return WorkerIdentity(**data)
+    def from_json(data: bytes) -> Optional["WorkerIdentity"]:
+        try:
+            return WorkerIdentity(**json.loads(data))
+        except Exception:
+            return None
 
     def __repr__(self) -> str:
         return f"WorkerIdentity(uuid={self.uuid!r})"
@@ -108,6 +114,76 @@ class Phase(Enum):
     FAILED = "failed"
 
 
+class DatabaseEventKey(Enum):
+    REPORT = auto()
+    FAILURE_OBSERVATION = auto()
+    OBSERVATION = auto()
+    CORPUS_OBSERVATION = auto()
+    CORPUS = auto()
+    FAILURE = auto()
+
+
+@dataclass(frozen=True)
+class DatabaseEvent:
+    type: Literal["save", "delete"]
+    database_key: bytes
+    key: DatabaseEventKey
+    value: Any
+
+    @staticmethod
+    def from_event(event: ListenerEventT, /) -> Optional["DatabaseEvent"]:
+        # placate mypy
+        key: Any
+        value: Any
+        (event_type, (key, value)) = event
+        if b"." not in key:
+            return None
+        database_key = key.split(b".", 1)[0]
+        if event_type == "save":
+            assert value is not None
+            if key.endswith(reports_key):
+                key = DatabaseEventKey.REPORT
+                value = Report.from_json(value)
+                if value is None:
+                    return None
+            elif key.endswith(corpus_key):
+                key = DatabaseEventKey.CORPUS
+                value = choices_from_bytes(value)
+                if value is None:
+                    return None
+            elif key.endswith(failures_key):
+                key = DatabaseEventKey.FAILURE
+                value = choices_from_bytes(value)
+                if value is None:
+                    return None
+            elif key.endswith(observations_key):
+                value = Observation.from_json(value)
+                if value is None:
+                    return None
+                key = DatabaseEventKey.OBSERVATION
+            elif is_failure_observation_key(key):
+                key = DatabaseEventKey.FAILURE_OBSERVATION
+                value = Observation.from_json(value)
+                if value is None:
+                    return None
+            elif is_corpus_observation_key(key):
+                key = DatabaseEventKey.CORPUS_OBSERVATION
+                value = Observation.from_json(value)
+                if value is None:
+                    return None
+            else:
+                return None
+        else:
+            return None
+
+        return DatabaseEvent(
+            type=event_type,
+            database_key=database_key,
+            key=key,
+            value=value,
+        )
+
+
 class StatusCounts(dict):
     def __init__(self, value: Optional[dict[Status, int]] = None) -> None:
         if value is None:
@@ -150,7 +226,7 @@ class Report:
     nodeid: str
     elapsed_time: float
     timestamp: float
-    worker: WorkerIdentity
+    worker_uuid: str
     status_counts: StatusCounts
     branches: int
     since_new_branch: Optional[int]
@@ -167,7 +243,6 @@ class Report:
     def from_json(encoded: bytes, /) -> Optional["Report"]:
         try:
             data = json.loads(encoded)
-            data["worker"] = WorkerIdentity.from_json(data["worker"])
             data["status_counts"] = StatusCounts(
                 {Status(int(k)): v for k, v in data["status_counts"].items()}
             )
@@ -225,7 +300,7 @@ class ReportWithDiff(Report):
             nodeid=report.nodeid,
             elapsed_time=report.elapsed_time,
             timestamp=report.timestamp,
-            worker=report.worker,
+            worker_uuid=report.worker_uuid,
             status_counts=report.status_counts,
             branches=report.branches,
             since_new_branch=report.since_new_branch,
@@ -240,6 +315,10 @@ reports_key = b".hypofuzz.reports"
 observations_key = b".hypofuzz.observations"
 corpus_key = b".hypofuzz.corpus"
 failures_key = b".hypofuzz.failures"
+
+
+def worker_identity_key(key: bytes, uuid: str) -> bytes:
+    return key + b".worker_identity." + uuid.encode("ascii")
 
 
 @lru_cache(maxsize=512)
@@ -266,10 +345,6 @@ def failure_observation_key(key: bytes, choices: ChoicesT) -> bytes:
         + hashlib.sha1(choices_to_bytes(choices)).digest()
         + b".observation"
     )
-
-
-def is_observation_key(key: bytes) -> bool:
-    return key.endswith(observations_key)
 
 
 def is_failure_observation_key(key: bytes) -> bool:
@@ -457,3 +532,36 @@ class HypofuzzDatabase:
         for value in self.fetch(failure_observation_key(key, choices)):
             if observation := Observation.from_json(value):
                 yield observation
+
+    # worker identity (worker_identity_key)
+
+    def save_worker_identity(self, key: bytes, worker: WorkerIdentity) -> None:
+        self.save(worker_identity_key(key, worker.uuid), self._encode(worker))
+
+    def delete_worker_identity(self, key: bytes, worker: WorkerIdentity) -> None:
+        self.delete(worker_identity_key(key, worker.uuid), self._encode(worker))
+
+    def fetch_worker_identities(
+        self, key: bytes, worker: WorkerIdentity
+    ) -> Iterable[WorkerIdentity]:
+        for value in self.fetch(worker_identity_key(key, worker.uuid)):
+            if worker_identity := WorkerIdentity.from_json(value):
+                yield worker_identity
+
+    def fetch_worker_identity(
+        self, key: bytes, worker: WorkerIdentity
+    ) -> Optional[WorkerIdentity]:
+        try:
+            return next(iter(self.fetch_worker_identities(key, worker)))
+        except StopIteration:
+            return None
+
+
+# cache to make the db effectively a single time, deferred until after we've run
+# a collection step on the user's code.
+@cache
+def get_db() -> HypofuzzDatabase:
+    db = settings().database
+    if isinstance(db, BackgroundWriteDatabase):
+        return HypofuzzDatabase(db)
+    return HypofuzzDatabase(BackgroundWriteDatabase(db))

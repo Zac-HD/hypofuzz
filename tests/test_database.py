@@ -1,7 +1,7 @@
 import subprocess
 
 from common import BASIC_TEST_CODE, fuzz, wait_for, write_test_code
-from hypothesis import given, settings, strategies as st
+from hypothesis import given, strategies as st
 from hypothesis.database import (
     DirectoryBasedExampleDatabase,
     InMemoryExampleDatabase,
@@ -42,19 +42,17 @@ def test_database_stores_reports_and_metadata_correctly():
 
 
 def test_database_state():
-    hypothesis_db = InMemoryExampleDatabase()
+    db = HypofuzzDatabase(InMemoryExampleDatabase())
 
     @given(st.integers())
-    @settings(database=hypothesis_db)
     def test_a(x):
         if x:
             pass
 
-    process = FuzzProcess.from_hypothesis_test(test_a)
+    process = FuzzProcess.from_hypothesis_test(test_a, database=db)
     process._start_phase(Phase.GENERATE)
     process._run_test_on(ConjectureData.for_choices([2]))
 
-    db = HypofuzzDatabase(hypothesis_db)
     key = process.database_key
 
     # the database state should be:
@@ -62,7 +60,7 @@ def test_database_state():
     # * database_key.hypofuzz.corpus                    (1 element)
     # * database_key.hypofuzz.corpus.<hash>.observation (1 element)
     # * database_key.hypofuzz.reports                   (1 element)
-    assert len(hypothesis_db.data.keys()) == 4
+    assert len(db._db.data.keys()) == 4
     assert list(db.fetch_corpus(key)) == [(2,)]
 
     observations = list(db.fetch_corpus_observations(key, (2,)))
@@ -83,7 +81,7 @@ def test_database_state():
     process._run_test_on(ConjectureData.for_choices([1]))
     # the key for the deleted observation sticks around in the database, it's
     # just an empty mapping.
-    assert len([k for k, v in hypothesis_db.data.items() if v]) == 4
+    assert len([k for k, v in db._db.data.items() if v]) == 4
     assert list(db.fetch_corpus(key)) == [(1,)]
 
     observations = list(db.fetch_corpus_observations(key, (1,)))
@@ -96,20 +94,18 @@ def test_database_state():
 
 
 def test_adds_failures_to_database():
-    hypothesis_db = InMemoryExampleDatabase()
-    db = HypofuzzDatabase(hypothesis_db)
+    db = HypofuzzDatabase(InMemoryExampleDatabase())
 
     @given(st.integers(0, 10))
-    @settings(database=hypothesis_db)
     def test_a(x):
         assert x != 10
 
-    process = FuzzProcess.from_hypothesis_test(test_a)
+    process = FuzzProcess.from_hypothesis_test(test_a, database=db)
     for _ in range(50):
         process.run_one()
 
     failures = list(db.fetch_failures(process.database_key, shrunk=True))
-    failures_hypothesis = list(hypothesis_db.fetch(process.database_key))
+    failures_hypothesis = list(db._db.fetch(process.database_key))
     assert len(failures) == 1
     assert len(failures_hypothesis) == 1
     assert failures[0] == (10,)
@@ -130,7 +126,16 @@ def test_database_keys_incorporate_parametrization():
     db_hypofuzz = HypofuzzDatabase(DirectoryBasedExampleDatabase(db_dir))
     assert not set(db_hypofuzz.fetch(b"hypofuzz-test-keys"))
 
-    with fuzz(test_path=test_dir, n=2):
+    # we split this to explicitly one-test-per-core to not rely on details of
+    # node allocation across cores.
+    with fuzz(test_path=test_dir, pytest_args=["-k", "test_ints[1]"]):
+        wait_for(
+            lambda: len(set(db_hypofuzz.fetch(b"hypofuzz-test-keys"))) == 1,
+            timeout=10,
+            interval=0.1,
+        )
+
+    with fuzz(test_path=test_dir, pytest_args=["-k", "test_ints[2]"]):
         # this will time out if the test keys are the same across parametrizations
         wait_for(
             lambda: len(set(db_hypofuzz.fetch(b"hypofuzz-test-keys"))) == 2,
