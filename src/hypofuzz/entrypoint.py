@@ -1,5 +1,6 @@
 """CLI and Python API for the fuzzer."""
 
+import os
 import sys
 from multiprocessing import Process
 from typing import NoReturn, Optional
@@ -95,7 +96,24 @@ def fuzz(
     raise NotImplementedError("unreachable")
 
 
+def _debug_ranges_disabled() -> None:
+    return (
+        # -X no_debug_ranges. sys._xoptions is only present on cpython
+        (hasattr(sys, "_xoptions") and "no_debug_ranges" in sys._xoptions)
+        or os.environ.get("PYTHONNODEBUGRANGES") is not None
+        or any(v is None for v in _debug_ranges_disabled.__code__.co_positions())
+    )
+
+
 def _fuzz_impl(numprocesses: int, pytest_args: tuple[str, ...]) -> None:
+    if sys.version_info >= (3, 12) and _debug_ranges_disabled():
+        raise Exception(
+            "The current python interpreter lacks position information for its "
+            "code, which Hypothesis relies on to track branch coverage.\n\nThis can "
+            "happen if you passed -X no_debug_ranges or set the PYTHONNODEBUGRANGES "
+            "enviornment variable before running python."
+        )
+
     # Before doing anything with our arguments, we'll check that none
     # of HypoFuzz's arguments will be passed on to pytest instead.
     misplaced: set = set(pytest_args) & set().union(*(p.opts for p in fuzz.params))

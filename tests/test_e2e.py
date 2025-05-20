@@ -3,6 +3,7 @@
 import os
 import signal
 import subprocess
+import sys
 import time
 
 import pytest
@@ -63,3 +64,28 @@ def test_end_to_end(numprocesses, tmp_path):
         process.stderr.close()
         os.killpg(os.getpgid(process.pid), signal.SIGTERM)
         process.wait()
+
+
+@pytest.mark.skipif(sys.version_info < (3, 12), reason="we only check on 3.12+")
+def test_raises_without_debug_ranges(tmp_path):
+    test_fname = tmp_path / "test_debug_ranges.py"
+    test_fname.write_text(TEST_CODE, encoding="utf-8")
+
+    process = subprocess.run(
+        [
+            "hypothesis",
+            "fuzz",
+            "--numprocesses",
+            "1",
+            "--no-dashboard",
+            "--",
+            str(test_fname),
+        ],
+        env=os.environ | {"PYTHONNODEBUGRANGES": "1"},
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+
+    assert process.returncode != 0
+    assert "The current python interpreter lacks position information" in process.stderr
