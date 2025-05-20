@@ -300,7 +300,10 @@ class OverviewWebsocket(HypofuzzWebsocket):
 
     async def on_event(self, header: dict[str, Any], data: Any) -> None:
         if header["type"] == "save":
-            if header["key"] in ["rolling_observation", "corpus_observation"]:
+            if header["key"] not in [
+                DatabaseEventKey.REPORT,
+                DatabaseEventKey.FAILURE,
+            ]:
                 return
             await self.send_event(header, data)
 
@@ -337,6 +340,11 @@ class TestWebsocket(HypofuzzWebsocket):
             ]:
                 assert isinstance(data, Observation)
                 nodeid = data.property
+            elif header["key"] in [
+                DatabaseEventKey.FAILURE_OBSERVATION,
+                DatabaseEventKey.CORPUS,
+            ]:
+                return
             else:
                 raise NotImplementedError(f"unhandled event {header}")
 
