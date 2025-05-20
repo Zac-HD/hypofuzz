@@ -85,6 +85,8 @@ def test_raises_without_debug_ranges(tmp_path):
         capture_output=True,
         text=True,
         timeout=10,
-        check=True,
+        check=False,
     )
+
+    assert process.returncode == 1
     assert "The current python interpreter lacks position information" in process.stderr
