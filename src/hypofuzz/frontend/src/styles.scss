@@ -409,7 +409,7 @@ select {
     }
 
     &__header {
-        font-size: 1.7rem;
+        font-size: 1.6rem;
         font-weight: 550;
     }
 
@@ -690,4 +690,150 @@ pre code.hljs {
     padding: unset;
     overflow-x: unset;
     padding: unset;
+}
+
+.tyche {
+    $max-mosaic-width: 40rem;
+    $max-nominal-width: 50rem;
+
+    &__section {
+        margin-bottom: 1.5rem;
+
+        &:last-child {
+            margin-bottom: 0;
+        }
+
+        &__header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        &__title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-right: 0.5rem;
+        }
+    }
+
+    &__mosaic {
+        &__grid {
+            max-width: $max-mosaic-width;
+            font-variant-numeric: tabular-nums;
+        }
+
+        &__column-headers {
+            display: flex;
+            align-items: center;
+            // TODO reevaluate
+            width: 100%;
+        }
+
+        &__column-header {
+            flex: 1;
+            text-align: center;
+            font-weight: 600;
+            padding: 6px 0;
+
+            &:first-child {
+                text-align: left;
+                padding-left: 56px;
+            }
+
+            &:last-child {
+                text-align: right;
+                padding-right: 56px;
+            }
+
+            &--empty {
+                width: 80px;
+                flex: 0 0 80px;
+            }
+        }
+
+        &__column-totals {
+            display: flex;
+            align-items: center;
+            padding-top: 6px;
+        }
+
+        &__row {
+            display: flex;
+            align-items: center;
+
+            & + & {
+                margin-top: 4px;
+            }
+        }
+
+        &__row-total {
+            padding-left: 6px;
+            width: 3rem;
+            font-style: italic;
+        }
+
+        &__row-header {
+            font-weight: 600;
+            width: 5rem;
+        }
+
+        &__cell {
+            height: 45px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 2px;
+            border-radius: 3px;
+            transition: opacity 0.1s ease;
+            min-width: 30px;
+            min-height: 30px;
+
+            &:hover {
+                opacity: 0.9;
+            }
+        }
+
+        &__cell-value {
+            color: white;
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        &__total {
+            width: 60px;
+            flex: 0 0 60px;
+            text-align: right;
+            padding-right: 10px;
+            font-weight: 600;
+            font-style: italic;
+        }
+
+        &__column-total {
+            flex: 1;
+            text-align: center;
+            font-style: italic;
+        }
+
+        &__grand-total {
+            width: 60px;
+            flex: 0 0 60px;
+            text-align: right;
+            padding-right: 10px;
+            font-weight: 600;
+            font-style: italic;
+        }
+    }
+
+    &__nominal {
+        &__chart {
+            max-width: $max-nominal-width;
+            margin-left: 1.75rem;
+            margin-bottom: 0.75rem;
+        }
+
+        &__feature {
+            font-family: monospace;
+            font-size: 1rem;
+        }
+    }
 }

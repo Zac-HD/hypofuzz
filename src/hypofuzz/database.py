@@ -115,12 +115,12 @@ class Phase(Enum):
 
 
 class DatabaseEventKey(Enum):
-    REPORT = auto()
-    FAILURE_OBSERVATION = auto()
-    OBSERVATION = auto()
-    CORPUS_OBSERVATION = auto()
-    CORPUS = auto()
-    FAILURE = auto()
+    REPORT = "report"
+    FAILURE_OBSERVATION = "failure_observation"
+    ROLLING_OBSERVATION = "rolling_observation"
+    CORPUS_OBSERVATION = "corpus_observation"
+    CORPUS = "corpus"
+    FAILURE = "failure"
 
 
 @dataclass(frozen=True)
@@ -138,43 +138,38 @@ class DatabaseEvent:
         (event_type, (key, value)) = event
         if b"." not in key:
             return None
+
         database_key = key.split(b".", 1)[0]
-        if event_type == "save":
-            assert value is not None
-            if key.endswith(reports_key):
-                key = DatabaseEventKey.REPORT
-                value = Report.from_json(value)
-                if value is None:
-                    return None
-            elif key.endswith(corpus_key):
-                key = DatabaseEventKey.CORPUS
-                value = choices_from_bytes(value)
-                if value is None:
-                    return None
-            elif key.endswith(failures_key):
-                key = DatabaseEventKey.FAILURE
-                value = choices_from_bytes(value)
-                if value is None:
-                    return None
-            elif key.endswith(observations_key):
-                value = Observation.from_json(value)
-                if value is None:
-                    return None
-                key = DatabaseEventKey.OBSERVATION
-            elif is_failure_observation_key(key):
-                key = DatabaseEventKey.FAILURE_OBSERVATION
-                value = Observation.from_json(value)
-                if value is None:
-                    return None
-            elif is_corpus_observation_key(key):
-                key = DatabaseEventKey.CORPUS_OBSERVATION
-                value = Observation.from_json(value)
-                if value is None:
-                    return None
-            else:
-                return None
+        if key.endswith(reports_key):
+            key = DatabaseEventKey.REPORT
+            parse = Report.from_json
+        elif key.endswith(corpus_key):
+            key = DatabaseEventKey.CORPUS
+            parse = choices_from_bytes
+        elif key.endswith(failures_key):
+            key = DatabaseEventKey.FAILURE
+            parse = choices_from_bytes
+        elif key.endswith(observations_key):
+            parse = Observation.from_json
+            key = DatabaseEventKey.ROLLING_OBSERVATION
+        elif is_failure_observation_key(key):
+            key = DatabaseEventKey.FAILURE_OBSERVATION
+            parse = Observation.from_json
+        elif is_corpus_observation_key(key):
+            key = DatabaseEventKey.CORPUS_OBSERVATION
+            parse = Observation.from_json
         else:
             return None
+
+        if event_type == "save":
+            assert value is not None
+
+        # value might be None for event_type == "delete"
+        if value is not None:
+            value = parse(value)
+            if value is None:
+                # invalid parse
+                return None
 
         return DatabaseEvent(
             type=event_type,
@@ -404,6 +399,10 @@ class HypofuzzDatabase:
             obs_buffer.extend(
                 sorted(
                     list(self.fetch_observations(key)),
+                    # TODO run_start is the same for all reports from a worker,
+                    # since we use one StateForActualGivenExecution per FuzzProcess.
+                    # should we add a new `timestamp` hypofuzz-specific metadata?
+                    # (see also DataProvider code which relies on run_start).
                     key=lambda x: x.run_start,
                 )
             )

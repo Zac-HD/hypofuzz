@@ -140,9 +140,9 @@ export function DataProvider({ children, nodeid }: DataProviderProps) {
           }
           break
         case "save":
-          // this is a differential message. depending on the type of the save event, we'll do
+          // this is a differential message. depending on the type of the event, we'll do
           // something to the appropriate attribute on Test.
-          switch (header.save_type) {
+          switch (header.key) {
             case "report": {
               data = JSON.parse(data)
               const report = Report.fromJson(data)
@@ -169,6 +169,12 @@ export function DataProvider({ children, nodeid }: DataProviderProps) {
               const observation = Observation.fromJson(data)
               const test = testsRef.current.get(observation.property)!
               test.rolling_observations.push(observation)
+              // keep only the most recent 300 rolling observations, by run_start
+              //
+              // this is a good candidate for a proper nlogn SortedList
+              test.rolling_observations = test.rolling_observations
+                .sortKey(observation => observation.run_start)
+                .slice(-300)
               setTests(new Map(testsRef.current))
               break
             }

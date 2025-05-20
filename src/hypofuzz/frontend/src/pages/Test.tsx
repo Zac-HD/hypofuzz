@@ -17,7 +17,7 @@ import { Tooltip } from "../components/Tooltip"
 import hljs from "highlight.js/lib/core"
 import "highlight.js/styles/github.css"
 import python from "highlight.js/lib/languages/python"
-import { useEffect } from "react"
+import { Tyche } from "../tyche/Tyche"
 
 hljs.registerLanguage("python", python)
 
@@ -34,10 +34,6 @@ export function TestPage() {
 function _TestPage() {
   const { nodeid } = useParams<{ nodeid: string }>()
   const { tests } = useData()
-
-  useEffect(() => {
-    hljs.highlightAll()
-  }, [tests])
 
   if (!nodeid || !tests.has(nodeid)) {
     return <div>Test not found</div>
@@ -143,7 +139,7 @@ function _TestPage() {
         />
       </div>
       <CoverageGraph tests={new Map([[nodeid, test]])} />
-
+      <Tyche test={test} />
       {test.failure && (
         <div className="test-failure">
           <h2>Failure</h2>
