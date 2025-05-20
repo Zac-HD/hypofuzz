@@ -829,6 +829,10 @@ pre code.hljs {
             max-width: $max-nominal-width;
             margin-left: 1.75rem;
             margin-bottom: 0.75rem;
+
+            @media (max-width: 768px) {
+                margin-left: 0rem;
+            }
         }
 
         &__feature {

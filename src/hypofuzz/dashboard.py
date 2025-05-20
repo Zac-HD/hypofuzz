@@ -357,10 +357,14 @@ class TestWebsocket(HypofuzzWebsocket):
 
 async def websocket(websocket: WebSocket) -> None:
     assert COLLECTION_RESULT is not None
+    nodeid = websocket.query_params.get("nodeid")
+    if nodeid is not None and nodeid not in TESTS:
+        # requesting a test page that doesn't exist
+        return
 
     websocket: HypofuzzWebsocket = (
         TestWebsocket(websocket, nodeid)
-        if (nodeid := websocket.query_params.get("nodeid"))
+        if nodeid is not None
         else OverviewWebsocket(websocket)
     )
     await websocket.accept()
