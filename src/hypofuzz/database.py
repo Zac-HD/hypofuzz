@@ -4,7 +4,7 @@ import json
 from collections import defaultdict, deque
 from collections.abc import Iterable
 from dataclasses import dataclass, is_dataclass
-from enum import Enum, auto
+from enum import Enum
 from functools import cache, lru_cache
 from typing import TYPE_CHECKING, Any, Literal, Optional, Union
 
@@ -135,6 +135,7 @@ class DatabaseEvent:
         # placate mypy
         key: Any
         value: Any
+        parse: Any
         (event_type, (key, value)) = event
         if b"." not in key:
             return None

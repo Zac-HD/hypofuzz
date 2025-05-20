@@ -22,7 +22,7 @@ h2==4.2.0                 # via hypercorn
 hpack==4.1.0              # via h2
 hypercorn==0.17.3         # via hypofuzz (pyproject.toml)
 hyperframe==6.1.0         # via h2
-hypothesis[cli,watchdog]==6.131.18  # via hypofuzz (pyproject.toml)
+hypothesis[cli,watchdog]==6.131.20  # via hypofuzz (pyproject.toml)
 idna==3.10                # via anyio, requests, trio
 imagesize==1.4.1          # via sphinx
 importlib-metadata==8.7.0  # via sphinx, sphinxcontrib-bibtex

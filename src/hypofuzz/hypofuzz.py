@@ -441,8 +441,10 @@ class FuzzProcess:
         # don't save observations during replay. Observations are nondeterministic,
         # (via `run_start`, but also `timing`), and will end up duplicating corpus
         # observations here.
-        observation = None if self.phase is Phase.REPLAY else observation.value
-        if self.corpus.add(data.as_result(), observation=observation):
+        if self.corpus.add(
+            data.as_result(),
+            observation=None if self.phase is Phase.REPLAY else observation.value,
+        ):
             # TODO this is wrong for Status.INTERESTING examples (that are smaller
             # than the previous example for this interesting origin), which are
             # successfully added to the corpus but don't represent a new branch.

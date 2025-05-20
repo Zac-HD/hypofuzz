@@ -18,7 +18,7 @@ h2==4.2.0                 # via hypercorn
 hpack==4.1.0              # via h2
 hypercorn==0.17.3         # via hypofuzz (pyproject.toml)
 hyperframe==6.1.0         # via h2
-hypothesis[cli,watchdog]==6.131.18  # via hypofuzz (pyproject.toml)
+hypothesis[cli,watchdog]==6.131.20  # via hypofuzz (pyproject.toml)
 idna==3.10                # via anyio, requests, trio
 iniconfig==2.1.0          # via pytest
 libcst==1.7.0             # via hypofuzz (pyproject.toml)

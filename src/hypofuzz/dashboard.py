@@ -70,8 +70,12 @@ class Test:
     def __post_init__(self) -> None:
         self.linear_reports = []
         # map of since: float to (start_idx, list[StatusCounts])
-        self._status_counts_cumsum = LRUCache(16)
-        self._elapsed_time_cumsum = LRUCache(16)
+        self._status_counts_cumsum: LRUCache[float, tuple[int, list[StatusCounts]]] = (
+            LRUCache(16)
+        )
+        self._elapsed_time_cumsum: LRUCache[float, tuple[int, list[float]]] = LRUCache(
+            16
+        )
 
         reports_by_worker = self.reports_by_worker
         self.reports_by_worker = {}

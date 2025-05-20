@@ -1,11 +1,11 @@
 from hypothesis import (
-    given,
+    HealthCheck,
     assume,
     event,
+    given,
+    settings,
     strategies as st,
     target,
-    settings,
-    HealthCheck,
 )
 
 

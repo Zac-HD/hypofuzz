@@ -16,7 +16,7 @@ h2==4.2.0                 # via hypercorn
 hpack==4.1.0              # via h2
 hypercorn==0.17.3         # via -r deps/check.in
 hyperframe==6.1.0         # via h2
-hypothesis==6.131.18      # via -r deps/check.in
+hypothesis==6.131.20      # via -r deps/check.in
 idna==3.10                # via anyio, trio
 iniconfig==2.1.0          # via pytest
 libcst==1.7.0             # via shed

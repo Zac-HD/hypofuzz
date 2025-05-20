@@ -96,12 +96,16 @@ def fuzz(
     raise NotImplementedError("unreachable")
 
 
-def _debug_ranges_disabled() -> None:
+def _debug_ranges_disabled() -> bool:
     return (
         # -X no_debug_ranges. sys._xoptions is only present on cpython
         (hasattr(sys, "_xoptions") and "no_debug_ranges" in sys._xoptions)
         or os.environ.get("PYTHONNODEBUGRANGES") is not None
-        or any(v is None for v in _debug_ranges_disabled.__code__.co_positions())
+        or any(
+            v is None
+            # only checked on 3.12+
+            for v in _debug_ranges_disabled.__code__.co_positions()  # type: ignore
+        )
     )
 
 
