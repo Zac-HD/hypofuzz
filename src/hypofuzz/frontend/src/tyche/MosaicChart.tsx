@@ -5,7 +5,6 @@ import { Observation } from "../types/dashboard"
 type AxisItem = [string, (observation: Observation) => boolean]
 
 interface MosaicChartProps {
-  title: string
   observations: Observation[]
   verticalAxis: AxisItem[]
   horizontalAxis: AxisItem[]
@@ -37,7 +36,6 @@ function hideTooltip() {
 }
 
 export function MosaicChart({
-  title,
   observations,
   verticalAxis,
   horizontalAxis,
@@ -121,66 +119,58 @@ export function MosaicChart({
   }
 
   return (
-    <div className="card">
-      {title && (
-        <div className="tyche__section__header">
-          <div className="tyche__section__title">{title}</div>
-        </div>
-      )}
-
-      <div className="tyche__mosaic__grid">
-        <div className="tyche__mosaic__column-headers">
-          {visibleCols.map(colIndex => (
-            <div key={colIndex} className="tyche__mosaic__column-header">
-              {horizontalAxis[colIndex][0]}
-            </div>
-          ))}
-        </div>
-
-        {visibleRows.map(rowIndex => (
-          <div key={rowIndex} className="tyche__mosaic__row">
-            <div className="tyche__mosaic__row-header">{verticalAxis[rowIndex][0]}</div>
-
-            {visibleCols.map(colIndex => (
-              <div
-                key={colIndex}
-                className="tyche__mosaic__cell"
-                style={{
-                  width: `${matrix[rowIndex][colIndex].width}%`,
-                  height: `${(matrix[rowIndex][colIndex].height / 100) * totalHeight}px`,
-                  ...cssStyle(verticalAxis[rowIndex][0], horizontalAxis[colIndex][0]),
-                }}
-                onMouseEnter={e =>
-                  matrix[rowIndex][colIndex].count > 0 &&
-                  showTooltip(
-                    e,
-                    `${verticalAxis[rowIndex][0]} and ${horizontalAxis[colIndex][0]}
-                    <br>Count: ${matrix[rowIndex][colIndex].count}`,
-                  )
-                }
-                onMouseMove={moveTooltip}
-                onMouseLeave={hideTooltip}
-              >
-                {matrix[rowIndex][colIndex].count > 0 && (
-                  <span className="tyche__mosaic__cell-value">
-                    {matrix[rowIndex][colIndex].count}
-                  </span>
-                )}
-              </div>
-            ))}
-
-            <div className="tyche__mosaic__row-total">{rowTotals[rowIndex]}</div>
+    <div className="tyche__mosaic__grid">
+      <div className="tyche__mosaic__column-headers">
+        {visibleCols.map(colIndex => (
+          <div key={colIndex} className="tyche__mosaic__column-header">
+            {horizontalAxis[colIndex][0]}
           </div>
         ))}
+      </div>
 
-        <div className="tyche__mosaic__column-totals">
+      {visibleRows.map(rowIndex => (
+        <div key={rowIndex} className="tyche__mosaic__row">
+          <div className="tyche__mosaic__row-header">{verticalAxis[rowIndex][0]}</div>
+
           {visibleCols.map(colIndex => (
-            <div key={colIndex} className="tyche__mosaic__column-total">
-              {columnTotals[colIndex]}
+            <div
+              key={colIndex}
+              className="tyche__mosaic__cell"
+              style={{
+                width: `${matrix[rowIndex][colIndex].width}%`,
+                height: `${(matrix[rowIndex][colIndex].height / 100) * totalHeight}px`,
+                ...cssStyle(verticalAxis[rowIndex][0], horizontalAxis[colIndex][0]),
+              }}
+              onMouseEnter={e =>
+                matrix[rowIndex][colIndex].count > 0 &&
+                showTooltip(
+                  e,
+                  `${verticalAxis[rowIndex][0]} and ${horizontalAxis[colIndex][0]}
+                  <br>Count: ${matrix[rowIndex][colIndex].count}`,
+                )
+              }
+              onMouseMove={moveTooltip}
+              onMouseLeave={hideTooltip}
+            >
+              {matrix[rowIndex][colIndex].count > 0 && (
+                <span className="tyche__mosaic__cell-value">
+                  {matrix[rowIndex][colIndex].count}
+                </span>
+              )}
             </div>
           ))}
-          <div className="tyche__mosaic__grand-total">{grandTotal}</div>
+
+          <div className="tyche__mosaic__row-total">{rowTotals[rowIndex]}</div>
         </div>
+      ))}
+
+      <div className="tyche__mosaic__column-totals">
+        {visibleCols.map(colIndex => (
+          <div key={colIndex} className="tyche__mosaic__column-total">
+            {columnTotals[colIndex]}
+          </div>
+        ))}
+        <div className="tyche__mosaic__grand-total">{grandTotal}</div>
       </div>
     </div>
   )

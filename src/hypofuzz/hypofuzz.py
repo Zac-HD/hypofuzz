@@ -490,7 +490,7 @@ class FuzzProcess:
             # than that).
             test_case["property"] = self.nodeid
             # run_start is relative to StateForActualGivenExecution, which we
-            # re-use per FuzzProcess. Overwrite with a fresh timestamp, so that
+            # re-use per FuzzProcess. Overwrite with the current timestamp, so that
             # the e.g. dashboard can reliably use this for sorting observations.
             test_case["run_start"] = time.time()
             # we should only get one observation per ConjectureData

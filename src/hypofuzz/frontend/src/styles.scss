@@ -565,66 +565,6 @@ select {
     }
 }
 
-.covering-examples {
-    margin: 20px 0;
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    overflow: hidden;
-
-    &__toggle {
-        width: 100%;
-        padding: 20px;
-        text-align: left;
-        background: none;
-        border: none;
-        font-size: 1.2em;
-        font-weight: 500;
-        color: #2c3e50;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-
-        &:hover {
-            background: #f8f9fa;
-        }
-    }
-
-    &__toggle-icon {
-        margin-right: 10px;
-        font-size: 1em;
-        color: #666;
-    }
-
-    &__content {
-        padding: 0 20px 20px;
-    }
-
-    &__description {
-        color: #666;
-        font-style: italic;
-        margin-bottom: 20px;
-    }
-
-    &__example {
-        background: #f8f9fa;
-        padding: 15px;
-        border-radius: 4px;
-        margin-bottom: 15px;
-
-        code {
-            font-family: monospace;
-            font-size: 0.9em;
-            white-space: pre-wrap;
-            word-break: break-word;
-        }
-
-        &:last-child {
-            margin-bottom: 0;
-        }
-    }
-}
-
 .opacity-overlay {
     position: fixed;
     top: 0;
@@ -697,7 +637,7 @@ pre code.hljs {
     $max-nominal-width: 50rem;
 
     &__section {
-        margin-bottom: 1.5rem;
+        margin-bottom: 0.5rem;
 
         &:last-child {
             margin-bottom: 0;
@@ -713,6 +653,24 @@ pre code.hljs {
             font-size: 1.2rem;
             font-weight: 600;
             margin-right: 0.5rem;
+        }
+
+        &__header {
+            display: flex;
+            cursor: pointer;
+            padding: 10px 0;
+            font-size: 1.2rem;
+            font-weight: 500;
+
+            &__toggle {
+                display: inline-flex;
+                margin-right: 2px;
+                width: 16px;
+            }
+        }
+
+        &__content {
+            padding: 0 20px 20px;
         }
     }
 
@@ -838,6 +796,31 @@ pre code.hljs {
         &__feature {
             font-family: monospace;
             font-size: 1rem;
+        }
+    }
+
+    &__representation {
+        margin-bottom: 1.5rem;
+        background: white;
+        border-radius: 8px;
+        overflow: hidden;
+
+        &__example {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+
+            code {
+                font-family: monospace;
+                font-size: 0.9em;
+                white-space: pre-wrap;
+                word-break: break-word;
+            }
+
+            &:last-child {
+                margin-bottom: 0;
+            }
         }
     }
 }

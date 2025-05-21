@@ -1,6 +1,7 @@
 import { Observation } from "../types/dashboard"
 import { MosaicChart } from "./MosaicChart"
 import { TYCHE_COLOR } from "./Tyche"
+import { TycheSection } from "./TycheSection"
 
 export function Samples({ observations }: { observations: Observation[] }) {
   function isPassed(observation: Observation) {
@@ -49,18 +50,19 @@ export function Samples({ observations }: { observations: Observation[] }) {
   }
 
   return (
-    <MosaicChart
-      title="Sample breakdown"
-      observations={observations}
-      verticalAxis={[
-        ["Passed", isPassed],
-        ["Invalid", isInvalid],
-      ]}
-      horizontalAxis={[
-        ["Unique", isUnique],
-        ["Duplicate", isDuplicate],
-      ]}
-      cssStyle={cellStyle}
-    />
+    <TycheSection title="Sample breakdown">
+      <MosaicChart
+        observations={observations}
+        verticalAxis={[
+          ["Passed", isPassed],
+          ["Invalid", isInvalid],
+        ]}
+        horizontalAxis={[
+          ["Unique", isUnique],
+          ["Duplicate", isDuplicate],
+        ]}
+        cssStyle={cellStyle}
+      />
+    </TycheSection>
   )
 }

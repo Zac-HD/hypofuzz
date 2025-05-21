@@ -2,7 +2,6 @@ import { useParams, Link } from "react-router-dom"
 import { CoverageGraph } from "../components/CoverageGraph"
 import { useData, DataProvider } from "../context/DataProvider"
 import { getTestStats } from "../utils/testStats"
-import { CoveringExamples } from "../components/CoveringExamples"
 import { Table } from "../components/Table"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
 import {
@@ -159,16 +158,6 @@ function _TestPage() {
               </code>
             </pre>
           </div>
-        </div>
-      )}
-
-      {test.observations_loaded ? (
-        test.corpus_observations && (
-          <CoveringExamples observations={test.corpus_observations} />
-        )
-      ) : (
-        <div className="covering-examples">
-          <div className="covering-examples__toggle">Loading covering examples...</div>
         </div>
       )}
     </div>

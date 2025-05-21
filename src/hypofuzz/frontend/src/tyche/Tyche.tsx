@@ -3,6 +3,7 @@ import { Test } from "../types/dashboard"
 import { Toggle } from "../components/Toggle"
 import { Features } from "./Features"
 import { Samples } from "./Samples"
+import { Representation } from "./Representation"
 
 export enum TYCHE_COLOR {
   // https://github.com/tyche-pbt/tyche-extension/blob/main/webview-ui/src/utilities/colors.ts
@@ -32,40 +33,38 @@ export function Tyche({ test }: { test: Test }) {
   }
 
   const observations =
-    observationType === "rolling" ? test.rolling_observations : test.corpus_observations
+    observationType === "rolling"
+      ? // newest first for rolling observations
+        test.rolling_observations.sortKey(observation => -observation.run_start)
+      : test.corpus_observations
 
   return (
-    <>
-      <div className="card">
-        <div className="card__header">
-          <span>Observations</span>
-        </div>
-        <div
-          style={{
-            paddingTop: "10px",
-            paddingBottom: "10px",
-            display: "flex",
-            justifyContent: "flex-start",
-            fontSize: "1.05rem",
-            fontWeight: "500",
-          }}
-        >
-          <Toggle
-            value={observationType}
-            onChange={setObservationType}
-            options={[
-              { value: "covering", label: "Covering" },
-              { value: "rolling", label: "Rolling" },
-            ]}
-          />
-        </div>
-        <div className="tyche__section">
-          <Samples observations={observations} />
-        </div>
-        <div className="tyche__section">
-          <Features observations={observations} />
-        </div>
+    <div className="card">
+      <div className="card__header">
+        <span>Observations</span>
       </div>
-    </>
+      <div
+        style={{
+          paddingTop: "10px",
+          paddingBottom: "10px",
+          display: "flex",
+          justifyContent: "flex-start",
+          fontSize: "1.05rem",
+          fontWeight: "500",
+        }}
+      >
+        <Toggle
+          value={observationType}
+          onChange={setObservationType}
+          options={[
+            { value: "covering", label: "Covering" },
+            { value: "rolling", label: "Rolling" },
+          ]}
+        />
+      </div>
+      <Samples observations={observations} />
+      <Features observations={observations} />
+      <Representation observations={observations} />
+    </div>
   )
 }
