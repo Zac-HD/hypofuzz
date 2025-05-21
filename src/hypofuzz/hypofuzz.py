@@ -482,7 +482,9 @@ class FuzzProcess:
             if test_case["type"] != "test_case":
                 return
 
-            test_case = convert_to_fuzzjson(test_case)
+            # we should only get one observation per ConjectureData
+            assert observation.value is None
+
             # we rely on this for dashboard event mapping. Overwrite instead of
             # adding a new "nodeid" field so that tyche also gets a matching nodeid.
             # Hypothesis provides the function name here instead of the nodeid
@@ -493,8 +495,15 @@ class FuzzProcess:
             # re-use per FuzzProcess. Overwrite with the current timestamp, so that
             # the e.g. dashboard can reliably use this for sorting observations.
             test_case["run_start"] = time.time()
-            # we should only get one observation per ConjectureData
-            assert observation.value is None
+            # "arguments" duplicates part of the call repr in "representation".
+            # We only use "arguments" for interactive draws; drop everything else
+            # for space.
+            test_case["arguments"] = {
+                name: value
+                for name, value in test_case["arguments"].items()
+                if name.startswith("Draw ")
+            }
+            test_case = convert_to_fuzzjson(test_case)
             observation.value = Observation.from_dict(test_case)
 
         TESTCASE_CALLBACKS.append(callback)

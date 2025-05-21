@@ -11,6 +11,20 @@ interface Props {
   observations: Observation[]
 }
 
+function representation(observation: Observation) {
+  let string = observation.representation
+  if (observation.arguments_.size > 0) {
+    string += "\n"
+    console.assert(
+      Array.from(observation.arguments_.keys()).every(key => key.startsWith("Draw ")),
+    )
+    string += Array.from(observation.arguments_.entries())
+      .map(([name, value]) => `${name}: ${JSON.stringify(value, null, 4)}`)
+      .join("\n")
+  }
+  return string
+}
+
 export function Representation({ observations }: Props) {
   const observationsDivRef = useRef<HTMLDivElement>(null)
 
@@ -34,7 +48,7 @@ export function Representation({ observations }: Props) {
       <div ref={observationsDivRef}>
         {observations.map(observation => (
           <pre key={observation.run_start} className="tyche__representation__example">
-            <code className="language-python">{observation.representation}</code>
+            <code className="language-python">{representation(observation)}</code>
           </pre>
         ))}
       </div>

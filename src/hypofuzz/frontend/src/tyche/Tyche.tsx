@@ -62,9 +62,15 @@ export function Tyche({ test }: { test: Test }) {
           ]}
         />
       </div>
-      <Samples observations={observations} />
-      <Features observations={observations} />
-      <Representation observations={observations} />
+      {observations.length > 0 ? (
+        <>
+          <Samples observations={observations} />
+          <Features observations={observations} />
+          <Representation observations={observations} />
+        </>
+      ) : (
+        <div className="tyche__section">No observations</div>
+      )}
     </div>
   )
 }
