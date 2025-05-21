@@ -6,21 +6,26 @@ interface TycheSectionProps {
   title: string
   children: ReactNode
   defaultState?: "open" | "closed"
+  onStateChange?: (state: "open" | "closed") => void
 }
 
 export function TycheSection({
   title,
   children,
   defaultState = "open",
+  onStateChange,
 }: TycheSectionProps) {
   const [state, setState] = useState(defaultState)
 
+  const toggleState = () => {
+    const newState = state === "open" ? "closed" : "open"
+    setState(newState)
+    onStateChange?.(newState)
+  }
+
   return (
     <div className="tyche__section">
-      <div
-        className="tyche__section__header"
-        onClick={() => setState(state === "open" ? "closed" : "open")}
-      >
+      <div className="tyche__section__header" onClick={toggleState}>
         <span className="tyche__section__header__toggle">
           {state === "open" ? (
             <FontAwesomeIcon icon={faCaretDown} />

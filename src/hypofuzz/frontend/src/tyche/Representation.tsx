@@ -28,7 +28,7 @@ function representation(observation: Observation) {
 export function Representation({ observations }: Props) {
   const observationsDivRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
+  function reHighlight() {
     if (observationsDivRef.current) {
       // only highlight new elements
       observationsDivRef.current
@@ -37,6 +37,10 @@ export function Representation({ observations }: Props) {
           hljs.highlightElement(element as HTMLElement)
         })
     }
+  }
+
+  useEffect(() => {
+    reHighlight()
   }, [observations])
 
   if (observations.length === 0) {
@@ -44,7 +48,18 @@ export function Representation({ observations }: Props) {
   }
 
   return (
-    <TycheSection title="Textual representation" defaultState="closed">
+    <TycheSection
+      title="Textual representation"
+      defaultState="closed"
+      onStateChange={state => {
+        if (state === "open") {
+          // wait for observationsDivRef to be set before rehighlighting
+          requestAnimationFrame(() => {
+            reHighlight()
+          })
+        }
+      }}
+    >
       <div ref={observationsDivRef}>
         {observations.map(observation => (
           <pre key={observation.run_start} className="tyche__representation__example">
