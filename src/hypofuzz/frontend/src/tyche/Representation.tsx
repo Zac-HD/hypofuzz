@@ -47,6 +47,12 @@ export function Representation({ observations }: Props) {
     return null
   }
 
+  const representations = new Map<string, number>()
+  observations.forEach(obs => {
+    const rep = representation(obs)
+    representations.set(rep, (representations.get(rep) || 0) + 1)
+  })
+
   return (
     <TycheSection
       title="Textual representation"
@@ -61,11 +67,22 @@ export function Representation({ observations }: Props) {
       }}
     >
       <div ref={observationsDivRef}>
-        {observations.map(observation => (
-          <pre key={observation.run_start} className="tyche__representation__example">
-            <code className="language-python">{representation(observation)}</code>
-          </pre>
-        ))}
+        {Array.from(representations.entries())
+          .sortKey(([rep, count]) => -count)
+          .map(([rep, count]) => (
+            // establish a new positioning context for the absolutely-positioned pill
+            <div
+              style={{ position: "relative" }}
+              className="tyche__representation__example"
+            >
+              <pre>
+                <code className="language-python">{rep}</code>
+              </pre>
+              {count > 1 && (
+                <div className="tyche__representation__example__count">x {count}</div>
+              )}
+            </div>
+          ))}
       </div>
     </TycheSection>
   )

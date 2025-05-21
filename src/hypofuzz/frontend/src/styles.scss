@@ -27,6 +27,11 @@ select {
 
 // actual styles
 
+$color-neutral: rgba(179, 170, 170, 0.2);
+$color-failure: rgba(237, 120, 107, 0.2);
+$color-warning: rgba(255, 215, 0, 0.2);
+$color-success: rgba(71, 204, 126, 0.2);
+
 .test-details {
     padding: 20px;
     background: white;
@@ -225,19 +230,19 @@ select {
     padding: 4px 8px;
 
     &__failure {
-        background: rgba(237, 120, 107, 0.2);
+        background: $color-failure;
     }
 
     &__warning {
-        background: rgba(255, 215, 0, 0.2);
+        background: $color-warning;
     }
 
     &__success {
-        background: rgba(71, 204, 126, 0.2);
+        background: $color-success;
     }
 
     &__neutral {
-        background: rgba(179, 170, 170, 0.2);
+        background: $color-neutral;
     }
 }
 
@@ -820,6 +825,18 @@ pre code.hljs {
 
             &:last-child {
                 margin-bottom: 0;
+            }
+
+            &__count {
+                position: absolute;
+                top: 16px;
+                right: 16px;
+                color: white;
+                background: rgba(94, 94, 104, 0.8);
+                border-radius: 12px;
+                padding: 2px 8px;
+                font-size: 12px;
+                font-weight: bold;
             }
         }
     }
