@@ -1,4 +1,4 @@
-import { Report, Test } from "../types/dashboard"
+import { Test } from "../types/dashboard"
 
 export interface TestStats {
   inputs: string
@@ -22,10 +22,10 @@ function formatTime(t: number): string {
   return `${hours > 0 ? `${hours}:${minutes.toString().padStart(2, "0")}` : minutes}:${seconds.toString().padStart(2, "0")}`
 }
 
-export function inputsPerSecond(test: Test): number {
-  return test.linear_reports.length > 0
-    ? test.ninputs(null) / test.elapsed_time(null)
-    : 0
+export function inputsPerSecond(test: Test): number | null {
+  const ninputs = test.ninputs(null)
+  const elapsed = test.elapsed_time(null)
+  return elapsed === 0.0 ? null : ninputs / elapsed
 }
 
 export function getTestStats(test: Test): TestStats {
@@ -39,10 +39,11 @@ export function getTestStats(test: Test): TestStats {
     }
   }
 
+  const perSecond = inputsPerSecond(test)
   return {
     inputs: test.ninputs(null).toLocaleString(),
     branches: test.branches.toLocaleString(),
-    executions: `${inputsPerSecond(test).toFixed(1).toLocaleString()}/s`,
+    executions: perSecond === null ? "—" : `${perSecond.toFixed(1).toLocaleString()}/s`,
     inputsSinceBranch: test.since_new_branch?.toLocaleString() ?? "—",
     timeSpent: formatTime(test.elapsed_time(null)),
   }

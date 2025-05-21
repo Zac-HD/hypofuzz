@@ -87,7 +87,7 @@ export function TestTable({ tests, onFilterChange }: Props) {
     {
       content: iconExecutions,
       align: "right",
-      sortKey: (test: Test) => inputsPerSecond(test),
+      sortKey: (test: Test) => inputsPerSecond(test) ?? -1,
     },
     {
       content: iconSinceNewBranch,

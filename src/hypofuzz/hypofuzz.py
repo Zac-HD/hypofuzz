@@ -65,6 +65,7 @@ from hypofuzz.database import (
     WorkerIdentity,
 )
 from hypofuzz.provider import HypofuzzProvider
+from hypofuzz.utils import convert_to_fuzzjson
 
 T = TypeVar("T")
 
@@ -480,15 +481,15 @@ class FuzzProcess:
             if test_case["type"] != "test_case":
                 return
 
-            # we should only get one observation per ConjectureData
-            assert observation.value is None
-
+            test_case = convert_to_fuzzjson(test_case)
             # we rely on this for dashboard event mapping. Overwrite instead of
             # adding a new "nodeid" field so that tyche also gets a matching nodeid.
             # Hypothesis provides the function name here instead of the nodeid
             # because it doesn't find a pytest item context (I didn't look further
             # than that).
             test_case["property"] = self.nodeid
+            # we should only get one observation per ConjectureData
+            assert observation.value is None
             observation.value = Observation.from_dict(test_case)
 
         TESTCASE_CALLBACKS.append(callback)
