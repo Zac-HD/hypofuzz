@@ -23,8 +23,7 @@ def test_database_stores_reports_and_metadata_correctly():
     assert not list(db.fetch(test_keys_key))
 
     with fuzz(test_path=test_dir):
-        wait_for(lambda: list(db.fetch(test_keys_key)), timeout=10, interval=0.1)
-        keys = list(db.fetch(test_keys_key))
+        keys = wait_for(lambda: list(db.fetch(test_keys_key)), timeout=10, interval=0.1)
         # we're only working with a single test
         assert len(keys) == 1
         key = list(keys)[0]
