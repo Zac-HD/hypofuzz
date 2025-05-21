@@ -489,6 +489,10 @@ class FuzzProcess:
             # because it doesn't find a pytest item context (I didn't look further
             # than that).
             test_case["property"] = self.nodeid
+            # run_start is relative to StateForActualGivenExecution, which we
+            # re-use per FuzzProcess. Overwrite with a fresh timestamp, so that
+            # the e.g. dashboard can reliably use this for sorting observations.
+            test_case["run_start"] = time.time()
             # we should only get one observation per ConjectureData
             assert observation.value is None
             observation.value = Observation.from_dict(test_case)

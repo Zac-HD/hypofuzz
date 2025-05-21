@@ -401,10 +401,6 @@ class HypofuzzDatabase:
             obs_buffer.extend(
                 sorted(
                     list(self.fetch_observations(key)),
-                    # TODO run_start is the same for all reports from a worker,
-                    # since we use one StateForActualGivenExecution per FuzzProcess.
-                    # should we add a new `timestamp` hypofuzz-specific metadata?
-                    # (see also DataProvider code which relies on run_start).
                     key=lambda x: x.run_start,
                 )
             )
