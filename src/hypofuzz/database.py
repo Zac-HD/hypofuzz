@@ -307,6 +307,7 @@ class ReportWithDiff(Report):
         )
 
 
+test_keys_key = b"hypofuzz.test_keys"
 reports_key = b".hypofuzz.reports"
 observations_key = b".hypofuzz.observations"
 corpus_key = b".hypofuzz.corpus"

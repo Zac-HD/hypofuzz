@@ -574,7 +574,7 @@ async def run_dashboard(port: int, host: str) -> None:
         # We may eventually want to track the database_key history of a node id
         # and at least transfer its covering corpus across when we detect a migration,
         # as well as possibly showing a history ui in the dashboard.
-        # (maybe use .hypofuzz-test-keys for this?)
+        # (maybe use test_keys_key for this?)
         key = fuzz_target.database_key
 
         rolling_observations = list(db.fetch_observations(key))

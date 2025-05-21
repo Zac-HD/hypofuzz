@@ -63,6 +63,7 @@ from hypofuzz.database import (
     Report,
     StatusCounts,
     WorkerIdentity,
+    test_keys_key,
 )
 from hypofuzz.provider import HypofuzzProvider
 from hypofuzz.utils import convert_to_fuzzjson
@@ -227,7 +228,7 @@ class FuzzProcess:
     def startup(self) -> None:
         """Set up initial state and prepare to replay the saved behaviour."""
         # Report that we've started this fuzz target
-        self.db.save(b"hypofuzz-test-keys", self.database_key)
+        self.db.save(test_keys_key, self.database_key)
         # save the worker identity once at startup
         self.db.save_worker_identity(self.database_key, self.worker_identity)
         # restore our saved minimal covering corpus, as well as any failures to
