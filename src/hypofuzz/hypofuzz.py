@@ -499,8 +499,9 @@ class FuzzProcess:
             # than that).
             test_case["property"] = self.nodeid
             # run_start is relative to StateForActualGivenExecution, which we
-            # re-use per FuzzProcess. Overwrite with the current timestamp, so that
-            # the e.g. dashboard can reliably use this for sorting observations.
+            # re-use per FuzzProcess. Overwrite with the current timestamp for use
+            # in sorting observations. This is not perfectly reliable in a
+            # distributed setting, but is good enough.
             test_case["run_start"] = time.time()
             # "arguments" duplicates part of the call repr in "representation".
             # We don't use this for anything, so drop it.
