@@ -27,6 +27,11 @@ select {
 
 // actual styles
 
+$color-neutral: rgba(179, 170, 170, 0.2);
+$color-failure: rgba(237, 120, 107, 0.2);
+$color-warning: rgba(255, 215, 0, 0.2);
+$color-success: rgba(71, 204, 126, 0.2);
+
 .test-details {
     padding: 20px;
     background: white;
@@ -225,19 +230,19 @@ select {
     padding: 4px 8px;
 
     &__failure {
-        background: rgba(237, 120, 107, 0.2);
+        background: $color-failure;
     }
 
     &__warning {
-        background: rgba(255, 215, 0, 0.2);
+        background: $color-warning;
     }
 
     &__success {
-        background: rgba(71, 204, 126, 0.2);
+        background: $color-success;
     }
 
     &__neutral {
-        background: rgba(179, 170, 170, 0.2);
+        background: $color-neutral;
     }
 }
 
@@ -399,7 +404,7 @@ select {
 
 .card {
     background: white;
-    padding: 20px;
+    padding: 15px 20px;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 
@@ -409,12 +414,12 @@ select {
     }
 
     &__header {
-        font-size: 1.8rem;
-        font-weight: 600;
+        font-size: 1.6rem;
+        font-weight: 550;
     }
 
     @media (max-width: 768px) {
-        padding: 20px 15px;
+        padding: 15px 15px;
 
         & + & {
             margin-top: 15px;
@@ -565,66 +570,6 @@ select {
     }
 }
 
-.covering-examples {
-    margin: 20px 0;
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    overflow: hidden;
-
-    &__toggle {
-        width: 100%;
-        padding: 20px;
-        text-align: left;
-        background: none;
-        border: none;
-        font-size: 1.2em;
-        font-weight: 500;
-        color: #2c3e50;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-
-        &:hover {
-            background: #f8f9fa;
-        }
-    }
-
-    &__toggle-icon {
-        margin-right: 10px;
-        font-size: 1em;
-        color: #666;
-    }
-
-    &__content {
-        padding: 0 20px 20px;
-    }
-
-    &__description {
-        color: #666;
-        font-style: italic;
-        margin-bottom: 20px;
-    }
-
-    &__example {
-        background: #f8f9fa;
-        padding: 15px;
-        border-radius: 4px;
-        margin-bottom: 15px;
-
-        code {
-            font-family: monospace;
-            font-size: 0.9em;
-            white-space: pre-wrap;
-            word-break: break-word;
-        }
-
-        &:last-child {
-            margin-bottom: 0;
-        }
-    }
-}
-
 .opacity-overlay {
     position: fixed;
     top: 0;
@@ -690,4 +635,209 @@ pre code.hljs {
     padding: unset;
     overflow-x: unset;
     padding: unset;
+}
+
+.tyche {
+    $max-mosaic-width: 40rem;
+    $max-nominal-width: 50rem;
+
+    &__section {
+        margin-bottom: 0.5rem;
+
+        &:last-child {
+            margin-bottom: 0;
+        }
+
+        &__header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        &__title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-right: 0.5rem;
+        }
+
+        &__header {
+            display: flex;
+            cursor: pointer;
+            padding: 10px 0;
+            font-size: 1.2rem;
+            font-weight: 500;
+
+            &__toggle {
+                display: inline-flex;
+                margin-right: 2px;
+                width: 16px;
+            }
+        }
+
+        &__content {
+            padding: 0 20px 20px;
+        }
+    }
+
+    &__mosaic {
+        &__grid {
+            max-width: $max-mosaic-width;
+            font-variant-numeric: tabular-nums;
+        }
+
+        &__column-headers {
+            display: flex;
+            align-items: center;
+            // TODO reevaluate
+            width: 100%;
+        }
+
+        &__column-header {
+            flex: 1;
+            text-align: center;
+            font-weight: 600;
+            padding: 6px 0;
+
+            &:first-child {
+                text-align: left;
+                padding-left: 56px;
+            }
+
+            &:last-child {
+                text-align: right;
+                padding-right: 56px;
+            }
+
+            &--empty {
+                width: 80px;
+                flex: 0 0 80px;
+            }
+        }
+
+        &__column-totals {
+            display: flex;
+            align-items: center;
+            padding-top: 6px;
+        }
+
+        &__row {
+            display: flex;
+            align-items: center;
+
+            & + & {
+                margin-top: 4px;
+            }
+        }
+
+        &__row-total {
+            padding-left: 6px;
+            width: 3rem;
+            font-style: italic;
+        }
+
+        &__row-header {
+            font-weight: 600;
+            width: 5rem;
+        }
+
+        &__cell {
+            height: 45px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 2px;
+            border-radius: 3px;
+            transition: opacity 0.1s ease;
+            min-width: 30px;
+            min-height: 30px;
+
+            &:hover {
+                opacity: 0.9;
+            }
+        }
+
+        &__cell-value {
+            color: white;
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        &__total {
+            width: 60px;
+            flex: 0 0 60px;
+            text-align: right;
+            padding-right: 10px;
+            font-weight: 600;
+            font-style: italic;
+        }
+
+        &__column-total {
+            flex: 1;
+            text-align: center;
+            font-style: italic;
+        }
+
+        &__grand-total {
+            width: 60px;
+            flex: 0 0 60px;
+            text-align: right;
+            padding-right: 10px;
+            font-weight: 600;
+            font-style: italic;
+        }
+    }
+
+    &__nominal {
+        &__chart {
+            max-width: $max-nominal-width;
+            margin-left: 1.75rem;
+            margin-bottom: 0.75rem;
+
+            @media (max-width: 768px) {
+                margin-left: 0rem;
+            }
+        }
+
+        &__feature {
+            font-family: monospace;
+            font-size: 1rem;
+        }
+    }
+
+    &__representation {
+        margin-bottom: 1.5rem;
+        background: white;
+        border-radius: 8px;
+        overflow: hidden;
+
+        &__example {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+
+            code {
+                font-family: monospace;
+                font-size: 0.9em;
+                white-space: pre-wrap;
+                word-break: break-word;
+            }
+
+            &:last-child {
+                margin-bottom: 0;
+            }
+
+            &__count {
+                position: absolute;
+                top: 16px;
+                right: 16px;
+                color: white;
+                background: rgba(94, 94, 104, 0.8);
+                border-radius: 12px;
+                padding: 2px 8px;
+                font-size: 12px;
+                font-weight: bold;
+            }
+        }
+    }
 }

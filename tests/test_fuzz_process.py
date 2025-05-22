@@ -1,5 +1,7 @@
 """Tests for the hypofuzz library."""
 
+import textwrap
+
 from hypothesis import given, strategies as st
 from hypothesis.database import InMemoryExampleDatabase
 from hypothesis.internal.conjecture.data import Status
@@ -31,13 +33,13 @@ class CustomError(Exception):
 def test_fuzz_one_process_explain_mode():
     db = HypofuzzDatabase(InMemoryExampleDatabase())
 
-    @given(st.integers(0, 10), st.integers(0, 10))
+    @given(st.integers(), st.integers())
     def test_fails(x, y):
         if x:
             raise CustomError(f"x={x}")
 
     fp = FuzzProcess.from_hypothesis_test(test_fails, database=db)
-    for _ in range(10):
+    while not fp.has_found_failure:
         fp.run_one()
 
     assert fp.status_counts[Status.INTERESTING] >= 1
@@ -45,4 +47,12 @@ def test_fuzz_one_process_explain_mode():
     assert len(failures) == 1
     observation = db.fetch_failure_observation(fp.database_key, failures[0])
     assert "CustomError" in observation.metadata["traceback"]
-    assert observation.representation == "test_fails(\n    x=1,\n    y=0,\n)"
+    expected = textwrap.dedent(
+        """
+    test_fails(
+        x=1,
+        y=0,  # or any other generated value
+    )
+    """
+    ).strip()
+    assert observation.representation == expected

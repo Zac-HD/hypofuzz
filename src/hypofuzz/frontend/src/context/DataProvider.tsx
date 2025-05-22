@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useRef } from "react"
 import { Observation, Report, Test } from "../types/dashboard"
-import JSON5 from "json5"
 
 interface DataContextType {
   tests: Map<string, Test>
@@ -37,7 +36,7 @@ export function DataProvider({ children, nodeid }: DataProviderProps) {
     if (import.meta.env.VITE_USE_DASHBOARD_STATE === "1") {
       fetch(new URL(/* @vite-ignore */ "dashboard_state/tests.json", import.meta.url))
         .then(response => response.text())
-        .then(text => JSON5.parse(text) as Record<string, any>)
+        .then(text => JSON.parse(text) as Record<string, any>)
         .then(data => {
           const tests = new Map(
             Object.entries(data).map(([nodeid, data]) => [nodeid, Test.fromJson(data)]),
@@ -89,11 +88,7 @@ export function DataProvider({ children, nodeid }: DataProviderProps) {
     const ws = new WebSocket(url)
 
     ws.onmessage = event => {
-      // split the message into the header and the body, to allow for parsing the
-      // body with either JSON (faster) or JSON5 (allows e.g. Infinity) depending on
-      // the type of the data. We don't want to parse with JSON5 unless necessary.
-      //
-      // The format is an extremely simple pipe separator.
+      // split the message into the header and the body. The format is an extremely simple pipe separator.
 
       // note: data.split("|", 2) is incorrect, as it drops everything after the second pipe, unlike python's split
       const pipeIndex = event.data.indexOf("|")
@@ -105,9 +100,7 @@ export function DataProvider({ children, nodeid }: DataProviderProps) {
         case "initial":
           switch (header.initial_type) {
             case "tests": {
-              // this is only json 5 because test.failure is an observation. Should we split that out to "observations"
-              // as well?
-              data = JSON5.parse(data)
+              data = JSON.parse(data)
               setTests(
                 new Map(
                   Object.entries(data).map(([nodeid, data]) => [
@@ -120,7 +113,7 @@ export function DataProvider({ children, nodeid }: DataProviderProps) {
               break
             }
             case "observations": {
-              data = JSON5.parse(data)
+              data = JSON.parse(data)
               for (const [test_id, observationsData] of Object.entries(data)) {
                 // this relies on initial_type == "tests" being parsed first, but I don't think
                 // this is guaranteed in async land. need to refactor each initial_type to create an
@@ -140,9 +133,9 @@ export function DataProvider({ children, nodeid }: DataProviderProps) {
           }
           break
         case "save":
-          // this is a differential message. depending on the type of the save event, we'll do
+          // this is a differential message. depending on the type of the event, we'll do
           // something to the appropriate attribute on Test.
-          switch (header.save_type) {
+          switch (header.key) {
             case "report": {
               data = JSON.parse(data)
               const report = Report.fromJson(data)
@@ -156,7 +149,7 @@ export function DataProvider({ children, nodeid }: DataProviderProps) {
             case "failure": {
               // observability reports use e.g. Infinity, which is invalid in standard json
               // but valid in json5.
-              data = JSON5.parse(data)
+              data = JSON.parse(data)
               const failure = Observation.fromJson(data)
               const test = testsRef.current.get(failure.property)!
               test.failure = failure
@@ -165,15 +158,21 @@ export function DataProvider({ children, nodeid }: DataProviderProps) {
               break
             }
             case "rolling_observation": {
-              data = JSON5.parse(data)
+              data = JSON.parse(data)
               const observation = Observation.fromJson(data)
               const test = testsRef.current.get(observation.property)!
               test.rolling_observations.push(observation)
+              // keep only the most recent 300 rolling observations, by run_start
+              //
+              // this is a good candidate for a proper nlogn SortedList
+              test.rolling_observations = test.rolling_observations
+                .sortKey(observation => observation.run_start)
+                .slice(-300)
               setTests(new Map(testsRef.current))
               break
             }
             case "corpus_observation": {
-              data = JSON5.parse(data)
+              data = JSON.parse(data)
               const observation = Observation.fromJson(data)
               const test = testsRef.current.get(observation.property)!
               test.corpus_observations.push(observation)

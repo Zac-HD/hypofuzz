@@ -70,8 +70,12 @@ class Test:
     def __post_init__(self) -> None:
         self.linear_reports = []
         # map of since: float to (start_idx, list[StatusCounts])
-        self._status_counts_cumsum = LRUCache(16)
-        self._elapsed_time_cumsum = LRUCache(16)
+        self._status_counts_cumsum: LRUCache[float, tuple[int, list[StatusCounts]]] = (
+            LRUCache(16)
+        )
+        self._elapsed_time_cumsum: LRUCache[float, tuple[int, list[float]]] = LRUCache(
+            16
+        )
 
         reports_by_worker = self.reports_by_worker
         self.reports_by_worker = {}
@@ -276,7 +280,7 @@ class HypofuzzWebsocket(abc.ABC):
 
     async def send_event(self, header: dict[str, Any], data: Any) -> None:
         await self.websocket.send_text(
-            f"{json.dumps(header)}|{json.dumps(data, cls=HypofuzzEncoder)}"
+            f"{json.dumps(header, cls=HypofuzzEncoder)}|{json.dumps(data, cls=HypofuzzEncoder)}"
         )
 
     @abc.abstractmethod
@@ -296,7 +300,10 @@ class OverviewWebsocket(HypofuzzWebsocket):
 
     async def on_event(self, header: dict[str, Any], data: Any) -> None:
         if header["type"] == "save":
-            if header["save_type"] in ["rolling_observation", "corpus_observation"]:
+            if header["key"] not in [
+                DatabaseEventKey.REPORT,
+                DatabaseEventKey.FAILURE,
+            ]:
                 return
             await self.send_event(header, data)
 
@@ -323,16 +330,21 @@ class TestWebsocket(HypofuzzWebsocket):
 
     async def on_event(self, header: dict[str, Any], data: Any) -> None:
         if header["type"] == "save":
-            if header["save_type"] == "report":
+            if header["key"] is DatabaseEventKey.REPORT:
                 assert isinstance(data, Report)
                 nodeid = data.nodeid
-            elif header["save_type"] in [
-                "failure",
-                "rolling_observation",
-                "corpus_observation",
+            elif header["key"] in [
+                DatabaseEventKey.FAILURE,
+                DatabaseEventKey.ROLLING_OBSERVATION,
+                DatabaseEventKey.CORPUS_OBSERVATION,
             ]:
                 assert isinstance(data, Observation)
                 nodeid = data.property
+            elif header["key"] in [
+                DatabaseEventKey.FAILURE_OBSERVATION,
+                DatabaseEventKey.CORPUS,
+            ]:
+                return
             else:
                 raise NotImplementedError(f"unhandled event {header}")
 
@@ -345,10 +357,14 @@ class TestWebsocket(HypofuzzWebsocket):
 
 async def websocket(websocket: WebSocket) -> None:
     assert COLLECTION_RESULT is not None
+    nodeid = websocket.query_params.get("nodeid")
+    if nodeid is not None and nodeid not in TESTS:
+        # requesting a test page that doesn't exist
+        return
 
     websocket: HypofuzzWebsocket = (
         TestWebsocket(websocket, nodeid)
-        if (nodeid := websocket.query_params.get("nodeid"))
+        if nodeid is not None
         else OverviewWebsocket(websocket)
     )
     await websocket.accept()
@@ -498,42 +514,37 @@ async def handle_event(receive_channel: MemoryReceiveChannel[ListenerEventT]) ->
         # dashboard launched by that command. The schemas should never
         # be mismatched in this case.
         #
-        # However, in the distributed case, a worker might be running an
-        # code version while the dashboard runs a newer version. Here,
+        # However, in the distributed case, a worker might be running an old
+        # hypofuzz version while the dashboard runs a newer version. Here,
         # a None report from a parse error could occur.
         if event is None:
             continue
-        if event.type == "save":
-            if event.key is DatabaseEventKey.REPORT:
-                report = event.value
-                if report.nodeid not in TESTS:
-                    continue
-                TESTS[report.nodeid].add_report(report)
-                await broadcast_event({"type": "save", "save_type": "report"}, report)
-            elif event.key is DatabaseEventKey.FAILURE_OBSERVATION:
-                observation = event.value
-                if observation.property not in TESTS:
-                    continue
-                TESTS[observation.property].failure = observation
-                await broadcast_event(
-                    {"type": "save", "save_type": "failure"}, observation
-                )
-            elif event.key is DatabaseEventKey.OBSERVATION:
-                observation = event.value
-                if observation.property not in TESTS:
-                    continue
-                TESTS[observation.property].rolling_observations.append(observation)
-                await broadcast_event(
-                    {"type": "save", "save_type": "rolling_observation"}, observation
-                )
-            elif event.key is DatabaseEventKey.CORPUS_OBSERVATION:
-                observation = event.value
-                if observation.property not in TESTS:
-                    continue
-                TESTS[observation.property].corpus_observations.append(observation)
-                await broadcast_event(
-                    {"type": "save", "save_type": "corpus_observation"}, observation
-                )
+
+        if event.type == "delete":
+            # don't send deletion events to the dashboard, for now
+            continue
+
+        assert event.type == "save"
+        assert event.value is not None
+
+        if event.key is DatabaseEventKey.REPORT:
+            if event.value.nodeid not in TESTS:
+                continue
+            TESTS[event.value.nodeid].add_report(event.value)
+        elif event.key is DatabaseEventKey.FAILURE_OBSERVATION:
+            if event.value.property not in TESTS:
+                continue
+            TESTS[event.value.property].failure = event.value
+        elif event.key is DatabaseEventKey.ROLLING_OBSERVATION:
+            if event.value.property not in TESTS:
+                continue
+            TESTS[event.value.property].rolling_observations.append(event.value)
+        elif event.key is DatabaseEventKey.CORPUS_OBSERVATION:
+            if event.value.property not in TESTS:
+                continue
+            TESTS[event.value.property].corpus_observations.append(event.value)
+
+        await broadcast_event({"type": event.type, "key": event.key}, event.value)
 
 
 async def run_dashboard(port: int, host: str) -> None:
@@ -563,7 +574,7 @@ async def run_dashboard(port: int, host: str) -> None:
         # We may eventually want to track the database_key history of a node id
         # and at least transfer its covering corpus across when we detect a migration,
         # as well as possibly showing a history ui in the dashboard.
-        # (maybe use .hypofuzz-test-keys for this?)
+        # (maybe use test_keys_key for this?)
         key = fuzz_target.database_key
 
         rolling_observations = list(db.fetch_observations(key))

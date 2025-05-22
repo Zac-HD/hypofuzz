@@ -9,7 +9,7 @@ from hypothesis.database import (
 )
 from hypothesis.internal.conjecture.data import ConjectureData
 
-from hypofuzz.database import HypofuzzDatabase, Phase
+from hypofuzz.database import HypofuzzDatabase, Phase, test_keys_key
 from hypofuzz.hypofuzz import FuzzProcess
 
 
@@ -20,13 +20,10 @@ def test_database_stores_reports_and_metadata_correctly():
 
     test_dir, db_dir = write_test_code(BASIC_TEST_CODE)
     db = HypofuzzDatabase(DirectoryBasedExampleDatabase(db_dir))
-    assert not list(db.fetch(b"hypofuzz-test-keys"))
+    assert not list(db.fetch(test_keys_key))
 
     with fuzz(test_path=test_dir):
-        wait_for(
-            lambda: list(db.fetch(b"hypofuzz-test-keys")), timeout=10, interval=0.1
-        )
-        keys = list(db.fetch(b"hypofuzz-test-keys"))
+        keys = wait_for(lambda: list(db.fetch(test_keys_key)), timeout=10, interval=0.1)
         # we're only working with a single test
         assert len(keys) == 1
         key = list(keys)[0]
@@ -124,13 +121,13 @@ def test_database_keys_incorporate_parametrization():
         """
     test_dir, db_dir = write_test_code(test_code)
     db_hypofuzz = HypofuzzDatabase(DirectoryBasedExampleDatabase(db_dir))
-    assert not set(db_hypofuzz.fetch(b"hypofuzz-test-keys"))
+    assert not set(db_hypofuzz.fetch(test_keys_key))
 
     # we split this to explicitly one-test-per-core to not rely on details of
     # node allocation across cores.
     with fuzz(test_path=test_dir, pytest_args=["-k", "test_ints[1]"]):
         wait_for(
-            lambda: len(set(db_hypofuzz.fetch(b"hypofuzz-test-keys"))) == 1,
+            lambda: len(set(db_hypofuzz.fetch(test_keys_key))) == 1,
             timeout=10,
             interval=0.1,
         )
@@ -138,7 +135,7 @@ def test_database_keys_incorporate_parametrization():
     with fuzz(test_path=test_dir, pytest_args=["-k", "test_ints[2]"]):
         # this will time out if the test keys are the same across parametrizations
         wait_for(
-            lambda: len(set(db_hypofuzz.fetch(b"hypofuzz-test-keys"))) == 2,
+            lambda: len(set(db_hypofuzz.fetch(test_keys_key))) == 2,
             timeout=10,
             interval=0.1,
         )
@@ -149,7 +146,7 @@ def test_database_keys_incorporate_parametrization():
     # top-level keys should be the same as the hypofuzz keys.
     test_dir, db_dir = write_test_code(test_code)
     db_hypothesis = HypofuzzDatabase(DirectoryBasedExampleDatabase(db_dir))
-    hypofuzz_keys = set(db_hypofuzz.fetch(b"hypofuzz-test-keys"))
+    hypofuzz_keys = set(db_hypofuzz.fetch(test_keys_key))
     assert (
         set(db_hypothesis.fetch(DirectoryBasedExampleDatabase._metakeys_name)) == set()
     )

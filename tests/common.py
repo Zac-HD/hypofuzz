@@ -34,8 +34,8 @@ class Dashboard:
 
 def wait_for(condition, *, timeout, interval):
     for _ in range(int(timeout // interval) + 1):
-        if condition():
-            return
+        if value := condition():
+            return value
         time.sleep(interval)
     raise Exception(
         f"timing out after waiting {timeout}s for condition "

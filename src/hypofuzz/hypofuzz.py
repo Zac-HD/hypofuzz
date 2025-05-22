@@ -15,7 +15,7 @@ from base64 import b64encode
 from collections import defaultdict
 from collections.abc import Callable, Generator
 from contextlib import contextmanager
-from enum import Enum
+from enum import IntEnum
 from functools import lru_cache
 from pathlib import Path
 from random import Random
@@ -63,8 +63,10 @@ from hypofuzz.database import (
     Report,
     StatusCounts,
     WorkerIdentity,
+    test_keys_key,
 )
 from hypofuzz.provider import HypofuzzProvider
+from hypofuzz.utils import convert_to_fuzzjson
 
 T = TypeVar("T")
 
@@ -115,7 +117,7 @@ def _choices_size(choices: tuple[Union[ChoiceT, ChoiceTemplate], ...]) -> int:
     )
 
 
-class ReplayFailurePriority(Enum):
+class ReplayFailurePriority(IntEnum):
     SHRUNK = 0
     UNSHRUNK = 1
 
@@ -226,7 +228,7 @@ class FuzzProcess:
     def startup(self) -> None:
         """Set up initial state and prepare to replay the saved behaviour."""
         # Report that we've started this fuzz target
-        self.db.save(b"hypofuzz-test-keys", self.database_key)
+        self.db.save(test_keys_key, self.database_key)
         # save the worker identity once at startup
         self.db.save_worker_identity(self.database_key, self.worker_identity)
         # restore our saved minimal covering corpus, as well as any failures to
@@ -243,8 +245,13 @@ class FuzzProcess:
 
         self._replay_queue.add((ChoiceTemplate(type="simplest", count=None),))
         for shrunk in [True, False]:
+            priority = (
+                ReplayFailurePriority.SHRUNK
+                if shrunk
+                else ReplayFailurePriority.UNSHRUNK
+            )
             self._failure_queue.update(
-                (shrunk, choices)
+                (priority, choices)
                 for choices in self.db.fetch_failures(self.database_key, shrunk=shrunk)
             )
 
@@ -296,7 +303,7 @@ class FuzzProcess:
             # Choices doesn't handle ChoiceTemplate
             if (
                 all(not isinstance(choice, ChoiceTemplate) for choice in choices)
-                and Choices(choices) in self.corpus._saved_to_database
+                and Choices(choices) in self.corpus._saved_to_database  # type: ignore
             ):
                 continue
 
@@ -365,6 +372,8 @@ class FuzzProcess:
             # the shrinker was already running under observability via _run_test_on,
             # but threading that result through to here is tricky.
             data = ConjectureData.for_choices(shrinker.shrink_target.choices)
+            # make sure to carry over explain-phase comments
+            data.slice_comments = shrinker.shrink_target.slice_comments
             with self.observe() as observation:
                 try:
                     self.state._execute_once_for_engine(data)
@@ -438,7 +447,13 @@ class FuzzProcess:
         # saving a report between them, or we might violate monotonicity invariants.
         self.elapsed_time += time.perf_counter() - start
         assert observation.value is not None
-        if self.corpus.add(data.as_result(), observation=observation.value):
+        # don't save observations during replay. Observations are nondeterministic,
+        # (via `run_start`, but also `timing`), and will end up duplicating corpus
+        # observations here.
+        if self.corpus.add(
+            data.as_result(),
+            observation=None if self.phase is Phase.REPLAY else observation.value,
+        ):
             # TODO this is wrong for Status.INTERESTING examples (that are smaller
             # than the previous example for this interesting origin), which are
             # successfully added to the corpus but don't represent a new branch.
@@ -483,6 +498,15 @@ class FuzzProcess:
             # because it doesn't find a pytest item context (I didn't look further
             # than that).
             test_case["property"] = self.nodeid
+            # run_start is relative to StateForActualGivenExecution, which we
+            # re-use per FuzzProcess. Overwrite with the current timestamp for use
+            # in sorting observations. This is not perfectly reliable in a
+            # distributed setting, but is good enough.
+            test_case["run_start"] = time.time()
+            # "arguments" duplicates part of the call repr in "representation".
+            # We don't use this for anything, so drop it.
+            test_case["arguments"] = {}
+            test_case = convert_to_fuzzjson(test_case)
             observation.value = Observation.from_dict(test_case)
 
         TESTCASE_CALLBACKS.append(callback)
@@ -502,14 +526,15 @@ class FuzzProcess:
             self.elapsed_time > self._last_observed + 1
         )
         with self.observe() as observation:
-            yield observation
-
-        if will_save:
-            assert observation.value is not None
-            self.db.save_observation(
-                self.database_key, observation.value, discard_over=300
-            )
-            self._last_observed = self.elapsed_time
+            try:
+                yield observation
+            finally:
+                if will_save:
+                    assert observation.value is not None
+                    self.db.save_observation(
+                        self.database_key, observation.value, discard_over=300
+                    )
+                    self._last_observed = self.elapsed_time
 
     def _save_report(self, report: Report) -> None:
         self.db.save_report(self.database_key, report)
@@ -558,7 +583,9 @@ class FuzzProcess:
 def fuzz_several(targets: list[FuzzProcess], random_seed: Optional[int] = None) -> None:
     """Take N fuzz targets and run them all."""
     random = Random(random_seed)
-    targets = SortedKeyList(targets, lambda t: t.since_new_branch)
+    targets: SortedKeyList[FuzzProcess, int] = SortedKeyList(
+        targets, lambda t: t.since_new_branch
+    )
 
     # Loop forever: at each timestep, we choose a target using an epsilon-greedy
     # strategy for simplicity (TODO: improve this later) and run it once.

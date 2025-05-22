@@ -4,7 +4,7 @@ import json
 from collections import defaultdict, deque
 from collections.abc import Iterable
 from dataclasses import dataclass, is_dataclass
-from enum import Enum, auto
+from enum import Enum
 from functools import cache, lru_cache
 from typing import TYPE_CHECKING, Any, Literal, Optional, Union
 
@@ -115,12 +115,12 @@ class Phase(Enum):
 
 
 class DatabaseEventKey(Enum):
-    REPORT = auto()
-    FAILURE_OBSERVATION = auto()
-    OBSERVATION = auto()
-    CORPUS_OBSERVATION = auto()
-    CORPUS = auto()
-    FAILURE = auto()
+    REPORT = "report"
+    FAILURE_OBSERVATION = "failure_observation"
+    ROLLING_OBSERVATION = "rolling_observation"
+    CORPUS_OBSERVATION = "corpus_observation"
+    CORPUS = "corpus"
+    FAILURE = "failure"
 
 
 @dataclass(frozen=True)
@@ -135,46 +135,42 @@ class DatabaseEvent:
         # placate mypy
         key: Any
         value: Any
+        parse: Any
         (event_type, (key, value)) = event
         if b"." not in key:
             return None
+
         database_key = key.split(b".", 1)[0]
-        if event_type == "save":
-            assert value is not None
-            if key.endswith(reports_key):
-                key = DatabaseEventKey.REPORT
-                value = Report.from_json(value)
-                if value is None:
-                    return None
-            elif key.endswith(corpus_key):
-                key = DatabaseEventKey.CORPUS
-                value = choices_from_bytes(value)
-                if value is None:
-                    return None
-            elif key.endswith(failures_key):
-                key = DatabaseEventKey.FAILURE
-                value = choices_from_bytes(value)
-                if value is None:
-                    return None
-            elif key.endswith(observations_key):
-                value = Observation.from_json(value)
-                if value is None:
-                    return None
-                key = DatabaseEventKey.OBSERVATION
-            elif is_failure_observation_key(key):
-                key = DatabaseEventKey.FAILURE_OBSERVATION
-                value = Observation.from_json(value)
-                if value is None:
-                    return None
-            elif is_corpus_observation_key(key):
-                key = DatabaseEventKey.CORPUS_OBSERVATION
-                value = Observation.from_json(value)
-                if value is None:
-                    return None
-            else:
-                return None
+        if key.endswith(reports_key):
+            key = DatabaseEventKey.REPORT
+            parse = Report.from_json
+        elif key.endswith(corpus_key):
+            key = DatabaseEventKey.CORPUS
+            parse = choices_from_bytes
+        elif key.endswith(failures_key):
+            key = DatabaseEventKey.FAILURE
+            parse = choices_from_bytes
+        elif key.endswith(observations_key):
+            parse = Observation.from_json
+            key = DatabaseEventKey.ROLLING_OBSERVATION
+        elif is_failure_observation_key(key):
+            key = DatabaseEventKey.FAILURE_OBSERVATION
+            parse = Observation.from_json
+        elif is_corpus_observation_key(key):
+            key = DatabaseEventKey.CORPUS_OBSERVATION
+            parse = Observation.from_json
         else:
             return None
+
+        if event_type == "save":
+            assert value is not None
+
+        # value might be None for event_type == "delete"
+        if value is not None:
+            value = parse(value)
+            if value is None:
+                # invalid parse
+                return None
 
         return DatabaseEvent(
             type=event_type,
@@ -311,6 +307,7 @@ class ReportWithDiff(Report):
         )
 
 
+test_keys_key = b"hypofuzz.test_keys"
 reports_key = b".hypofuzz.reports"
 observations_key = b".hypofuzz.observations"
 corpus_key = b".hypofuzz.corpus"
@@ -419,8 +416,8 @@ class HypofuzzDatabase:
         self.delete(key + observations_key, self._encode(observation))
 
     def fetch_observations(self, key: bytes) -> Iterable[Observation]:
-        for as_bytes in self.fetch(key + observations_key):
-            if (observation := Observation.from_json(json.loads(as_bytes))) is not None:
+        for value in self.fetch(key + observations_key):
+            if observation := Observation.from_json(value):
                 yield observation
 
     # corpus (corpus_key)
