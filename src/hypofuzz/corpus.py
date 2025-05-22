@@ -124,7 +124,7 @@ class Corpus:
         # TODO: track fingerprints (sets of branches) as our level-of-uniqueness.
         # Add an input to the corpus if its fingerprint is new, not just if it covers
         # a new branch.
-        self.results: dict[NodesT, ConjectureResult] = SortedDict(sort_key)
+        self.results: SortedDict[NodesT, ConjectureResult] = SortedDict(sort_key)
 
         # For each branch, what's the minimal covering example?
         self.covering_nodes: dict[Branch, NodesT] = {}
@@ -221,8 +221,7 @@ class Corpus:
         # current largest minimal example, we can skip the expensive calculation.
         if (not branches.issubset(self.branch_counts)) or (
             self.results
-            and sort_key(result.nodes)
-            < sort_key(self.results.keys()[-1])  # type: ignore
+            and sort_key(result.nodes) < sort_key(self.results.keys()[-1])
             and any(
                 sort_key(result.nodes) < sort_key(known_nodes)
                 for branch, known_nodes in self.covering_nodes.items()

@@ -4,6 +4,7 @@ mypy
 pep8-naming
 shed
 types-requests
+sortedcontainers-stubs
 hypothesis
 pytest
 starlette

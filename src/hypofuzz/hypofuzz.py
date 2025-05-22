@@ -15,7 +15,7 @@ from base64 import b64encode
 from collections import defaultdict
 from collections.abc import Callable, Generator
 from contextlib import contextmanager
-from enum import Enum
+from enum import IntEnum
 from functools import lru_cache
 from pathlib import Path
 from random import Random
@@ -117,7 +117,7 @@ def _choices_size(choices: tuple[Union[ChoiceT, ChoiceTemplate], ...]) -> int:
     )
 
 
-class ReplayFailurePriority(Enum):
+class ReplayFailurePriority(IntEnum):
     SHRUNK = 0
     UNSHRUNK = 1
 
@@ -245,8 +245,13 @@ class FuzzProcess:
 
         self._replay_queue.add((ChoiceTemplate(type="simplest", count=None),))
         for shrunk in [True, False]:
+            priority = (
+                ReplayFailurePriority.SHRUNK
+                if shrunk
+                else ReplayFailurePriority.UNSHRUNK
+            )
             self._failure_queue.update(
-                (shrunk, choices)
+                (priority, choices)
                 for choices in self.db.fetch_failures(self.database_key, shrunk=shrunk)
             )
 
@@ -298,7 +303,7 @@ class FuzzProcess:
             # Choices doesn't handle ChoiceTemplate
             if (
                 all(not isinstance(choice, ChoiceTemplate) for choice in choices)
-                and Choices(choices) in self.corpus._saved_to_database
+                and Choices(choices) in self.corpus._saved_to_database  # type: ignore
             ):
                 continue
 
@@ -577,7 +582,9 @@ class FuzzProcess:
 def fuzz_several(targets: list[FuzzProcess], random_seed: Optional[int] = None) -> None:
     """Take N fuzz targets and run them all."""
     random = Random(random_seed)
-    targets = SortedKeyList(targets, lambda t: t.since_new_branch)
+    targets: SortedKeyList[FuzzProcess, int] = SortedKeyList(
+        targets, lambda t: t.since_new_branch
+    )
 
     # Loop forever: at each timestep, we choose a target using an epsilon-greedy
     # strategy for simplicity (TODO: improve this later) and run it once.
