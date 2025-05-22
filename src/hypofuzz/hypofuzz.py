@@ -367,6 +367,8 @@ class FuzzProcess:
             # the shrinker was already running under observability via _run_test_on,
             # but threading that result through to here is tricky.
             data = ConjectureData.for_choices(shrinker.shrink_target.choices)
+            # make sure to carry over explain-phase comments
+            data.slice_comments = shrinker.shrink_target.slice_comments
             with self.observe() as observation:
                 try:
                     self.state._execute_once_for_engine(data)
