@@ -1,6 +1,7 @@
 """Tests for the hypofuzz library."""
 
 import textwrap
+
 from hypothesis import given, strategies as st
 from hypothesis.database import InMemoryExampleDatabase
 from hypothesis.internal.conjecture.data import Status
