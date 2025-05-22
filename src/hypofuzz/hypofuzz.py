@@ -496,13 +496,8 @@ class FuzzProcess:
             # the e.g. dashboard can reliably use this for sorting observations.
             test_case["run_start"] = time.time()
             # "arguments" duplicates part of the call repr in "representation".
-            # We only use "arguments" for interactive draws; drop everything else
-            # for space.
-            test_case["arguments"] = {
-                name: value
-                for name, value in test_case["arguments"].items()
-                if name.startswith("Draw ")
-            }
+            # We don't use this for anything, so drop it.
+            test_case["arguments"] = {}
             test_case = convert_to_fuzzjson(test_case)
             observation.value = Observation.from_dict(test_case)
 
