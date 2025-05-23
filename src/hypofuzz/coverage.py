@@ -15,8 +15,8 @@ import hypothesis
 import pluggy
 import pytest
 import sortedcontainers
-import watchdog
 import tqdm
+import watchdog
 from hypothesis.internal.escalation import belongs_to
 
 import hypofuzz

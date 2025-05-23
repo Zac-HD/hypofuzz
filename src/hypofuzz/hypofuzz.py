@@ -303,7 +303,7 @@ class FuzzProcess:
             # Choices doesn't handle ChoiceTemplate
             if (
                 all(not isinstance(choice, ChoiceTemplate) for choice in choices)
-                and Choices(choices) in self.corpus.corpus
+                and Choices(choices) in self.corpus.corpus  # type: ignore
             ):
                 continue
 
