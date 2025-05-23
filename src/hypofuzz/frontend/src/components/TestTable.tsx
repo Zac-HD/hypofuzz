@@ -8,6 +8,7 @@ import {
   faTachometerAlt,
   faClock,
   faSeedling,
+  faSitemap,
 } from "@fortawesome/free-solid-svg-icons"
 import { StatusPill } from "./StatusPill"
 import { Tooltip } from "./Tooltip"
@@ -54,13 +55,19 @@ export function TestTable({ tests, onFilterChange }: Props) {
     })
     .map(([nodeid, test]) => test)
 
-  const inputsIcon = <Icon icon={faHashtag} tooltip="Number of inputs" />
-  const iconBranches = (
-    <Icon icon={faCodeBranch} tooltip="Number of branches executed" />
+  const iconInputs = <Icon icon={faHashtag} tooltip="Number of inputs" />
+  const iconBehaviors = (
+    <Icon
+      icon={faCodeBranch}
+      tooltip="Number of behaviors (typically branches) found"
+    />
+  )
+  const iconFingerprints = (
+    <Icon icon={faSitemap} tooltip="Number of fingerprints (sets of behaviors) found" />
   )
   const iconExecutions = <Icon icon={faTachometerAlt} tooltip="Inputs per second" />
   const iconSinceNewBranch = (
-    <Icon icon={faSeedling} tooltip="Number of inputs since a new branch" />
+    <Icon icon={faSeedling} tooltip="Number of inputs since a new behavior" />
   )
   const iconTimeSpent = <Icon icon={faClock} tooltip="Total time spent running" />
 
@@ -75,14 +82,19 @@ export function TestTable({ tests, onFilterChange }: Props) {
       align: "center",
     },
     {
-      content: inputsIcon,
+      content: iconInputs,
       align: "right",
       sortKey: (test: Test) => test.ninputs(null),
     },
     {
-      content: iconBranches,
+      content: iconBehaviors,
       align: "right",
-      sortKey: (test: Test) => test.branches,
+      sortKey: (test: Test) => test.behaviors,
+    },
+    {
+      content: iconFingerprints,
+      align: "right",
+      sortKey: (test: Test) => test.fingerprints,
     },
     {
       content: iconExecutions,
@@ -119,7 +131,10 @@ export function TestTable({ tests, onFilterChange }: Props) {
         {stats.inputs}
       </div>,
       <div style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
-        {stats.branches}
+        {stats.behaviors}
+      </div>,
+      <div style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+        {stats.fingerprints}
       </div>,
       <div style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
         {stats.executions}
@@ -149,8 +164,8 @@ export function TestTable({ tests, onFilterChange }: Props) {
           <StatusPill status={test.status} />
         </div>
         <div className="table__mobile-row__statistics">
-          <InlineStatistic icon={inputsIcon} value={stats.inputs} />
-          <InlineStatistic icon={iconBranches} value={stats.branches} />
+          <InlineStatistic icon={iconInputs} value={stats.inputs} />
+          <InlineStatistic icon={iconBehaviors} value={stats.behaviors} />
           <InlineStatistic icon={iconExecutions} value={stats.executions} />
           <InlineStatistic icon={iconSinceNewBranch} value={stats.inputsSinceBranch} />
           <InlineStatistic icon={iconTimeSpent} value={stats.timeSpent} />

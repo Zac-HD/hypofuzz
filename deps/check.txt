@@ -16,7 +16,7 @@ h2==4.2.0                 # via hypercorn
 hpack==4.1.0              # via h2
 hypercorn==0.17.3         # via -r deps/check.in
 hyperframe==6.1.0         # via h2
-hypothesis==6.131.22      # via -r deps/check.in
+hypothesis==6.131.24      # via -r deps/check.in
 idna==3.10                # via anyio, trio
 iniconfig==2.1.0          # via pytest
 libcst==1.7.0             # via shed
@@ -34,7 +34,7 @@ psutil==7.0.0             # via -r deps/check.in
 pycodestyle==2.13.0       # via flake8
 pyflakes==3.3.2           # via flake8
 pytest==8.3.5             # via -r deps/check.in
-pyupgrade==3.19.1         # via shed
+pyupgrade==3.20.0         # via shed
 pyyaml==6.0.2             # via libcst
 ruff==0.11.11             # via -r deps/check.in, shed
 shed==2024.10.1           # via -r deps/check.in

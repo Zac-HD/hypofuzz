@@ -15,6 +15,7 @@ from hypofuzz.corpus import (
     Branch,
     ConjectureResult,
     Corpus,
+    Fingerprint,
     NodesT,
     Status,
     sort_key,
@@ -23,7 +24,7 @@ from hypofuzz.database import HypofuzzDatabase, Phase
 from hypofuzz.hypofuzz import FuzzProcess
 
 
-def branches(fnames=st.sampled_from("abc")) -> st.SearchStrategy[frozenset[Branch]]:
+def behaviors(fnames=st.sampled_from("abc")) -> st.SearchStrategy[frozenset[Branch]]:
     location = st.tuples(fnames, st.integers(0, 3), st.integers(0, 3))
     return st.frozensets(st.tuples(location, location))
 
@@ -36,7 +37,7 @@ def results(statuses=st.sampled_from(Status)) -> st.SearchStrategy[ConjectureRes
         output=st.none(),
         extra_information=st.builds(
             SimpleNamespace,
-            branches=branches(),
+            behaviors=behaviors(),
             reports=st.builds(list),
             traceback=st.just(""),
         ),
@@ -62,8 +63,8 @@ def test_corpus_coverage_tracking(args):
         corpus.add(res)
         note(repr(corpus))
         corpus._check_invariants()
-        total_coverage.update(res.extra_information.branches)
-    assert total_coverage == set(corpus.branch_counts)
+        total_coverage.update(res.extra_information.behaviors)
+    assert total_coverage == set(corpus.behavior_counts)
 
 
 @given(corpus_args(statuses=st.just(Status.VALID)))
@@ -71,22 +72,23 @@ def test_corpus_covering_nodes(args):
     # the corpus tracks the *minimal* covering example for each branch. so if we
     # ever try a smaller one, the corpus should update.
     corpus = Corpus(
-        database=HypofuzzDatabase(InMemoryExampleDatabase()), database_key=b""
+        database=HypofuzzDatabase(InMemoryExampleDatabase()),
+        database_key=b"test-corpus-covering-nodes",
     )
-    covering_nodes: dict[Branch, NodesT] = {}
+    fingerprints: dict[Fingerprint, NodesT] = {}
 
     for res in args:
         corpus.add(res)
         note(repr(corpus))
         corpus._check_invariants()
-        for branch in res.extra_information.branches:
-            if branch not in covering_nodes:
-                covering_nodes[branch] = res.nodes
-            if sort_key(res.nodes) < sort_key(covering_nodes[branch]):
-                event("updated size")
-                covering_nodes[branch] = res.nodes
+        fingerprint = frozenset(res.extra_information.behaviors)
+        if fingerprint not in fingerprints:
+            fingerprints[fingerprint] = res.nodes
+        if sort_key(res.nodes) < sort_key(fingerprints[fingerprint]):
+            event("updated size")
+            fingerprints[fingerprint] = res.nodes
 
-    assert covering_nodes == corpus.covering_nodes
+    assert fingerprints == corpus.fingerprints
 
 
 @pytest.mark.skipif(sys.version_info < (3, 12), reason="different branches pre-312")
@@ -105,13 +107,13 @@ def test_corpus_resets_branch_counts_on_new_coverage():
             ConjectureData.for_choices([1]), collector=Collector(test_a)
         )
         # we keep incrementing arc counts if we don't find new coverage
-        assert len(process.corpus.branch_counts) == 1
-        assert list(process.corpus.branch_counts.values()) == [count]
+        assert len(process.corpus.behavior_counts) == 1
+        assert list(process.corpus.behavior_counts.values()) == [count]
 
     process._run_test_on(ConjectureData.for_choices([2]), collector=Collector(test_a))
     # our arc counts should get reset whenever we discover a new branch
-    assert len(process.corpus.branch_counts) == 2
-    assert list(process.corpus.branch_counts.values()) == [1, 1]
+    assert len(process.corpus.behavior_counts) == 2
+    assert list(process.corpus.behavior_counts.values()) == [1, 1]
 
 
 # TODO it would be nice to write a massive stateful test that covers all of this

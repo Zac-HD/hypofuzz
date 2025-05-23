@@ -8,7 +8,7 @@ import math
 from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Optional, TypeVar
+from typing import Any, Optional, TypeVar, Union
 
 import black
 import trio
@@ -25,6 +25,7 @@ from starlette.routing import Mount, Route, WebSocketRoute
 from starlette.staticfiles import StaticFiles
 from starlette.types import Scope
 from starlette.websockets import WebSocket, WebSocketDisconnect
+from tqdm import tqdm
 from trio import MemoryReceiveChannel
 
 from hypofuzz.compat import bisect_right
@@ -167,7 +168,8 @@ class Test:
         #   * status_counts
         #   * elapsed_time
         #   * reports
-        #   * branches
+        #   * behaviors
+        #   * fingerprints
         #   * phase (should we change this? would cause status flipflop with multiple workers)
         # nor is it displayed on dashboard graphs.
         # This is fine for display purposes, since these statistics are intended
@@ -177,15 +179,17 @@ class Test:
         if linear_report.phase is not Phase.REPLAY:
             self.linear_reports.append(linear_report)
 
-        self._check_invariants()
-
     @property
     def phase(self) -> Optional[Phase]:
         return self.linear_reports[-1].phase if self.linear_reports else None
 
     @property
-    def branches(self) -> int:
-        return self.linear_reports[-1].branches if self.linear_reports else 0
+    def behaviors(self) -> int:
+        return self.linear_reports[-1].behaviors if self.linear_reports else 0
+
+    @property
+    def fingerprints(self) -> int:
+        return self.linear_reports[-1].fingerprints if self.linear_reports else 0
 
     def ninputs(self, since: float = -math.inf) -> int:
         return sum(self.linear_status_counts(since=since)[-1].values())
@@ -252,7 +256,23 @@ def test_for_websocket(test: Test) -> dict[str, Any]:
     del test["rolling_observations"]
     del test["corpus_observations"]
     del test["linear_reports"]
+    test["reports_by_worker"] = {
+        worker_uuid: [report_for_websocket(report) for report in reports]
+        for worker_uuid, reports in test["reports_by_worker"].items()
+    }
     return test
+
+
+def report_for_websocket(report: Union[Report, dict[str, Any]]) -> dict[str, Any]:
+    report = report.copy() if isinstance(report, dict) else dataclasses.asdict(report)
+    # we send reports to the dashboard in two contexts: attached to a node and worker,
+    # and as a standalone report. In the former, the dashboard already knows
+    # the nodeid and worker uuid, and deleting them avoids substantial overhead.
+    # In the latter, we send the necessary attributes separately.
+    del report["worker_uuid"]
+    del report["database_key"]
+    del report["nodeid"]
+    return report
 
 
 class HypofuzzJSONResponse(JSONResponse):
@@ -305,6 +325,13 @@ class OverviewWebsocket(HypofuzzWebsocket):
                 DatabaseEventKey.FAILURE,
             ]:
                 return
+            if header["key"] is DatabaseEventKey.REPORT:
+                assert isinstance(data, Report)
+                data = {
+                    "nodeid": data.nodeid,
+                    "worker_uuid": data.worker_uuid,
+                    "report": report_for_websocket(data),
+                }
             await self.send_event(header, data)
 
 
@@ -333,6 +360,11 @@ class TestWebsocket(HypofuzzWebsocket):
             if header["key"] is DatabaseEventKey.REPORT:
                 assert isinstance(data, Report)
                 nodeid = data.nodeid
+                data = {
+                    "nodeid": nodeid,
+                    "worker_uuid": data.worker_uuid,
+                    "report": report_for_websocket(data),
+                }
             elif header["key"] in [
                 DatabaseEventKey.FAILURE,
                 DatabaseEventKey.ROLLING_OBSERVATION,
@@ -566,7 +598,12 @@ async def run_dashboard(port: int, host: str) -> None:
 
     db = get_db()
     # load initial database state before starting dashboard
-    for fuzz_target in COLLECTION_RESULT.fuzz_targets:
+    for fuzz_target in (
+        p := tqdm(
+            COLLECTION_RESULT.fuzz_targets, desc="loading test state", leave=False
+        )
+    ):
+        p.set_postfix(nodeid=fuzz_target.nodeid)
         # a fuzz target (= node id) may have many database keys over time as the
         # source code of the test changes. Show only reports from the latest
         # database key = source code version.
@@ -577,10 +614,18 @@ async def run_dashboard(port: int, host: str) -> None:
         # (maybe use test_keys_key for this?)
         key = fuzz_target.database_key
 
-        rolling_observations = list(db.fetch_observations(key))
+        rolling_observations = list(
+            tqdm(
+                db.fetch_observations(key),
+                desc="loading rolling observations",
+                leave=False,
+            )
+        )
         corpus_observations = [
             db.fetch_corpus_observation(key, choices)
-            for choices in db.fetch_corpus(key)
+            for choices in tqdm(
+                db.fetch_corpus(key), desc="loading corpus observations", leave=False
+            )
         ]
         corpus_observations = [
             observation
@@ -589,9 +634,13 @@ async def run_dashboard(port: int, host: str) -> None:
         ]
 
         failure_observations = {}
-        for maybe_observed in (
-            *sorted(db.fetch_failures(key, shrunk=True), key=len),
-            *sorted(db.fetch_failures(key, shrunk=False), key=len),
+        for maybe_observed in tqdm(
+            (
+                *sorted(db.fetch_failures(key, shrunk=True), key=len),
+                *sorted(db.fetch_failures(key, shrunk=False), key=len),
+            ),
+            desc="loading failures",
+            leave=False,
         ):
             if failure := db.fetch_failure_observation(key, maybe_observed):
                 if failure.status is not ObservationStatus.FAILED:

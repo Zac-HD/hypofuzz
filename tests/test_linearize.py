@@ -99,7 +99,8 @@ def reports(
                     timestamp=st.just(timestamp),
                     worker_uuid=st.just(uuid),
                     status_counts=st.just(status_counts),
-                    branches=st.integers(min_value=0),
+                    behaviors=st.integers(min_value=0),
+                    fingerprints=st.integers(min_value=0),
                     since_new_branch=st.integers(min_value=0),
                     phase=...,
                 )
@@ -137,7 +138,7 @@ def _test_for_reports(reports) -> Test:
         database_key = report.database_key
         nodeid = report.nodeid
 
-    return Test(
+    test = Test(
         database_key=database_key,
         nodeid=nodeid,
         rolling_observations=[],
@@ -145,6 +146,8 @@ def _test_for_reports(reports) -> Test:
         reports_by_worker=reports_by_worker,
         failure=None,
     )
+    test._check_invariants()
+    return test
 
 
 @given(reports(count_workers=1))
@@ -191,6 +194,7 @@ def test_linearize_decomposes_with_addition(data):
     test2 = _test_for_reports(reports_[:i])
     for report in reports_[i:]:
         test2.add_report(report)
+        test2._check_invariants()
 
     assert test1.linear_status_counts() == test2.linear_status_counts()
     assert test1.linear_elapsed_time() == pytest.approx(test2.linear_elapsed_time())

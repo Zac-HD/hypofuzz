@@ -2,7 +2,8 @@ import { Test } from "../types/dashboard"
 
 export interface TestStats {
   inputs: string
-  branches: string
+  behaviors: string
+  fingerprints: string
   executions: string
   inputsSinceBranch: string
   timeSpent: string
@@ -32,7 +33,8 @@ export function getTestStats(test: Test): TestStats {
   if (test.linear_reports.length === 0) {
     return {
       inputs: "—",
-      branches: "—",
+      behaviors: "—",
+      fingerprints: "—",
       executions: "—",
       inputsSinceBranch: "—",
       timeSpent: "—",
@@ -42,7 +44,8 @@ export function getTestStats(test: Test): TestStats {
   const perSecond = inputsPerSecond(test)
   return {
     inputs: test.ninputs(null).toLocaleString(),
-    branches: test.branches.toLocaleString(),
+    behaviors: test.behaviors.toLocaleString(),
+    fingerprints: test.fingerprints.toLocaleString(),
     executions: perSecond === null ? "—" : `${perSecond.toFixed(1).toLocaleString()}/s`,
     inputsSinceBranch: test.since_new_branch?.toLocaleString() ?? "—",
     timeSpent: formatTime(test.elapsed_time(null)),

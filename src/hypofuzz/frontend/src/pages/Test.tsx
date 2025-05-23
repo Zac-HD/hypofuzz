@@ -10,6 +10,7 @@ import {
   faTachometerAlt,
   faClock,
   faSeedling,
+  faSitemap,
 } from "@fortawesome/free-solid-svg-icons"
 import { StatusPill } from "../components/StatusPill"
 import { Tooltip } from "../components/Tooltip"
@@ -62,7 +63,19 @@ function _TestPage() {
               <FontAwesomeIcon icon={faCodeBranch} />
             </div>
           }
-          tooltip="Number of branches executed"
+          tooltip="Number of behaviors (typically branches) found"
+        />
+      ),
+    },
+    {
+      content: (
+        <Tooltip
+          content={
+            <div className="table__header__icon">
+              <FontAwesomeIcon icon={faSitemap} />
+            </div>
+          }
+          tooltip="Number of fingerprints (sets of behaviors) found"
         />
       ),
     },
@@ -86,7 +99,7 @@ function _TestPage() {
               <FontAwesomeIcon icon={faSeedling} />
             </div>
           }
-          tooltip="Number of inputs since a new branch"
+          tooltip="Number of inputs since a new behavior"
         />
       ),
     },
@@ -128,7 +141,10 @@ function _TestPage() {
           data={[stats]}
           row={item => [
             <div style={{ fontVariantNumeric: "tabular-nums" }}>{item.inputs}</div>,
-            <div style={{ fontVariantNumeric: "tabular-nums" }}>{item.branches}</div>,
+            <div style={{ fontVariantNumeric: "tabular-nums" }}>{item.behaviors}</div>,
+            <div style={{ fontVariantNumeric: "tabular-nums" }}>
+              {item.fingerprints}
+            </div>,
             <div style={{ fontVariantNumeric: "tabular-nums" }}>{item.executions}</div>,
             <div style={{ fontVariantNumeric: "tabular-nums" }}>
               {item.inputsSinceBranch}
