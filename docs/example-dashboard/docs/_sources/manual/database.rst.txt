@@ -11,7 +11,7 @@ Configure which database HypoFuzz uses
 HypoFuzz determines which database to use as follows:
 
 * Run a pytest test collection step.
-* Then, use the :obj:`.database <hypothesis:hypothesis.settings.database>` attribute of the current :ref:`settings profile <hypothesis:settings_profiles>`.
+* Then, use the :obj:`.database <hypothesis:hypothesis.settings.database>` attribute of the current :obj:`settings profile <hypothesis:hypothesis.settings>`.
 
 To configure which database HypoFuzz uses, register and load a Hypothesis settings profile with the desired database. So for instance, to tell HypoFuzz to use a redis database, place the following in any module loaded during pytest's test collection:
 
