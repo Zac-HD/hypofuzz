@@ -60,8 +60,6 @@ def dashboard(
         stderr=subprocess.PIPE,
         start_new_session=True,
         text=True,
-        # disable tqdm from out stderr-based dashboard startup detection
-        env=os.environ | {"TQDM_DISABLE": "1"},
     )
     assert process.stdout is not None
     assert process.stderr is not None

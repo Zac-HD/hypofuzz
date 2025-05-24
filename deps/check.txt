@@ -43,7 +43,7 @@ sortedcontainers==2.4.0   # via hypothesis, sortedcontainers-stubs, trio
 sortedcontainers-stubs==2.4.3  # via -r deps/check.in
 starlette==0.46.2         # via -r deps/check.in
 taskgroup==0.2.2          # via hypercorn
-tokenize-rt==6.1.0        # via pyupgrade
+tokenize-rt==6.2.0        # via pyupgrade
 tomli==2.2.1              # via black, hypercorn, mypy, pytest
 trio==0.30.0              # via -r deps/check.in
 types-requests==2.32.0.20250515  # via -r deps/check.in

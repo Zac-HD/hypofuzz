@@ -8,7 +8,7 @@ import {
   faTachometerAlt,
   faClock,
   faSeedling,
-  faSitemap,
+  faFingerprint,
 } from "@fortawesome/free-solid-svg-icons"
 import { StatusPill } from "./StatusPill"
 import { Tooltip } from "./Tooltip"
@@ -63,7 +63,10 @@ export function TestTable({ tests, onFilterChange }: Props) {
     />
   )
   const iconFingerprints = (
-    <Icon icon={faSitemap} tooltip="Number of fingerprints (sets of behaviors) found" />
+    <Icon
+      icon={faFingerprint}
+      tooltip="Number of fingerprints (sets of behaviors) found"
+    />
   )
   const iconExecutions = <Icon icon={faTachometerAlt} tooltip="Inputs per second" />
   const iconSinceNewBranch = (

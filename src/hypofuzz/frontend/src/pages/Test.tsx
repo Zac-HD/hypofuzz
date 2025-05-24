@@ -10,7 +10,7 @@ import {
   faTachometerAlt,
   faClock,
   faSeedling,
-  faSitemap,
+  faFingerprint,
 } from "@fortawesome/free-solid-svg-icons"
 import { StatusPill } from "../components/StatusPill"
 import { Tooltip } from "../components/Tooltip"
@@ -72,7 +72,7 @@ function _TestPage() {
         <Tooltip
           content={
             <div className="table__header__icon">
-              <FontAwesomeIcon icon={faSitemap} />
+              <FontAwesomeIcon icon={faFingerprint} />
             </div>
           }
           tooltip="Number of fingerprints (sets of behaviors) found"

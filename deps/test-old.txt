@@ -44,7 +44,6 @@ sortedcontainers==2.4.0   # via hypothesis, trio
 starlette==0.46.2         # via hypofuzz (pyproject.toml)
 taskgroup==0.2.2          # via hypercorn
 tomli==2.2.1              # via black, coverage, hypercorn, pytest
-tqdm==4.67.1              # via hypofuzz (pyproject.toml)
 trio==0.30.0              # via hypofuzz (pyproject.toml)
 typing-extensions==4.13.2  # via anyio, black, exceptiongroup, hypercorn, rich, starlette, taskgroup
 urllib3==2.4.0            # via requests

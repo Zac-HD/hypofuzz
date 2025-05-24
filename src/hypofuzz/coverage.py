@@ -15,7 +15,6 @@ import hypothesis
 import pluggy
 import pytest
 import sortedcontainers
-import tqdm
 import watchdog
 from hypothesis.internal.escalation import belongs_to
 
@@ -92,7 +91,6 @@ is_watchdog_file = belongs_to(watchdog)
 # TODO migrate hypothesis off attrs and then drop this blacklist?
 is_attr_file = belongs_to(attr)
 is_attrs_file = belongs_to(attrs)
-is_tqdm_file = belongs_to(tqdm)
 
 
 stdlib_path = Path(os.__file__).parent
@@ -123,7 +121,6 @@ def should_trace(fname: str) -> bool:
         or is_watchdog_file(fname)
         or is_attr_file(fname)
         or is_attrs_file(fname)
-        or is_tqdm_file(fname)
     )
 
 

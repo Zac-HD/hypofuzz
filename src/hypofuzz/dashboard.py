@@ -25,7 +25,6 @@ from starlette.routing import Mount, Route, WebSocketRoute
 from starlette.staticfiles import StaticFiles
 from starlette.types import Scope
 from starlette.websockets import WebSocket, WebSocketDisconnect
-from tqdm import tqdm
 from trio import MemoryReceiveChannel
 
 from hypofuzz.compat import bisect_right
@@ -598,12 +597,7 @@ async def run_dashboard(port: int, host: str) -> None:
 
     db = get_db()
     # load initial database state before starting dashboard
-    for fuzz_target in (
-        p := tqdm(
-            COLLECTION_RESULT.fuzz_targets, desc="loading test state", leave=False
-        )
-    ):
-        p.set_postfix(nodeid=fuzz_target.nodeid)
+    for fuzz_target in COLLECTION_RESULT.fuzz_targets:
         # a fuzz target (= node id) may have many database keys over time as the
         # source code of the test changes. Show only reports from the latest
         # database key = source code version.
@@ -614,18 +608,10 @@ async def run_dashboard(port: int, host: str) -> None:
         # (maybe use test_keys_key for this?)
         key = fuzz_target.database_key
 
-        rolling_observations = list(
-            tqdm(
-                db.fetch_observations(key),
-                desc="loading rolling observations",
-                leave=False,
-            )
-        )
+        rolling_observations = list(db.fetch_observations(key))
         corpus_observations = [
             db.fetch_corpus_observation(key, choices)
-            for choices in tqdm(
-                db.fetch_corpus(key), desc="loading corpus observations", leave=False
-            )
+            for choices in db.fetch_corpus(key)
         ]
         corpus_observations = [
             observation
@@ -634,13 +620,9 @@ async def run_dashboard(port: int, host: str) -> None:
         ]
 
         failure_observations = {}
-        for maybe_observed in tqdm(
-            (
-                *sorted(db.fetch_failures(key, shrunk=True), key=len),
-                *sorted(db.fetch_failures(key, shrunk=False), key=len),
-            ),
-            desc="loading failures",
-            leave=False,
+        for maybe_observed in (
+            *sorted(db.fetch_failures(key, shrunk=True), key=len),
+            *sorted(db.fetch_failures(key, shrunk=False), key=len),
         ):
             if failure := db.fetch_failure_observation(key, maybe_observed):
                 if failure.status is not ObservationStatus.FAILED:
