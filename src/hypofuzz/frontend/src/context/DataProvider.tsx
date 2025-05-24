@@ -138,9 +138,9 @@ export function DataProvider({ children, nodeid }: DataProviderProps) {
           switch (header.key) {
             case "report": {
               data = JSON.parse(data)
-              const report = Report.fromJson(data)
-              const test = testsRef.current.get(report.nodeid)!
-              test.add_report(report)
+              const report = Report.fromJson(data.report)
+              const test = testsRef.current.get(data.nodeid)!
+              test.add_report(data.worker_uuid, report)
               // update react state to trigger a re-render on outside components that have a
               // useEffect dependency on `tests`
               setTests(new Map(testsRef.current))

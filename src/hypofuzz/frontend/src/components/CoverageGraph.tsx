@@ -20,6 +20,7 @@ interface Props {
 }
 
 interface GraphReport {
+  nodeid: string
   linear_status_counts: StatusCounts
   linear_elapsed_time: number
   report: Report
@@ -31,8 +32,10 @@ const distanceThreshold = 10
 class Graph {
   reports: Map<string, GraphReport[]>
   scaleSetting: string
-  axisSetting: string
+  axisSettingX: string
+  axisSettingY: string
   xValue: (d: GraphReport) => number
+  yValue: (d: GraphReport) => number
   width: number
   height: number
   margin: { top: number; right: number; bottom: number; left: number }
@@ -57,17 +60,21 @@ class Graph {
     reports: Map<string, GraphReport[]>,
     reportsColor: d3.ScaleOrdinal<string, string>,
     scaleSetting: string,
-    axisSetting: string,
+    axisSettingX: string,
+    axisSettingY: string,
     navigate: (path: string) => void,
   ) {
     this.reports = reports
     this.scaleSetting = scaleSetting
-    this.axisSetting = axisSetting
+    this.axisSettingX = axisSettingX
+    this.axisSettingY = axisSettingY
     this.navigate = navigate
     this.xValue = (report: GraphReport) =>
-      axisSetting == "time"
+      axisSettingX == "time"
         ? report.linear_elapsed_time
         : report.linear_status_counts.sum()
+    this.yValue = (report: GraphReport) =>
+      axisSettingY == "behaviors" ? report.report.behaviors : report.report.fingerprints
 
     this.margin = { top: 20, right: 20, bottom: 45, left: 60 }
     this.width = svg.clientWidth - this.margin.left - this.margin.right
@@ -84,7 +91,7 @@ class Graph {
 
     this.y = d3
       .scaleLinear()
-      .domain([0, d3.max(allReports, d => d.report.branches) || 0])
+      .domain([0, d3.max(allReports, d => this.yValue(d)) || 0])
       .range([this.height, 0])
 
     // this.x and this.y are the full axes which encompass all of the points.
@@ -157,7 +164,7 @@ class Graph {
       .attr("x", 0 - this.height / 2)
       .attr("dy", "1em")
       .style("text-anchor", "middle")
-      .text("Branches")
+      .text(this.axisSettingY == "behaviors" ? "Behaviors" : "Fingerprints")
 
     this.g
       .append("text")
@@ -166,28 +173,28 @@ class Graph {
       // below the font baseline
       .attr("y", this.height + this.margin.bottom - 5)
       .style("text-anchor", "middle")
-      .text(this.axisSetting == "time" ? "Time (s)" : "Inputs")
+      .text(this.axisSettingX == "time" ? "Time (s)" : "Inputs")
 
     this.chartArea
       .on("mousemove", event => {
         const [mouseX, mouseY] = d3.pointer(event)
-        let closestReport = null as Report | null
+        let closestReport = null as GraphReport | null
         let closestDistance = Infinity
 
-        Array.from(this.reports.values()).forEach(points => {
-          if (!points || points.length === 0) return
+        Array.from(this.reports.values()).forEach(reports => {
+          if (!reports || reports.length === 0) return
 
-          points
-            .sortKey(point => [this.xValue(point)])
-            .forEach(point => {
+          reports
+            .sortKey(report => [this.xValue(report)])
+            .forEach(report => {
               const distance = Math.sqrt(
-                (this.viewportX(this.xValue(point)) - mouseX) ** 2 +
-                  (this.viewportY(point.report.branches) - mouseY) ** 2,
+                (this.viewportX(this.xValue(report)) - mouseX) ** 2 +
+                  (this.viewportY(this.yValue(report)) - mouseY) ** 2,
               )
 
               if (distance < closestDistance && distance < distanceThreshold) {
                 closestDistance = distance
-                closestReport = point.report
+                closestReport = report
               }
             })
         })
@@ -198,8 +205,8 @@ class Graph {
             .style("left", `${event.pageX + 10}px`)
             .style("top", `${event.pageY - 10}px`).html(`
               <strong>${closestReport.nodeid.split("::").pop() || closestReport.nodeid}</strong><br/>
-              ${closestReport.branches.toLocaleString()} branches<br/>
-              ${closestReport.ninputs.toLocaleString()} inputs / ${closestReport.elapsed_time.toFixed(1)} seconds
+              ${closestReport.report.behaviors.toLocaleString()} behaviors / ${closestReport.report.fingerprints.toLocaleString()} fingerprints<br/>
+              ${closestReport.report.ninputs.toLocaleString()} inputs / ${closestReport.report.elapsed_time.toFixed(1)} seconds
             `)
         } else {
           this.tooltip.style("display", "none")
@@ -235,7 +242,7 @@ class Graph {
       d3
         .line<GraphReport>()
         .x(d => x(this.xValue(d)))
-        .y(d => y(d.report.branches)),
+        .y(d => y(this.yValue(d))),
     )
   }
 
@@ -251,7 +258,7 @@ class Graph {
         .style("cursor", "pointer")
         .on("mouseover", () => {
           this.g
-            .selectAll<SVGPathElement, Report[]>("path")
+            .selectAll<SVGPathElement, GraphReport[]>("path")
             .filter(d => Array.isArray(d) && d.length > 0 && d[0].nodeid === nodeid)
             .classed("coverage-line__selected", true)
           d3.select(legendItem.node()).style("font-weight", "bold")
@@ -285,12 +292,12 @@ class Graph {
     const line = d3
       .line<GraphReport>()
       .x(d => this.x(this.xValue(d)))
-      .y(d => this.y(d.report.branches))
+      .y(d => this.y(this.yValue(d)))
 
-    Array.from(this.reports.entries()).forEach(([nodeid, points]) => {
+    Array.from(this.reports.entries()).forEach(([nodeid, reports]) => {
       this.chartArea
         .append("path")
-        .datum(points)
+        .datum(reports)
         .attr("fill", "none")
         .attr("stroke", this.reportsColor(nodeid))
         .attr("d", line)
@@ -393,8 +400,18 @@ class Graph {
 
 export function CoverageGraph({ tests, filterString = "" }: Props) {
   const svgRef = useRef<SVGSVGElement>(null)
-  const [scaleSetting, setScaleSetting] = useSetting<string>("graph_scale", "log")
-  const [axisSetting, setAxisSetting] = useSetting<string>("graph_x_axis", "time")
+  const [scaleSetting, setScaleSetting] = useSetting<"log" | "linear">(
+    "graph_scale",
+    "log",
+  )
+  const [axisSettingX, setAxisSettingX] = useSetting<"time" | "inputs">(
+    "graph_axis_x",
+    "time",
+  )
+  const [axisSettingY, setAxisSettingY] = useSetting<"behaviors" | "fingerprints">(
+    "graph_axis_y",
+    "behaviors",
+  )
   const [forceUpdate, setForceUpdate] = useState(true)
   const [zoomTransform, setZoomTransform] = useState<{
     transform: d3.ZoomTransform | null
@@ -412,6 +429,7 @@ export function CoverageGraph({ tests, filterString = "" }: Props) {
         const reports: GraphReport[] = []
         for (let i = 0; i < linearStatusCounts.length; i++) {
           reports.push({
+            nodeid: nodeid,
             linear_status_counts: linearStatusCounts[i],
             linear_elapsed_time: linearElapsedTime[i],
             report: test.linear_reports[i],
@@ -468,7 +486,8 @@ export function CoverageGraph({ tests, filterString = "" }: Props) {
       filteredReports,
       reportsColor,
       scaleSetting,
-      axisSetting,
+      axisSettingX,
+      axisSettingY,
       navigate,
     )
 
@@ -497,7 +516,8 @@ export function CoverageGraph({ tests, filterString = "" }: Props) {
   }, [
     filteredReports,
     scaleSetting,
-    axisSetting,
+    axisSettingX,
+    axisSettingY,
     forceUpdate,
     boxSelectEnabled,
     navigate,
@@ -520,8 +540,16 @@ export function CoverageGraph({ tests, filterString = "" }: Props) {
           <BoxSelect width="16" height="16" />
         </div> */}
         <Toggle
-          value={axisSetting}
-          onChange={setAxisSetting}
+          value={axisSettingY}
+          onChange={setAxisSettingY}
+          options={[
+            { value: "behaviors", label: "Behaviors" },
+            { value: "fingerprints", label: "Fingerprints" },
+          ]}
+        />
+        <Toggle
+          value={axisSettingX}
+          onChange={setAxisSettingX}
           options={[
             { value: "inputs", label: "Inputs" },
             { value: "time", label: "Time" },

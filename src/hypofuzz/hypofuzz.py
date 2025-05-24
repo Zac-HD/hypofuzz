@@ -263,7 +263,7 @@ class FuzzProcess:
                 # the worker which saved this choice sequence might have been *us*,
                 # or we might simply already have this choice sequence in our
                 # corpus.
-                if Choices(event.value) in self.corpus._saved_to_database:
+                if Choices(event.value) in self.corpus.corpus:
                     return
                 self._replay_queue.add(event.value)
             # (should we also replay failures found by other workers? we may not
@@ -303,7 +303,7 @@ class FuzzProcess:
             # Choices doesn't handle ChoiceTemplate
             if (
                 all(not isinstance(choice, ChoiceTemplate) for choice in choices)
-                and Choices(choices) in self.corpus._saved_to_database  # type: ignore
+                and Choices(choices) in self.corpus.corpus  # type: ignore
             ):
                 continue
 
@@ -431,7 +431,7 @@ class FuzzProcess:
         # the `hypothesis.event()` function - exploiting user-defined partitions
         # designed for diagnostic output to guide generation.  See
         # https://hypothesis.readthedocs.io/en/latest/details.html#hypothesis.event
-        data.extra_information.branches = frozenset(  # type: ignore
+        data.extra_information.behaviors = frozenset(  # type: ignore
             getattr(collector, "branches", ())  # might be a debug tracer instead
         ).union(
             f"event:{k}:{v}"
@@ -544,7 +544,8 @@ class FuzzProcess:
         # by dropping the previous report unless it differs from the latest in
         # an important way.
         if self._last_report and not (
-            self._last_report.branches != report.branches
+            self._last_report.behaviors != report.behaviors
+            or self._last_report.fingerprints != report.fingerprints
             or self._last_report.phase != report.phase
             or self.corpus.interesting_examples
             # always keep reports which discovered new coverage
@@ -565,7 +566,8 @@ class FuzzProcess:
             timestamp=time.time(),
             worker_uuid=self.worker_identity.uuid,
             status_counts=StatusCounts(self.status_counts),
-            branches=len(self.corpus.branch_counts),
+            behaviors=len(self.corpus.behavior_counts),
+            fingerprints=len(self.corpus.fingerprints),
             since_new_branch=(
                 None
                 if (self.ninputs == 0 or self.corpus.interesting_examples)
@@ -589,8 +591,8 @@ def fuzz_several(targets: list[FuzzProcess], random_seed: Optional[int] = None) 
 
     # Loop forever: at each timestep, we choose a target using an epsilon-greedy
     # strategy for simplicity (TODO: improve this later) and run it once.
-    # TODO: make this aware of test runtime, so it adapts for branches-per-second
-    #       rather than branches-per-input.
+    # TODO: make this aware of test runtime, so it adapts for behaviors-per-second
+    #       rather than behaviors-per-input.
     for target in targets:
         target.startup()
 

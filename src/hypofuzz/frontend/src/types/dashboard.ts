@@ -91,13 +91,11 @@ export class Report extends Dataclass<Report> {
   public timestamp_monotonic: number | null
 
   constructor(
-    public database_key: string,
-    public nodeid: string,
     public elapsed_time: number,
     public timestamp: number,
-    public worker_uuid: string,
     public status_counts: StatusCounts,
-    public branches: number,
+    public behaviors: number,
+    public fingerprints: number,
     public since_new_branch: number | null,
     public phase: Phase,
   ) {
@@ -113,13 +111,11 @@ export class Report extends Dataclass<Report> {
 
   static fromJson(data: any): Report {
     return new Report(
-      data.database_key,
-      data.nodeid,
       data.elapsed_time,
       data.timestamp,
-      data.worker_uuid,
       StatusCounts.fromJson(data.status_counts),
-      data.branches,
+      data.behaviors,
+      data.fingerprints,
       data.since_new_branch,
       data.phase,
     )
@@ -205,11 +201,13 @@ export class Test extends Dataclass<Test> {
     this.reports_by_worker = new Map()
 
     // TODO: use k-way merge for performance?
-    const sorted_reports = Array.from(reports_by_worker_.values())
-      .flat()
-      .sortKey(report => report.timestamp)
-    for (const report of sorted_reports) {
-      this.add_report(report)
+
+    // list of (worker_uuid, report) for each report, sorted by report.timestamp
+    const sorted_reports = Array.from(reports_by_worker_.entries())
+      .flatMap(([worker_uuid, reports]) => reports.map(report => [worker_uuid, report]))
+      .sortKey(([_worker_uuid, report]) => (report as Report).timestamp)
+    for (const [worker_uuid, report] of sorted_reports) {
+      this.add_report(worker_uuid as string, report as Report)
     }
     this._check_invariants()
   }
@@ -255,28 +253,16 @@ export class Test extends Dataclass<Test> {
         linear_status_counts.length === this.linear_reports.length,
     )
 
-    for (const [worker_uuid, reports] of this.reports_by_worker.entries()) {
-      console.assert(
-        setsEqual(new Set(reports.map(r => r.nodeid)), new Set([this.nodeid])),
-      )
-      console.assert(
-        setsEqual(
-          new Set(reports.map(r => r.database_key)),
-          new Set([this.database_key]),
-        ),
-      )
-      console.assert(
-        setsEqual(new Set(reports.map(r => r.worker_uuid)), new Set([worker_uuid])),
-      )
+    for (const [_worker_uuid, reports] of this.reports_by_worker.entries()) {
       this._assert_reports_ordered(reports)
     }
   }
 
-  add_report(report: Report) {
+  add_report(worker_uuid: string, report: Report) {
     // This function implements Test.add_report in python. Make sure to keep the
     // two versions in sync.
 
-    const workerReports = this.reports_by_worker.get(report.worker_uuid)
+    const workerReports = this.reports_by_worker.get(worker_uuid)
     const last_report =
       this.linear_reports.length > 0
         ? this.linear_reports[this.linear_reports.length - 1]
@@ -311,15 +297,13 @@ export class Test extends Dataclass<Test> {
       timestamp_monotonic: timestamp_monotonic,
     })
 
-    if (!(report.worker_uuid in this.reports_by_worker)) {
-      this.reports_by_worker.set(report.worker_uuid, [])
+    if (!(worker_uuid in this.reports_by_worker)) {
+      this.reports_by_worker.set(worker_uuid, [])
     }
-    this.reports_by_worker.get(report.worker_uuid)!.push(linear_report)
+    this.reports_by_worker.get(worker_uuid)!.push(linear_report)
     if (linear_report.phase !== Phase.REPLAY) {
       this.linear_reports.push(linear_report)
     }
-
-    this._check_invariants()
   }
 
   get status() {
@@ -344,11 +328,18 @@ export class Test extends Dataclass<Test> {
     return TestStatus.RUNNING
   }
 
-  get branches() {
+  get behaviors() {
     if (this.linear_reports.length === 0) {
       return 0
     }
-    return this.linear_reports[this.linear_reports.length - 1].branches
+    return this.linear_reports[this.linear_reports.length - 1].behaviors
+  }
+
+  get fingerprints() {
+    if (this.linear_reports.length === 0) {
+      return 0
+    }
+    return this.linear_reports[this.linear_reports.length - 1].fingerprints
   }
 
   get since_new_branch() {

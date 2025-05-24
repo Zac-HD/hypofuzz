@@ -8,7 +8,7 @@ import math
 from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Optional, TypeVar
+from typing import Any, Optional, TypeVar, Union
 
 import black
 import trio
@@ -167,7 +167,8 @@ class Test:
         #   * status_counts
         #   * elapsed_time
         #   * reports
-        #   * branches
+        #   * behaviors
+        #   * fingerprints
         #   * phase (should we change this? would cause status flipflop with multiple workers)
         # nor is it displayed on dashboard graphs.
         # This is fine for display purposes, since these statistics are intended
@@ -177,15 +178,17 @@ class Test:
         if linear_report.phase is not Phase.REPLAY:
             self.linear_reports.append(linear_report)
 
-        self._check_invariants()
-
     @property
     def phase(self) -> Optional[Phase]:
         return self.linear_reports[-1].phase if self.linear_reports else None
 
     @property
-    def branches(self) -> int:
-        return self.linear_reports[-1].branches if self.linear_reports else 0
+    def behaviors(self) -> int:
+        return self.linear_reports[-1].behaviors if self.linear_reports else 0
+
+    @property
+    def fingerprints(self) -> int:
+        return self.linear_reports[-1].fingerprints if self.linear_reports else 0
 
     def ninputs(self, since: float = -math.inf) -> int:
         return sum(self.linear_status_counts(since=since)[-1].values())
@@ -252,7 +255,23 @@ def test_for_websocket(test: Test) -> dict[str, Any]:
     del test["rolling_observations"]
     del test["corpus_observations"]
     del test["linear_reports"]
+    test["reports_by_worker"] = {
+        worker_uuid: [report_for_websocket(report) for report in reports]
+        for worker_uuid, reports in test["reports_by_worker"].items()
+    }
     return test
+
+
+def report_for_websocket(report: Union[Report, dict[str, Any]]) -> dict[str, Any]:
+    report = report.copy() if isinstance(report, dict) else dataclasses.asdict(report)
+    # we send reports to the dashboard in two contexts: attached to a node and worker,
+    # and as a standalone report. In the former, the dashboard already knows
+    # the nodeid and worker uuid, and deleting them avoids substantial overhead.
+    # In the latter, we send the necessary attributes separately.
+    del report["worker_uuid"]
+    del report["database_key"]
+    del report["nodeid"]
+    return report
 
 
 class HypofuzzJSONResponse(JSONResponse):
@@ -305,6 +324,13 @@ class OverviewWebsocket(HypofuzzWebsocket):
                 DatabaseEventKey.FAILURE,
             ]:
                 return
+            if header["key"] is DatabaseEventKey.REPORT:
+                assert isinstance(data, Report)
+                data = {
+                    "nodeid": data.nodeid,
+                    "worker_uuid": data.worker_uuid,
+                    "report": report_for_websocket(data),
+                }
             await self.send_event(header, data)
 
 
@@ -333,6 +359,11 @@ class TestWebsocket(HypofuzzWebsocket):
             if header["key"] is DatabaseEventKey.REPORT:
                 assert isinstance(data, Report)
                 nodeid = data.nodeid
+                data = {
+                    "nodeid": nodeid,
+                    "worker_uuid": data.worker_uuid,
+                    "report": report_for_websocket(data),
+                }
             elif header["key"] in [
                 DatabaseEventKey.FAILURE,
                 DatabaseEventKey.ROLLING_OBSERVATION,

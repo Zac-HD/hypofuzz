@@ -224,13 +224,15 @@ class Report:
     timestamp: float
     worker_uuid: str
     status_counts: StatusCounts
-    branches: int
+    behaviors: int
+    fingerprints: int
     since_new_branch: Optional[int]
     phase: Phase
 
     def __post_init__(self) -> None:
         assert self.elapsed_time >= 0, f"{self.elapsed_time=}"
-        assert self.branches >= 0, f"{self.branches=}"
+        assert self.behaviors >= 0, f"{self.behaviors=}"
+        assert self.fingerprints >= 0, f"{self.fingerprints=}"
         assert self.phase in Phase, f"{self.phase=}"
         if self.since_new_branch is not None:
             assert self.since_new_branch >= 0, f"{self.since_new_branch=}"
@@ -298,7 +300,8 @@ class ReportWithDiff(Report):
             timestamp=report.timestamp,
             worker_uuid=report.worker_uuid,
             status_counts=report.status_counts,
-            branches=report.branches,
+            behaviors=report.behaviors,
+            fingerprints=report.fingerprints,
             since_new_branch=report.since_new_branch,
             phase=report.phase,
             status_counts_diff=status_counts_diff,

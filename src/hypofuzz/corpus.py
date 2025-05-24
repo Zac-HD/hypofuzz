@@ -22,7 +22,6 @@ from hypothesis.internal.conjecture.data import (
 from hypothesis.internal.conjecture.engine import ConjectureRunner
 from hypothesis.internal.conjecture.shrinker import Shrinker, sort_key as _sort_key
 from hypothesis.internal.escalation import InterestingOrigin
-from sortedcontainers import SortedDict
 
 from hypofuzz.database import ChoicesT, HypofuzzDatabase, Observation
 
@@ -32,6 +31,9 @@ if TYPE_CHECKING:
 NodesT: "TypeAlias" = tuple[ChoiceNode, ...]
 # (start, end) where start = end = (filename, line, column)
 Branch: "TypeAlias" = tuple[tuple[str, int, int], tuple[str, int, int]]
+# Branch | event | target (use NewType for the latter two? they're both strings)
+Behavior: "TypeAlias" = Union[Branch, str]
+Fingerprint: "TypeAlias" = set[Behavior]
 
 
 class Choices:
@@ -116,59 +118,77 @@ class Corpus:
     def __init__(self, database: HypofuzzDatabase, database_key: bytes) -> None:
         # The database and our database key is the stable identifiers for a corpus.
         # Everything else is reconstructed each run, and tracked only in memory.
-        self._database_key = database_key
+        self.database_key = database_key
         self._db = database
 
-        # Our sorted corpus of covering examples, ready to be sampled from.
-        #
-        # TODO: track fingerprints (sets of branches) as our level-of-uniqueness.
-        # Add an input to the corpus if its fingerprint is new, not just if it covers
-        # a new branch.
-        self.results: SortedDict[NodesT, ConjectureResult] = SortedDict(sort_key)
-
-        # For each branch, what's the minimal covering example?
-        self.covering_nodes: dict[Branch, NodesT] = {}
+        self.corpus: set[Choices] = set()
+        # For each fingerprint, what's the minimal covering choice sequence?
+        self.fingerprints: dict[Fingerprint, NodesT] = {}
         # How many times have we seen each branch since discovering our latest branch?
-        self.branch_counts: Counter[Branch] = Counter()
-
-        # And various internal attributes and metadata
+        self.behavior_counts: Counter[Behavior] = Counter()
         self.interesting_examples: dict[
             InterestingOrigin, tuple[ConjectureResult, Optional[Observation]]
         ] = {}
-        self._saved_to_database: set[Choices] = set()
+
         self.__shrunk_to_nodes: set[NodesT] = set()
 
     def __repr__(self) -> str:
-        rs = {b: r.extra_information.branches for b, r in self.results.items()}  # type: ignore
         return (
-            f"<Corpus\n    results={rs}\n    branch_counts={self.branch_counts}\n    "
-            f"covering_nodes={self.covering_nodes}\n>"
+            f"<Corpus\n    behavior_counts={self.behavior_counts}\n    "
+            f"fingerprints={self.fingerprints}\n>"
         )
 
     def _check_invariants(self) -> None:
-        """Check all invariants of the structure."""
-        seen: set[Branch] = set()
-        for res in self.results.values():
-            # Each result in our ordered choices covers at least one branch not covered
-            # by any more-minimal result.
-            not_previously_covered = res.extra_information.branches - seen  # type: ignore
-            assert not_previously_covered
-            # And our covering_choices map points back the correct (minimal) choices
-            for branch in not_previously_covered:
-                assert self.covering_nodes[branch] == res.nodes
-            seen.update(res.extra_information.branches)  # type: ignore
+        assert set().union(*self.fingerprints) == set(self.behavior_counts)
 
-        # And the union of those branches is exactly covered by our counters.
-        assert seen == set(self.covering_nodes), seen.symmetric_difference(
-            self.covering_nodes
-        )
-
-        # Every covering choice was saved to the database.
-        covering_choices = {
-            Choices(tuple(node.value for node in nodes))
-            for nodes in self.covering_nodes.values()
+        covering_nodes_choices = {
+            Choices(tuple(n.value for n in nodes))
+            for nodes in self.fingerprints.values()
         }
-        assert covering_choices.issubset(self._saved_to_database)
+        # under 100% stability, we expect these lengths to be equal. However, we
+        # might execute choices A once with fingerprint F1 and again with a
+        # different fingerprint F2, in which case we have one corpus element and
+        # two fingerprints.
+        assert len(self.corpus) <= len(self.fingerprints), (
+            len(self.corpus),
+            len(self.fingerprints),
+            self.database_key,
+        )
+        assert self.corpus.issubset(
+            covering_nodes_choices
+        ), self.corpus.symmetric_difference(covering_nodes_choices)
+
+    def _add_fingerprint(
+        self,
+        fingerprint: Fingerprint,
+        result: ConjectureResult,
+        *,
+        observation: Optional[Observation] = None,
+    ) -> None:
+        self.fingerprints[fingerprint] = result.nodes
+        choices = Choices(result.choices)
+        if choices not in self.corpus:
+            self._db.save_corpus(self.database_key, result.choices)
+            if observation is not None:
+                self._db.save_corpus_observation(
+                    self.database_key, result.choices, observation
+                )
+        self.corpus.add(choices)
+
+        # Reset our seen branch counts.  This is essential because changing our
+        # corpus alters the probability of seeing each branch in future.
+        # For details see AFL-fast, esp. the markov-chain trick.
+        self.behavior_counts = Counter(fingerprint | set(self.behavior_counts))
+
+    def _evict_choices(self, choices: ChoicesT) -> None:
+        # remove an outdated choice sequence and its observation(s) from the
+        # database
+        self.corpus.remove(Choices(choices))
+        self._db.delete_corpus(self.database_key, choices)
+        for observation in list(
+            self._db.fetch_corpus_observations(self.database_key, choices)
+        ):
+            self._db.delete_corpus_observation(self.database_key, choices, observation)
 
     def add(
         self,
@@ -178,14 +198,14 @@ class Corpus:
     ) -> bool:
         """Update the corpus with the result of running a test.
 
-        Returns False if no change, True if changed.
+        Returns whether this changed the corpus.
         """
         if result.status < Status.VALID:
             return False
         assert isinstance(result, ConjectureResult)
         assert result.extra_information is not None
 
-        branches = result.extra_information.branches  # type: ignore
+        fingerprint: Fingerprint = result.extra_information.behaviors  # type: ignore
 
         if result.status is Status.INTERESTING:
             origin = result.interesting_origin
@@ -198,100 +218,37 @@ class Corpus:
                 # We save interesting examples to the unshrunk/secondary database
                 # so they can appear immediately without waiting for shrinking to
                 # finish. (also in case of a fatal hypofuzz error etc).
-                self._db.save_failure(self._database_key, result.choices, shrunk=False)
-                assert observation is not None
-                self._db.save_failure_observation(
-                    self._database_key, result.choices, observation
-                )
+                self._db.save_failure(self.database_key, result.choices, shrunk=False)
+                # observation might be none even for failures if we are replaying
+                # a failure in Phase.REPLAY, since we know observations already
+                # exist when replaying.
+                if observation is not None:
+                    self._db.save_failure_observation(
+                        self.database_key, result.choices, observation
+                    )
                 if previous is not None:
                     (previous_node, previous_observation) = previous
                     # remove the now-redundant failure we had previously saved.
                     self._db.delete_failure(
-                        self._database_key, previous_node.choices, shrunk=False
+                        self.database_key, previous_node.choices, shrunk=False
                     )
                     if previous_observation is not None:
                         self._db.delete_failure_observation(
-                            self._database_key,
+                            self.database_key,
                             previous_node.choices,
                             previous_observation,
                         )
                 return True
 
-        # If we haven't just discovered new branches and our example is larger than the
-        # current largest minimal example, we can skip the expensive calculation.
-        if (not branches.issubset(self.branch_counts)) or (
-            self.results
-            and sort_key(result.nodes) < sort_key(self.results.keys()[-1])
-            and any(
-                sort_key(result.nodes) < sort_key(known_nodes)
-                for branch, known_nodes in self.covering_nodes.items()
-                if branch in branches
-            )
-        ):
-            # We do this the stupid-but-obviously-correct way: add the new choices to
-            # our tracked corpus, and then run a distillation step.
-            self.results[result.nodes] = result
-            self._db.save_corpus(self._database_key, result.choices)
-            if observation is not None:
-                self._db.save_corpus_observation(
-                    self._database_key, result.choices, observation
-                )
-
-            self._saved_to_database.add(Choices(result.choices))
-            # Clear out any redundant entries
-            seen_branches: set[Branch] = set()
-            self.covering_nodes = {}
-            for existing in list(self.results.values()):
-                assert existing.extra_information is not None
-                # branches which are new in existing compared to all smaller results
-                new_branches = existing.extra_information.branches - seen_branches  # type: ignore
-                seen_branches.update(existing.extra_information.branches)  # type: ignore
-                if new_branches:
-                    for arc in new_branches:
-                        self.covering_nodes[arc] = existing.nodes
-                else:
-                    # The branches in result are a strict superset of the branches
-                    # in `existing` (can't be equal because we're only executing this if
-                    # we found new coverage in result). Delete `existing` in favor of
-                    # result.
-                    del self.results[existing.nodes]
-                    self._db.delete_corpus(self._database_key, existing.choices)
-                    # also clear out any observations
-                    for observation in list(
-                        self._db.fetch_corpus_observations(
-                            self._database_key, existing.choices
-                        )
-                    ):
-                        self._db.delete_corpus_observation(
-                            self._database_key, existing.choices, observation
-                        )
-
-            # We add newly-discovered branches to the counter later; so here our only
-            # unseen branches should be the newly discovered branches.
-            assert seen_branches - set(self.branch_counts) == branches - set(
-                self.branch_counts
-            )
-
-        # Either update the branch counts so we can prioritize rarer branches in future,
-        # or save an example with new coverage and reset the counter because we'll
-        # have a different distribution with a new corpus.
-        if branches.issubset(self.branch_counts):
-            self.branch_counts.update(branches)
-        else:
-            # Reset our seen branch counts.  This is essential because changing our
-            # corpus alters the probability of seeing each branch in future.
-            # For details see AFL-fast, esp. the markov-chain trick.
-            self.branch_counts = Counter(branches.union(self.branch_counts))
-
-            # Save this choices as our minimal-known covering example for each new branch.
-            if result.nodes not in self.results:
-                self.results[result.nodes] = result
-            self._db.save_corpus(self._database_key, result.choices)
-            for branch in branches - set(self.covering_nodes):
-                self.covering_nodes[branch] = result.nodes
-
-            # We've just finished making some tricky changes, so this is a good time
-            # to assert that all our invariants have been upheld.
+        self.behavior_counts.update(fingerprint)
+        if fingerprint not in self.fingerprints:
+            self._add_fingerprint(fingerprint, result, observation=observation)
+            self._check_invariants()
+            return True
+        elif sort_key(result.nodes) < sort_key(self.fingerprints[fingerprint]):
+            existing_choices = tuple(n.value for n in self.fingerprints[fingerprint])
+            self._add_fingerprint(fingerprint, result, observation=observation)
+            self._evict_choices(existing_choices)
             self._check_invariants()
             return True
 
@@ -312,32 +269,34 @@ class Corpus:
            we're using can be mutated in the process, so it can get strange.
         """
         self._check_invariants()
-        minimal_branches = {
+        minimal_behaviors = {
             branch
-            for branch, nodes in self.covering_nodes.items()
+            for branch, nodes in self.fingerprints.items()
             if nodes in self.__shrunk_to_nodes
         }
-        while set(self.covering_nodes) - minimal_branches:
+        while set(self.fingerprints) - minimal_behaviors:
             # The "largest first" shrinking order is designed to maximise the rate
             # of incidental progress, where shrinking hard problems stumbles over
             # smaller starting points for the easy ones.
             branch_to_shrink = max(
-                set(self.covering_nodes) - minimal_branches,
-                key=lambda b: sort_key(self.covering_nodes[b]),
+                set(self.fingerprints) - minimal_behaviors,
+                key=lambda b: sort_key(self.fingerprints[b]),
             )
             shrinker = get_shrinker(
                 fn,
-                initial=self.results[self.covering_nodes[branch_to_shrink]],
+                initial=ConjectureData.for_choices(
+                    [node.value for node in self.fingerprints[branch_to_shrink]]
+                ),
                 predicate=lambda d, b=branch_to_shrink: (
-                    b in d.extra_information.branches
+                    b in d.extra_information.behaviors
                 ),
                 random=random,
             )
             shrinker.shrink()
             self.__shrunk_to_nodes.add(shrinker.shrink_target.nodes)
-            minimal_branches |= {
+            minimal_behaviors |= {
                 branch
-                for branch, choices in self.covering_nodes.items()
+                for branch, choices in self.fingerprints.items()
                 if choices == shrinker.shrink_target.choices
             }
             self._check_invariants()
@@ -369,12 +328,13 @@ class BlackBoxMutator(Mutator):
 
 class CrossOverMutator(Mutator):
     def _get_weights(self) -> list[float]:
-        # (1 / rarest_arc_count) each item in self.results
+        # (1 / rarest_behavior_count) for each choice sequence
+        #
         # This is related to the AFL-fast trick, but doesn't track the transition
         # probabilities - just node densities in the markov chain.
         weights = [
-            1 / min(self.corpus.branch_counts[branch] for branch in res.extra_information.branches)  # type: ignore
-            for res in self.corpus.results.values()
+            1 / min(self.corpus.behavior_counts[behavior] for behavior in fingerprint)
+            for fingerprint in self.corpus.fingerprints.keys()
         ]
         total = sum(weights)
         return [x / total for x in weights]
@@ -385,16 +345,16 @@ class CrossOverMutator(Mutator):
         This is a pretty poor mutator, and not structure-aware, but works better than
         the blackbox one already.
         """
-        if not self.corpus.results:
+        if not self.corpus.fingerprints:
             return ()
         # Choose two previously-seen choice sequences to form a prefix and postfix,
         # plus some random bytes in the middle to pad it out a bit.
         # TODO: exploit the .examples tracking for structured mutation.
-        choices = self.random.choices(
-            list(self.corpus.results.values()), weights=self._get_weights(), k=2
+        nodes = self.random.choices(
+            list(self.corpus.fingerprints.values()), weights=self._get_weights(), k=2
         )
-        prefix = choices[0].choices
-        suffix = choices[1].choices
+        prefix = tuple(n.value for n in nodes[0])
+        suffix = tuple(n.value for n in nodes[1])
         # TODO: structure-aware slicing - we want to align the crossover points
         # with a `start_example()` boundary.  This is tricky to get out of Hypothesis
         # at the moment though, and we don't have any facilities (beyond luck!)

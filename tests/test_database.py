@@ -86,7 +86,7 @@ def test_database_state():
     assert observations[0].property == "test_database_state.<locals>.test_a"
 
     reports = list(db.fetch_reports(key))
-    assert len(reports) == 1
+    assert len(reports) == 2
     assert reports[0].phase is Phase.GENERATE
 
 

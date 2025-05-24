@@ -65,7 +65,7 @@ def dashboard(
     assert process.stderr is not None
     port = None
     # wait for dashboard to start up
-    for _ in range(100):
+    for _ in range(25):
         time.sleep(0.05)
         if process.poll() is not None:
             stdout, stderr = process.communicate()
