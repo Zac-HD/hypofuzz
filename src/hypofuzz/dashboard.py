@@ -14,6 +14,7 @@ import black
 import trio
 from hypercorn.config import Config
 from hypercorn.trio import serve
+from hypothesis import settings
 from hypothesis.database import (
     ListenerEventT,
 )
@@ -31,6 +32,7 @@ from hypofuzz.compat import bisect_right
 from hypofuzz.database import (
     DatabaseEvent,
     DatabaseEventKey,
+    HypofuzzDatabase,
     HypofuzzEncoder,
     Observation,
     ObservationStatus,
@@ -38,10 +40,10 @@ from hypofuzz.database import (
     Report,
     ReportWithDiff,
     StatusCounts,
-    get_db,
 )
 from hypofuzz.interface import CollectionResult
 from hypofuzz.patching import make_and_save_patches
+from hypofuzz.utils import convert_to_fuzzjson
 
 TESTS: dict[str, "Test"] = {}
 COLLECTION_RESULT: Optional[CollectionResult] = None
@@ -276,12 +278,14 @@ def report_for_websocket(report: Union[Report, dict[str, Any]]) -> dict[str, Any
 
 class HypofuzzJSONResponse(JSONResponse):
     def render(self, content: Any) -> bytes:
-        return json.dumps(
+        data = json.dumps(
             content,
             ensure_ascii=False,
             separators=(",", ":"),
             cls=HypofuzzEncoder,
-        ).encode("utf-8", errors="surrogatepass")
+        )
+        data: str = convert_to_fuzzjson(data)
+        return data.encode("utf-8", errors="surrogatepass")
 
 
 class HypofuzzWebsocket(abc.ABC):
@@ -595,7 +599,7 @@ async def run_dashboard(port: int, host: str) -> None:
         else:
             send_channel.send_nowait(msg)
 
-    db = get_db()
+    db = HypofuzzDatabase(settings().database)
     # load initial database state before starting dashboard
     for fuzz_target in COLLECTION_RESULT.fuzz_targets:
         # a fuzz target (= node id) may have many database keys over time as the

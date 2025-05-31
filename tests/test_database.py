@@ -7,7 +7,6 @@ from hypothesis.database import (
     InMemoryExampleDatabase,
     choices_from_bytes,
 )
-from hypothesis.internal.conjecture.data import ConjectureData
 
 from hypofuzz.database import HypofuzzDatabase, Phase, test_keys_key
 from hypofuzz.hypofuzz import FuzzProcess
@@ -39,7 +38,8 @@ def test_database_stores_reports_and_metadata_correctly():
 
 
 def test_database_state():
-    db = HypofuzzDatabase(InMemoryExampleDatabase())
+    db = InMemoryExampleDatabase()
+    hypofuzz_db = HypofuzzDatabase(db)
 
     @given(st.integers())
     def test_a(x):
@@ -47,51 +47,58 @@ def test_database_state():
             pass
 
     process = FuzzProcess.from_hypothesis_test(test_a, database=db)
-    process._start_phase(Phase.GENERATE)
-    process._run_test_on(ConjectureData.for_choices([2]))
+    process._execute_once(process.new_conjecture_data(choices=[2]))
+    process.provider.db._db._join()
 
     key = process.database_key
 
     # the database state should be:
+    # * database_key.hypofuzz.test_keys                 (1 element)
+    # * database_key.hypofuzz.worker_identity           (1 element)
     # * database_key.hypofuzz.observations              (1 element)
     # * database_key.hypofuzz.corpus                    (1 element)
     # * database_key.hypofuzz.corpus.<hash>.observation (1 element)
     # * database_key.hypofuzz.reports                   (1 element)
-    assert len(db._db.data.keys()) == 4
-    assert list(db.fetch_corpus(key)) == [(2,)]
+    assert len(hypofuzz_db._db.data.keys()) == 6
+    assert list(hypofuzz_db.fetch_corpus(key)) == [(2,)]
 
-    observations = list(db.fetch_corpus_observations(key, (2,)))
+    observations = list(hypofuzz_db.fetch_corpus_observations(key, (2,)))
     assert len(observations) == 1
-    assert observations[0].property == "test_database_state.<locals>.test_a"
+    assert observations[0].property == "test_a"
 
-    reports = list(db.fetch_reports(key))
+    reports = list(hypofuzz_db.fetch_reports(key))
     assert reports[0].phase is Phase.GENERATE
 
     # now we run a second input, which is better than the first input in coverage.
     # This should clear out both the corpus and observation entry for the old
     # input.
     # The database state should be:
+    # * database_key.hypofuzz.test_keys                 (1 element)
+    # * database_key.hypofuzz.worker_identity           (1 element)
     # * database_key.hypofuzz.observations              (maybe 2 elements, if > 1 second)
     # * database_key.hypofuzz.corpus                    (1 element) (a new one)
     # * database_key.hypofuzz.corpus.<hash>.observation (1 element) (a new one)
     # * database_key.hypofuzz.reports                   (2 elements)
-    process._run_test_on(ConjectureData.for_choices([1]))
+    process._execute_once(process.new_conjecture_data(choices=[1]))
+    process.provider.db._db._join()
+
     # the key for the deleted observation sticks around in the database, it's
     # just an empty mapping.
-    assert len([k for k, v in db._db.data.items() if v]) == 4
-    assert list(db.fetch_corpus(key)) == [(1,)]
+    assert len([k for k, v in hypofuzz_db._db.data.items() if v]) == 6
+    assert list(hypofuzz_db.fetch_corpus(key)) == [(1,)]
 
-    observations = list(db.fetch_corpus_observations(key, (1,)))
+    observations = list(hypofuzz_db.fetch_corpus_observations(key, (1,)))
     assert len(observations) == 1
-    assert observations[0].property == "test_database_state.<locals>.test_a"
+    assert observations[0].property == "test_a"
 
-    reports = list(db.fetch_reports(key))
+    reports = list(hypofuzz_db.fetch_reports(key))
     assert len(reports) == 2
     assert reports[0].phase is Phase.GENERATE
 
 
 def test_adds_failures_to_database():
-    db = HypofuzzDatabase(InMemoryExampleDatabase())
+    db = InMemoryExampleDatabase()
+    hypofuzz_db = HypofuzzDatabase(db)
 
     @given(st.integers(0, 10))
     def test_a(x):
@@ -101,15 +108,15 @@ def test_adds_failures_to_database():
     for _ in range(50):
         process.run_one()
 
-    failures = list(db.fetch_failures(process.database_key, shrunk=True))
-    failures_hypothesis = list(db._db.fetch(process.database_key))
+    failures = list(hypofuzz_db.fetch_failures(process.database_key, shrunk=True))
+    failures_hypothesis = list(hypofuzz_db._db.fetch(process.database_key))
     assert len(failures) == 1
     assert len(failures_hypothesis) == 1
     assert failures[0] == (10,)
     assert choices_from_bytes(failures_hypothesis[0]) == (10,)
 
     # we should have fully shrunk the failure
-    assert not list(db.fetch_failures(process.database_key, shrunk=False))
+    assert not list(hypofuzz_db.fetch_failures(process.database_key, shrunk=False))
 
 
 def test_database_keys_incorporate_parametrization():

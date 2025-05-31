@@ -1,3 +1,4 @@
+import pytest
 from hypothesis import (
     HealthCheck,
     assume,
@@ -24,3 +25,18 @@ def test_visual_tyche_almost_always_invalid(n):
     # we can't actually do assume(False), or hypothesis would error.
     # (and we can't xfail that because then hypofuzz won't collect it).
     assume(n == 0)
+
+
+# this is a clear no-op success, butfails when running `hypothesis fuzz` on
+# the hypofuzz test suite itself.
+# Something about the observability callback on nested test functions?
+@pytest.mark.skip(
+    "broken, but nested @given is sufficiently rare that I'm deferring this"
+)
+@given(st.integers())
+def test_nested(n):
+    @given(st.integers())
+    def f(m):
+        pass
+
+    f()
