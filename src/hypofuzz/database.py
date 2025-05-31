@@ -5,12 +5,10 @@ from collections import defaultdict, deque
 from collections.abc import Iterable
 from dataclasses import dataclass, is_dataclass
 from enum import Enum
-from functools import cache, lru_cache
+from functools import lru_cache
 from typing import TYPE_CHECKING, Any, Literal, Optional, Union
 
-from hypothesis import settings
 from hypothesis.database import (
-    BackgroundWriteDatabase,
     ExampleDatabase,
     ListenerEventT,
     choices_from_bytes,
@@ -18,6 +16,11 @@ from hypothesis.database import (
 )
 from hypothesis.internal.conjecture.choice import ChoiceT
 from hypothesis.internal.conjecture.data import Status
+from hypothesis.internal.observability import (
+    ObservationMetadata as HypothesisObservationMetadata,
+    PredicateCounts,
+    TestCaseObservation,
+)
 from sortedcontainers import SortedList
 
 if TYPE_CHECKING:
@@ -72,11 +75,36 @@ class ObservationStatus(Enum):
     GAVE_UP = "gave_up"
 
 
+# only the subset of the metadata that we store from HypothesisObservation.
+@dataclass(frozen=True)
+class ObservationMetadata:
+    traceback: Optional[str]
+    reproduction_decorator: Optional[str]
+    predicates: dict[str, PredicateCounts]
+    backend: dict[str, Any]
+    sys_argv: list[str]
+    os_getpid: int
+    imported_at: float
+    data_status: "Status"
+
+    @classmethod
+    def from_hypothesis(
+        cls, metadata: HypothesisObservationMetadata
+    ) -> "ObservationMetadata":
+        return cls(
+            traceback=metadata.traceback,
+            reproduction_decorator=metadata.reproduction_decorator,
+            predicates=metadata.predicates,
+            backend=metadata.backend,
+            sys_argv=metadata.sys_argv,
+            os_getpid=metadata.os_getpid,
+            imported_at=metadata.imported_at,
+            data_status=metadata.data_status,
+        )
+
+
 @dataclass(frozen=True)
 class Observation:
-    # attributes from
-    # https://hypothesis.readthedocs.io/en/latest/reference/integrations.html#test-case
-
     # we're only storing test_case reports for now. We may store information
     # messages in the future as well.
     type: Literal["test_case"]
@@ -87,15 +115,32 @@ class Observation:
     how_generated: str
     features: dict[str, Any]
     timing: dict[str, Any]
-    metadata: dict[str, Any]
+    metadata: ObservationMetadata
     property: str
-    run_start: int
+    run_start: float
+
+    @classmethod
+    def from_hypothesis(cls, observation: TestCaseObservation) -> "Observation":
+        return cls(
+            type=observation.type,
+            status=ObservationStatus(observation.status),
+            status_reason=observation.status_reason,
+            representation=observation.representation,
+            arguments=observation.arguments,
+            how_generated=observation.how_generated,
+            features=observation.features,
+            timing=observation.timing,
+            metadata=ObservationMetadata.from_hypothesis(observation.metadata),
+            property=observation.property,
+            run_start=observation.run_start,
+        )
 
     @classmethod
     def from_dict(cls, data: dict[str, Any], /) -> "Observation":
         # we disable observability coverage, so discard the empty key
         data.pop("coverage", None)
         data["status"] = ObservationStatus(data["status"])
+        data["metadata"] = ObservationMetadata(**data["metadata"])
         return cls(**data)
 
     @classmethod
@@ -318,7 +363,7 @@ failures_key = b".hypofuzz.failures"
 
 
 def worker_identity_key(key: bytes, uuid: str) -> bytes:
-    return key + b".worker_identity." + uuid.encode("ascii")
+    return key + b".hypofuzz.worker_identity." + uuid.encode("ascii")
 
 
 @lru_cache(maxsize=512)
@@ -438,6 +483,11 @@ class HypofuzzDatabase:
 
     # corpus observations (corpus_observe_key)
 
+    def _check_observation(self, observation: Observation) -> None:
+        # notably, not Hypothesis{Observation, Metadata}
+        assert isinstance(observation, Observation)
+        assert isinstance(observation.metadata, ObservationMetadata)
+
     def save_corpus_observation(
         self,
         key: bytes,
@@ -446,6 +496,7 @@ class HypofuzzDatabase:
         *,
         delete: bool = True,
     ) -> None:
+        self._check_observation(observation)
         if not delete:
             self.save(corpus_observation_key(key, choices), self._encode(observation))
             return
@@ -458,6 +509,7 @@ class HypofuzzDatabase:
     def delete_corpus_observation(
         self, key: bytes, choices: ChoicesT, observation: Observation
     ) -> None:
+        self._check_observation(observation)
         self.delete(corpus_observation_key(key, choices), self._encode(observation))
 
     def fetch_corpus_observation(
@@ -504,6 +556,7 @@ class HypofuzzDatabase:
         *,
         delete: bool = True,
     ) -> None:
+        self._check_observation(observation)
         if not delete:
             self.save(failure_observation_key(key, choices), self._encode(observation))
             return
@@ -516,6 +569,7 @@ class HypofuzzDatabase:
     def delete_failure_observation(
         self, key: bytes, choices: ChoicesT, observation: Observation
     ) -> None:
+        self._check_observation(observation)
         self.delete(failure_observation_key(key, choices), self._encode(observation))
 
     def fetch_failure_observation(
@@ -555,13 +609,3 @@ class HypofuzzDatabase:
             return next(iter(self.fetch_worker_identities(key, worker)))
         except StopIteration:
             return None
-
-
-# cache to make the db effectively a single time, deferred until after we've run
-# a collection step on the user's code.
-@cache
-def get_db() -> HypofuzzDatabase:
-    db = settings().database
-    if isinstance(db, BackgroundWriteDatabase):
-        return HypofuzzDatabase(db)
-    return HypofuzzDatabase(BackgroundWriteDatabase(db))

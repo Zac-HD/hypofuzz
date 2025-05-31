@@ -1,11 +1,9 @@
 """Adaptive fuzzing for property-based tests using Hypothesis."""
 
-import abc
-import enum
 from collections import Counter
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Iterator, Set
 from random import Random
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Union
 
 from hypothesis import settings
 from hypothesis.internal.conjecture.choice import (
@@ -17,11 +15,11 @@ from hypothesis.internal.conjecture.data import (
     ConjectureData,
     ConjectureResult,
     Status,
-    _Overrun,
 )
 from hypothesis.internal.conjecture.engine import ConjectureRunner
 from hypothesis.internal.conjecture.shrinker import Shrinker, sort_key as _sort_key
 from hypothesis.internal.escalation import InterestingOrigin
+from hypothesis.internal.observability import TestCaseObservation
 
 from hypofuzz.database import ChoicesT, HypofuzzDatabase, Observation
 
@@ -33,7 +31,7 @@ NodesT: "TypeAlias" = tuple[ChoiceNode, ...]
 Branch: "TypeAlias" = tuple[tuple[str, int, int], tuple[str, int, int]]
 # Branch | event | target (use NewType for the latter two? they're both strings)
 Behavior: "TypeAlias" = Union[Branch, str]
-Fingerprint: "TypeAlias" = set[Behavior]
+Fingerprint: "TypeAlias" = Set[Behavior]
 
 
 class Choices:
@@ -66,12 +64,6 @@ class Choices:
 
     def __getitem__(self, i: int) -> ChoiceT:
         return self.choices[i]
-
-
-class HowGenerated(enum.Enum):
-    blackbox = "blackbox"
-    mutation = "mutation"
-    shrinking = "shrinking"
 
 
 def sort_key(nodes: Union[NodesT, ConjectureResult]) -> tuple[int, tuple[int, ...]]:
@@ -112,7 +104,9 @@ def get_shrinker(
 class Corpus:
     """Manage the corpus for a fuzz target.
 
-    The class tracks the minimal valid example which covers each known branch.
+    The corpus is responsible for managing all seed state, including saving
+    novel seeds to the database.  This includes tracking how often each branch
+    has been hit, minimal covering examples for each branch, and so on.
     """
 
     def __init__(self, database: HypofuzzDatabase, database_key: bytes) -> None:
@@ -126,9 +120,7 @@ class Corpus:
         self.fingerprints: dict[Fingerprint, NodesT] = {}
         # How many times have we seen each branch since discovering our latest branch?
         self.behavior_counts: Counter[Behavior] = Counter()
-        self.interesting_examples: dict[
-            InterestingOrigin, tuple[ConjectureResult, Optional[Observation]]
-        ] = {}
+        self.interesting_examples: dict[InterestingOrigin, TestCaseObservation] = {}
 
         self.__shrunk_to_nodes: set[NodesT] = set()
 
@@ -161,19 +153,21 @@ class Corpus:
     def _add_fingerprint(
         self,
         fingerprint: Fingerprint,
-        result: ConjectureResult,
+        observation: TestCaseObservation,
         *,
-        observation: Optional[Observation] = None,
+        save_observation: bool,
     ) -> None:
-        self.fingerprints[fingerprint] = result.nodes
-        choices = Choices(result.choices)
-        if choices not in self.corpus:
-            self._db.save_corpus(self.database_key, result.choices)
-            if observation is not None:
+        assert observation.metadata.choice_nodes is not None
+        self.fingerprints[fingerprint] = observation.metadata.choice_nodes
+        choices = tuple(n.value for n in observation.metadata.choice_nodes)
+        keyed_choices = Choices(choices)
+        if keyed_choices not in self.corpus:
+            self._db.save_corpus(self.database_key, choices)
+            if save_observation:
                 self._db.save_corpus_observation(
-                    self.database_key, result.choices, observation
+                    self.database_key, choices, Observation.from_hypothesis(observation)
                 )
-        self.corpus.add(choices)
+        self.corpus.add(keyed_choices)
 
         # Reset our seen branch counts.  This is essential because changing our
         # corpus alters the probability of seeing each branch in future.
@@ -192,62 +186,73 @@ class Corpus:
 
     def add(
         self,
-        result: Union[ConjectureResult, _Overrun],
+        observation: TestCaseObservation,
         *,
-        observation: Optional[Observation] = None,
+        behaviors: Set[Behavior],
+        save_observation: bool,
     ) -> bool:
         """Update the corpus with the result of running a test.
 
         Returns whether this changed the corpus.
         """
-        if result.status < Status.VALID:
+        if observation.metadata.data_status < Status.VALID:
             return False
-        assert isinstance(result, ConjectureResult)
-        assert result.extra_information is not None
 
-        fingerprint: Fingerprint = result.extra_information.behaviors  # type: ignore
+        assert observation.metadata.choice_nodes is not None
 
-        if result.status is Status.INTERESTING:
-            origin = result.interesting_origin
+        if observation.metadata.data_status is Status.INTERESTING:
+            origin = observation.metadata.interesting_origin
             assert origin is not None
             if origin not in self.interesting_examples or (
-                sort_key(result) < sort_key(self.interesting_examples[origin][0])
+                sort_key(observation.metadata.choice_nodes)
+                < sort_key(self.interesting_examples[origin].metadata.choice_nodes)  # type: ignore
             ):
                 previous = self.interesting_examples.get(origin)
-                self.interesting_examples[origin] = (result, observation)
+                choices = tuple(n.value for n in observation.metadata.choice_nodes)
+                self.interesting_examples[origin] = observation
                 # We save interesting examples to the unshrunk/secondary database
                 # so they can appear immediately without waiting for shrinking to
                 # finish. (also in case of a fatal hypofuzz error etc).
-                self._db.save_failure(self.database_key, result.choices, shrunk=False)
+                self._db.save_failure(self.database_key, choices, shrunk=False)
                 # observation might be none even for failures if we are replaying
                 # a failure in Phase.REPLAY, since we know observations already
                 # exist when replaying.
                 if observation is not None:
                     self._db.save_failure_observation(
-                        self.database_key, result.choices, observation
+                        self.database_key,
+                        choices,
+                        Observation.from_hypothesis(observation),
                     )
                 if previous is not None:
-                    (previous_node, previous_observation) = previous
+                    assert previous.metadata.choice_nodes is not None
+                    previous_choices = tuple(
+                        n.value for n in previous.metadata.choice_nodes
+                    )
                     # remove the now-redundant failure we had previously saved.
                     self._db.delete_failure(
-                        self.database_key, previous_node.choices, shrunk=False
+                        self.database_key, previous_choices, shrunk=False
                     )
-                    if previous_observation is not None:
-                        self._db.delete_failure_observation(
-                            self.database_key,
-                            previous_node.choices,
-                            previous_observation,
-                        )
+                    self._db.delete_failure_observation(
+                        self.database_key,
+                        previous_choices,
+                        Observation.from_hypothesis(previous),
+                    )
                 return True
 
-        self.behavior_counts.update(fingerprint)
-        if fingerprint not in self.fingerprints:
-            self._add_fingerprint(fingerprint, result, observation=observation)
+        self.behavior_counts.update(behaviors)
+        if behaviors not in self.fingerprints:
+            self._add_fingerprint(
+                behaviors, observation, save_observation=save_observation
+            )
             self._check_invariants()
             return True
-        elif sort_key(result.nodes) < sort_key(self.fingerprints[fingerprint]):
-            existing_choices = tuple(n.value for n in self.fingerprints[fingerprint])
-            self._add_fingerprint(fingerprint, result, observation=observation)
+        elif sort_key(observation.metadata.choice_nodes) < sort_key(
+            self.fingerprints[behaviors]
+        ):
+            existing_choices = tuple(n.value for n in self.fingerprints[behaviors])
+            self._add_fingerprint(
+                behaviors, observation, save_observation=save_observation
+            )
             self._evict_choices(existing_choices)
             self._check_invariants()
             return True
@@ -300,75 +305,3 @@ class Corpus:
                 if choices == shrinker.shrink_target.choices
             }
             self._check_invariants()
-
-
-class Mutator(abc.ABC):
-    def __init__(self, corpus: Corpus, random: Random) -> None:
-        self.corpus = corpus
-        self.random = random
-
-    @abc.abstractmethod
-    def generate_choices(self) -> ChoicesT:
-        """
-        Generate a choice sequence, usually by choosing and mutating examples from
-        the corpus.
-        """
-        raise NotImplementedError
-
-
-class BlackBoxMutator(Mutator):
-    def generate_choices(self) -> ChoicesT:
-        """Return an empty prefix, triggering blackbox random generation.
-
-        This 'null mutator' is sometimes useful because - doing no work - it's very
-        fast, and it provides a good baseline for comparisons.
-        """
-        return ()
-
-
-class CrossOverMutator(Mutator):
-    def _get_weights(self) -> list[float]:
-        # (1 / rarest_behavior_count) for each choice sequence
-        #
-        # This is related to the AFL-fast trick, but doesn't track the transition
-        # probabilities - just node densities in the markov chain.
-        weights = [
-            1 / min(self.corpus.behavior_counts[behavior] for behavior in fingerprint)
-            for fingerprint in self.corpus.fingerprints.keys()
-        ]
-        total = sum(weights)
-        return [x / total for x in weights]
-
-    def generate_choices(self) -> ChoicesT:
-        """Splice together two known valid choice sequences.
-
-        This is a pretty poor mutator, and not structure-aware, but works better than
-        the blackbox one already.
-        """
-        if not self.corpus.fingerprints:
-            return ()
-        # Choose two previously-seen choice sequences to form a prefix and postfix,
-        # plus some random bytes in the middle to pad it out a bit.
-        # TODO: exploit the .examples tracking for structured mutation.
-        nodes = self.random.choices(
-            list(self.corpus.fingerprints.values()), weights=self._get_weights(), k=2
-        )
-        prefix = tuple(n.value for n in nodes[0])
-        suffix = tuple(n.value for n in nodes[1])
-        # TODO: structure-aware slicing - we want to align the crossover points
-        # with a `start_example()` boundary.  This is tricky to get out of Hypothesis
-        # at the moment though, and we don't have any facilities (beyond luck!)
-        # to line up the postfix boundary correctly.  Requires upstream changes.
-        return (
-            prefix[: self.random.randint(0, len(prefix))]
-            + suffix[: self.random.randint(0, len(suffix))]
-        )
-
-
-class RadamsaMutator(Mutator):
-    # TODO: based on https://github.com/tsundokul/pyradamsa
-    # I *expect* this to be useful mostly for evaluation, and I'd rather not
-    # have the dependency, but I guess it could surprise me.
-    # (expectation/evaluation is to quantify the advantages of structure-aware
-    # mutation given Hypothesis' designed-for-that IR format)
-    pass

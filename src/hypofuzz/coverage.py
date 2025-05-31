@@ -201,20 +201,25 @@ class CoverageCollector:
         dest = Location(code.co_filename, d_start_line, d_start_column)
         self.branches.add(Branch.make(source, dest))
 
-    def __enter__(self) -> None:
+    def __enter__(self) -> "CoverageCollector":
         self.last = None
         self.branches = set()
 
         if sys.version_info[:2] < (3, 12):
             self.prev_trace = sys.gettrace()
             sys.settrace(self.trace_pre_312)
-            return
+            return self
 
+        assert (
+            existing_tool := sys.monitoring.get_tool(self.tool_id)
+        ) is None, f"tool id {self.tool_id} already registered by tool {existing_tool}"
         sys.monitoring.use_tool_id(self.tool_id, self.tool_name)
         sys.monitoring.set_events(self.tool_id, sum(self.events.keys()))
         for event, callback_name in self.events.items():
             callback = getattr(self, callback_name)
             sys.monitoring.register_callback(self.tool_id, event, callback)
+
+        return self
 
     def __exit__(self, _type: Exception, _value: object, _traceback: object) -> None:
         if sys.version_info[:2] < (3, 12):

@@ -1,7 +1,9 @@
 """Tests for the hypofuzz library."""
 
 import textwrap
+from types import SimpleNamespace
 
+import pytest
 from hypothesis import given, strategies as st
 from hypothesis.database import InMemoryExampleDatabase
 from hypothesis.internal.conjecture.data import Status
@@ -16,14 +18,12 @@ def test_fuzz_one_process():
     def test_a(x):
         pass
 
-    fp = FuzzProcess.from_hypothesis_test(
-        test_a, database=HypofuzzDatabase(InMemoryExampleDatabase())
-    )
+    fp = FuzzProcess.from_hypothesis_test(test_a, database=InMemoryExampleDatabase())
     for _ in range(100):
         fp.run_one()
 
     # We expect that this test will always pass; check that.
-    assert fp.status_counts[Status.INTERESTING] == 0
+    assert fp.provider.status_counts[Status.INTERESTING] == 0
 
 
 class CustomError(Exception):
@@ -31,7 +31,8 @@ class CustomError(Exception):
 
 
 def test_fuzz_one_process_explain_mode():
-    db = HypofuzzDatabase(InMemoryExampleDatabase())
+    db = InMemoryExampleDatabase()
+    hypofuzz_db = HypofuzzDatabase(db)
 
     @given(st.integers(), st.integers())
     def test_fails(x, y):
@@ -42,11 +43,15 @@ def test_fuzz_one_process_explain_mode():
     while not fp.has_found_failure:
         fp.run_one()
 
-    assert fp.status_counts[Status.INTERESTING] >= 1
-    failures = list(db.fetch_failures(fp.database_key, shrunk=True))
+    assert fp.provider.status_counts[Status.INTERESTING] == 1
+    # wait for the BackgroundWriteDatabase of the FuzzProcess to write its found
+    # failure
+    fp.hypofuzz_db._db._join()
+
+    failures = list(hypofuzz_db.fetch_failures(fp.database_key, shrunk=True))
     assert len(failures) == 1
-    observation = db.fetch_failure_observation(fp.database_key, failures[0])
-    assert "CustomError" in observation.metadata["traceback"]
+    observation = hypofuzz_db.fetch_failure_observation(fp.database_key, failures[0])
+    assert "CustomError" in observation.metadata.traceback
     expected = textwrap.dedent(
         """
     test_fails(
@@ -56,3 +61,29 @@ def test_fuzz_one_process_explain_mode():
     """
     ).strip()
     assert observation.representation == expected
+
+
+@pytest.mark.parametrize(
+    "pytest_item, expected_property",
+    # I can't figure out how to construct an Item (or Function) directly, pytest
+    # requires .from_parent.
+    [(None, "test_a"), (SimpleNamespace(nodeid="unique_nodeid"), "unique_nodeid")],
+)
+def test_saved_observation_property(pytest_item, expected_property):
+    # we save observations using the pytest item's nodeid if available, or
+    # get_pretty_function_description(f) otherwise.
+    @given(st.integers())
+    def test_a(n):
+        pass
+
+    db = InMemoryExampleDatabase()
+    fp = FuzzProcess.from_hypothesis_test(test_a, database=db, pytest_item=pytest_item)
+    assert fp.nodeid == expected_property
+
+    fp.run_one()
+    fp.provider.db._db._join()
+
+    assert all(
+        observation.property == expected_property
+        for observation in HypofuzzDatabase(db).fetch_observations(fp.database_key)
+    )
