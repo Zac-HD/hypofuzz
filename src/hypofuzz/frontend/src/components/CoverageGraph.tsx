@@ -23,7 +23,10 @@ interface GraphReport {
   nodeid: string
   linear_status_counts: StatusCounts
   linear_elapsed_time: number
-  report: Report
+  behaviors: number
+  fingerprints: number
+  ninputs: number
+  elapsed_time: number
 }
 
 // in pixels
@@ -74,7 +77,7 @@ class Graph {
         ? report.linear_elapsed_time
         : report.linear_status_counts.sum()
     this.yValue = (report: GraphReport) =>
-      axisSettingY == "behaviors" ? report.report.behaviors : report.report.fingerprints
+      axisSettingY == "behaviors" ? report.behaviors : report.fingerprints
 
     this.margin = { top: 20, right: 20, bottom: 45, left: 60 }
     this.width = svg.clientWidth - this.margin.left - this.margin.right
@@ -205,8 +208,8 @@ class Graph {
             .style("left", `${event.pageX + 10}px`)
             .style("top", `${event.pageY - 10}px`).html(`
               <strong>${closestReport.nodeid.split("::").pop() || closestReport.nodeid}</strong><br/>
-              ${closestReport.report.behaviors.toLocaleString()} behaviors / ${closestReport.report.fingerprints.toLocaleString()} fingerprints<br/>
-              ${closestReport.report.ninputs.toLocaleString()} inputs / ${closestReport.report.elapsed_time.toFixed(1)} seconds
+              ${closestReport.behaviors.toLocaleString()} behaviors / ${closestReport.fingerprints.toLocaleString()} fingerprints<br/>
+              ${closestReport.ninputs.toLocaleString()} inputs / ${closestReport.elapsed_time.toFixed(1)} seconds
             `)
         } else {
           this.tooltip.style("display", "none")
@@ -244,48 +247,6 @@ class Graph {
         .x(d => x(this.xValue(d)))
         .y(d => y(this.yValue(d))),
     )
-  }
-
-  drawLegend() {
-    const legend = this.g
-      .append("g")
-      .attr("transform", `translate(${this.width + 10},0)`)
-
-    this.reportsColor.domain().forEach((nodeid, i) => {
-      const legendItem = legend
-        .append("g")
-        .attr("transform", `translate(0,${i * 20})`)
-        .style("cursor", "pointer")
-        .on("mouseover", () => {
-          this.g
-            .selectAll<SVGPathElement, GraphReport[]>("path")
-            .filter(d => Array.isArray(d) && d.length > 0 && d[0].nodeid === nodeid)
-            .classed("coverage-line__selected", true)
-          d3.select(legendItem.node()).style("font-weight", "bold")
-        })
-        .on("mouseout", () => {
-          this.g.selectAll("path").classed("coverage-line__selected", false)
-          d3.select(legendItem.node()).style("font-weight", "normal")
-        })
-        .on("click", () => {
-          this.navigate(`/tests/${encodeURIComponent(nodeid)}`)
-        })
-
-      legendItem
-        .append("line")
-        .attr("x1", 0)
-        .attr("x2", 20)
-        .attr("y1", 10)
-        .attr("y2", 10)
-        .attr("stroke", this.reportsColor(nodeid))
-
-      legendItem
-        .append("text")
-        .attr("x", 25)
-        .attr("y", 15)
-        .text(nodeid.split("::").pop() || nodeid)
-        .style("font-size", "12px")
-    })
   }
 
   drawLines() {
@@ -432,11 +393,15 @@ export function CoverageGraph({ tests, filterString = "" }: Props) {
         const linearElapsedTime = test.linear_elapsed_time(null)
         const reports: GraphReport[] = []
         for (let i = 0; i < linearStatusCounts.length; i++) {
+          const report = test.linear_reports[i]
           reports.push({
             nodeid: nodeid,
             linear_status_counts: linearStatusCounts[i],
             linear_elapsed_time: linearElapsedTime[i],
-            report: test.linear_reports[i],
+            behaviors: report.behaviors,
+            fingerprints: report.fingerprints,
+            ninputs: report.ninputs,
+            elapsed_time: report.elapsed_time,
           })
         }
         return [nodeid, reports]
