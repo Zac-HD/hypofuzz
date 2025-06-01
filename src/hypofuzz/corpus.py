@@ -1,8 +1,7 @@
 """Adaptive fuzzing for property-based tests using Hypothesis."""
 
-import enum
 from collections import Counter
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Iterator, Set
 from random import Random
 from typing import TYPE_CHECKING, Optional, Union
 
@@ -32,7 +31,7 @@ NodesT: "TypeAlias" = tuple[ChoiceNode, ...]
 Branch: "TypeAlias" = tuple[tuple[str, int, int], tuple[str, int, int]]
 # Branch | event | target (use NewType for the latter two? they're both strings)
 Behavior: "TypeAlias" = Union[Branch, str]
-Fingerprint: "TypeAlias" = set[Behavior]
+Fingerprint: "TypeAlias" = Set[Behavior]
 
 
 class Choices:
@@ -65,12 +64,6 @@ class Choices:
 
     def __getitem__(self, i: int) -> ChoiceT:
         return self.choices[i]
-
-
-class HowGenerated(enum.Enum):
-    blackbox = "blackbox"
-    mutation = "mutation"
-    shrinking = "shrinking"
 
 
 def sort_key(nodes: Union[NodesT, ConjectureResult]) -> tuple[int, tuple[int, ...]]:
