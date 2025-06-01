@@ -309,8 +309,12 @@ class Graph {
         .on("mouseout", function () {
           d3.select(this).classed("coverage-line__selected", false)
         })
-        .on("click", () => {
-          this.navigate(`/tests/${encodeURIComponent(nodeid)}`)
+        .on("click", event => {
+          if (event.metaKey || event.ctrlKey) {
+            window.open(`/tests/${encodeURIComponent(nodeid)}`, "_blank")
+          } else {
+            this.navigate(`/tests/${encodeURIComponent(nodeid)}`)
+          }
         })
     })
   }
