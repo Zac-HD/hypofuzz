@@ -9,7 +9,6 @@ import platform
 import socket
 import subprocess
 import sys
-import threading
 import time
 from base64 import b64encode
 from collections import defaultdict
@@ -19,7 +18,7 @@ from enum import IntEnum
 from functools import lru_cache
 from pathlib import Path
 from random import Random
-from typing import Any, Generic, Optional, TypeVar, Union
+from typing import Any, Optional, Union
 from uuid import uuid4
 
 import hypothesis
@@ -46,10 +45,8 @@ from sortedcontainers import SortedKeyList, SortedList
 
 import hypofuzz
 from hypofuzz.corpus import (
-    BlackBoxMutator,
     Choices,
     Corpus,
-    CrossOverMutator,
     get_shrinker,
 )
 from hypofuzz.coverage import CoverageCollector
@@ -65,10 +62,9 @@ from hypofuzz.database import (
     WorkerIdentity,
     test_keys_key,
 )
+from hypofuzz.mutator import BlackBoxMutator, CrossOverMutator
 from hypofuzz.provider import HypofuzzProvider
-from hypofuzz.utils import convert_to_fuzzjson
-
-T = TypeVar("T")
+from hypofuzz.utils import Value, convert_to_fuzzjson, lerp
 
 process_uuid = uuid4().hex
 
@@ -76,26 +72,6 @@ assert time.get_clock_info("perf_counter").monotonic, (
     "HypoFuzz relies on perf_counter being monotonic. This is guaranteed on "
     "CPython. Please open an issue if you hit this assertion."
 )
-
-
-def lerp(a: float, b: float, t: float) -> float:
-    return (1 - t) * a + t * b
-
-
-# hypothesis.utils.dynamicvaraible, but without the with_value context manager.
-# Essentially just a reference to a value.
-class Value(Generic[T]):
-    def __init__(self, default: T) -> None:
-        self.default = default
-        self.data = threading.local()
-
-    @property
-    def value(self) -> T:
-        return getattr(self.data, "value", self.default)
-
-    @value.setter
-    def value(self, value: T) -> None:
-        self.data.value = value
 
 
 class HitShrinkTimeoutError(Exception):
