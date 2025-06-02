@@ -854,6 +854,7 @@ pre code.hljs {
         display: flex;
         align-items: center;
         justify-content: center;
+        user-select: none;
 
         min-width: $element-size;
         height: $element-size;
@@ -908,10 +909,13 @@ pre code.hljs {
         display: flex;
         align-items: center;
         justify-content: center;
+        user-select: none;
+
         cursor: default;
+        min-width: $element-size;
+
         background: transparent;
         border: none;
         color: #6c757d;
-        min-width: $element-size;
     }
 }
