@@ -40,7 +40,7 @@ When HypoFuzz finds a failure, it writes it to the standard location in the Hypo
 Writing your own database
 -------------------------
 
-The HypoFuzz database is a standard :ref:`hypothesis database <hypothesis:database>`, which is a simple key-value store that maps bytestrings to lists of bytestrings. Writing your own database requires implementing only the ``.fetch(key: bytes)``, ``.save(key: bytes, value: bytes)``, and ``.delete(key: bytes, value: bytes)`` methods. See the Hypothesis database documentation for details on how to implement this.
+The HypoFuzz database is a standard :ref:`hypothesis database <hypothesis:database>`, which is a simple key-value store that maps bytestrings to lists of bytestrings. Writing your own database requires implementing only the ``.fetch(key: bytes)``, ``.save(key: bytes, value: bytes)``, and ``.delete(key: bytes, value: bytes)`` methods. See the Hypothesis :doc:`hypothesis:how-to/custom-database` how-to for more details.
 
 .. note::
 
