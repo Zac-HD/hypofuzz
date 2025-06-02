@@ -244,15 +244,11 @@ export function NominalChart({ feature, observations }: NominalChartProps) {
   }
 
   return (
-    <>
-      <div className="tyche__section__header">
-        <div className="tyche__section__title">
-          <span className="tyche__nominal__feature">{feature}</span>
-        </div>
-      </div>
+    <div>
+      <div className="tyche__nominal__feature">{feature}</div>
       <div ref={parentRef} className="tyche__nominal__chart">
         <svg ref={svgRef} style={{ width: "100%" }}></svg>
       </div>
-    </>
+    </div>
   )
 }

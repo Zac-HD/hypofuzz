@@ -27,6 +27,8 @@ select {
 
 // actual styles
 
+$color-primary: #32465b;
+
 $color-neutral: rgba(179, 170, 170, 0.2);
 $color-failure: rgba(237, 120, 107, 0.2);
 $color-warning: rgba(255, 215, 0, 0.2);
@@ -265,7 +267,7 @@ $color-success: rgba(71, 204, 126, 0.2);
 .sidebar {
     width: 250px;
     flex-shrink: 0;
-    background: #32465b;
+    background: $color-primary;
     padding: 20px;
     color: white;
     height: 100vh;
@@ -648,12 +650,6 @@ pre code.hljs {
             margin-bottom: 0;
         }
 
-        &__header {
-            display: flex;
-            align-items: center;
-            margin-bottom: 0.5rem;
-        }
-
         &__title {
             font-size: 1.2rem;
             font-weight: 600;
@@ -666,6 +662,8 @@ pre code.hljs {
             padding: 10px 0;
             font-size: 1.2rem;
             font-weight: 500;
+            align-items: center;
+            margin-bottom: 0.5rem;
 
             &__toggle {
                 display: inline-flex;
@@ -801,6 +799,10 @@ pre code.hljs {
         &__feature {
             font-family: monospace;
             font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            padding: 10px 0;
+            line-height: 1.3;
         }
     }
 
