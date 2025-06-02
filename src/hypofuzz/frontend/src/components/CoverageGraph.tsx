@@ -151,14 +151,9 @@ class Graph {
     this.xAxis = this.g
       .append("g")
       .attr("transform", `translate(0,${this.height})`)
-      .call(
-        d3
-          .axisBottom(this.x)
-          .ticks(5)
-          .tickFormat(d => d.toLocaleString()),
-      )
+      .call(this.createXAxis(this.x))
 
-    this.yAxis = this.g.append("g").call(d3.axisLeft(this.y).ticks(5))
+    this.yAxis = this.g.append("g").call(this.createYAxis(this.y))
 
     this.g
       .append("text")
@@ -222,6 +217,45 @@ class Graph {
     this.drawLines()
   }
 
+  private createXAxis(scale: d3.ScaleContinuousNumeric<number, number>) {
+    if (this.scaleSetting === "log") {
+      const maxValue = scale.domain()[1]
+      const tickValues = [0]
+
+      let power = 1
+      while (power <= maxValue) {
+        tickValues.push(power)
+        power *= 10
+      }
+
+      return d3
+        .axisBottom(scale)
+        .tickValues(tickValues)
+        .tickFormat(d => {
+          const num = d.valueOf()
+          console.assert(num >= 0)
+          if (num >= 1_000_000) {
+            return `${Math.floor(num / 1_000_000)}M`
+          } else if (num >= 1000) {
+            return `${Math.floor(num / 1000)}k`
+          } else if (num > 0) {
+            return num.toLocaleString()
+          } else {
+            return "0"
+          }
+        })
+    } else {
+      return d3
+        .axisBottom(scale)
+        .ticks(5)
+        .tickFormat(d => d.toLocaleString())
+    }
+  }
+
+  private createYAxis(scale: d3.ScaleContinuousNumeric<number, number>) {
+    return d3.axisLeft(scale).ticks(5)
+  }
+
   zoomTo(transform: d3.ZoomTransform, zoomY: boolean) {
     const x = transform.rescaleX(this.x)
     const y = zoomY ? transform.rescaleY(this.y) : this.y
@@ -229,15 +263,10 @@ class Graph {
     this.viewportX = x
     this.viewportY = y
 
-    this.xAxis.call(
-      d3
-        .axisBottom(x)
-        .ticks(5)
-        .tickFormat(d => d.toLocaleString()),
-    )
+    this.xAxis.call(this.createXAxis(x))
 
     if (zoomY) {
-      this.yAxis.call(d3.axisLeft(y).ticks(5))
+      this.yAxis.call(this.createYAxis(y))
     }
 
     this.g.selectAll<SVGPathElement, GraphReport[]>(".chart-area path").attr(
