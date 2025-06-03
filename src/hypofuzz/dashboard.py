@@ -1,14 +1,13 @@
 """Live web dashboard for a fuzzing run."""
 
 import abc
-import dataclasses
 import itertools
 import json
 import math
 from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Optional, TypeVar, Union
+from typing import Any, Optional, TypeVar
 
 import black
 import trio
@@ -247,31 +246,52 @@ class Test:
 
 
 def test_for_websocket(test: Test) -> dict[str, Any]:
-    # only send necessary attributes for the dashboard
-    test = dataclasses.asdict(test)
-    # report.worker is duplicated among all reports in a reports_by_worker list.
-    # drop them and add them as an attribute to reports_by_workers?
-    # so reports_by_workers: dict[str, tuple[WorkerIdentity, list[Report]]]
-    del test["rolling_observations"]
-    del test["corpus_observations"]
-    del test["linear_reports"]
-    test["reports_by_worker"] = {
-        worker_uuid: [report_for_websocket(report) for report in reports]
-        for worker_uuid, reports in test["reports_by_worker"].items()
+    # Limit to 1000 reports per test. If we're over 1000 total reports, sample
+    # evenly from each worker.
+    #
+    # As a temporary stopgap until a more intelligent algorithm, sample the
+    # entirety of the first 20 reports per worker, then `::step` after. This
+    # helps with (4).
+    #
+    # A more intelligent algorithm would:
+    # (1) sample evenly from the aggregate reports list (instead of per-worker)
+    # (2) prefer keeping reports with new behaviors which we expect to be less
+    #     common than reports with new fingerprints.
+    # (3) always keep the last report, so the graph (and aggregate stats) is as up
+    #     to date as possible
+    # (4) sample more tightly earlier on and less tightly later on, since there is
+    #     more behavior and fingerprint growth early. This is especially important
+    #     for log x axis graphs, which show more early intervals than late intervals
+    count_reports = sum(len(reports) for reports in test.reports_by_worker.values())
+    step = (count_reports // 1000) + 1
+    return {
+        "database_key": test.database_key,
+        "nodeid": test.nodeid,
+        "failure": test.failure,
+        "reports_by_worker": {
+            worker_uuid: [
+                report_for_websocket(report)
+                for report in reports[:20] + reports[20::step]
+            ]
+            for worker_uuid, reports in test.reports_by_worker.items()
+        },
     }
-    return test
 
 
-def report_for_websocket(report: Union[Report, dict[str, Any]]) -> dict[str, Any]:
-    report = report.copy() if isinstance(report, dict) else dataclasses.asdict(report)
+def report_for_websocket(report: Report) -> dict[str, Any]:
     # we send reports to the dashboard in two contexts: attached to a node and worker,
     # and as a standalone report. In the former, the dashboard already knows
     # the nodeid and worker uuid, and deleting them avoids substantial overhead.
     # In the latter, we send the necessary attributes separately.
-    del report["worker_uuid"]
-    del report["database_key"]
-    del report["nodeid"]
-    return report
+    return {
+        "elapsed_time": report.elapsed_time,
+        "status_counts": report.status_counts,
+        "behaviors": report.behaviors,
+        "fingerprints": report.fingerprints,
+        "timestamp": report.timestamp,
+        "since_new_branch": report.since_new_branch,
+        "phase": report.phase,
+    }
 
 
 class HypofuzzJSONResponse(JSONResponse):
@@ -609,6 +629,9 @@ async def run_dashboard(port: int, host: str) -> None:
         key = fuzz_target.database_key
 
         rolling_observations = list(db.fetch_observations(key))
+        # TODO this runs choice_to_bytes in fetch_corpus and then choice_from_bytes
+        # in fetch_corpus_observation. We should add a as_bytes param to fetch_corpus
+        # for performance
         corpus_observations = [
             db.fetch_corpus_observation(key, choices)
             for choices in db.fetch_corpus(key)
