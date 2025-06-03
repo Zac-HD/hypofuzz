@@ -98,6 +98,7 @@ export class Report extends Dataclass<Report> {
     public fingerprints: number,
     public since_new_branch: number | null,
     public phase: Phase,
+    public worker_uuid: string,
   ) {
     super()
     this.status_counts_diff = null
@@ -109,7 +110,7 @@ export class Report extends Dataclass<Report> {
     return this.status_counts.sum()
   }
 
-  static fromJson(data: any): Report {
+  static fromJson(worker_uuid: string, data: any): Report {
     return new Report(
       data.elapsed_time,
       data.timestamp,
@@ -118,8 +119,36 @@ export class Report extends Dataclass<Report> {
       data.fingerprints,
       data.since_new_branch,
       data.phase,
+      worker_uuid,
     )
   }
+}
+
+function report_with_diff(report: Report, last_worker_report: Report | null): Report {
+  const last_status_counts = last_worker_report
+    ? last_worker_report.status_counts
+    : new StatusCounts()
+  const last_elapsed_time = last_worker_report ? last_worker_report.elapsed_time : 0.0
+  const status_counts_diff = report.status_counts.subtract(last_status_counts)
+  const elapsed_time_diff = report.elapsed_time - last_elapsed_time
+  const timestamp_monotonic = last_worker_report
+    ? Math.max(
+        report.timestamp,
+        last_worker_report.timestamp_monotonic! + elapsed_time_diff,
+      )
+    : report.timestamp
+
+  console.assert(
+    Array.from(status_counts_diff.counts.values()).every(count => count >= 0),
+  )
+  console.assert(elapsed_time_diff >= 0.0)
+  console.assert(timestamp_monotonic >= 0.0)
+
+  return report.withProperties({
+    status_counts_diff: status_counts_diff,
+    elapsed_time_diff: elapsed_time_diff,
+    timestamp_monotonic: timestamp_monotonic,
+  })
 }
 
 enum ObservationStatus {
@@ -176,13 +205,12 @@ export class Test extends Dataclass<Test> {
   // to be "waiting" instead of "running"
   static WAITING_STATUS_DURATION = 120
 
-  public observations_loaded: boolean
   public linear_reports: Report[]
   private _status_counts_cumsum: Map<number, [number, StatusCounts[]]>
   private _elapsed_time_cumsum: Map<number, [number, number[]]>
 
   constructor(
-    public database_key: string,
+    public database_key: string | null,
     public nodeid: string,
     public rolling_observations: Observation[],
     public corpus_observations: Observation[],
@@ -190,7 +218,6 @@ export class Test extends Dataclass<Test> {
     public reports_by_worker: Map<string, Report[]>,
   ) {
     super()
-    this.observations_loaded = false
     this.linear_reports = []
     // TODO we should use an actual LRUCache for memory here, like in python.
     // https://github.com/isaacs/node-lru-cache looks like a good option
@@ -262,47 +289,61 @@ export class Test extends Dataclass<Test> {
     // This function implements Test.add_report in python. Make sure to keep the
     // two versions in sync.
 
-    const workerReports = this.reports_by_worker.get(worker_uuid)
-    const last_report =
-      this.linear_reports.length > 0
-        ? this.linear_reports[this.linear_reports.length - 1]
-        : null
-    const last_report_worker = workerReports
-      ? workerReports[workerReports.length - 1]
-      : null
-    if (last_report_worker && last_report_worker.elapsed_time > report.elapsed_time) {
-      // out of order report
-      return
+    let last_report_worker: Report | null = null
+    let reports_index = 0
+    if (this.reports_by_worker.has(worker_uuid)) {
+      const reports = this.reports_by_worker.get(worker_uuid)!
+      reports_index = bisectRight(reports, report.elapsed_time, r => r.elapsed_time)
+      last_report_worker = reports_index != 0 ? reports[reports_index - 1] : null
     }
 
-    console.assert(last_report === null || last_report.timestamp_monotonic !== null)
-    const last_status_counts = last_report_worker
-      ? last_report_worker.status_counts
-      : new StatusCounts()
-    const last_elapsed_time = last_report_worker ? last_report_worker.elapsed_time : 0.0
-    const status_counts_diff = report.status_counts.subtract(last_status_counts)
-    const elapsed_time_diff = report.elapsed_time - last_elapsed_time
-    const timestamp_monotonic = last_report
-      ? Math.max(report.timestamp, last_report.timestamp_monotonic! + elapsed_time_diff)
-      : report.timestamp
-    console.assert(
-      Array.from(status_counts_diff.counts.values()).every(count => count >= 0),
-    )
-    console.assert(elapsed_time_diff >= 0.0)
-    console.assert(timestamp_monotonic >= 0.0)
-
-    const linear_report = report.withProperties({
-      status_counts_diff: status_counts_diff,
-      elapsed_time_diff: elapsed_time_diff,
-      timestamp_monotonic: timestamp_monotonic,
-    })
+    const linear_report = report_with_diff(report, last_report_worker)
 
     if (!(worker_uuid in this.reports_by_worker)) {
       this.reports_by_worker.set(worker_uuid, [])
     }
-    this.reports_by_worker.get(worker_uuid)!.push(linear_report)
+    this.reports_by_worker.get(worker_uuid)!.splice(reports_index, 0, linear_report)
+
     if (linear_report.phase !== Phase.REPLAY) {
-      this.linear_reports.push(linear_report)
+      const index = bisectRight(
+        this.linear_reports,
+        linear_report.timestamp_monotonic!,
+        r => r.timestamp_monotonic,
+      )
+      this.linear_reports.splice(index, 0, linear_report)
+      if (index != this.linear_reports.length - 1) {
+        let next_worker_report = null
+        let i_offset
+        for (
+          i_offset = 0;
+          i_offset < this.linear_reports.length - (index + 1);
+          i_offset++
+        ) {
+          const report_candidate = this.linear_reports[index + 1 + i_offset]
+          if (linear_report.worker_uuid === report_candidate.worker_uuid!) {
+            next_worker_report = report_candidate
+            break
+          }
+        }
+
+        if (next_worker_report) {
+          console.assert(
+            this.linear_reports[index + 1 + i_offset] === next_worker_report,
+          )
+          this.linear_reports[index + 1 + i_offset] = report_with_diff(
+            next_worker_report,
+            linear_report,
+          )
+        }
+
+        for (const cache of [this._status_counts_cumsum, this._elapsed_time_cumsum]) {
+          for (const [key, [start_idx, values]] of cache.entries()) {
+            if (index >= start_idx) {
+              cache.set(key, [start_idx, values.slice(0, index - start_idx) as any[]])
+            }
+          }
+        }
+      }
     }
   }
 

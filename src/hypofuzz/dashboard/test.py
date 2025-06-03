@@ -1,4 +1,3 @@
-import itertools
 import math
 from dataclasses import dataclass, field
 from typing import Optional, TypeVar
@@ -13,6 +12,7 @@ from hypofuzz.database import (
     ReportWithDiff,
     StatusCounts,
 )
+from hypofuzz.utils import k_way_merge
 
 T = TypeVar("T")
 
@@ -24,7 +24,7 @@ class Test:
     rolling_observations: list[Observation]
     corpus_observations: list[Observation]
     failure: Optional[Observation]
-    reports_by_worker: dict[str, list[Report]]
+    reports_by_worker: dict[str, list[ReportWithDiff]]
 
     linear_reports: list[ReportWithDiff] = field(init=False)
 
@@ -47,14 +47,15 @@ class Test:
         reports_by_worker = self.reports_by_worker
         self.reports_by_worker = {}
 
-        # TODO: use k-way merge for nlog(k)) performance, since reports_by_worker
+        # use k-way merge for nlog(k) performance, since reports_by_worker
         # is already sorted.
-        # This sorting won't matter for correctness (once we correctly insert
-        # out-of-order reports), but it will for performance, by minimizing the
-        # number of .bisect calls in the worker reports list.
-        for report in sorted(
-            itertools.chain.from_iterable(reports_by_worker.values()),
-            key=lambda r: r.elapsed_time,
+        #
+        # This sorting doesn't matter for correctness (once we correctly insert
+        # out-of-order reports), but it does for performance, by minimizing the
+        # number of .bisect calls in the worker reports list. (I have not profiled
+        # this).
+        for report in k_way_merge(
+            list(reports_by_worker.values()), key=lambda r: r.timestamp
         ):
             self.add_report(report)
 
@@ -71,8 +72,8 @@ class Test:
             ), (attribute, [getattr(r, attribute) for r in reports])
 
     def _check_invariants(self) -> None:
-        # this entire function is pretty expensive, move from run-time to test-time
-        # once we're more confident
+        # this function is pretty expensive, only call at important junctures
+        # or during test-time
         self._assert_reports_ordered(self.linear_reports, ["timestamp_monotonic"])
 
         linear_status_counts = self.linear_status_counts()
@@ -103,33 +104,34 @@ class Test:
         # assert self.elapsed_time == total_elapsed_time
 
     def add_report(self, report: Report) -> None:
-        # we use last_report to compute timestamp_monotonic, and last_report_worker
-        # to compute status_count_diff and elapsed_time_diff
-        last_report = self.linear_reports[-1] if self.linear_reports else None
-        last_worker_report = (
-            None
-            if report.worker_uuid not in self.reports_by_worker
-            else self.reports_by_worker[report.worker_uuid][-1]
-        )
-        if (
-            last_worker_report is not None
-            and last_worker_report.elapsed_time > report.elapsed_time
-        ):
-            # If last_report.elapsed_time > report.elapsed_time, the reports have arrived
-            # out of order. we've already accounted for the diff of `report`; last_report
-            # essentially became the combined report of report + last_report.
+        last_worker_report = None
+        reports_index = 0
+        if report.worker_uuid in self.reports_by_worker:
+            reports = self.reports_by_worker[report.worker_uuid]
+            # If a report is added out of order, then the appropriate report to
+            # compute the diff against is the one right before the new report.
+            # Any guaranteed-monotonic attribute will work here (either
+            # elapsed_time or status_counts). Use elapsed_time.
             #
-            # TODO instead of dropping this report, insert it into the lists at
-            # the appropriate index, and recompute the diff for the next
-            # report. That way the e.g. dashboard graph still gets the report.
-            return
+            # we expect reports to *usually* arrive in-order, which case the
+            # appropriate report to diff against is reports[-1].
+            reports_index = bisect_right(
+                reports, report.elapsed_time, key=lambda r: r.elapsed_time
+            )
+            last_worker_report = (
+                reports[reports_index - 1] if reports_index != 0 else None
+            )
 
         linear_report = ReportWithDiff.from_reports(
-            report, last_report=last_report, last_worker_report=last_worker_report
+            report, last_worker_report=last_worker_report
         )
-        # support the by-worker access pattern. We only access index [-1] though
-        # - should we store self.last_reports_by_worker instead?
-        self.reports_by_worker.setdefault(report.worker_uuid, []).append(linear_report)
+        # support the by-worker access pattern, for consumers of Test. we use this
+        # when sending over the websocket, to compress the worker information into
+        # a single message for all its reports.
+        self.reports_by_worker.setdefault(report.worker_uuid, []).insert(
+            reports_index, linear_report
+        )
+
         # Phase.REPLAY does not count towards:
         #   * status_counts
         #   * elapsed_time
@@ -143,7 +145,49 @@ class Test:
         # when measuring cost to compute a separate "overhead" statistic which
         # takes every input and elapsed_time into account regardless of phase.
         if linear_report.phase is not Phase.REPLAY:
-            self.linear_reports.append(linear_report)
+            # insert in-order, maintaining the sorted invariant
+            index = bisect_right(
+                self.linear_reports,
+                linear_report.timestamp_monotonic,
+                key=lambda r: r.timestamp_monotonic,
+            )
+            self.linear_reports.insert(index, linear_report)
+            if index != len(self.linear_reports) - 1:
+                # if we didn't just append this report to the end, we need to:
+                # * recompute the diff for the next report from this worker (if
+                #   there is one)
+                # * invalidate cumsum caches for the indices after `index`
+                next_worker_report = None
+                for i_offset, report_candidate in enumerate(
+                    self.linear_reports[index + 1 :]
+                ):
+                    if linear_report.worker_uuid == report_candidate.worker_uuid:
+                        next_worker_report = report_candidate
+                        break
+
+                # note that there need not be another report from this worker
+                # after this report, if this was the first report to arrive from
+                # the worker, and it arrived out of order wrt timestamp_monotonic
+                # for the existing linear_reports.
+                if next_worker_report is not None:
+                    assert (
+                        self.linear_reports[index + 1 + i_offset] == next_worker_report
+                    )
+                    next_worker_report = ReportWithDiff.from_reports(
+                        next_worker_report,
+                        last_worker_report=linear_report,
+                    )
+                    self.linear_reports[index + 1 + i_offset] = next_worker_report
+
+                # now invalidate the cumsum caches for any indices after `index`
+                caches: list[LRUCache] = [
+                    self._status_counts_cumsum,
+                    self._elapsed_time_cumsum,
+                ]
+                for cache in caches:
+                    for key, (start_idx, values) in cache.cache.items():
+                        if index >= start_idx:
+                            cache[key] = (start_idx, values[: index - start_idx])
 
     @property
     def phase(self) -> Optional[Phase]:

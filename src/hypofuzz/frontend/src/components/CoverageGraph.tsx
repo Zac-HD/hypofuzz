@@ -416,25 +416,34 @@ export function CoverageGraph({ tests, filterString = "" }: Props) {
 
   const reports = useMemo(() => {
     return new Map(
-      Array.from(tests.entries()).map(([nodeid, test]) => {
-        // zip up linear_status_counts, linear_elapsed_time, and linear_reports.
-        const linearStatusCounts = test.linear_status_counts(null)
-        const linearElapsedTime = test.linear_elapsed_time(null)
-        const reports: GraphReport[] = []
-        for (let i = 0; i < linearStatusCounts.length; i++) {
-          const report = test.linear_reports[i]
-          reports.push({
-            nodeid: nodeid,
-            linear_status_counts: linearStatusCounts[i],
-            linear_elapsed_time: linearElapsedTime[i],
-            behaviors: report.behaviors,
-            fingerprints: report.fingerprints,
-            ninputs: report.ninputs,
-            elapsed_time: report.elapsed_time,
-          })
-        }
-        return [nodeid, reports]
-      }),
+      Array.from(tests.entries())
+        // deterministic line color ordering, regardless of insertion order (which might vary
+        // based on websocket arrival order)
+        //
+        // we may also want a deterministic mapping of hash(nodeid) -> color, so the color is stable
+        // even across pages (overview vs individual test) or after a new test is added? But maybe we
+        // *don't* want this. I'm not sure which is better ux. A graph with only one line and having
+        // a non-blue color is weird.
+        .sortKey(([nodeid, test]) => nodeid)
+        .map(([nodeid, test]) => {
+          // zip up linear_status_counts, linear_elapsed_time, and linear_reports.
+          const linearStatusCounts = test.linear_status_counts(null)
+          const linearElapsedTime = test.linear_elapsed_time(null)
+          const reports: GraphReport[] = []
+          for (let i = 0; i < linearStatusCounts.length; i++) {
+            const report = test.linear_reports[i]
+            reports.push({
+              nodeid: nodeid,
+              linear_status_counts: linearStatusCounts[i],
+              linear_elapsed_time: linearElapsedTime[i],
+              behaviors: report.behaviors,
+              fingerprints: report.fingerprints,
+              ninputs: report.ninputs,
+              elapsed_time: report.elapsed_time,
+            })
+          }
+          return [nodeid, reports]
+        }),
     )
   }, [tests])
 

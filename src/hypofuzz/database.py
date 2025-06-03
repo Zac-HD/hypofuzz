@@ -6,7 +6,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass, is_dataclass
 from enum import Enum
 from functools import cache, lru_cache
-from typing import TYPE_CHECKING, Any, Literal, Optional, Union
+from typing import TYPE_CHECKING, Any, Literal, Optional, Union, overload
 
 from hypothesis import settings
 from hypothesis.database import (
@@ -271,10 +271,8 @@ class ReportWithDiff(Report):
         cls,
         report: Report,
         *,
-        last_report: Union["ReportWithDiff", None],
-        last_worker_report: Union[Report, None],
+        last_worker_report: Union["ReportWithDiff", None],
     ) -> "ReportWithDiff":
-        assert last_report is None or last_report.timestamp_monotonic is not None
         last_status_counts = (
             StatusCounts()
             if last_worker_report is None
@@ -287,11 +285,15 @@ class ReportWithDiff(Report):
         elapsed_time_diff = report.elapsed_time - last_elapsed_time
         timestamp_monotonic = (
             report.timestamp
-            if last_report is None
+            if last_worker_report is None
             else max(
-                report.timestamp, last_report.timestamp_monotonic + elapsed_time_diff
+                report.timestamp,
+                last_worker_report.timestamp_monotonic + elapsed_time_diff,
             )
         )
+
+        assert elapsed_time_diff >= 0.0
+        assert timestamp_monotonic >= 0.0
 
         return cls(
             database_key=report.database_key,
@@ -322,13 +324,10 @@ def worker_identity_key(key: bytes, uuid: str) -> bytes:
 
 
 @lru_cache(maxsize=512)
-def corpus_observation_key(key: bytes, choices: ChoicesT) -> bytes:
+def corpus_observation_key(key: bytes, choices: Union[ChoicesT, bytes]) -> bytes:
+    choices_bytes = choices if isinstance(choices, bytes) else choices_to_bytes(choices)
     return (
-        key
-        + corpus_key
-        + b"."
-        + hashlib.sha1(choices_to_bytes(choices)).digest()
-        + b".observation"
+        key + corpus_key + b"." + hashlib.sha1(choices_bytes).digest() + b".observation"
     )
 
 
@@ -337,12 +336,13 @@ def failure_key(key: bytes, *, shrunk: bool) -> bytes:
 
 
 @lru_cache(maxsize=512)
-def failure_observation_key(key: bytes, choices: ChoicesT) -> bytes:
+def failure_observation_key(key: bytes, choices: Union[ChoicesT, bytes]) -> bytes:
+    choices_bytes = choices if isinstance(choices, bytes) else choices_to_bytes(choices)
     return (
         key
         + failures_key
         + b"."
-        + hashlib.sha1(choices_to_bytes(choices)).digest()
+        + hashlib.sha1(choices_bytes).digest()
         + b".observation"
     )
 
@@ -431,9 +431,23 @@ class HypofuzzDatabase:
     def delete_corpus(self, key: bytes, choices: ChoicesT) -> None:
         self.delete(key + corpus_key, choices_to_bytes(choices))
 
-    def fetch_corpus(self, key: bytes) -> Iterable[ChoicesT]:
+    @overload
+    def fetch_corpus(
+        self, key: bytes, *, as_bytes: Literal[False] = False
+    ) -> Iterable[ChoicesT]: ...
+
+    @overload
+    def fetch_corpus(
+        self, key: bytes, *, as_bytes: Literal[True]
+    ) -> Iterable[bytes]: ...
+
+    def fetch_corpus(
+        self, key: bytes, *, as_bytes: bool = False
+    ) -> Iterable[Union[ChoicesT, bytes]]:
         for value in self.fetch(key + corpus_key):
-            if (choices := choices_from_bytes(value)) is not None:
+            if as_bytes:
+                yield value
+            elif (choices := choices_from_bytes(value)) is not None:
                 yield choices
 
     # corpus observations (corpus_observe_key)
@@ -463,7 +477,7 @@ class HypofuzzDatabase:
     def fetch_corpus_observation(
         self,
         key: bytes,
-        choices: ChoicesT,
+        choices: Union[ChoicesT, bytes],
     ) -> Optional[Observation]:
         # We expect there to be only a single entry. If there are multiple, we
         # arbitrarily pick one to return.
@@ -475,7 +489,7 @@ class HypofuzzDatabase:
     def fetch_corpus_observations(
         self,
         key: bytes,
-        choices: ChoicesT,
+        choices: Union[ChoicesT, bytes],
     ) -> Iterable[Observation]:
         for value in self.fetch(corpus_observation_key(key, choices)):
             if observation := Observation.from_json(value):

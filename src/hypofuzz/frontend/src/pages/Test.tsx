@@ -1,6 +1,6 @@
 import { useParams, Link } from "react-router-dom"
 import { CoverageGraph } from "../components/CoverageGraph"
-import { useData, DataProvider } from "../context/DataProvider"
+import { useData } from "../context/DataProvider"
 import { getTestStats } from "../utils/testStats"
 import { Table } from "../components/Table"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
@@ -23,17 +23,7 @@ hljs.registerLanguage("python", python)
 
 export function TestPage() {
   const { nodeid } = useParams<{ nodeid: string }>()
-
-  return (
-    <DataProvider nodeid={nodeid}>
-      <_TestPage />
-    </DataProvider>
-  )
-}
-
-function _TestPage() {
-  const { nodeid } = useParams<{ nodeid: string }>()
-  const { tests } = useData()
+  const { tests } = useData(nodeid)
 
   if (!nodeid || !tests.has(nodeid)) {
     return <div>Test not found</div>
