@@ -6,7 +6,7 @@ import pytest
 from hypothesis import assume, given, strategies as st
 from hypothesis.internal.conjecture.data import Status
 
-from hypofuzz.dashboard import Test
+from hypofuzz.dashboard.test import Test
 from hypofuzz.database import (
     Phase,
     Report,

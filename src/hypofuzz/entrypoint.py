@@ -68,7 +68,7 @@ def fuzz(
     """
     dash_proc = None
     if dashboard or dashboard_only:
-        from hypofuzz.dashboard import start_dashboard_process
+        from hypofuzz.dashboard.dashboard import start_dashboard_process
 
         dash_proc = Process(
             target=start_dashboard_process,

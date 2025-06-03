@@ -10,13 +10,25 @@ hljs.registerLanguage("python", python)
 
 interface Props {
   observations: Observation[]
+  observationType: "covering" | "rolling"
 }
 
 const perPage = 30
 
-export function Representation({ observations }: Props) {
+export function Representation({ observations, observationType }: Props) {
   const observationsDivRef = useRef<HTMLDivElement>(null)
-  const [pageIndex, setCurrentPage] = useState(0)
+  const [page, setPage] = useState(0)
+
+  useEffect(() => {
+    // reset when switching from e.g. covering to rolling, since one might have fewer
+    // observations than the other.
+    //
+    // Do we want to reset to page 0 whenever `observations` changes at all? I'd prefer
+    // not to, to avoid resetting your page position whenever a rolling observation
+    // comes in, but I think you can get into an invalid page state if we don't...
+    // (corpus observation is deleted when you're on the last page)
+    setPage(0)
+  }, [observationType])
 
   function reHighlight() {
     if (observationsDivRef.current) {
@@ -31,7 +43,7 @@ export function Representation({ observations }: Props) {
 
   useEffect(() => {
     reHighlight()
-  }, [observations, pageIndex])
+  }, [observations, page])
 
   if (observations.length === 0) {
     return null
@@ -46,7 +58,7 @@ export function Representation({ observations }: Props) {
   const pageCount = Math.ceil(rawRepresentations.size / perPage)
   const representations = Array.from(rawRepresentations.entries())
     .sortKey(([rep, count]) => -count)
-    .slice(pageIndex * perPage, (pageIndex + 1) * perPage)
+    .slice(page * perPage, (page + 1) * perPage)
 
   return (
     <TycheSection
@@ -71,9 +83,9 @@ export function Representation({ observations }: Props) {
             }}
           >
             <Pagination
-              currentPage={pageIndex}
+              currentPage={page}
               pageCount={pageCount}
-              onPageChange={setCurrentPage}
+              onPageChange={setPage}
             />
           </div>
         )}
@@ -99,9 +111,9 @@ export function Representation({ observations }: Props) {
             style={{ display: "flex", justifyContent: "flex-end", marginTop: "12px" }}
           >
             <Pagination
-              currentPage={pageIndex}
+              currentPage={page}
               pageCount={pageCount}
-              onPageChange={setCurrentPage}
+              onPageChange={setPage}
             />
           </div>
         )}
