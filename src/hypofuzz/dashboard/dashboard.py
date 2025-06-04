@@ -33,6 +33,7 @@ from hypofuzz.database import (
     Observation,
     ObservationStatus,
     Report,
+    ReportWithDiff,
     get_db,
 )
 from hypofuzz.interface import CollectionResult
@@ -52,36 +53,39 @@ class DashboardEventType(IntEnum):
     SET_FAILURE = 5
 
 
-def test_for_websocket(test: Test) -> dict[str, Any]:
-    # Limit to 1000 reports per test. If we're over 1000 total reports, sample
-    # evenly from each worker.
+def _sample_reports(
+    reports_by_worker: dict[str, list[ReportWithDiff]], *, soft_limit: int
+) -> dict[str, list[ReportWithDiff]]:
+    keep_start = 10
+    keep_end = 10
+    # Sample reports up to a soft limit of ``soft_limit`` reports.
     #
-    # As a temporary stopgap until a more intelligent algorithm, sample the
-    # entirety of the first 20 reports per worker, then `::step` after. This
-    # helps with (4).
+    # We keep the first and last 10 reports from each worker (which does not
+    # count against ``soft_limit``), and fill in with ``soft_limit`` reports
+    # sampled evenly across workers.
     #
-    # A more intelligent algorithm would:
-    # (1) sample evenly from the aggregate reports list (instead of per-worker)
-    # (2) prefer keeping reports with new behaviors which we expect to be less
-    #     common than reports with new fingerprints.
-    # (3) always keep the last report, so the graph (and aggregate stats) is as up
-    #     to date as possible
-    # (4) sample more tightly earlier on and less tightly later on, since there is
-    #     more behavior and fingerprint growth early. This is especially important
-    #     for log x axis graphs, which show more early intervals than late intervals
-    step = (len(test.linear_reports) // 1000) + 1
-    return {
-        "database_key": test.database_key,
-        "nodeid": test.nodeid,
-        "failure": test.failure,
-        "reports_by_worker": {
-            worker_uuid: [
-                report_for_websocket(report)
-                for report in reports[:20] + reports[20::step]
-            ]
-            for worker_uuid, reports in test.reports_by_worker.items()
-        },
-    }
+    # An ideal algorithm would also:
+    # * prefer keeping reports with new behaviors, which we expect to be less
+    #   common than reports with new fingerprints.
+    # * sample more tightly earlier on and less tightly later on. This improves
+    #   log x axis graphs, which show more early intervals than late intervals.
+    #   (but we probably don't want to do a full log sampling, which would make
+    #   the linear graph look worse in comparison. Something inbetween log and
+    #   linear).
+    count_reports = sum(len(reports) for reports in reports_by_worker.values())
+    by_worker = {}
+    for worker_uuid, reports in reports_by_worker.items():
+        if len(reports) <= keep_start + keep_end:
+            by_worker[worker_uuid] = reports
+            continue
+
+        worker_step = (count_reports // soft_limit) + 1
+        by_worker[worker_uuid] = (
+            reports[:keep_start]
+            + reports[keep_start:-keep_end:worker_step]
+            + reports[-keep_end:]
+        )
+    return by_worker
 
 
 def report_for_websocket(report: Report) -> dict[str, Any]:
@@ -141,42 +145,33 @@ class HypofuzzWebsocket(abc.ABC):
 
 class OverviewWebsocket(HypofuzzWebsocket):
     async def initial(self, tests: dict[str, Test]) -> None:
-        # should we be passing in some global nursery here instead? I think this
-        # will block any callers until all send_event tasks complete, right?
-        # which we don't necessarily care about (though it's less important than
-        # sending all the events here in parallel).
-        async with trio.open_nursery() as nursery:
-            # we start by sending all tests, which is the most important
-            # thing for the user to see first.
-            tests_data = {
-                "tests": [
-                    {
-                        "database_key": test.database_key,
-                        "nodeid": test.nodeid,
-                        "failure": test.failure,
-                    }
-                    for test in tests.values()
-                ]
-            }
-            nursery.start_soon(
-                self.send_event,
-                {"type": DashboardEventType.ADD_TESTS},
-                tests_data,
-            )
+        # we start by sending all tests, which is the most important
+        # thing for the user to see first.
+        tests_data = {
+            "tests": [
+                {
+                    "database_key": test.database_key,
+                    "nodeid": test.nodeid,
+                    "failure": test.failure,
+                }
+                for test in tests.values()
+            ]
+        }
+        await self.send_event({"type": DashboardEventType.ADD_TESTS}, tests_data)
 
-            # Then we send the reports for each test.
-            for test in tests.values():
-                for worker_uuid, reports in test.reports_by_worker.items():
-                    report_data = {
-                        "nodeid": test.nodeid,
-                        "worker_uuid": worker_uuid,
-                        "reports": [report_for_websocket(report) for report in reports],
-                    }
-                    nursery.start_soon(
-                        self.send_event,
-                        {"type": DashboardEventType.ADD_REPORTS},
-                        report_data,
-                    )
+        # then we send the reports for each test.
+        for test in tests.values():
+            # limit for performance
+            reports_by_worker = _sample_reports(test.reports_by_worker, soft_limit=1000)
+            for worker_uuid, reports in reports_by_worker.items():
+                report_data = {
+                    "nodeid": test.nodeid,
+                    "worker_uuid": worker_uuid,
+                    "reports": [report_for_websocket(report) for report in reports],
+                }
+                await self.send_event(
+                    {"type": DashboardEventType.ADD_REPORTS}, report_data
+                )
 
     async def on_event(
         self, event_type: Literal["save", "delete"], key: DatabaseEventKey, value: Any
@@ -208,42 +203,32 @@ class TestWebsocket(HypofuzzWebsocket):
 
     async def initial(self, tests: dict[str, Test]) -> None:
         test = tests[self.nodeid]
-        async with trio.open_nursery() as nursery:
-            # send the test first
-            test_data = {
-                "database_key": test.database_key,
+        # send the test first
+        test_data = {
+            "database_key": test.database_key,
+            "nodeid": test.nodeid,
+            "failure": test.failure,
+        }
+        await self.send_event({"type": DashboardEventType.ADD_TESTS}, [test_data])
+
+        # then its reports. Note we don't currently downsample with _sample_reports
+        # on individual test pages, unlike the overview page.
+        for worker_uuid, reports in test.reports_by_worker.items():
+            report_data = {
                 "nodeid": test.nodeid,
-                "failure": test.failure,
+                "worker_uuid": worker_uuid,
+                "reports": [report_for_websocket(report) for report in reports],
             }
-            nursery.start_soon(
-                self.send_event,
-                {"type": DashboardEventType.ADD_TESTS},
-                [test_data],
-            )
+            await self.send_event({"type": DashboardEventType.ADD_REPORTS}, report_data)
 
-            # then its reports
-            for worker_uuid, reports in test.reports_by_worker.items():
-                report_data = {
-                    "nodeid": test.nodeid,
-                    "worker_uuid": worker_uuid,
-                    "reports": [report_for_websocket(report) for report in reports],
-                }
-                nursery.start_soon(
-                    self.send_event,
-                    {"type": DashboardEventType.ADD_REPORTS},
-                    report_data,
-                )
-
-            nursery.start_soon(
-                self.send_event,
-                {"type": DashboardEventType.ADD_ROLLING_OBSERVATIONS},
-                {"nodeid": self.nodeid, "observations": test.rolling_observations},
-            )
-            nursery.start_soon(
-                self.send_event,
-                {"type": DashboardEventType.ADD_CORPUS_OBSERVATIONS},
-                {"nodeid": self.nodeid, "observations": test.corpus_observations},
-            )
+        await self.send_event(
+            {"type": DashboardEventType.ADD_ROLLING_OBSERVATIONS},
+            {"nodeid": self.nodeid, "observations": test.rolling_observations},
+        )
+        await self.send_event(
+            {"type": DashboardEventType.ADD_CORPUS_OBSERVATIONS},
+            {"nodeid": self.nodeid, "observations": test.corpus_observations},
+        )
 
     async def on_event(
         self, event_type: Literal["save", "delete"], key: DatabaseEventKey, value: Any
@@ -385,7 +370,18 @@ async def api_collected_tests(request: Request) -> Response:
 
 # get the backing state of the dashboard, suitable for use by dashboard_state/*.json.
 async def api_backing_state_tests(request: Request) -> Response:
-    tests = {nodeid: test_for_websocket(test) for nodeid, test in TESTS.items()}
+    tests = {
+        nodeid: {
+            "database_key": test.database_key,
+            "nodeid": test.nodeid,
+            "failure": test.failure,
+            "reports_by_worker": {
+                worker_uuid: [report_for_websocket(report) for report in reports]
+                for worker_uuid, reports in test.reports_by_worker.items()
+            },
+        }
+        for nodeid, test in TESTS.items()
+    }
     return HypofuzzJSONResponse(tests)
 
 
