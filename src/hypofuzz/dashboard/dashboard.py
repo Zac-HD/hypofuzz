@@ -3,6 +3,7 @@
 import abc
 import json
 import math
+import threading
 from collections import defaultdict
 from enum import IntEnum
 from pathlib import Path
@@ -23,6 +24,7 @@ from starlette.staticfiles import StaticFiles
 from starlette.types import Scope
 from starlette.websockets import WebSocket, WebSocketDisconnect
 from trio import MemoryReceiveChannel
+from trio.lowlevel import TrioToken
 
 from hypofuzz.dashboard.patching import make_and_save_patches
 from hypofuzz.dashboard.test import Test
@@ -485,22 +487,8 @@ async def handle_event(receive_channel: MemoryReceiveChannel[ListenerEventT]) ->
         await broadcast_event(event.type, event.key, event.value)
 
 
-async def run_dashboard(port: int, host: str) -> None:
+def _load_initial_state(trio_token: TrioToken) -> None:
     assert COLLECTION_RESULT is not None
-
-    send_channel, receive_channel = trio.open_memory_channel[ListenerEventT](math.inf)
-    token = trio.lowlevel.current_trio_token()
-
-    def send_nowait_from_anywhere(msg: ListenerEventT) -> None:
-        # DirectoryBasedExampleDatabase sends events from a background thread (via watchdog),
-        # so we need to support sending from anywhere, i.e. whether or not the calling thread
-        # has any Trio state.  We can do that with the following branch:
-        try:
-            trio.lowlevel.current_task()
-        except RuntimeError:
-            trio.from_thread.run_sync(send_channel.send_nowait, msg, trio_token=token)
-        else:
-            send_channel.send_nowait(msg)
 
     db = get_db()
     # load initial database state before starting dashboard
@@ -559,6 +547,37 @@ async def run_dashboard(port: int, host: str) -> None:
         )
         TESTS[fuzz_target.nodeid] = test
 
+        async def update_websockets() -> None:
+            # TODO: make this more granular, so we send incremental batches
+            # of reports as they're loaded, etc.
+            for websocket in websockets.copy():
+                await websocket.initial({test.nodeid: test})
+
+        trio.from_thread.run(update_websockets, trio_token=trio_token)
+
+
+async def run_dashboard(port: int, host: str) -> None:
+    send_channel, receive_channel = trio.open_memory_channel[ListenerEventT](math.inf)
+    trio_token = trio.lowlevel.current_trio_token()
+
+    def send_nowait_from_anywhere(msg: ListenerEventT) -> None:
+        # DirectoryBasedExampleDatabase sends events from a background thread (via watchdog),
+        # so we need to support sending from anywhere, i.e. whether or not the calling thread
+        # has any Trio state.  We can do that with the following branch:
+        try:
+            trio.lowlevel.current_task()
+        except RuntimeError:
+            trio.from_thread.run_sync(
+                send_channel.send_nowait, msg, trio_token=trio_token
+            )
+        else:
+            send_channel.send_nowait(msg)
+
+    db = get_db()
+    thread = threading.Thread(
+        target=_load_initial_state, kwargs={"trio_token": trio_token}
+    )
+    thread.start()
     # Any database events that get submitted while we're computing initial state
     # won't be displayed until a dashboard restart. We could solve this by adding the
     # listener first, then storing reports in a queue, to be resolved after
