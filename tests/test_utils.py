@@ -1,30 +1,21 @@
-from dataclasses import dataclass
-
 from hypothesis import given, strategies as st
 
-from hypofuzz.utils import k_way_merge
+from hypofuzz.compat import bisect_right
+from hypofuzz.utils import fast_bisect_right, k_way_merge
 
 
-@given(st.lists(st.lists(st.integers(), min_size=1).map(sorted)))
-def test_k_way_merge(lists):
-    assert k_way_merge(lists) == sorted(sum(lists, []))
+@given(st.data())
+def test_k_way_merge(data):
+    key = data.draw(st.sampled_from([None, lambda x: x, lambda x: -x]))
+    lists = data.draw(
+        st.lists(st.lists(st.integers()).map(lambda l: sorted(l, key=key)))
+    )
+    assert k_way_merge(lists, key=key) == sorted(sum(lists, []), key=key)
 
 
-@dataclass
-class A:
-    value: int
-
-
-def test_k_way_merge_key():
-    a1 = A(1)
-    a2 = A(2)
-    a3 = A(3)
-    a4 = A(4)
-    a5 = A(5)
-    assert k_way_merge([[a1, a3, a4], [a2, a5]], key=lambda x: x.value) == [
-        a1,
-        a2,
-        a3,
-        a4,
-        a5,
-    ]
+@given(st.data())
+def test_fast_bisect_right(data):
+    key = data.draw(st.sampled_from([None, lambda x: x, lambda x: -x]))
+    values = data.draw(st.lists(st.integers()).map(lambda l: sorted(l, key=key)))
+    x = data.draw(st.integers())
+    assert fast_bisect_right(values, x, key=key) == bisect_right(values, x, key=key)

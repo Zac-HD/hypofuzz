@@ -142,7 +142,6 @@ function report_with_diff(report: Report, last_worker_report: Report | null): Re
     Array.from(status_counts_diff.counts.values()).every(count => count >= 0),
   )
   console.assert(elapsed_time_diff >= 0.0)
-  console.assert(timestamp_monotonic >= 0.0)
 
   return report.withProperties({
     status_counts_diff: status_counts_diff,

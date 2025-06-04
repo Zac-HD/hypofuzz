@@ -293,7 +293,9 @@ class ReportWithDiff(Report):
         )
 
         assert elapsed_time_diff >= 0.0
-        assert timestamp_monotonic >= 0.0
+        # note: timestamp_monotonic might be negative, if the initial
+        # report.timestamp was negative, because someone set their system clock
+        # to before 1969.
 
         return cls(
             database_key=report.database_key,

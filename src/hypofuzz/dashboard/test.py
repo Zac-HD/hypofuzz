@@ -12,7 +12,7 @@ from hypofuzz.database import (
     ReportWithDiff,
     StatusCounts,
 )
-from hypofuzz.utils import k_way_merge
+from hypofuzz.utils import fast_bisect_right, k_way_merge
 
 T = TypeVar("T")
 
@@ -50,12 +50,11 @@ class Test:
         # use k-way merge for nlog(k) performance, since reports_by_worker
         # is already sorted.
         #
-        # This sorting doesn't matter for correctness (once we correctly insert
-        # out-of-order reports), but it does for performance, by minimizing the
-        # number of .bisect calls in the worker reports list. (I have not profiled
-        # this).
+        # This sorting doesn't matter for correctness, but it does for performance,
+        # by minimizing the amount of work each bisect_right call does when
+        # inserting into reports_by_worker. (I have not profiled this).
         for report in k_way_merge(
-            list(reports_by_worker.values()), key=lambda r: r.timestamp
+            list(reports_by_worker.values()), key=lambda r: r.elapsed_time
         ):
             self.add_report(report)
 
@@ -115,7 +114,7 @@ class Test:
             #
             # we expect reports to *usually* arrive in-order, which case the
             # appropriate report to diff against is reports[-1].
-            reports_index = bisect_right(
+            reports_index = fast_bisect_right(
                 reports, report.elapsed_time, key=lambda r: r.elapsed_time
             )
             last_worker_report = (
@@ -146,7 +145,7 @@ class Test:
         # takes every input and elapsed_time into account regardless of phase.
         if linear_report.phase is not Phase.REPLAY:
             # insert in-order, maintaining the sorted invariant
-            index = bisect_right(
+            index = fast_bisect_right(
                 self.linear_reports,
                 linear_report.timestamp_monotonic,
                 key=lambda r: r.timestamp_monotonic,
