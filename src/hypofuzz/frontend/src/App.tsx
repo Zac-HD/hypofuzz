@@ -13,22 +13,17 @@ export function App() {
 
   return (
     <Router>
-      <Routes>
-        <Route element={<Layout />}>
-          <Route
-            path="/"
-            element={
-              <DataProvider>
-                <TestsPage />
-              </DataProvider>
-            }
-          />
-          <Route path="/patches" element={<PatchesPage />} />
-          <Route path="/collected" element={<CollectionStatusPage />} />
-          <Route path="/tests/:nodeid" element={<TestPage />} />
-          <Route path="*" element={<NotFoundPage />} />
-        </Route>
-      </Routes>
+      <DataProvider>
+        <Routes>
+          <Route element={<Layout />}>
+            <Route path="/" element={<TestsPage />} />
+            <Route path="/patches" element={<PatchesPage />} />
+            <Route path="/collected" element={<CollectionStatusPage />} />
+            <Route path="/tests/:nodeid" element={<TestPage />} />
+            <Route path="*" element={<NotFoundPage />} />
+          </Route>
+        </Routes>
+      </DataProvider>
     </Router>
   )
 }

@@ -24,14 +24,6 @@ export function Tyche({ test }: { test: Test }) {
     "covering",
   )
 
-  if (!test.observations_loaded) {
-    return (
-      <div className="card">
-        <div className="card__header">Loading observations...</div>
-      </div>
-    )
-  }
-
   const observations =
     observationType === "rolling"
       ? // newest first for rolling observations

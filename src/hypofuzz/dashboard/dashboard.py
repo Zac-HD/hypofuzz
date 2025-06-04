@@ -4,8 +4,9 @@ import abc
 import json
 import math
 from collections import defaultdict
+from enum import IntEnum
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Literal, Optional
 
 import black
 import trio
@@ -32,6 +33,7 @@ from hypofuzz.database import (
     Observation,
     ObservationStatus,
     Report,
+    ReportWithDiff,
     get_db,
 )
 from hypofuzz.interface import CollectionResult
@@ -41,37 +43,49 @@ COLLECTION_RESULT: Optional[CollectionResult] = None
 websockets: set["HypofuzzWebsocket"] = set()
 
 
-def test_for_websocket(test: Test) -> dict[str, Any]:
-    # Limit to 1000 reports per test. If we're over 1000 total reports, sample
-    # evenly from each worker.
+class DashboardEventType(IntEnum):
+    # minimize header frame overhead with a shared IntEnum definition between
+    # python and ts.
+    ADD_TESTS = 1
+    ADD_REPORTS = 2
+    ADD_ROLLING_OBSERVATIONS = 3
+    ADD_CORPUS_OBSERVATIONS = 4
+    SET_FAILURE = 5
+
+
+def _sample_reports(
+    reports_by_worker: dict[str, list[ReportWithDiff]], *, soft_limit: int
+) -> dict[str, list[ReportWithDiff]]:
+    keep_start = 10
+    keep_end = 10
+    # Sample reports up to a soft limit of ``soft_limit`` reports.
     #
-    # As a temporary stopgap until a more intelligent algorithm, sample the
-    # entirety of the first 20 reports per worker, then `::step` after. This
-    # helps with (4).
+    # We keep the first and last 10 reports from each worker (which does not
+    # count against ``soft_limit``), and fill in with ``soft_limit`` reports
+    # sampled evenly across workers.
     #
-    # A more intelligent algorithm would:
-    # (1) sample evenly from the aggregate reports list (instead of per-worker)
-    # (2) prefer keeping reports with new behaviors which we expect to be less
-    #     common than reports with new fingerprints.
-    # (3) always keep the last report, so the graph (and aggregate stats) is as up
-    #     to date as possible
-    # (4) sample more tightly earlier on and less tightly later on, since there is
-    #     more behavior and fingerprint growth early. This is especially important
-    #     for log x axis graphs, which show more early intervals than late intervals
-    count_reports = sum(len(reports) for reports in test.reports_by_worker.values())
-    step = (count_reports // 1000) + 1
-    return {
-        "database_key": test.database_key,
-        "nodeid": test.nodeid,
-        "failure": test.failure,
-        "reports_by_worker": {
-            worker_uuid: [
-                report_for_websocket(report)
-                for report in reports[:20] + reports[20::step]
-            ]
-            for worker_uuid, reports in test.reports_by_worker.items()
-        },
-    }
+    # An ideal algorithm would also:
+    # * prefer keeping reports with new behaviors, which we expect to be less
+    #   common than reports with new fingerprints.
+    # * sample more tightly earlier on and less tightly later on. This improves
+    #   log x axis graphs, which show more early intervals than late intervals.
+    #   (but we probably don't want to do a full log sampling, which would make
+    #   the linear graph look worse in comparison. Something inbetween log and
+    #   linear).
+    count_reports = sum(len(reports) for reports in reports_by_worker.values())
+    by_worker = {}
+    for worker_uuid, reports in reports_by_worker.items():
+        if len(reports) <= keep_start + keep_end:
+            by_worker[worker_uuid] = reports
+            continue
+
+        worker_step = (count_reports // soft_limit) + 1
+        by_worker[worker_uuid] = (
+            reports[:keep_start]
+            + reports[keep_start:-keep_end:worker_step]
+            + reports[-keep_end:]
+        )
+    return by_worker
 
 
 def report_for_websocket(report: Report) -> dict[str, Any]:
@@ -123,31 +137,63 @@ class HypofuzzWebsocket(abc.ABC):
         pass
 
     @abc.abstractmethod
-    async def on_event(self, header: dict[str, Any], data: Any) -> None:
+    async def on_event(
+        self, event_type: Literal["save", "delete"], key: DatabaseEventKey, value: Any
+    ) -> None:
         pass
 
 
 class OverviewWebsocket(HypofuzzWebsocket):
     async def initial(self, tests: dict[str, Test]) -> None:
-        tests = {nodeid: test_for_websocket(test) for nodeid, test in tests.items()}
-        await self.send_event({"type": "initial", "initial_type": "tests"}, tests)
-        # don't send observations event, overview page doesn't use them
-
-    async def on_event(self, header: dict[str, Any], data: Any) -> None:
-        if header["type"] == "save":
-            if header["key"] not in [
-                DatabaseEventKey.REPORT,
-                DatabaseEventKey.FAILURE,
-            ]:
-                return
-            if header["key"] is DatabaseEventKey.REPORT:
-                assert isinstance(data, Report)
-                data = {
-                    "nodeid": data.nodeid,
-                    "worker_uuid": data.worker_uuid,
-                    "report": report_for_websocket(data),
+        # we start by sending all tests, which is the most important
+        # thing for the user to see first.
+        tests_data = {
+            "tests": [
+                {
+                    "database_key": test.database_key,
+                    "nodeid": test.nodeid,
+                    "failure": test.failure,
                 }
-            await self.send_event(header, data)
+                for test in tests.values()
+            ]
+        }
+        await self.send_event({"type": DashboardEventType.ADD_TESTS}, tests_data)
+
+        # then we send the reports for each test.
+        for test in tests.values():
+            # limit for performance
+            reports_by_worker = _sample_reports(test.reports_by_worker, soft_limit=1000)
+            for worker_uuid, reports in reports_by_worker.items():
+                report_data = {
+                    "nodeid": test.nodeid,
+                    "worker_uuid": worker_uuid,
+                    "reports": [report_for_websocket(report) for report in reports],
+                }
+                await self.send_event(
+                    {"type": DashboardEventType.ADD_REPORTS}, report_data
+                )
+
+    async def on_event(
+        self, event_type: Literal["save", "delete"], key: DatabaseEventKey, value: Any
+    ) -> None:
+        if event_type == "save":
+            # don't send observations events, the overview page doesn't use
+            # observations.
+            if key is DatabaseEventKey.REPORT:
+                assert isinstance(value, Report)
+                data: Any = {
+                    "nodeid": value.nodeid,
+                    "worker_uuid": value.worker_uuid,
+                    "reports": [report_for_websocket(value)],
+                }
+                await self.send_event({"type": DashboardEventType.ADD_REPORTS}, data)
+            if key is DatabaseEventKey.FAILURE:
+                assert isinstance(value, Observation)
+                data = {
+                    "nodeid": value.property,
+                    "failure": value,
+                }
+                await self.send_event({"type": DashboardEventType.SET_FAILURE}, data)
 
 
 class TestWebsocket(HypofuzzWebsocket):
@@ -157,49 +203,81 @@ class TestWebsocket(HypofuzzWebsocket):
 
     async def initial(self, tests: dict[str, Test]) -> None:
         test = tests[self.nodeid]
-        # split initial event in two pieces: test (without observations), and observations.
-        tests = {self.nodeid: test_for_websocket(test)}
-        observations = {
-            self.nodeid: {
-                "rolling": test.rolling_observations,
-                "corpus": test.corpus_observations,
-            }
+        # send the test first
+        test_data = {
+            "database_key": test.database_key,
+            "nodeid": test.nodeid,
+            "failure": test.failure,
         }
-        await self.send_event({"type": "initial", "initial_type": "tests"}, tests)
+        await self.send_event({"type": DashboardEventType.ADD_TESTS}, [test_data])
+
+        # then its reports. Note we don't currently downsample with _sample_reports
+        # on individual test pages, unlike the overview page.
+        for worker_uuid, reports in test.reports_by_worker.items():
+            report_data = {
+                "nodeid": test.nodeid,
+                "worker_uuid": worker_uuid,
+                "reports": [report_for_websocket(report) for report in reports],
+            }
+            await self.send_event({"type": DashboardEventType.ADD_REPORTS}, report_data)
+
         await self.send_event(
-            {"type": "initial", "initial_type": "observations"}, observations
+            {"type": DashboardEventType.ADD_ROLLING_OBSERVATIONS},
+            {"nodeid": self.nodeid, "observations": test.rolling_observations},
+        )
+        await self.send_event(
+            {"type": DashboardEventType.ADD_CORPUS_OBSERVATIONS},
+            {"nodeid": self.nodeid, "observations": test.corpus_observations},
         )
 
-    async def on_event(self, header: dict[str, Any], data: Any) -> None:
-        if header["type"] == "save":
-            if header["key"] is DatabaseEventKey.REPORT:
-                assert isinstance(data, Report)
-                nodeid = data.nodeid
-                data = {
+    async def on_event(
+        self, event_type: Literal["save", "delete"], key: DatabaseEventKey, value: Any
+    ) -> None:
+        if event_type == "save":
+            if key is DatabaseEventKey.REPORT:
+                assert isinstance(value, Report)
+                nodeid = value.nodeid
+                value = {
                     "nodeid": nodeid,
-                    "worker_uuid": data.worker_uuid,
-                    "report": report_for_websocket(data),
+                    "worker_uuid": value.worker_uuid,
+                    "reports": [report_for_websocket(value)],
                 }
-            elif header["key"] in [
-                DatabaseEventKey.FAILURE,
+                dashboard_event = DashboardEventType.ADD_REPORTS
+            elif key is DatabaseEventKey.FAILURE:
+                assert isinstance(value, Observation)
+                nodeid = value.property
+                dashboard_event = DashboardEventType.SET_FAILURE
+                value = {
+                    "nodeid": nodeid,
+                    "failure": value,
+                }
+            elif key in [
                 DatabaseEventKey.ROLLING_OBSERVATION,
                 DatabaseEventKey.CORPUS_OBSERVATION,
             ]:
-                assert isinstance(data, Observation)
-                nodeid = data.property
-            elif header["key"] in [
-                DatabaseEventKey.FAILURE_OBSERVATION,
-                DatabaseEventKey.CORPUS,
-            ]:
-                return
+                assert isinstance(value, Observation)
+                nodeid = value.property
+                dashboard_event = {
+                    DatabaseEventKey.ROLLING_OBSERVATION: DashboardEventType.ADD_ROLLING_OBSERVATIONS,
+                    DatabaseEventKey.CORPUS_OBSERVATION: DashboardEventType.ADD_CORPUS_OBSERVATIONS,
+                }[key]
+                value = {
+                    "nodeid": nodeid,
+                    "observations": [value],
+                }
             else:
-                raise NotImplementedError(f"unhandled event {header}")
+                # assert so I don't forget a case
+                assert key in [
+                    DatabaseEventKey.FAILURE_OBSERVATION,
+                    DatabaseEventKey.CORPUS,
+                ], key
+                return
 
             # only broadcast event for this nodeid
             if nodeid != self.nodeid:
                 return
 
-            await self.send_event(header, data)
+            await self.send_event({"type": dashboard_event}, value)
 
 
 async def websocket(websocket: WebSocket) -> None:
@@ -226,10 +304,12 @@ async def websocket(websocket: WebSocket) -> None:
         websockets.remove(websocket)
 
 
-async def broadcast_event(header: dict[str, Any], data: Any) -> None:
+async def broadcast_event(
+    event_type: Literal["save", "delete"], key: DatabaseEventKey, value: Any
+) -> None:
     # avoid websocket disconnecting during iteration and causing a RuntimeError
     for websocket in websockets.copy():
-        await websocket.on_event(header, data)
+        await websocket.on_event(event_type, key, value)
 
 
 def try_format(code: str) -> str:
@@ -290,7 +370,18 @@ async def api_collected_tests(request: Request) -> Response:
 
 # get the backing state of the dashboard, suitable for use by dashboard_state/*.json.
 async def api_backing_state_tests(request: Request) -> Response:
-    tests = {nodeid: test_for_websocket(test) for nodeid, test in TESTS.items()}
+    tests = {
+        nodeid: {
+            "database_key": test.database_key,
+            "nodeid": test.nodeid,
+            "failure": test.failure,
+            "reports_by_worker": {
+                worker_uuid: [report_for_websocket(report) for report in reports]
+                for worker_uuid, reports in test.reports_by_worker.items()
+            },
+        }
+        for nodeid, test in TESTS.items()
+    }
     return HypofuzzJSONResponse(tests)
 
 
@@ -391,7 +482,7 @@ async def handle_event(receive_channel: MemoryReceiveChannel[ListenerEventT]) ->
                 continue
             TESTS[event.value.property].corpus_observations.append(event.value)
 
-        await broadcast_event({"type": event.type, "key": event.key}, event.value)
+        await broadcast_event(event.type, event.key, event.value)
 
 
 async def run_dashboard(port: int, host: str) -> None:
@@ -425,12 +516,9 @@ async def run_dashboard(port: int, host: str) -> None:
         key = fuzz_target.database_key
 
         rolling_observations = list(db.fetch_observations(key))
-        # TODO this runs choice_to_bytes in fetch_corpus and then choice_from_bytes
-        # in fetch_corpus_observation. We should add a as_bytes param to fetch_corpus
-        # for performance
         corpus_observations = [
             db.fetch_corpus_observation(key, choices)
-            for choices in db.fetch_corpus(key)
+            for choices in db.fetch_corpus(key, as_bytes=True)
         ]
         corpus_observations = [
             observation
@@ -461,7 +549,11 @@ async def run_dashboard(port: int, host: str) -> None:
             nodeid=fuzz_target.nodeid,
             rolling_observations=rolling_observations,
             corpus_observations=corpus_observations,
-            reports_by_worker=reports_by_worker,
+            # we're abusing this argument, post-init the reports have type
+            # ReportWithDiff, but at pre-init they have type Report. We should
+            # split this into two attributes, one for Report which we pass at init
+            # and one for ReportWithDiff which is set/stored post-init.
+            reports_by_worker=reports_by_worker,  # type: ignore
             # TODO: refactor Test, and our frontend, to support multiple failures.
             failure=next(iter(failure_observations.values()), None),
         )

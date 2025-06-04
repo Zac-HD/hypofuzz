@@ -37,6 +37,33 @@ def workers(*, uuid):
 _shared_tests = [(b"database_key_" + str(i).encode(), f"nodeid_{i}") for i in range(10)]
 
 
+def report_inline(
+    *,
+    database_key=b"inline-database_key",
+    nodeid="inline-nodeid",
+    elapsed_time=0.0,
+    timestamp=0.0,
+    worker_uuid="inline-worker_uuid",
+    status_counts=None,
+    behaviors=0,
+    fingerprints=0,
+    since_new_branch=0,
+    phase=Phase.GENERATE,
+):
+    return Report(
+        database_key=database_key,
+        nodeid=nodeid,
+        elapsed_time=elapsed_time,
+        timestamp=timestamp,
+        worker_uuid=worker_uuid,
+        status_counts=StatusCounts() if status_counts is None else status_counts,
+        behaviors=behaviors,
+        fingerprints=fingerprints,
+        since_new_branch=since_new_branch,
+        phase=phase,
+    )
+
+
 @st.composite
 def reports(
     draw, *, count_workers: Optional[int] = None, overlap: bool = False
@@ -64,18 +91,15 @@ def reports(
     reports = []
     for uuid, (start_time, end_time) in zip(uuids, intervals):
         # reports from the same worker always have monotonically increasing
-        # coverage, timestamps, and elapsed_time
-        # (TODO: we don't actually rely on timestamps being ordered. But our logic
-        # for unordered reports isn't correct yet either (we drop them, when we
-        # should correctly recompute/reinsert). Drop the .map(sorted) for timestamps
-        # when we implement this correctly.
+        # coverage, ninputs, and elapsed_time. timestamp is usually sorted as well,
+        # but need not be (and we do not rely on it being sorted).
         ninputs = draw(st.lists(st.integers(min_value=0)).map(sorted))
         timestamps = draw(
             st.lists(
                 st.floats(start_time, end_time),
                 min_size=len(ninputs),
                 max_size=len(ninputs),
-            ).map(sorted)
+            )
         )
         elapsed_times = draw(
             st.lists(
@@ -124,15 +148,13 @@ def assert_reports_almost_equal(reports1, reports2):
             v2 = getattr(report2, attr)
             if attr in ["elapsed_time", "timestamp"]:
                 # ignore floating point errors
-                assert v1 == pytest.approx(v2)
+                assert v1 == pytest.approx(v2), attr
             else:
-                assert v1 == v2
+                assert v1 == v2, attr
 
 
-def _test_for_reports(reports) -> Test:
+def _test_for_reports(reports, *, database_key: bytes = b"", nodeid: str = "") -> Test:
     reports_by_worker = defaultdict(list)
-    database_key = b""
-    nodeid = ""
     for report in sorted(reports, key=lambda r: r.elapsed_time):
         reports_by_worker[report.worker_uuid].append(report)
         database_key = report.database_key
@@ -157,7 +179,8 @@ def test_single_worker(reports):
     # ignoring any Phase.REPLAY reports.
     actual = _test_for_reports(reports).linear_reports
     expected = sorted(
-        (r for r in reports if r.phase is not Phase.REPLAY), key=lambda r: r.timestamp
+        (r for r in reports if r.phase is not Phase.REPLAY),
+        key=lambda r: r.elapsed_time,
     )
     assert_reports_almost_equal(actual, expected)
 
@@ -182,12 +205,7 @@ def test_linearize_decomposes_with_addition(data):
     # nodeid in _test_for_reports, since there are no reports to draw the nodeid
     # from).
     assume(len(reports_) > 1)
-    # the decomposition property is only actually true if we add reports in a sorted
-    # order. This may not happen in practice, because e.g. reports from workers may
-    # arrive out of order.
-    # (e: this may no longer be true now that we correctly drop/handle out-of-order
-    # reports in Test.add_report?)
-    reports_ = sorted(reports_, key=lambda r: r.timestamp)
+
     i = data.draw(st.integers(1, len(reports_) - 1))
     test1 = _test_for_reports(reports_)
 
@@ -199,3 +217,114 @@ def test_linearize_decomposes_with_addition(data):
     assert test1.linear_status_counts() == test2.linear_status_counts()
     assert test1.linear_elapsed_time() == pytest.approx(test2.linear_elapsed_time())
     assert_reports_almost_equal(test1.linear_reports, test2.linear_reports)
+
+
+@given(reports())
+def test_out_of_order_report_invalidates_cache(reports):
+    assume(len(reports) > 1)
+    test = _test_for_reports(
+        [], database_key=reports[0].database_key, nodeid=reports[0].nodeid
+    )
+    # this is a pretty bad PBT, but asserting the actual property requires
+    # reimplementing the linearization logic for the multi-worker case.
+    for report in reports:
+        test.add_report(report)
+        assert len(test.linear_status_counts()) == len(test.linear_reports)
+        assert len(test.linear_elapsed_time()) == len(test.linear_reports)
+
+    test._check_invariants()
+
+
+def test_out_of_order_report_invalidates_cache_explicit():
+    test = _test_for_reports(
+        [], database_key=b"inline-database_key", nodeid="inline-nodeid"
+    )
+
+    test.add_report(report_inline(elapsed_time=1.0, timestamp=1.0))
+    assert test.linear_elapsed_time() == [1.0]
+
+    test.add_report(report_inline(elapsed_time=0.5, timestamp=0.5))
+    assert test.linear_elapsed_time() == [0.5, 1.0]
+
+    test.add_report(report_inline(elapsed_time=2.0, timestamp=2.0))
+    assert test.linear_elapsed_time() == [0.5, 1.0, 2.0]
+
+    test.add_report(report_inline(elapsed_time=0.75, timestamp=0.75))
+    assert test.linear_elapsed_time() == [0.5, 0.75, 1.0, 2.0]
+
+    test.add_report(report_inline(elapsed_time=0.25, timestamp=0.25))
+    assert test.linear_elapsed_time() == [0.25, 0.5, 0.75, 1.0, 2.0]
+
+    test._check_invariants()
+
+
+def test_multiple_workers_no_overlap_explicit():
+    # multiple workers but no overlap
+    test = _test_for_reports(
+        [], database_key=b"inline-database_key", nodeid="inline-nodeid"
+    )
+    test.add_report(
+        report_inline(elapsed_time=1.0, timestamp=101, worker_uuid="worker_1")
+    )
+    test.add_report(
+        report_inline(elapsed_time=5.0, timestamp=105, worker_uuid="worker_1")
+    )
+
+    test.add_report(
+        report_inline(elapsed_time=1.0, timestamp=201, worker_uuid="worker_2")
+    )
+    test.add_report(
+        report_inline(elapsed_time=5.0, timestamp=205, worker_uuid="worker_2")
+    )
+
+    assert test.linear_elapsed_time() == [1.0, 5.0, 6.0, 10.0]
+
+
+def test_multiple_workers_overlap_explicit():
+    # multiple workers, with overlap
+    test = _test_for_reports(
+        [], database_key=b"inline-database_key", nodeid="inline-nodeid"
+    )
+    test.add_report(
+        report_inline(elapsed_time=1.0, timestamp=101, worker_uuid="worker_1")
+    )
+    assert test.linear_elapsed_time() == [1.0]
+    test.add_report(
+        report_inline(elapsed_time=5.0, timestamp=105, worker_uuid="worker_1")
+    )
+    assert test.linear_elapsed_time() == [1.0, 5.0]
+
+    test.add_report(
+        report_inline(elapsed_time=1.0, timestamp=102, worker_uuid="worker_2")
+    )
+    assert test.linear_elapsed_time() == [1.0, 2.0, 6.0]
+
+    test.add_report(
+        report_inline(elapsed_time=5.0, timestamp=106, worker_uuid="worker_2")
+    )
+    assert test.linear_elapsed_time() == [1.0, 2.0, 6.0, 10.0]
+
+
+def test_desynced_timestamp():
+    # test where the difference in timestamps is different than the difference
+    # in elapsed_time between reports, which tests our timestamp_monotonic
+    # logic
+    test = _test_for_reports(
+        [], database_key=b"inline-database_key", nodeid="inline-nodeid"
+    )
+    test.add_report(
+        report_inline(elapsed_time=1.0, timestamp=101, worker_uuid="worker_1")
+    )
+    test.add_report(
+        report_inline(elapsed_time=5.0, timestamp=103, worker_uuid="worker_1")
+    )
+
+    test.add_report(
+        report_inline(elapsed_time=1.0, timestamp=101.1, worker_uuid="worker_2")
+    )
+    test.add_report(
+        report_inline(elapsed_time=2.0, timestamp=101.5, worker_uuid="worker_2")
+    )
+
+    assert test.linear_elapsed_time() == [1.0, 2.0, 3.0, 7.0]
+    test._check_invariants()
