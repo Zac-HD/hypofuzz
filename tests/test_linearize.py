@@ -91,18 +91,15 @@ def reports(
     reports = []
     for uuid, (start_time, end_time) in zip(uuids, intervals):
         # reports from the same worker always have monotonically increasing
-        # coverage, timestamps, and elapsed_time
-        # (TODO: we shouldn't actually rely on timestamps being ordered. But
-        # test_single_worker fails without it. This might be a real failure
-        # or it might be an acceptable edge case. Drop the .map(sorted) for timestamps
-        # when we investigte and fix it / figure out which it is.
+        # coverage, ninputs, and elapsed_time. timestamp is usually sorted as well,
+        # but need not be (and we do not rely on it being sorted).
         ninputs = draw(st.lists(st.integers(min_value=0)).map(sorted))
         timestamps = draw(
             st.lists(
                 st.floats(start_time, end_time),
                 min_size=len(ninputs),
                 max_size=len(ninputs),
-            ).map(sorted)
+            )
         )
         elapsed_times = draw(
             st.lists(
@@ -151,9 +148,9 @@ def assert_reports_almost_equal(reports1, reports2):
             v2 = getattr(report2, attr)
             if attr in ["elapsed_time", "timestamp"]:
                 # ignore floating point errors
-                assert v1 == pytest.approx(v2)
+                assert v1 == pytest.approx(v2), attr
             else:
-                assert v1 == v2
+                assert v1 == v2, attr
 
 
 def _test_for_reports(reports, *, database_key: bytes = b"", nodeid: str = "") -> Test:
@@ -182,7 +179,8 @@ def test_single_worker(reports):
     # ignoring any Phase.REPLAY reports.
     actual = _test_for_reports(reports).linear_reports
     expected = sorted(
-        (r for r in reports if r.phase is not Phase.REPLAY), key=lambda r: r.timestamp
+        (r for r in reports if r.phase is not Phase.REPLAY),
+        key=lambda r: r.elapsed_time,
     )
     assert_reports_almost_equal(actual, expected)
 
