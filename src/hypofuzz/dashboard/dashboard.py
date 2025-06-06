@@ -186,7 +186,7 @@ class OverviewWebsocket(HypofuzzWebsocket):
         if event_type == "delete":
             # TODO when we support multiple failures, we'll need to send the
             # specific observation that was deleted here, either via a
-            # DELETE_OBSERVATION or a SET_FAILURES (not the plural)
+            # DELETE_OBSERVATION or a SET_FAILURES (note the plural)
             if key is DatabaseEventKey.FAILURE_OBSERVATION:
                 event = {
                     "type": DashboardEventType.SET_FAILURE,
