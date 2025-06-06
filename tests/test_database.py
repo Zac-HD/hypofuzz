@@ -1,6 +1,6 @@
 import subprocess
 
-from common import BASIC_TEST_CODE, fuzz, wait_for, write_test_code
+from common import BASIC_TEST_CODE, fuzz, setup_test_code, wait_for
 from hypothesis import given, strategies as st
 from hypothesis.database import (
     DirectoryBasedExampleDatabase,
@@ -13,17 +13,17 @@ from hypofuzz.database import HypofuzzDatabase, Phase, test_keys_key
 from hypofuzz.hypofuzz import FuzzProcess
 
 
-def test_database_stores_reports_and_metadata_correctly():
+def test_database_stores_reports_and_metadata_correctly(tmp_path):
     # test that things of type Report are saved to reports_key.
     #
     # Nowadays, this is validated by our dataclass parsing step.
 
-    test_dir, db_dir = write_test_code(BASIC_TEST_CODE)
+    test_dir, db_dir = setup_test_code(tmp_path, BASIC_TEST_CODE)
     db = HypofuzzDatabase(DirectoryBasedExampleDatabase(db_dir))
     assert not list(db.fetch(test_keys_key))
 
     with fuzz(test_path=test_dir):
-        keys = wait_for(lambda: list(db.fetch(test_keys_key)), timeout=10, interval=0.1)
+        keys = wait_for(lambda: list(db.fetch(test_keys_key)), interval=0.1)
         # we're only working with a single test
         assert len(keys) == 1
         key = list(keys)[0]
@@ -112,14 +112,14 @@ def test_adds_failures_to_database():
     assert not list(db.fetch_failures(process.database_key, shrunk=False))
 
 
-def test_database_keys_incorporate_parametrization():
+def test_database_keys_incorporate_parametrization(tmp_path):
     test_code = """
         @pytest.mark.parametrize("x", [1, 2])
         @given(st.integers())
         def test_ints(x, n):
             assert False
         """
-    test_dir, db_dir = write_test_code(test_code)
+    test_dir, db_dir = setup_test_code(tmp_path / "one", test_code)
     db_hypofuzz = HypofuzzDatabase(DirectoryBasedExampleDatabase(db_dir))
     assert not set(db_hypofuzz.fetch(test_keys_key))
 
@@ -128,7 +128,6 @@ def test_database_keys_incorporate_parametrization():
     with fuzz(test_path=test_dir, pytest_args=["-k", "test_ints[1]"]):
         wait_for(
             lambda: len(set(db_hypofuzz.fetch(test_keys_key))) == 1,
-            timeout=10,
             interval=0.1,
         )
 
@@ -136,16 +135,15 @@ def test_database_keys_incorporate_parametrization():
         # this will time out if the test keys are the same across parametrizations
         wait_for(
             lambda: len(set(db_hypofuzz.fetch(test_keys_key))) == 2,
-            timeout=10,
             interval=0.1,
         )
 
-    # we also test that the keys hypofuzz uses are the same as the ones hypothesis
+    # test that the keys hypofuzz uses are the same as the ones hypothesis
     # uses. We run pytest on the test file, which fails, causing hypothesis to write
     # the failing choice sequence for each parametrization as a top-level key. These
     # top-level keys should be the same as the hypofuzz keys.
-    test_dir, db_dir = write_test_code(test_code)
-    db_hypothesis = HypofuzzDatabase(DirectoryBasedExampleDatabase(db_dir))
+    test_dir, db_dir = setup_test_code(tmp_path / "two", test_code)
+    db_hypothesis = DirectoryBasedExampleDatabase(db_dir)
     hypofuzz_keys = set(db_hypofuzz.fetch(test_keys_key))
     assert (
         set(db_hypothesis.fetch(DirectoryBasedExampleDatabase._metakeys_name)) == set()

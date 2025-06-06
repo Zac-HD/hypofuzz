@@ -14,6 +14,6 @@ if [ "$1" = "docs" ]; then
 elif [ "$1" = "dashboard" ]; then
     npm --prefix "$ROOT/src/hypofuzz/frontend" run build
 else
-    echo "Unknown build target $1. Availabletargets: docs, dashboard"
+    echo "Unknown build target $1. Available targets: docs, dashboard"
     exit 1
 fi

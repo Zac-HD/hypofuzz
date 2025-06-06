@@ -11,6 +11,7 @@ from hypofuzz.database import (
     Report,
     ReportWithDiff,
     StatusCounts,
+    convert_db_key,
 )
 from hypofuzz.utils import fast_bisect_right, k_way_merge
 
@@ -59,6 +60,10 @@ class Test:
             self.add_report(report)
 
         self._check_invariants()
+
+    @property
+    def database_key_bytes(self) -> bytes:
+        return convert_db_key(self.database_key, to="bytes")
 
     @staticmethod
     def _assert_reports_ordered(

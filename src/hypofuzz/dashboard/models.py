@@ -103,7 +103,8 @@ class AddObservationsEvent(TypedDict):
 
 class SetFailureEvent(TypedDict):
     type: Literal[DashboardEventType.SET_FAILURE]
-    failure: DashboardObservation
+    nodeid: str
+    failure: Optional[DashboardObservation]
 
 
 DashboardEventT = Union[
