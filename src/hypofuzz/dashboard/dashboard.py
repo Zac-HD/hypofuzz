@@ -54,7 +54,7 @@ TESTS: dict[str, "Test"] = {}
 # database_key: Test
 TESTS_BY_KEY: dict[bytes, "Test"] = {}
 # databse_key: loaded
-LOADING_STATE: dict[str, bool] = {}
+LOADING_STATE: dict[bytes, bool] = {}
 COLLECTION_RESULT: Optional[CollectionResult] = None
 websockets: set["HypofuzzWebsocket"] = set()
 
@@ -313,7 +313,6 @@ class TestWebsocket(HypofuzzWebsocket):
 
 
 async def websocket(websocket: WebSocket) -> None:
-    assert COLLECTION_RESULT is not None
     nodeid = websocket.query_params.get("nodeid")
     if nodeid is not None and nodeid not in TESTS:
         # requesting a test page that doesn't exist
@@ -625,6 +624,8 @@ async def load_initial_state(fuzz_target: FuzzProcess) -> None:
 
 
 async def run_dashboard(port: int, host: str) -> None:
+    assert COLLECTION_RESULT is not None
+
     send_channel, receive_channel = trio.open_memory_channel[ListenerEventT](math.inf)
     trio_token = trio.lowlevel.current_trio_token()
 
