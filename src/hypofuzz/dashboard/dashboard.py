@@ -45,7 +45,13 @@ from hypofuzz.database import (
 )
 from hypofuzz.interface import CollectionResult
 
+# these two test dicts always contain the same values, just with different access
+# keys
+
+# nodeid: Test
 TESTS: dict[str, "Test"] = {}
+# database_key: Test
+TESTS_BY_KEY: dict[bytes, "Test"] = {}
 COLLECTION_RESULT: Optional[CollectionResult] = None
 websockets: set["HypofuzzWebsocket"] = set()
 
@@ -507,22 +513,21 @@ async def handle_event(receive_channel: MemoryReceiveChannel[ListenerEventT]) ->
         # to each event type.
         if event.type == "delete":
             if event.key is DatabaseEventKey.FAILURE_OBSERVATION:
-                # we know a failure was just deleted, but not from which test (unless
-                # the db supports value deletion). Re-scan all failing tests.
-                for test in TESTS.values():
-                    if test.failure is None:
-                        continue
-                    failure_observations = get_failure_observations(
-                        test.database_key_bytes
+                if event.database_key not in TESTS_BY_KEY:
+                    continue
+                # we know a failure was just deleted from this test, but not which
+                # one (unless the database supports value deletion). Re-scan its
+                # failures.
+                test = TESTS_BY_KEY[event.database_key]
+                failure_observations = get_failure_observations(test.database_key_bytes)
+                if not failure_observations.values():
+                    previous_failure = test.failure
+                    test.failure = None
+                    await broadcast_event(
+                        "delete",
+                        DatabaseEventKey.FAILURE_OBSERVATION,
+                        previous_failure,
                     )
-                    if not failure_observations.values():
-                        previous_failure = test.failure
-                        test.failure = None
-                        await broadcast_event(
-                            "delete",
-                            DatabaseEventKey.FAILURE_OBSERVATION,
-                            previous_failure,
-                        )
 
 
 def get_failure_observations(database_key: bytes) -> dict[str, Observation]:
@@ -606,6 +611,7 @@ async def run_dashboard(port: int, host: str) -> None:
             failure=next(iter(failure_observations.values()), None),
         )
         TESTS[fuzz_target.nodeid] = test
+        TESTS_BY_KEY[fuzz_target.database_key] = test
 
     # Any database events that get submitted while we're computing initial state
     # won't be displayed until a dashboard restart. We could solve this by adding the
