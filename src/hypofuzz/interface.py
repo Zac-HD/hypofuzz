@@ -226,7 +226,12 @@ def _get_hypothesis_tests_with_pytest(
         print(f"Exiting because pytest returned exit code {ret}")
         sys.exit(ret)
     elif debug or not collector.fuzz_targets:
+        print("debug:" if debug else "no fuzz targets found:")
         print(out.getvalue())
+        print("The following tests were not collected:")
+        for nodeid, reason in collector.not_collected.items():
+            print(f"{nodeid} (because: {reason})")
+
     return CollectionResult(
         fuzz_targets=collector.fuzz_targets, not_collected=collector.not_collected
     )
