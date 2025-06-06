@@ -1,6 +1,7 @@
 import dataclasses
 import hashlib
 import json
+from base64 import b64decode, b64encode
 from collections import defaultdict, deque
 from collections.abc import Iterable
 from dataclasses import dataclass, is_dataclass
@@ -130,17 +131,23 @@ class DatabaseEvent:
     key: DatabaseEventKey
     value: Any
 
-    @staticmethod
-    def from_event(event: ListenerEventT, /) -> Optional["DatabaseEvent"]:
+    # depends on hypothesis.internal.reflection.function_digest, which uses
+    # hashlib.sha384 (384 bits = 48 bytes)
+    DATABASE_KEY_LENGTH = 48
+
+    @classmethod
+    def from_event(cls, event: ListenerEventT, /) -> Optional["DatabaseEvent"]:
         # placate mypy
         key: Any
         value: Any
         parse: Any
         (event_type, (key, value)) = event
-        if b"." not in key:
+        if b"." not in key or len(key) <= cls.DATABASE_KEY_LENGTH:
             return None
 
-        database_key = key.split(b".", 1)[0]
+        # indexing into bytes converts to int
+        assert key[cls.DATABASE_KEY_LENGTH] == ord("."), key
+        database_key = key[: cls.DATABASE_KEY_LENGTH]
         if key.endswith(reports_key):
             key = DatabaseEventKey.REPORT
             parse = Report.from_json
@@ -497,7 +504,7 @@ class HypofuzzDatabase:
             if observation := Observation.from_json(value):
                 yield observation
 
-    # failures (failures_key)
+    # failures (failure_key)
 
     def save_failure(self, key: bytes, choices: ChoicesT, *, shrunk: bool) -> None:
         self.save(failure_key(key, shrunk=shrunk), choices_to_bytes(choices))
@@ -581,3 +588,24 @@ def get_db() -> HypofuzzDatabase:
     if isinstance(db, BackgroundWriteDatabase):
         return HypofuzzDatabase(db)
     return HypofuzzDatabase(BackgroundWriteDatabase(db))
+
+
+@overload
+def convert_db_key(key: str, *, to: Literal["bytes"]) -> bytes: ...
+
+
+@overload
+def convert_db_key(key: bytes, *, to: Literal["str"]) -> str: ...
+
+
+def convert_db_key(
+    key: Union[str, bytes], *, to: Literal["str", "bytes"]
+) -> Union[str, bytes]:
+    if to == "str":
+        assert isinstance(key, bytes)
+        return b64encode(key).decode("ascii")
+    elif to == "bytes":
+        assert isinstance(key, str)
+        return b64decode(key.encode("ascii"))
+    else:
+        raise ValueError(f"Invalid conversion {to=}")
