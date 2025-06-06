@@ -204,6 +204,8 @@ class TestWebsocket(HypofuzzWebsocket):
         self.nodeid = nodeid
 
     async def initial(self, tests: dict[str, Test]) -> None:
+        if self.nodeid not in tests:
+            return
         test = tests[self.nodeid]
         # send the test first
         test_data = {
