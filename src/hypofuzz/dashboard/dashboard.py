@@ -519,7 +519,8 @@ async def handle_event(receive_channel: MemoryReceiveChannel[ListenerEventT]) ->
                 # one (unless the database supports value deletion). Re-scan its
                 # failures.
                 test = TESTS_BY_KEY[event.database_key]
-                failure_observations = get_failure_observations(test.database_key_bytes)
+                assert test.database_key_bytes == event.database_key
+                failure_observations = get_failure_observations(event.database_key)
                 if not failure_observations.values():
                     previous_failure = test.failure
                     test.failure = None

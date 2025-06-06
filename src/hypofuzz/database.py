@@ -131,17 +131,23 @@ class DatabaseEvent:
     key: DatabaseEventKey
     value: Any
 
-    @staticmethod
-    def from_event(event: ListenerEventT, /) -> Optional["DatabaseEvent"]:
+    # depends on hypothesis.internal.reflection.function_digest, which uses
+    # hashlib.sha384 (384 bits = 48 bytes)
+    DATABASE_KEY_LENGTH = 48
+
+    @classmethod
+    def from_event(cls, event: ListenerEventT, /) -> Optional["DatabaseEvent"]:
         # placate mypy
         key: Any
         value: Any
         parse: Any
         (event_type, (key, value)) = event
-        if b"." not in key:
+        if b"." not in key or len(key) <= cls.DATABASE_KEY_LENGTH:
             return None
 
-        database_key = key.split(b".", 1)[0]
+        # indexing into bytes converts to int
+        assert key[cls.DATABASE_KEY_LENGTH] == ord("."), key
+        database_key = key[: cls.DATABASE_KEY_LENGTH]
         if key.endswith(reports_key):
             key = DatabaseEventKey.REPORT
             parse = Report.from_json
