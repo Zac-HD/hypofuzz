@@ -1,6 +1,7 @@
 import dataclasses
 import hashlib
 import json
+from base64 import b64decode, b64encode
 from collections import defaultdict, deque
 from collections.abc import Iterable
 from dataclasses import dataclass, is_dataclass
@@ -497,7 +498,7 @@ class HypofuzzDatabase:
             if observation := Observation.from_json(value):
                 yield observation
 
-    # failures (failures_key)
+    # failures (failure_key)
 
     def save_failure(self, key: bytes, choices: ChoicesT, *, shrunk: bool) -> None:
         self.save(failure_key(key, shrunk=shrunk), choices_to_bytes(choices))
@@ -581,3 +582,24 @@ def get_db() -> HypofuzzDatabase:
     if isinstance(db, BackgroundWriteDatabase):
         return HypofuzzDatabase(db)
     return HypofuzzDatabase(BackgroundWriteDatabase(db))
+
+
+@overload
+def convert_db_key(key: str, *, to: Literal["bytes"]) -> bytes: ...
+
+
+@overload
+def convert_db_key(key: bytes, *, to: Literal["str"]) -> str: ...
+
+
+def convert_db_key(
+    key: Union[str, bytes], *, to: Literal["str", "bytes"]
+) -> Union[str, bytes]:
+    if to == "str":
+        assert isinstance(key, bytes)
+        return b64encode(key).decode("ascii")
+    elif to == "bytes":
+        assert isinstance(key, str)
+        return b64decode(key.encode("ascii"))
+    else:
+        raise ValueError(f"Invalid conversion {to=}")

@@ -2,10 +2,8 @@ import inspect
 import os
 import re
 import select
-import shutil
 import signal
 import subprocess
-import tempfile
 import time
 from collections.abc import Generator
 from contextlib import contextmanager
@@ -32,7 +30,7 @@ class Dashboard:
         return r.json()
 
 
-def wait_for(condition, *, timeout, interval):
+def wait_for(condition, *, timeout=10, interval):
     for _ in range(int(timeout // interval) + 1):
         if value := condition():
             return value
@@ -103,13 +101,12 @@ def dashboard(
         stdout, stderr = process.communicate()
         process.stdout.close()
         process.stderr.close()
-        print(f"dashboard stdout:\n{stdout!r}\ndashboard stderr:\n{stderr!r}")
-
-        if test_path is not None:
-            if test_path.is_dir():
-                shutil.rmtree(test_path)
-            else:
-                test_path.unlink()
+        debug_msg = ""
+        debug_msg += f"[pid {process.pid}] dashboard stdout: "
+        debug_msg += f"\n{stdout!r}" if stdout != "" else "''"
+        debug_msg += f"\n[pid {process.pid}] dashboard stderr: "
+        debug_msg += f"\n{stderr!r}" if stderr != "" else "''"
+        print(debug_msg)
 
 
 @contextmanager
@@ -128,7 +125,11 @@ def fuzz(*, n=1, dashboard=False, test_path=None, pytest_args=()):
     try:
         yield
     finally:
-        os.killpg(os.getpgid(process.pid), signal.SIGTERM)
+        try:
+            os.killpg(os.getpgid(process.pid), signal.SIGTERM)
+        except ProcessLookupError:
+            # the process might have exited already
+            pass
         process.wait()
 
 
@@ -197,10 +198,7 @@ def test(x):
 """
 
 
-def write_test_code(code):
-    db_dir = Path(tempfile.mkdtemp())
-    test_dir = Path(tempfile.mkdtemp())
-
+def write_test_code(path: Path, db_dir, code: str) -> None:
     code = (
         inspect.cleandoc(
             f"""
@@ -215,8 +213,16 @@ def write_test_code(code):
         + "\n\n"
         + inspect.cleandoc(code)
     )
-    test_file = test_dir / "test_a.py"
-    test_file.write_text(code)
+    path.write_text(code)
+
+
+def setup_test_code(tmp_path, code):
+    tmp_path.mkdir(exist_ok=True)
+    db_dir = tmp_path / "db"
+    test_dir = tmp_path / "test"
+    test_dir.mkdir()
+
+    write_test_code(test_dir / "test_a.py", db_dir, code)
     return (test_dir, db_dir)
 
 

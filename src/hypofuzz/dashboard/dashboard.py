@@ -172,7 +172,20 @@ class OverviewWebsocket(HypofuzzWebsocket):
                 assert isinstance(value, Observation)
                 event = {
                     "type": DashboardEventType.SET_FAILURE,
+                    "nodeid": value.property,
                     "failure": dashboard_observation(value),
+                }
+                await self.send_event(event)
+
+        if event_type == "delete":
+            # TODO when we support multiple failures, we'll need to send the
+            # specific observation that was deleted here, either via a
+            # DELETE_OBSERVATION or a SET_FAILURES (not the plural)
+            if key is DatabaseEventKey.FAILURE_OBSERVATION:
+                event = {
+                    "type": DashboardEventType.SET_FAILURE,
+                    "nodeid": value.property,
+                    "failure": None,
                 }
                 await self.send_event(event)
 
@@ -238,11 +251,12 @@ class TestWebsocket(HypofuzzWebsocket):
                     "worker_uuid": value.worker_uuid,
                     "reports": [dashboard_report(value)],
                 }
-            elif key is DatabaseEventKey.FAILURE:
+            elif key is DatabaseEventKey.FAILURE_OBSERVATION:
                 assert isinstance(value, Observation)
                 nodeid = value.property
                 event = {
                     "type": DashboardEventType.SET_FAILURE,
+                    "nodeid": nodeid,
                     "failure": dashboard_observation(value),
                 }
             elif key in [
@@ -269,11 +283,22 @@ class TestWebsocket(HypofuzzWebsocket):
                 ], key
                 return
 
-            # only broadcast event for this nodeid
-            if nodeid != self.nodeid:
+        if event_type == "delete":
+            if key is DatabaseEventKey.FAILURE_OBSERVATION:
+                nodeid = value.property
+                event = {
+                    "type": DashboardEventType.SET_FAILURE,
+                    "nodeid": value.property,
+                    "failure": None,
+                }
+            else:
                 return
 
-            await self.send_event(event)
+        # only broadcast event for this nodeid
+        if nodeid != self.nodeid:
+            return
+
+        await self.send_event(event)
 
 
 async def websocket(websocket: WebSocket) -> None:
@@ -454,31 +479,70 @@ async def handle_event(receive_channel: MemoryReceiveChannel[ListenerEventT]) ->
         if event is None:
             continue
 
+        if event.type == "save":
+            assert event.value is not None
+
+            if event.key is DatabaseEventKey.REPORT:
+                if event.value.nodeid not in TESTS:
+                    continue
+                TESTS[event.value.nodeid].add_report(event.value)
+            elif event.key is DatabaseEventKey.FAILURE_OBSERVATION:
+                if event.value.property not in TESTS:
+                    continue
+                TESTS[event.value.property].failure = event.value
+            elif event.key is DatabaseEventKey.ROLLING_OBSERVATION:
+                if event.value.property not in TESTS:
+                    continue
+                TESTS[event.value.property].rolling_observations.append(event.value)
+            elif event.key is DatabaseEventKey.CORPUS_OBSERVATION:
+                if event.value.property not in TESTS:
+                    continue
+                TESTS[event.value.property].corpus_observations.append(event.value)
+
+            await broadcast_event(event.type, event.key, event.value)
+
+        # we're handling deletion events in a customish way, since event.value is
+        # always None for databases which don't support value deletion. The value
+        # we send to the websocket .on_event method is computed here and is specific
+        # to each event type.
         if event.type == "delete":
-            # don't send deletion events to the dashboard, for now
-            continue
+            if event.key is DatabaseEventKey.FAILURE_OBSERVATION:
+                # we know a failure was just deleted, but not from which test (unless
+                # the db supports value deletion). Re-scan all failing tests.
+                for test in TESTS.values():
+                    if test.failure is None:
+                        continue
+                    failure_observations = get_failure_observations(
+                        test.database_key_bytes
+                    )
+                    if not failure_observations.values():
+                        previous_failure = test.failure
+                        test.failure = None
+                        await broadcast_event(
+                            "delete",
+                            DatabaseEventKey.FAILURE_OBSERVATION,
+                            previous_failure,
+                        )
 
-        assert event.type == "save"
-        assert event.value is not None
 
-        if event.key is DatabaseEventKey.REPORT:
-            if event.value.nodeid not in TESTS:
-                continue
-            TESTS[event.value.nodeid].add_report(event.value)
-        elif event.key is DatabaseEventKey.FAILURE_OBSERVATION:
-            if event.value.property not in TESTS:
-                continue
-            TESTS[event.value.property].failure = event.value
-        elif event.key is DatabaseEventKey.ROLLING_OBSERVATION:
-            if event.value.property not in TESTS:
-                continue
-            TESTS[event.value.property].rolling_observations.append(event.value)
-        elif event.key is DatabaseEventKey.CORPUS_OBSERVATION:
-            if event.value.property not in TESTS:
-                continue
-            TESTS[event.value.property].corpus_observations.append(event.value)
-
-        await broadcast_event(event.type, event.key, event.value)
+def get_failure_observations(database_key: bytes) -> dict[str, Observation]:
+    db = get_db()
+    failure_observations = {}
+    for maybe_observed_choices in (
+        *sorted(db.fetch_failures(database_key, shrunk=True), key=len),
+        *sorted(db.fetch_failures(database_key, shrunk=False), key=len),
+    ):
+        if observation := db.fetch_failure_observation(
+            database_key, maybe_observed_choices
+        ):
+            if observation.status is not ObservationStatus.FAILED:
+                # This should never happen, but database corruption *can*.
+                continue  # pragma: no cover
+            # For failures, Hypothesis records the interesting_origin string
+            # as the status_reason, which is how we dedupe errors upstream.
+            if observation.status_reason not in failure_observations:
+                failure_observations[observation.status_reason] = observation
+    return failure_observations
 
 
 async def run_dashboard(port: int, host: str) -> None:
@@ -522,23 +586,11 @@ async def run_dashboard(port: int, host: str) -> None:
             if observation is not None
         ]
 
-        failure_observations = {}
-        for maybe_observed in (
-            *sorted(db.fetch_failures(key, shrunk=True), key=len),
-            *sorted(db.fetch_failures(key, shrunk=False), key=len),
-        ):
-            if failure := db.fetch_failure_observation(key, maybe_observed):
-                if failure.status is not ObservationStatus.FAILED:
-                    # This should never happen, but database corruption *can*.
-                    continue  # pragma: no cover
-                # For failures, Hypothesis records the interesting_origin string
-                # as the status_reason, which is how we dedupe errors upstream.
-                if failure.status_reason not in failure_observations:
-                    failure_observations[failure.status_reason] = failure
-
         reports_by_worker = defaultdict(list)
         for report in sorted(db.fetch_reports(key), key=lambda r: r.elapsed_time):
             reports_by_worker[report.worker_uuid].append(report)
+
+        failure_observations = get_failure_observations(key)
 
         test = Test(
             database_key=fuzz_target.database_key_str,

@@ -41,7 +41,11 @@ type TestsAction =
       worker_uuid: string
       reports: Report[]
     }
-  | { type: DashboardEventType.SET_FAILURE; failure: Observation }
+  | {
+      type: DashboardEventType.SET_FAILURE
+      nodeid: string
+      failure: Observation | null
+    }
   | {
       type: DashboardEventType.ADD_OBSERVATIONS
       nodeid: string
@@ -86,8 +90,8 @@ function testsReducer(
     }
 
     case DashboardEventType.SET_FAILURE: {
-      const { failure } = action
-      const test = getOrCreateTest(failure.property)
+      const { nodeid, failure } = action
+      const test = getOrCreateTest(nodeid)
       test.failure = failure
       return newState
     }
@@ -246,6 +250,15 @@ export function DataProvider({ children }: DataProviderProps) {
             nodeid: data.nodeid,
             observation_type: data.observation_type,
             observations: data.observations.map(Observation.fromJson),
+          })
+          break
+        }
+
+        case DashboardEventType.SET_FAILURE: {
+          dispatch({
+            type: DashboardEventType.SET_FAILURE,
+            nodeid: data.nodeid,
+            failure: data.failure ? Observation.fromJson(data.failure) : null,
           })
           break
         }

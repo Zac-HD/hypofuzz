@@ -10,7 +10,6 @@ import socket
 import subprocess
 import sys
 import time
-from base64 import b64encode
 from collections import defaultdict
 from collections.abc import Callable, Generator
 from contextlib import contextmanager
@@ -60,6 +59,7 @@ from hypofuzz.database import (
     Report,
     StatusCounts,
     WorkerIdentity,
+    convert_db_key,
     test_keys_key,
 )
 from hypofuzz.mutator import BlackBoxMutator, CrossOverMutator
@@ -156,7 +156,7 @@ class FuzzProcess:
         self._stuff = stuff
         self.nodeid = nodeid or test_fn.__qualname__
         self.database_key = database_key
-        self.database_key_str = b64encode(self.database_key).decode()
+        self.database_key_str = convert_db_key(self.database_key, to="str")
         self.db = database
         self.state = HypofuzzStateForActualGivenExecution(  # type: ignore
             stuff,
@@ -185,9 +185,9 @@ class FuzzProcess:
         self._replay_queue: SortedList[tuple[Union[ChoiceT, ChoiceTemplate], ...]] = (
             SortedList(key=_choices_size)
         )
-        self._failure_queue: SortedList[tuple[ReplayFailurePriority, ChoicesT]] = (
-            SortedList(key=lambda x: (x[0], choices_size(x[1])))
-        )
+        self._failure_queue: SortedList[
+            tuple[ReplayFailurePriority, tuple[ChoicesT, Observation]]
+        ] = SortedList(key=lambda x: (x[0], choices_size(x[1][0])))
         # After replay, we stay in blackbox mode for a while, until we've generated
         # 1000 consecutive examples without new coverage, and then switch to mutation.
         self._early_blackbox_mode = True
@@ -226,10 +226,13 @@ class FuzzProcess:
                 if shrunk
                 else ReplayFailurePriority.UNSHRUNK
             )
-            self._failure_queue.update(
-                (priority, choices)
-                for choices in self.db.fetch_failures(self.database_key, shrunk=shrunk)
-            )
+            for choices in self.db.fetch_failures(self.database_key, shrunk=shrunk):
+                observation = self.db.fetch_failure_observation(
+                    self.database_key, choices
+                )
+                if observation is None:
+                    continue
+                self._failure_queue.add((priority, (choices, observation)))
 
     def on_event(self, event: DatabaseEvent) -> None:
         # Some worker has found a new covering corpus element. Replay it in
@@ -308,7 +311,7 @@ class FuzzProcess:
         """
         if self._failure_queue:
             self._start_phase(Phase.REPLAY)
-            (_priority, choices) = self._failure_queue.pop()
+            (_priority, (choices, failure_obs)) = self._failure_queue.pop()
             data = ConjectureData.for_choices(choices)
             result = self._run_test_on(data)
             if result.status is not Status.INTERESTING:
@@ -324,6 +327,9 @@ class FuzzProcess:
                 # deletions cheap. Just try deleting from both.
                 self.db.delete_failure(self.database_key, choices, shrunk=True)
                 self.db.delete_failure(self.database_key, choices, shrunk=False)
+                self.db.delete_failure_observation(
+                    self.database_key, choices, failure_obs
+                )
         else:
             result = self._run_test_on(self.generate_data())
 
