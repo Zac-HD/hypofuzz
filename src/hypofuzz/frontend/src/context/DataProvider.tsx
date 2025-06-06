@@ -22,9 +22,8 @@ interface DataProviderProps {
 enum DashboardEventType {
   ADD_TESTS = 1,
   ADD_REPORTS = 2,
-  ADD_ROLLING_OBSERVATIONS = 3,
-  ADD_CORPUS_OBSERVATIONS = 4,
-  SET_FAILURE = 5,
+  ADD_OBSERVATIONS = 3,
+  SET_FAILURE = 4,
 }
 
 type TestsAction =
@@ -44,13 +43,9 @@ type TestsAction =
     }
   | { type: DashboardEventType.SET_FAILURE; failure: Observation }
   | {
-      type: DashboardEventType.ADD_ROLLING_OBSERVATIONS
+      type: DashboardEventType.ADD_OBSERVATIONS
       nodeid: string
-      observations: Observation[]
-    }
-  | {
-      type: DashboardEventType.ADD_CORPUS_OBSERVATIONS
-      nodeid: string
+      observation_type: "rolling" | "corpus"
       observations: Observation[]
     }
 
@@ -97,23 +92,21 @@ function testsReducer(
       return newState
     }
 
-    case DashboardEventType.ADD_ROLLING_OBSERVATIONS: {
-      const { nodeid, observations } = action
+    case DashboardEventType.ADD_OBSERVATIONS: {
+      const { nodeid, observation_type, observations } = action
       const test = getOrCreateTest(nodeid)
-      test.rolling_observations.push(...observations)
-      // keep only the most recent 300 rolling observations, by run_start
-      //
-      // this is a good candidate for a proper nlogn SortedList
-      test.rolling_observations = test.rolling_observations
-        .sortKey(observation => observation.run_start)
-        .slice(-300)
-      return newState
-    }
-
-    case DashboardEventType.ADD_CORPUS_OBSERVATIONS: {
-      const { nodeid, observations } = action
-      const test = getOrCreateTest(nodeid)
-      test.corpus_observations.push(...observations)
+      if (observation_type === "rolling") {
+        test.rolling_observations.push(...observations)
+        // keep only the most recent 300 rolling observations, by run_start
+        //
+        // this is a good candidate for a proper nlogn SortedList
+        test.rolling_observations = test.rolling_observations
+          .sortKey(observation => observation.run_start)
+          .slice(-300)
+      } else {
+        console.assert(observation_type === "corpus")
+        test.corpus_observations.push(...observations)
+      }
       return newState
     }
 
@@ -193,13 +186,15 @@ export function DataProvider({ children }: DataProviderProps) {
         .then(data => {
           for (const [nodeid, test] of Object.entries(data)) {
             dispatch({
-              type: DashboardEventType.ADD_ROLLING_OBSERVATIONS,
+              type: DashboardEventType.ADD_OBSERVATIONS,
               nodeid: nodeid,
+              observation_type: "rolling",
               observations: test.rolling.map(Observation.fromJson),
             })
             dispatch({
-              type: DashboardEventType.ADD_CORPUS_OBSERVATIONS,
+              type: DashboardEventType.ADD_OBSERVATIONS,
               nodeid: nodeid,
+              observation_type: "corpus",
               observations: test.corpus.map(Observation.fromJson),
             })
           }
@@ -218,17 +213,10 @@ export function DataProvider({ children }: DataProviderProps) {
     const ws = new WebSocket(url)
 
     ws.onmessage = event => {
-      // split the message into the header and the body. The format is an extremely simple pipe separator.
+      const data = JSON.parse(event.data)
 
-      // note: data.split("|", 2) is incorrect, as it drops everything after the second pipe, unlike python's split
-      const pipeIndex = event.data.indexOf("|")
-      let header = event.data.slice(0, pipeIndex)
-      let data = event.data.slice(pipeIndex + 1)
-      header = JSON.parse(header)
-
-      switch (Number(header.type)) {
+      switch (Number(data.type)) {
         case DashboardEventType.ADD_TESTS: {
-          data = JSON.parse(data)
           dispatch({
             type: DashboardEventType.ADD_TESTS,
             tests: data.tests.map((test: any) => ({
@@ -241,7 +229,6 @@ export function DataProvider({ children }: DataProviderProps) {
         }
 
         case DashboardEventType.ADD_REPORTS: {
-          data = JSON.parse(data)
           dispatch({
             type: DashboardEventType.ADD_REPORTS,
             nodeid: data.nodeid,
@@ -253,28 +240,18 @@ export function DataProvider({ children }: DataProviderProps) {
           break
         }
 
-        case DashboardEventType.ADD_CORPUS_OBSERVATIONS: {
-          data = JSON.parse(data)
+        case DashboardEventType.ADD_OBSERVATIONS: {
           dispatch({
-            type: DashboardEventType.ADD_CORPUS_OBSERVATIONS,
+            type: DashboardEventType.ADD_OBSERVATIONS,
             nodeid: data.nodeid,
-            observations: data.observations.map(Observation.fromJson),
-          })
-          break
-        }
-
-        case DashboardEventType.ADD_ROLLING_OBSERVATIONS: {
-          data = JSON.parse(data)
-          dispatch({
-            type: DashboardEventType.ADD_ROLLING_OBSERVATIONS,
-            nodeid: data.nodeid,
+            observation_type: data.observation_type,
             observations: data.observations.map(Observation.fromJson),
           })
           break
         }
 
         default:
-          throw new Error(`Unknown event type: ${header.type}`)
+          throw new Error(`Unknown event type: ${data.type}`)
       }
     }
 

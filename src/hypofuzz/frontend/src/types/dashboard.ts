@@ -187,7 +187,7 @@ export class Observation extends Dataclass<Observation> {
       new Map(Object.entries(data.timing)),
       new Map(Object.entries(data.metadata)),
       data.property,
-      data.run_start,
+      Number(data.run_start),
     )
   }
 }

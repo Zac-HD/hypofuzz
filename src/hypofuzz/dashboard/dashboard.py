@@ -4,7 +4,6 @@ import abc
 import json
 import math
 from collections import defaultdict
-from enum import IntEnum
 from pathlib import Path
 from typing import Any, Literal, Optional
 
@@ -24,6 +23,14 @@ from starlette.types import Scope
 from starlette.websockets import WebSocket, WebSocketDisconnect
 from trio import MemoryReceiveChannel
 
+from hypofuzz.dashboard.models import (
+    AddReportsEvent,
+    AddTestsEvent,
+    DashboardEventT,
+    DashboardEventType,
+    dashboard_observation,
+    dashboard_report,
+)
 from hypofuzz.dashboard.patching import make_and_save_patches
 from hypofuzz.dashboard.test import Test
 from hypofuzz.database import (
@@ -41,16 +48,6 @@ from hypofuzz.interface import CollectionResult
 TESTS: dict[str, "Test"] = {}
 COLLECTION_RESULT: Optional[CollectionResult] = None
 websockets: set["HypofuzzWebsocket"] = set()
-
-
-class DashboardEventType(IntEnum):
-    # minimize header frame overhead with a shared IntEnum definition between
-    # python and ts.
-    ADD_TESTS = 1
-    ADD_REPORTS = 2
-    ADD_ROLLING_OBSERVATIONS = 3
-    ADD_CORPUS_OBSERVATIONS = 4
-    SET_FAILURE = 5
 
 
 def _sample_reports(
@@ -88,22 +85,6 @@ def _sample_reports(
     return by_worker
 
 
-def report_for_websocket(report: Report) -> dict[str, Any]:
-    # we send reports to the dashboard in two contexts: attached to a node and worker,
-    # and as a standalone report. In the former, the dashboard already knows
-    # the nodeid and worker uuid, and deleting them avoids substantial overhead.
-    # In the latter, we send the necessary attributes separately.
-    return {
-        "elapsed_time": report.elapsed_time,
-        "status_counts": report.status_counts,
-        "behaviors": report.behaviors,
-        "fingerprints": report.fingerprints,
-        "timestamp": report.timestamp,
-        "since_new_branch": report.since_new_branch,
-        "phase": report.phase,
-    }
-
-
 class HypofuzzJSONResponse(JSONResponse):
     def render(self, content: Any) -> bytes:
         return json.dumps(
@@ -127,10 +108,8 @@ class HypofuzzWebsocket(abc.ABC):
     async def send_json(self, data: Any) -> None:
         await self.websocket.send_text(json.dumps(data, cls=HypofuzzEncoder))
 
-    async def send_event(self, header: dict[str, Any], data: Any) -> None:
-        await self.websocket.send_text(
-            f"{json.dumps(header, cls=HypofuzzEncoder)}|{json.dumps(data, cls=HypofuzzEncoder)}"
-        )
+    async def send_event(self, event: DashboardEventT) -> None:
+        await self.send_json(event)
 
     @abc.abstractmethod
     async def initial(self, tests: dict[str, Test]) -> None:
@@ -147,7 +126,8 @@ class OverviewWebsocket(HypofuzzWebsocket):
     async def initial(self, tests: dict[str, Test]) -> None:
         # we start by sending all tests, which is the most important
         # thing for the user to see first.
-        tests_data = {
+        event: AddTestsEvent = {
+            "type": DashboardEventType.ADD_TESTS,
             "tests": [
                 {
                     "database_key": test.database_key,
@@ -155,23 +135,22 @@ class OverviewWebsocket(HypofuzzWebsocket):
                     "failure": test.failure,
                 }
                 for test in tests.values()
-            ]
+            ],
         }
-        await self.send_event({"type": DashboardEventType.ADD_TESTS}, tests_data)
+        await self.send_event(event)
 
         # then we send the reports for each test.
         for test in tests.values():
             # limit for performance
             reports_by_worker = _sample_reports(test.reports_by_worker, soft_limit=1000)
             for worker_uuid, reports in reports_by_worker.items():
-                report_data = {
+                report_event: AddReportsEvent = {
+                    "type": DashboardEventType.ADD_REPORTS,
                     "nodeid": test.nodeid,
                     "worker_uuid": worker_uuid,
-                    "reports": [report_for_websocket(report) for report in reports],
+                    "reports": [dashboard_report(report) for report in reports],
                 }
-                await self.send_event(
-                    {"type": DashboardEventType.ADD_REPORTS}, report_data
-                )
+                await self.send_event(report_event)
 
     async def on_event(
         self, event_type: Literal["save", "delete"], key: DatabaseEventKey, value: Any
@@ -179,21 +158,23 @@ class OverviewWebsocket(HypofuzzWebsocket):
         if event_type == "save":
             # don't send observations events, the overview page doesn't use
             # observations.
+            event: DashboardEventT
             if key is DatabaseEventKey.REPORT:
                 assert isinstance(value, Report)
-                data: Any = {
+                event = {
+                    "type": DashboardEventType.ADD_REPORTS,
                     "nodeid": value.nodeid,
                     "worker_uuid": value.worker_uuid,
-                    "reports": [report_for_websocket(value)],
+                    "reports": [dashboard_report(value)],
                 }
-                await self.send_event({"type": DashboardEventType.ADD_REPORTS}, data)
+                await self.send_event(event)
             if key is DatabaseEventKey.FAILURE:
                 assert isinstance(value, Observation)
-                data = {
-                    "nodeid": value.property,
-                    "failure": value,
+                event = {
+                    "type": DashboardEventType.SET_FAILURE,
+                    "failure": dashboard_observation(value),
                 }
-                await self.send_event({"type": DashboardEventType.SET_FAILURE}, data)
+                await self.send_event(event)
 
 
 class TestWebsocket(HypofuzzWebsocket):
@@ -204,52 +185,65 @@ class TestWebsocket(HypofuzzWebsocket):
     async def initial(self, tests: dict[str, Test]) -> None:
         test = tests[self.nodeid]
         # send the test first
-        test_data = {
-            "database_key": test.database_key,
-            "nodeid": test.nodeid,
-            "failure": test.failure,
+        test_data: AddTestsEvent = {
+            "type": DashboardEventType.ADD_TESTS,
+            "tests": [
+                {
+                    "database_key": test.database_key,
+                    "nodeid": test.nodeid,
+                    "failure": test.failure,
+                }
+            ],
         }
-        await self.send_event({"type": DashboardEventType.ADD_TESTS}, [test_data])
+        await self.send_event(test_data)
 
         # then its reports. Note we don't currently downsample with _sample_reports
         # on individual test pages, unlike the overview page.
         for worker_uuid, reports in test.reports_by_worker.items():
-            report_data = {
+            report_event: AddReportsEvent = {
+                "type": DashboardEventType.ADD_REPORTS,
                 "nodeid": test.nodeid,
                 "worker_uuid": worker_uuid,
-                "reports": [report_for_websocket(report) for report in reports],
+                "reports": [dashboard_report(report) for report in reports],
             }
-            await self.send_event({"type": DashboardEventType.ADD_REPORTS}, report_data)
+            await self.send_event(report_event)
 
-        await self.send_event(
-            {"type": DashboardEventType.ADD_ROLLING_OBSERVATIONS},
-            {"nodeid": self.nodeid, "observations": test.rolling_observations},
-        )
-        await self.send_event(
-            {"type": DashboardEventType.ADD_CORPUS_OBSERVATIONS},
-            {"nodeid": self.nodeid, "observations": test.corpus_observations},
-        )
+        # then its observations.
+        for obs_type, observations in [
+            ("rolling", test.rolling_observations),
+            ("corpus", test.corpus_observations),
+        ]:
+            await self.send_event(
+                {
+                    "type": DashboardEventType.ADD_OBSERVATIONS,
+                    "nodeid": self.nodeid,
+                    "observation_type": obs_type,  # type: ignore
+                    "observations": [
+                        dashboard_observation(obs) for obs in observations
+                    ],
+                },
+            )
 
     async def on_event(
         self, event_type: Literal["save", "delete"], key: DatabaseEventKey, value: Any
     ) -> None:
         if event_type == "save":
+            event: DashboardEventT
             if key is DatabaseEventKey.REPORT:
                 assert isinstance(value, Report)
                 nodeid = value.nodeid
-                value = {
+                event = {
+                    "type": DashboardEventType.ADD_REPORTS,
                     "nodeid": nodeid,
                     "worker_uuid": value.worker_uuid,
-                    "reports": [report_for_websocket(value)],
+                    "reports": [dashboard_report(value)],
                 }
-                dashboard_event = DashboardEventType.ADD_REPORTS
             elif key is DatabaseEventKey.FAILURE:
                 assert isinstance(value, Observation)
                 nodeid = value.property
-                dashboard_event = DashboardEventType.SET_FAILURE
-                value = {
-                    "nodeid": nodeid,
-                    "failure": value,
+                event = {
+                    "type": DashboardEventType.SET_FAILURE,
+                    "failure": dashboard_observation(value),
                 }
             elif key in [
                 DatabaseEventKey.ROLLING_OBSERVATION,
@@ -257,13 +251,15 @@ class TestWebsocket(HypofuzzWebsocket):
             ]:
                 assert isinstance(value, Observation)
                 nodeid = value.property
-                dashboard_event = {
-                    DatabaseEventKey.ROLLING_OBSERVATION: DashboardEventType.ADD_ROLLING_OBSERVATIONS,
-                    DatabaseEventKey.CORPUS_OBSERVATION: DashboardEventType.ADD_CORPUS_OBSERVATIONS,
-                }[key]
-                value = {
+                event = {
+                    "type": DashboardEventType.ADD_OBSERVATIONS,
                     "nodeid": nodeid,
-                    "observations": [value],
+                    "observation_type": (
+                        "rolling"
+                        if key is DatabaseEventKey.ROLLING_OBSERVATION
+                        else "corpus"
+                    ),
+                    "observations": [dashboard_observation(value)],
                 }
             else:
                 # assert so I don't forget a case
@@ -277,7 +273,7 @@ class TestWebsocket(HypofuzzWebsocket):
             if nodeid != self.nodeid:
                 return
 
-            await self.send_event({"type": dashboard_event}, value)
+            await self.send_event(event)
 
 
 async def websocket(websocket: WebSocket) -> None:
@@ -376,7 +372,7 @@ async def api_backing_state_tests(request: Request) -> Response:
             "nodeid": test.nodeid,
             "failure": test.failure,
             "reports_by_worker": {
-                worker_uuid: [report_for_websocket(report) for report in reports]
+                worker_uuid: [dashboard_report(report) for report in reports]
                 for worker_uuid, reports in test.reports_by_worker.items()
             },
         }
