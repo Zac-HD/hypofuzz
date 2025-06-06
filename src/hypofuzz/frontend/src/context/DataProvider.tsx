@@ -23,7 +23,8 @@ enum DashboardEventType {
   ADD_TESTS = 1,
   ADD_REPORTS = 2,
   ADD_OBSERVATIONS = 3,
-  SET_FAILURE = 4,
+  SET_OBSERVATION_REPRS = 4,
+  SET_FAILURE = 5,
 }
 
 type TestsAction =
@@ -47,6 +48,12 @@ type TestsAction =
       nodeid: string
       observation_type: "rolling" | "corpus"
       observations: Observation[]
+    }
+  | {
+      type: DashboardEventType.SET_OBSERVATION_REPRS
+      nodeid: string
+      observation_type: "rolling" | "corpus"
+      representations: { run_start: number; representation: string }[]
     }
 
 function testsReducer(
@@ -106,6 +113,20 @@ function testsReducer(
       } else {
         console.assert(observation_type === "corpus")
         test.corpus_observations.push(...observations)
+      }
+      return newState
+    }
+
+    case DashboardEventType.SET_OBSERVATION_REPRS: {
+      const { nodeid, observation_type, representations } = action
+      const test = getOrCreateTest(nodeid)
+      const observations =
+        observation_type === "rolling"
+          ? test.rolling_observations
+          : test.corpus_observations
+      for (const { run_start, representation } of representations) {
+        const observation = observations.find(o => o.run_start === run_start)!
+        observation.representation = representation
       }
       return newState
     }
@@ -246,6 +267,19 @@ export function DataProvider({ children }: DataProviderProps) {
             nodeid: data.nodeid,
             observation_type: data.observation_type,
             observations: data.observations.map(Observation.fromJson),
+          })
+          break
+        }
+
+        case DashboardEventType.SET_OBSERVATION_REPRS: {
+          dispatch({
+            type: DashboardEventType.SET_OBSERVATION_REPRS,
+            nodeid: data.nodeid,
+            observation_type: data.observation_type,
+            representations: data.representations.map((r: any) => ({
+              run_start: Number(r.run_start),
+              representation: r.repr,
+            })),
           })
           break
         }

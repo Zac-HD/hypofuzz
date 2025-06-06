@@ -52,6 +52,9 @@ export function Representation({ observations, observationType }: Props) {
   const rawRepresentations = new Map<string, number>()
   observations.forEach(observation => {
     const repr = observation.representation
+    if (repr === null) {
+      return
+    }
     rawRepresentations.set(repr, (rawRepresentations.get(repr) || 0) + 1)
   })
 

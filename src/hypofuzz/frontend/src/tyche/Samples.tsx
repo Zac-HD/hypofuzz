@@ -15,16 +15,25 @@ export function Samples({ observations }: { observations: Observation[] }) {
   // unique observation for that representation.
   const uniqueReprIndex = new Map<string, number>()
   for (const [index, observation] of observations.entries()) {
+    if (observation.representation === null) {
+      continue
+    }
     uniqueReprIndex.set(observation.representation, index)
   }
 
   function isUnique(observation: Observation) {
+    if (observation.representation === null) {
+      return false
+    }
     return (
       observations.indexOf(observation) ===
       uniqueReprIndex.get(observation.representation)
     )
   }
   function isDuplicate(observation: Observation) {
+    if (observation.representation === null) {
+      return false
+    }
     return (
       observations.indexOf(observation) !==
       uniqueReprIndex.get(observation.representation)

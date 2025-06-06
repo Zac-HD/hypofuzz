@@ -208,7 +208,8 @@ class TestWebsocket(HypofuzzWebsocket):
             }
             await self.send_event(report_event)
 
-        # then its observations.
+        # then its observations, sending the observations (without their repr)
+        # first, followed by the repr of each observation.
         for obs_type, observations in [
             ("rolling", test.rolling_observations),
             ("corpus", test.corpus_observations),
@@ -220,6 +221,26 @@ class TestWebsocket(HypofuzzWebsocket):
                     "observation_type": obs_type,  # type: ignore
                     "observations": [
                         dashboard_observation(obs) for obs in observations
+                    ],
+                },
+            )
+
+        for obs_type, observations in [
+            ("rolling", test.rolling_observations),
+            ("corpus", test.corpus_observations),
+        ]:
+            await self.send_event(
+                {
+                    "type": DashboardEventType.SET_OBSERVATION_REPRS,
+                    "nodeid": self.nodeid,
+                    "observation_type": obs_type,  # type: ignore
+                    "representations": [
+                        {
+                            # using run_start as the observation primary key
+                            "run_start": obs.run_start,
+                            "repr": obs.representation,
+                        }
+                        for obs in observations
                     ],
                 },
             )

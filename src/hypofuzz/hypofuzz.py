@@ -478,6 +478,8 @@ class FuzzProcess:
             # re-use per FuzzProcess. Overwrite with the current timestamp for use
             # in sorting observations. This is not perfectly reliable in a
             # distributed setting, but is good enough.
+            #
+            # We also re-use this as the primary key for this observation.
             test_case["run_start"] = time.time()
             # "arguments" duplicates part of the call repr in "representation".
             # We don't use this for anything, so drop it.

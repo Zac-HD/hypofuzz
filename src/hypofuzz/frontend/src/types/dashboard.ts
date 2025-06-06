@@ -162,7 +162,7 @@ export class Observation extends Dataclass<Observation> {
     public type: string,
     public status: ObservationStatus,
     public status_reason: string,
-    public representation: string,
+    public representation: string | null,
     // arguments is a reserved keyword in javascript
     public arguments_: Map<string, any>,
     public how_generated: string,

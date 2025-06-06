@@ -14,7 +14,7 @@ class DashboardObservation(TypedDict):
     type: str
     status: ObservationStatus
     status_reason: str
-    representation: str
+    representation: None
     arguments: dict[str, Any]
     how_generated: str
     features: dict[str, Any]
@@ -29,7 +29,8 @@ def dashboard_observation(observation: Observation) -> DashboardObservation:
         "type": observation.type,
         "status": observation.status,
         "status_reason": observation.status_reason,
-        "representation": observation.representation,
+        # explicitly dropping representation
+        "representation": None,
         "arguments": observation.arguments,
         "how_generated": observation.how_generated,
         "features": observation.features,
@@ -69,7 +70,8 @@ class DashboardEventType(IntEnum):
     ADD_TESTS = 1
     ADD_REPORTS = 2
     ADD_OBSERVATIONS = 3
-    SET_FAILURE = 4
+    SET_OBSERVATION_REPRS = 4
+    SET_FAILURE = 5
 
 
 ObservationType = Literal["rolling", "corpus"]
@@ -101,6 +103,15 @@ class AddObservationsEvent(TypedDict):
     observations: list[DashboardObservation]
 
 
+class SetObservationReprsEvent(TypedDict):
+    type: Literal[DashboardEventType.SET_OBSERVATION_REPRS]
+    nodeid: str
+    # TODO we might want to make this names shorter (obs_type / reprs) for json
+    # size
+    observation_type: ObservationType
+    representations: list[dict[str, Any]]
+
+
 class SetFailureEvent(TypedDict):
     type: Literal[DashboardEventType.SET_FAILURE]
     failure: DashboardObservation
@@ -110,5 +121,6 @@ DashboardEventT = Union[
     AddTestsEvent,
     AddReportsEvent,
     AddObservationsEvent,
+    SetObservationReprsEvent,
     SetFailureEvent,
 ]
