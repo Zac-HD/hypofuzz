@@ -4,6 +4,13 @@ import { Report, Test, StatusCounts } from "../types/dashboard"
 import { Toggle } from "./Toggle"
 import { useSetting } from "../hooks/useSetting"
 import { useNavigate } from "react-router-dom"
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
+import {
+  faHashtag,
+  faCodeBranch,
+  faClock,
+  faFingerprint,
+} from "@fortawesome/free-solid-svg-icons"
 // import BoxSelect from "../assets/box-select.svg?react"
 
 const mousePosition = { x: 0, y: 0 }
@@ -550,24 +557,40 @@ export function CoverageGraph({ tests, filterString = "" }: Props) {
           value={axisSettingY}
           onChange={setAxisSettingY}
           options={[
-            { value: "behaviors", label: "Behaviors" },
-            { value: "fingerprints", label: "Fingerprints" },
+            {
+              value: "behaviors",
+              content: "Behaviors",
+              mobileContent: <FontAwesomeIcon icon={faCodeBranch} />,
+            },
+            {
+              value: "fingerprints",
+              content: "Fingerprints",
+              mobileContent: <FontAwesomeIcon icon={faFingerprint} />,
+            },
           ]}
         />
         <Toggle
           value={axisSettingX}
           onChange={setAxisSettingX}
           options={[
-            { value: "inputs", label: "Inputs" },
-            { value: "time", label: "Time" },
+            {
+              value: "inputs",
+              content: "Inputs",
+              mobileContent: <FontAwesomeIcon icon={faHashtag} />,
+            },
+            {
+              value: "time",
+              content: "Time",
+              mobileContent: <FontAwesomeIcon icon={faClock} />,
+            },
           ]}
         />
         <Toggle
           value={scaleSetting}
           onChange={setScaleSetting}
           options={[
-            { value: "linear", label: "Linear" },
-            { value: "log", label: "Log" },
+            { value: "linear", content: "Linear" },
+            { value: "log", content: "Log" },
           ]}
         />
       </div>

@@ -1,6 +1,9 @@
+import { useIsMobile } from "../hooks/useIsMobile"
+
 interface Option<T> {
   value: T
-  label: string
+  content: React.ReactNode
+  mobileContent?: React.ReactNode
 }
 
 interface Props<T> {
@@ -10,6 +13,8 @@ interface Props<T> {
 }
 
 export function Toggle<T>({ value, onChange, options }: Props<T>) {
+  const isMobile = useIsMobile()
+
   return (
     <div className="scale-toggle">
       {options.map(option => (
@@ -18,7 +23,7 @@ export function Toggle<T>({ value, onChange, options }: Props<T>) {
           className={`scale-toggle__button ${value === option.value ? "scale-toggle__button--active" : ""}`}
           onClick={() => onChange(option.value)}
         >
-          {option.label}
+          {isMobile ? (option.mobileContent ?? option.content) : option.content}
         </button>
       ))}
     </div>
