@@ -3,7 +3,6 @@
 import contextlib
 import itertools
 import math
-from base64 import b64encode
 from collections import defaultdict
 from collections.abc import Callable
 from contextlib import nullcontext
@@ -47,6 +46,7 @@ from hypofuzz.database import (
     HypofuzzDatabase,
     Observation,
     Phase,
+    convert_db_key,
 )
 from hypofuzz.provider import HypofuzzProvider
 
@@ -114,7 +114,7 @@ class FuzzProcess:
             pytest_item, "nodeid", None
         ) or get_pretty_function_description(test_fn)
         self.database_key = database_key
-        self.database_key_str = b64encode(self.database_key).decode()
+        self.database_key_str = convert_db_key(self.database_key, to="str")
         self.hypothesis_db = database
         self.hypofuzz_db = HypofuzzDatabase(BackgroundWriteDatabase(database))
         self.state = HypofuzzStateForActualGivenExecution(  # type: ignore

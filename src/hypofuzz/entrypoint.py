@@ -71,7 +71,7 @@ def fuzz(
     """
     dash_proc = None
     if dashboard or dashboard_only:
-        from hypofuzz.dashboard import start_dashboard_process
+        from hypofuzz.dashboard.dashboard import start_dashboard_process
 
         dash_proc = Process(
             target=start_dashboard_process,
@@ -149,18 +149,18 @@ def _fuzz_impl(numprocesses: int, pytest_args: tuple[str, ...]) -> None:
     if numprocesses <= 1:
         _fuzz_several(pytest_args=pytest_args, nodeids=[t.nodeid for t in tests])
     else:
-        processes = []
+        processes: list[Process] = []
         for i in range(numprocesses):
             # Round-robin for large test suites; all-on-all for tiny, etc.
-            nodes: set[str] = set()
+            nodeids: set[str] = set()
             for ix in range(numprocesses):
-                nodes.update(t.nodeid for t in tests[i + ix :: numprocesses])
-                if len(nodes) >= 10:  # enough to prioritize between
+                nodeids.update(t.nodeid for t in tests[i + ix :: numprocesses])
+                if len(nodeids) >= 10:  # enough to prioritize between
                     break
 
             p = Process(
                 target=_fuzz_several,
-                kwargs={"pytest_args": pytest_args, "nodeids": nodes},
+                kwargs={"pytest_args": pytest_args, "nodeids": nodeids},
             )
             p.start()
             processes.append(p)

@@ -7,6 +7,9 @@ export function Features({ observations }: { observations: Observation[] }) {
 
   observations.forEach(obs => {
     for (const key of obs.features.keys()) {
+      if (key.startsWith("Retried draw from")) {
+        continue
+      }
       features.add(key)
     }
   })

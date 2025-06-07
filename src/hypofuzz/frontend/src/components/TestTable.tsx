@@ -189,7 +189,12 @@ export function TestTable({ tests, onFilterChange }: Props) {
         data={sortedTests}
         row={row}
         mobileRow={mobileRow}
-        getKey={test => test.database_key}
+        // we'd like to use
+        //   getKey={test => test.database_key}
+        // here, but test is not guaranteed to have a databse_key set (if e.g.
+        // ADD_REPORTS arrives before ADD_TESTS), and I'm more worried about
+        // accidentally choosing an overlapping fallback key than trying to squeeze
+        // out performance here.
         filterStrings={filterStrings}
         onFilterChange={onFilterChange}
       />

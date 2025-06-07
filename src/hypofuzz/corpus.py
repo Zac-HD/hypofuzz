@@ -1,6 +1,6 @@
 """Adaptive fuzzing for property-based tests using Hypothesis."""
 
-from collections import Counter
+from collections import Counter, defaultdict
 from collections.abc import Callable, Iterator, Set
 from random import Random
 from typing import TYPE_CHECKING, Union
@@ -120,6 +120,14 @@ class Corpus:
         self.fingerprints: dict[Fingerprint, NodesT] = {}
         # How many times have we seen each branch since discovering our latest branch?
         self.behavior_counts: Counter[Behavior] = Counter()
+        # if we have < 100% stability, one choice sequence might correspond
+        # to multiple fingerprints. _count_fingerprints maps choice sequences to
+        # the number of distinct fingerprints for that choice sequence.
+        #
+        # We only evict a choice sequence once it has zero remaining corresponding
+        # fingerprints. The correctness of this refcounting is validated in
+        # _check_invariants.
+        self._count_fingerprints: dict[Choices, int] = defaultdict(int)
         self.interesting_examples: dict[InterestingOrigin, TestCaseObservation] = {}
 
         self.__shrunk_to_nodes: set[NodesT] = set()
@@ -133,10 +141,6 @@ class Corpus:
     def _check_invariants(self) -> None:
         assert set().union(*self.fingerprints) == set(self.behavior_counts)
 
-        covering_nodes_choices = {
-            Choices(tuple(n.value for n in nodes))
-            for nodes in self.fingerprints.values()
-        }
         # under 100% stability, we expect these lengths to be equal. However, we
         # might execute choices A once with fingerprint F1 and again with a
         # different fingerprint F2, in which case we have one corpus element and
@@ -146,9 +150,22 @@ class Corpus:
             len(self.fingerprints),
             self.database_key,
         )
+
+        for fingerprint, nodes in self.fingerprints.items():
+            choices = Choices(tuple(n.value for n in nodes))
+            assert choices in self.corpus, (fingerprint, choices)
+
+        fingerprints_choices = [
+            Choices(tuple(n.value for n in nodes))
+            for nodes in self.fingerprints.values()
+        ]
+        for choices, count in self._count_fingerprints.items():
+            assert count > 0  # we drop choices from _count_fingerprints once evicted
+            assert fingerprints_choices.count(choices) == count
+
         assert self.corpus.issubset(
-            covering_nodes_choices
-        ), self.corpus.symmetric_difference(covering_nodes_choices)
+            set(fingerprints_choices)
+        ), self.corpus.symmetric_difference(fingerprints_choices)
 
     def _add_fingerprint(
         self,
@@ -159,25 +176,27 @@ class Corpus:
     ) -> None:
         assert observation.metadata.choice_nodes is not None
         self.fingerprints[fingerprint] = observation.metadata.choice_nodes
-        choices = tuple(n.value for n in observation.metadata.choice_nodes)
-        keyed_choices = Choices(choices)
-        if keyed_choices not in self.corpus:
+        choices = Choices(tuple(n.value for n in observation.metadata.choice_nodes))
+        if choices not in self.corpus:
             self._db.save_corpus(self.database_key, choices)
             if save_observation:
                 self._db.save_corpus_observation(
                     self.database_key, choices, Observation.from_hypothesis(observation)
                 )
-        self.corpus.add(keyed_choices)
+        self.corpus.add(choices)
+        self._count_fingerprints[choices] += 1
 
         # Reset our seen branch counts.  This is essential because changing our
         # corpus alters the probability of seeing each branch in future.
         # For details see AFL-fast, esp. the markov-chain trick.
         self.behavior_counts = Counter(fingerprint | set(self.behavior_counts))
 
-    def _evict_choices(self, choices: ChoicesT) -> None:
+    def _evict_choices(self, choices: Choices) -> None:
         # remove an outdated choice sequence and its observation(s) from the
         # database
-        self.corpus.remove(Choices(choices))
+        assert self._count_fingerprints[choices] == 0
+        del self._count_fingerprints[choices]
+        self.corpus.remove(choices)
         self._db.delete_corpus(self.database_key, choices)
         for observation in list(
             self._db.fetch_corpus_observations(self.database_key, choices)
@@ -246,14 +265,20 @@ class Corpus:
             )
             self._check_invariants()
             return True
-        elif sort_key(observation.metadata.choice_nodes) < sort_key(
+
+        if sort_key(observation.metadata.choice_nodes) < sort_key(
             self.fingerprints[behaviors]
         ):
-            existing_choices = tuple(n.value for n in self.fingerprints[behaviors])
+            existing_choices = Choices(
+                tuple(n.value for n in self.fingerprints[behaviors])
+            )
+
+            self._count_fingerprints[existing_choices] -= 1
             self._add_fingerprint(
                 behaviors, observation, save_observation=save_observation
             )
-            self._evict_choices(existing_choices)
+            if self._count_fingerprints[existing_choices] == 0:
+                self._evict_choices(existing_choices)
             self._check_invariants()
             return True
 

@@ -27,6 +27,8 @@ select {
 
 // actual styles
 
+$color-primary: #32465b;
+
 $color-neutral: rgba(179, 170, 170, 0.2);
 $color-failure: rgba(237, 120, 107, 0.2);
 $color-warning: rgba(255, 215, 0, 0.2);
@@ -265,7 +267,7 @@ $color-success: rgba(71, 204, 126, 0.2);
 .sidebar {
     width: 250px;
     flex-shrink: 0;
-    background: #32465b;
+    background: $color-primary;
     padding: 20px;
     color: white;
     height: 100vh;
@@ -648,12 +650,6 @@ pre code.hljs {
             margin-bottom: 0;
         }
 
-        &__header {
-            display: flex;
-            align-items: center;
-            margin-bottom: 0.5rem;
-        }
-
         &__title {
             font-size: 1.2rem;
             font-weight: 600;
@@ -666,6 +662,8 @@ pre code.hljs {
             padding: 10px 0;
             font-size: 1.2rem;
             font-weight: 500;
+            align-items: center;
+            margin-bottom: 0.5rem;
 
             &__toggle {
                 display: inline-flex;
@@ -801,6 +799,10 @@ pre code.hljs {
         &__feature {
             font-family: monospace;
             font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            padding: 10px 0;
+            line-height: 1.3;
         }
     }
 
@@ -839,5 +841,81 @@ pre code.hljs {
                 font-weight: bold;
             }
         }
+    }
+}
+
+.pagination {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    $element-size: 36px;
+
+    &__number {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        user-select: none;
+
+        min-width: $element-size;
+        height: $element-size;
+        padding: 8px 12px;
+        border-radius: 6px;
+        font-size: 0.9rem;
+        font-weight: 500;
+
+        cursor: pointer;
+        color: #495057;
+        border: 1px solid rgb(225, 229, 233);
+        background-color: white;
+
+        &--current {
+            background: $color-primary;
+            color: white;
+            border-color: $color-primary;
+            box-shadow: 0 2px 4px rgba(44, 62, 80, 0.3);
+        }
+
+        &:hover:not(&--current) {
+            border: 1px solid #adb5bd;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+    }
+
+    &__nav {
+        font-weight: 600;
+        user-select: none;
+        color: $color-primary;
+
+        &:not(&--disabled) {
+            cursor: pointer;
+        }
+
+        &--disabled {
+            // don't use display: none, we still want it to take up space in the
+            // hierarchy to avoid ui elements moving around when advancing pages
+            visibility: hidden;
+        }
+
+        &--left {
+            margin-right: 8px;
+        }
+
+        &--right {
+            margin-left: 8px;
+        }
+    }
+
+    &__ellipsis {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        user-select: none;
+
+        cursor: default;
+        min-width: $element-size;
+
+        background: transparent;
+        border: none;
+        color: #6c757d;
     }
 }

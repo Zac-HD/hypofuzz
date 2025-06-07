@@ -23,7 +23,10 @@ interface GraphReport {
   nodeid: string
   linear_status_counts: StatusCounts
   linear_elapsed_time: number
-  report: Report
+  behaviors: number
+  fingerprints: number
+  ninputs: number
+  elapsed_time: number
 }
 
 // in pixels
@@ -74,7 +77,7 @@ class Graph {
         ? report.linear_elapsed_time
         : report.linear_status_counts.sum()
     this.yValue = (report: GraphReport) =>
-      axisSettingY == "behaviors" ? report.report.behaviors : report.report.fingerprints
+      axisSettingY == "behaviors" ? report.behaviors : report.fingerprints
 
     this.margin = { top: 20, right: 20, bottom: 45, left: 60 }
     this.width = svg.clientWidth - this.margin.left - this.margin.right
@@ -148,14 +151,9 @@ class Graph {
     this.xAxis = this.g
       .append("g")
       .attr("transform", `translate(0,${this.height})`)
-      .call(
-        d3
-          .axisBottom(this.x)
-          .ticks(5)
-          .tickFormat(d => d.toLocaleString()),
-      )
+      .call(this.createXAxis(this.x))
 
-    this.yAxis = this.g.append("g").call(d3.axisLeft(this.y).ticks(5))
+    this.yAxis = this.g.append("g").call(this.createYAxis(this.y))
 
     this.g
       .append("text")
@@ -205,8 +203,8 @@ class Graph {
             .style("left", `${event.pageX + 10}px`)
             .style("top", `${event.pageY - 10}px`).html(`
               <strong>${closestReport.nodeid.split("::").pop() || closestReport.nodeid}</strong><br/>
-              ${closestReport.report.behaviors.toLocaleString()} behaviors / ${closestReport.report.fingerprints.toLocaleString()} fingerprints<br/>
-              ${closestReport.report.ninputs.toLocaleString()} inputs / ${closestReport.report.elapsed_time.toFixed(1)} seconds
+              ${closestReport.behaviors.toLocaleString()} behaviors / ${closestReport.fingerprints.toLocaleString()} fingerprints<br/>
+              ${closestReport.ninputs.toLocaleString()} inputs / ${closestReport.elapsed_time.toFixed(1)} seconds
             `)
         } else {
           this.tooltip.style("display", "none")
@@ -219,6 +217,45 @@ class Graph {
     this.drawLines()
   }
 
+  private createXAxis(scale: d3.ScaleContinuousNumeric<number, number>) {
+    if (this.scaleSetting === "log") {
+      const maxValue = scale.domain()[1]
+      const tickValues = [0]
+
+      let power = 1
+      while (power <= maxValue) {
+        tickValues.push(power)
+        power *= 10
+      }
+
+      return d3
+        .axisBottom(scale)
+        .tickValues(tickValues)
+        .tickFormat(d => {
+          const num = d.valueOf()
+          console.assert(num >= 0)
+          if (num >= 1_000_000) {
+            return `${Math.floor(num / 1_000_000)}M`
+          } else if (num >= 1000) {
+            return `${Math.floor(num / 1000)}k`
+          } else if (num > 0) {
+            return num.toLocaleString()
+          } else {
+            return "0"
+          }
+        })
+    } else {
+      return d3
+        .axisBottom(scale)
+        .ticks(5)
+        .tickFormat(d => d.toLocaleString())
+    }
+  }
+
+  private createYAxis(scale: d3.ScaleContinuousNumeric<number, number>) {
+    return d3.axisLeft(scale).ticks(5)
+  }
+
   zoomTo(transform: d3.ZoomTransform, zoomY: boolean) {
     const x = transform.rescaleX(this.x)
     const y = zoomY ? transform.rescaleY(this.y) : this.y
@@ -226,15 +263,10 @@ class Graph {
     this.viewportX = x
     this.viewportY = y
 
-    this.xAxis.call(
-      d3
-        .axisBottom(x)
-        .ticks(5)
-        .tickFormat(d => d.toLocaleString()),
-    )
+    this.xAxis.call(this.createXAxis(x))
 
     if (zoomY) {
-      this.yAxis.call(d3.axisLeft(y).ticks(5))
+      this.yAxis.call(this.createYAxis(y))
     }
 
     this.g.selectAll<SVGPathElement, GraphReport[]>(".chart-area path").attr(
@@ -244,48 +276,6 @@ class Graph {
         .x(d => x(this.xValue(d)))
         .y(d => y(this.yValue(d))),
     )
-  }
-
-  drawLegend() {
-    const legend = this.g
-      .append("g")
-      .attr("transform", `translate(${this.width + 10},0)`)
-
-    this.reportsColor.domain().forEach((nodeid, i) => {
-      const legendItem = legend
-        .append("g")
-        .attr("transform", `translate(0,${i * 20})`)
-        .style("cursor", "pointer")
-        .on("mouseover", () => {
-          this.g
-            .selectAll<SVGPathElement, GraphReport[]>("path")
-            .filter(d => Array.isArray(d) && d.length > 0 && d[0].nodeid === nodeid)
-            .classed("coverage-line__selected", true)
-          d3.select(legendItem.node()).style("font-weight", "bold")
-        })
-        .on("mouseout", () => {
-          this.g.selectAll("path").classed("coverage-line__selected", false)
-          d3.select(legendItem.node()).style("font-weight", "normal")
-        })
-        .on("click", () => {
-          this.navigate(`/tests/${encodeURIComponent(nodeid)}`)
-        })
-
-      legendItem
-        .append("line")
-        .attr("x1", 0)
-        .attr("x2", 20)
-        .attr("y1", 10)
-        .attr("y2", 10)
-        .attr("stroke", this.reportsColor(nodeid))
-
-      legendItem
-        .append("text")
-        .attr("x", 25)
-        .attr("y", 15)
-        .text(nodeid.split("::").pop() || nodeid)
-        .style("font-size", "12px")
-    })
   }
 
   drawLines() {
@@ -309,8 +299,12 @@ class Graph {
         .on("mouseout", function () {
           d3.select(this).classed("coverage-line__selected", false)
         })
-        .on("click", () => {
-          this.navigate(`/tests/${encodeURIComponent(nodeid)}`)
+        .on("click", event => {
+          if (event.metaKey || event.ctrlKey) {
+            window.open(`/tests/${encodeURIComponent(nodeid)}`, "_blank")
+          } else {
+            this.navigate(`/tests/${encodeURIComponent(nodeid)}`)
+          }
         })
     })
   }
@@ -422,21 +416,34 @@ export function CoverageGraph({ tests, filterString = "" }: Props) {
 
   const reports = useMemo(() => {
     return new Map(
-      Array.from(tests.entries()).map(([nodeid, test]) => {
-        // zip up linear_status_counts, linear_elapsed_time, and linear_reports.
-        const linearStatusCounts = test.linear_status_counts(null)
-        const linearElapsedTime = test.linear_elapsed_time(null)
-        const reports: GraphReport[] = []
-        for (let i = 0; i < linearStatusCounts.length; i++) {
-          reports.push({
-            nodeid: nodeid,
-            linear_status_counts: linearStatusCounts[i],
-            linear_elapsed_time: linearElapsedTime[i],
-            report: test.linear_reports[i],
-          })
-        }
-        return [nodeid, reports]
-      }),
+      Array.from(tests.entries())
+        // deterministic line color ordering, regardless of insertion order (which might vary
+        // based on websocket arrival order)
+        //
+        // we may also want a deterministic mapping of hash(nodeid) -> color, so the color is stable
+        // even across pages (overview vs individual test) or after a new test is added? But maybe we
+        // *don't* want this. I'm not sure which is better ux. A graph with only one line and having
+        // a non-blue color is weird.
+        .sortKey(([nodeid, test]) => nodeid)
+        .map(([nodeid, test]) => {
+          // zip up linear_status_counts, linear_elapsed_time, and linear_reports.
+          const linearStatusCounts = test.linear_status_counts(null)
+          const linearElapsedTime = test.linear_elapsed_time(null)
+          const reports: GraphReport[] = []
+          for (let i = 0; i < linearStatusCounts.length; i++) {
+            const report = test.linear_reports[i]
+            reports.push({
+              nodeid: nodeid,
+              linear_status_counts: linearStatusCounts[i],
+              linear_elapsed_time: linearElapsedTime[i],
+              behaviors: report.behaviors,
+              fingerprints: report.fingerprints,
+              ninputs: report.ninputs,
+              elapsed_time: report.elapsed_time,
+            })
+          }
+          return [nodeid, reports]
+        }),
     )
   }, [tests])
 

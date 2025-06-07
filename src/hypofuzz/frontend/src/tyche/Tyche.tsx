@@ -24,14 +24,6 @@ export function Tyche({ test }: { test: Test }) {
     "covering",
   )
 
-  if (!test.observations_loaded) {
-    return (
-      <div className="card">
-        <div className="card__header">Loading observations...</div>
-      </div>
-    )
-  }
-
   const observations =
     observationType === "rolling"
       ? // newest first for rolling observations
@@ -66,7 +58,10 @@ export function Tyche({ test }: { test: Test }) {
         <>
           <Samples observations={observations} />
           <Features observations={observations} />
-          <Representation observations={observations} />
+          <Representation
+            observations={observations}
+            observationType={observationType}
+          />
         </>
       ) : (
         <div className="tyche__section">No observations</div>

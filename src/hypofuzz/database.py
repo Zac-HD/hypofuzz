@@ -1,12 +1,22 @@
 import dataclasses
 import hashlib
 import json
+from base64 import b64decode, b64encode
 from collections import defaultdict, deque
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, is_dataclass
 from enum import Enum
 from functools import lru_cache
-from typing import TYPE_CHECKING, Any, Literal, Optional, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Literal,
+    Optional,
+    Protocol,
+    TypeVar,
+    Union,
+    overload,
+)
 
 from hypothesis.database import (
     ExampleDatabase,
@@ -27,6 +37,12 @@ if TYPE_CHECKING:
     from typing import TypeAlias
 
 ChoicesT: "TypeAlias" = tuple[ChoiceT, ...]
+T = TypeVar("T", covariant=True)
+
+
+class HashableIterable(Protocol[T]):
+    def __hash__(self) -> int: ...
+    def __iter__(self) -> Iterator[T]: ...
 
 
 class HypofuzzEncoder(json.JSONEncoder):
@@ -175,17 +191,23 @@ class DatabaseEvent:
     key: DatabaseEventKey
     value: Any
 
-    @staticmethod
-    def from_event(event: ListenerEventT, /) -> Optional["DatabaseEvent"]:
+    # depends on hypothesis.internal.reflection.function_digest, which uses
+    # hashlib.sha384 (384 bits = 48 bytes)
+    DATABASE_KEY_LENGTH = 48
+
+    @classmethod
+    def from_event(cls, event: ListenerEventT, /) -> Optional["DatabaseEvent"]:
         # placate mypy
         key: Any
         value: Any
         parse: Any
         (event_type, (key, value)) = event
-        if b"." not in key:
+        if b"." not in key or len(key) <= cls.DATABASE_KEY_LENGTH:
             return None
 
-        database_key = key.split(b".", 1)[0]
+        # indexing into bytes converts to int
+        assert key[cls.DATABASE_KEY_LENGTH] == ord("."), key
+        database_key = key[: cls.DATABASE_KEY_LENGTH]
         if key.endswith(reports_key):
             key = DatabaseEventKey.REPORT
             parse = Report.from_json
@@ -316,10 +338,8 @@ class ReportWithDiff(Report):
         cls,
         report: Report,
         *,
-        last_report: Union["ReportWithDiff", None],
-        last_worker_report: Union[Report, None],
+        last_worker_report: Union["ReportWithDiff", None],
     ) -> "ReportWithDiff":
-        assert last_report is None or last_report.timestamp_monotonic is not None
         last_status_counts = (
             StatusCounts()
             if last_worker_report is None
@@ -332,11 +352,17 @@ class ReportWithDiff(Report):
         elapsed_time_diff = report.elapsed_time - last_elapsed_time
         timestamp_monotonic = (
             report.timestamp
-            if last_report is None
+            if last_worker_report is None
             else max(
-                report.timestamp, last_report.timestamp_monotonic + elapsed_time_diff
+                report.timestamp,
+                last_worker_report.timestamp_monotonic + elapsed_time_diff,
             )
         )
+
+        assert elapsed_time_diff >= 0.0
+        # note: timestamp_monotonic might be negative, if the initial
+        # report.timestamp was negative, because someone set their system clock
+        # to before 1969.
 
         return cls(
             database_key=report.database_key,
@@ -366,14 +392,14 @@ def worker_identity_key(key: bytes, uuid: str) -> bytes:
     return key + b".hypofuzz.worker_identity." + uuid.encode("ascii")
 
 
+# `choices` required to be hashable for @lru_cache
 @lru_cache(maxsize=512)
-def corpus_observation_key(key: bytes, choices: ChoicesT) -> bytes:
+def corpus_observation_key(
+    key: bytes, choices: Union[HashableIterable[ChoiceT], bytes]
+) -> bytes:
+    choices_bytes = choices if isinstance(choices, bytes) else choices_to_bytes(choices)
     return (
-        key
-        + corpus_key
-        + b"."
-        + hashlib.sha1(choices_to_bytes(choices)).digest()
-        + b".observation"
+        key + corpus_key + b"." + hashlib.sha1(choices_bytes).digest() + b".observation"
     )
 
 
@@ -382,12 +408,15 @@ def failure_key(key: bytes, *, shrunk: bool) -> bytes:
 
 
 @lru_cache(maxsize=512)
-def failure_observation_key(key: bytes, choices: ChoicesT) -> bytes:
+def failure_observation_key(
+    key: bytes, choices: Union[HashableIterable[ChoiceT], bytes]
+) -> bytes:
+    choices_bytes = choices if isinstance(choices, bytes) else choices_to_bytes(choices)
     return (
         key
         + failures_key
         + b"."
-        + hashlib.sha1(choices_to_bytes(choices)).digest()
+        + hashlib.sha1(choices_bytes).digest()
         + b".observation"
     )
 
@@ -470,15 +499,29 @@ class HypofuzzDatabase:
 
     # corpus (corpus_key)
 
-    def save_corpus(self, key: bytes, choices: ChoicesT) -> None:
+    def save_corpus(self, key: bytes, choices: Iterable[ChoiceT]) -> None:
         self.save(key + corpus_key, choices_to_bytes(choices))
 
-    def delete_corpus(self, key: bytes, choices: ChoicesT) -> None:
+    def delete_corpus(self, key: bytes, choices: Iterable[ChoiceT]) -> None:
         self.delete(key + corpus_key, choices_to_bytes(choices))
 
-    def fetch_corpus(self, key: bytes) -> Iterable[ChoicesT]:
+    @overload
+    def fetch_corpus(
+        self, key: bytes, *, as_bytes: Literal[False] = False
+    ) -> Iterable[ChoicesT]: ...
+
+    @overload
+    def fetch_corpus(
+        self, key: bytes, *, as_bytes: Literal[True]
+    ) -> Iterable[bytes]: ...
+
+    def fetch_corpus(
+        self, key: bytes, *, as_bytes: bool = False
+    ) -> Iterable[Union[ChoicesT, bytes]]:
         for value in self.fetch(key + corpus_key):
-            if (choices := choices_from_bytes(value)) is not None:
+            if as_bytes:
+                yield value
+            elif (choices := choices_from_bytes(value)) is not None:
                 yield choices
 
     # corpus observations (corpus_observe_key)
@@ -507,7 +550,7 @@ class HypofuzzDatabase:
             self.delete_corpus_observation(key, choices, observation)
 
     def delete_corpus_observation(
-        self, key: bytes, choices: ChoicesT, observation: Observation
+        self, key: bytes, choices: HashableIterable[ChoiceT], observation: Observation
     ) -> None:
         self._check_observation(observation)
         self.delete(corpus_observation_key(key, choices), self._encode(observation))
@@ -515,7 +558,7 @@ class HypofuzzDatabase:
     def fetch_corpus_observation(
         self,
         key: bytes,
-        choices: ChoicesT,
+        choices: Union[HashableIterable[ChoiceT], bytes],
     ) -> Optional[Observation]:
         # We expect there to be only a single entry. If there are multiple, we
         # arbitrarily pick one to return.
@@ -527,13 +570,13 @@ class HypofuzzDatabase:
     def fetch_corpus_observations(
         self,
         key: bytes,
-        choices: ChoicesT,
+        choices: Union[HashableIterable[ChoiceT], bytes],
     ) -> Iterable[Observation]:
         for value in self.fetch(corpus_observation_key(key, choices)):
             if observation := Observation.from_json(value):
                 yield observation
 
-    # failures (failures_key)
+    # failures (failure_key)
 
     def save_failure(self, key: bytes, choices: ChoicesT, *, shrunk: bool) -> None:
         self.save(failure_key(key, shrunk=shrunk), choices_to_bytes(choices))
@@ -609,3 +652,24 @@ class HypofuzzDatabase:
             return next(iter(self.fetch_worker_identities(key, worker)))
         except StopIteration:
             return None
+
+
+@overload
+def convert_db_key(key: str, *, to: Literal["bytes"]) -> bytes: ...
+
+
+@overload
+def convert_db_key(key: bytes, *, to: Literal["str"]) -> str: ...
+
+
+def convert_db_key(
+    key: Union[str, bytes], *, to: Literal["str", "bytes"]
+) -> Union[str, bytes]:
+    if to == "str":
+        assert isinstance(key, bytes)
+        return b64encode(key).decode("ascii")
+    elif to == "bytes":
+        assert isinstance(key, str)
+        return b64decode(key.encode("ascii"))
+    else:
+        raise ValueError(f"Invalid conversion {to=}")

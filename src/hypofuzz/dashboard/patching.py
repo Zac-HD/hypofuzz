@@ -10,7 +10,7 @@ from hypofuzz.database import Phase
 from hypofuzz.hypofuzz import FuzzProcess
 
 if TYPE_CHECKING:
-    from hypofuzz.dashboard import Test
+    from hypofuzz.dashboard.test import Test
 
 COV_MSG = "HypoFuzz covering example"
 get_patch_for_cached = lru_cache(maxsize=8192)(get_patch_for)
