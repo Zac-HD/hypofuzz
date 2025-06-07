@@ -50,6 +50,7 @@ def observations(
             data_status=statuses,
             interesting_origin=st.builds(interesting_origin, n=st.integers()),
             choice_nodes=st.lists(nodes()).map(tuple),
+            choice_spans=st.just(None),
         ),
     )
 

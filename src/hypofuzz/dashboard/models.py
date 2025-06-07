@@ -3,6 +3,7 @@ from typing import Any, Literal, Optional, TypedDict, Union
 
 from hypofuzz.database import (
     Observation,
+    ObservationMetadata,
     ObservationStatus,
     Phase,
     Report,
@@ -19,7 +20,7 @@ class DashboardObservation(TypedDict):
     how_generated: str
     features: dict[str, Any]
     timing: dict[str, Any]
-    metadata: dict[str, Any]
+    metadata: ObservationMetadata
     property: str
     run_start: float
 

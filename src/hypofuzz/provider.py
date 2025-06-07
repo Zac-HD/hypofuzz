@@ -101,9 +101,11 @@ class State:
     start_time: float
     branches: Optional[frozenset[Branch]] = None
     observation: Optional[Observation] = None
+    extra_queue_data: Optional[Any] = None
 
 
-ReplayQueueElement = tuple[ReplayPriority, ChoicesT]
+# (priority, choice sequence, extra data)
+ReplayQueueElement = tuple[ReplayPriority, ChoicesT, Optional[Any]]
 
 
 class HypofuzzProvider(PrimitiveProvider):
@@ -149,7 +151,7 @@ class HypofuzzProvider(PrimitiveProvider):
 
         # TODO: make this a context manager we enter in per_test_case_context_manager,
         # so it resets after using hypofuzz?
-        hypothesis.internal.observability.OBSERVABILITY_CHOICE_NODES = True
+        hypothesis.internal.observability.OBSERVABILITY_CHOICES = True
         hypothesis.internal.observability.OBSERVABILITY_COLLECT_COVERAGE = False
 
         self.db = HypofuzzDatabase(BackgroundWriteDatabase(settings().database))
@@ -185,7 +187,12 @@ class HypofuzzProvider(PrimitiveProvider):
                 else ReplayPriority.FAILURE_UNSHRUNK
             )
             for choices in self.db.fetch_failures(self.database_key, shrunk=shrunk):
-                self._enqueue(priority, choices)
+                observation = self.db.fetch_failure_observation(
+                    self.database_key, choices
+                )
+                if observation is None:
+                    continue
+                self._enqueue(priority, choices, extra_data=observation)
 
         # TODO: do we need/want this?
         # self._enqueue(
@@ -211,8 +218,10 @@ class HypofuzzProvider(PrimitiveProvider):
         self,
         priority: ReplayPriority,
         choices: ChoicesT,
+        *,
+        extra_data: Optional[Any] = None,
     ) -> None:
-        self._replay_queue.add((priority, choices))
+        self._replay_queue.add((priority, choices, extra_data))
 
     def on_event(self, event: DatabaseEvent) -> None:
         # Some worker has found a new covering corpus element. Replay it in
@@ -320,8 +329,9 @@ class HypofuzzProvider(PrimitiveProvider):
 
         assert self.corpus is not None
         replay_priority = None
+        extra_queue_data = None
         while self._replay_queue:
-            (replay_priority, choices) = self._replay_queue.pop()
+            (replay_priority, choices, extra_queue_data) = self._replay_queue.pop()
 
             # we checked if we had this choice sequence when we put it into the
             # replay_queue on on_event, but we check again here, since we might have
@@ -357,6 +367,7 @@ class HypofuzzProvider(PrimitiveProvider):
             choices=choices,
             replay_priority=replay_priority,
             start_time=start,
+            extra_queue_data=extra_queue_data,
         )
 
     def on_observation(
@@ -403,6 +414,12 @@ class HypofuzzProvider(PrimitiveProvider):
             # deletions cheap. Just try deleting from both.
             self.db.delete_failure(self.database_key, self._state.choices, shrunk=True)
             self.db.delete_failure(self.database_key, self._state.choices, shrunk=False)
+            failure_observation = self._state.extra_queue_data
+            assert failure_observation is not None
+            assert isinstance(failure_observation, Observation)
+            self.db.delete_failure_observation(
+                self.database_key, self._state.choices, failure_observation
+            )
 
         behaviors: Set[Behavior] = self._state.branches | (
             # include |event| and |target| as pseudo-branch behaviors.

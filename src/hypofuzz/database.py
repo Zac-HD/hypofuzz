@@ -534,7 +534,7 @@ class HypofuzzDatabase:
     def save_corpus_observation(
         self,
         key: bytes,
-        choices: ChoicesT,
+        choices: HashableIterable[ChoiceT],
         observation: Observation,
         *,
         delete: bool = True,
