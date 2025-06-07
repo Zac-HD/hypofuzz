@@ -255,7 +255,6 @@ class Corpus:
         self.behavior_counts.update(fingerprint)
         if fingerprint not in self.fingerprints:
             self._add_fingerprint(fingerprint, result, observation=observation)
-            self._check_invariants()
             return True
 
         if sort_key(result.nodes) < sort_key(self.fingerprints[fingerprint]):
@@ -267,7 +266,6 @@ class Corpus:
             self._add_fingerprint(fingerprint, result, observation=observation)
             if self._count_fingerprints[existing_choices] == 0:
                 self._evict_choices(existing_choices)
-            self._check_invariants()
             return True
 
         return False
@@ -286,7 +284,6 @@ class Corpus:
            try again if they did not reach a fixpoint.  Almost all of the structures
            we're using can be mutated in the process, so it can get strange.
         """
-        self._check_invariants()
         minimal_behaviors = {
             branch
             for branch, nodes in self.fingerprints.items()
@@ -317,4 +314,3 @@ class Corpus:
                 for branch, choices in self.fingerprints.items()
                 if choices == shrinker.shrink_target.choices
             }
-            self._check_invariants()
