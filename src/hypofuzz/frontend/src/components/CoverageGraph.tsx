@@ -57,6 +57,7 @@ class Graph {
   private reportsColor: d3.ScaleOrdinal<string, string>
   private viewportX: d3.ScaleContinuousNumeric<number, number>
   private viewportY: d3.ScaleContinuousNumeric<number, number>
+  private quadtree!: d3.Quadtree<GraphReport>
 
   constructor(
     svg: SVGSVGElement,
@@ -176,26 +177,7 @@ class Graph {
     this.chartArea
       .on("mousemove", event => {
         const [mouseX, mouseY] = d3.pointer(event)
-        let closestReport = null as GraphReport | null
-        let closestDistance = Infinity
-
-        Array.from(this.reports.values()).forEach(reports => {
-          if (!reports || reports.length === 0) return
-
-          reports
-            .sortKey(report => [this.xValue(report)])
-            .forEach(report => {
-              const distance = Math.sqrt(
-                (this.viewportX(this.xValue(report)) - mouseX) ** 2 +
-                  (this.viewportY(this.yValue(report)) - mouseY) ** 2,
-              )
-
-              if (distance < closestDistance && distance < distanceThreshold) {
-                closestDistance = distance
-                closestReport = report
-              }
-            })
-        })
+        const closestReport = this.quadtree.find(mouseX, mouseY, distanceThreshold)
 
         if (closestReport) {
           this.tooltip
@@ -215,6 +197,7 @@ class Graph {
       })
 
     this.drawLines()
+    this.updateQuadtree()
   }
 
   private createXAxis(scale: d3.ScaleContinuousNumeric<number, number>) {
@@ -256,6 +239,15 @@ class Graph {
     return d3.axisLeft(scale).ticks(5)
   }
 
+  private updateQuadtree() {
+    const allReports = Array.from(this.reports.values()).flat()
+    this.quadtree = d3
+      .quadtree<GraphReport>()
+      .x(d => this.viewportX(this.xValue(d)))
+      .y(d => this.viewportY(this.yValue(d)))
+      .addAll(allReports)
+  }
+
   zoomTo(transform: d3.ZoomTransform, zoomY: boolean) {
     const x = transform.rescaleX(this.x)
     const y = zoomY ? transform.rescaleY(this.y) : this.y
@@ -276,6 +268,8 @@ class Graph {
         .x(d => x(this.xValue(d)))
         .y(d => y(this.yValue(d))),
     )
+
+    this.updateQuadtree()
   }
 
   drawLines() {
