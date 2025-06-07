@@ -40,7 +40,7 @@ def make_and_save_patches(
         covering_examples = []
 
         if test.failure:
-            failing_examples.append((test.failure.metadata["traceback"], FAIL_MSG))
+            failing_examples.append((test.failure.metadata.traceback, FAIL_MSG))
 
         if test.phase is not Phase.REPLAY:
             covering_examples = [
@@ -54,7 +54,7 @@ def make_and_save_patches(
             (triples_all, failing_examples + covering_examples, (COV_MSG,)),
         ]:
             if examples:
-                xs = get_patch_for_cached(test_fn, tuple(examples), strip_via=strip_via)
+                xs = get_patch_for_cached(test_fn, tuple(examples), strip_via=strip_via)  # type: ignore
                 if xs:
                     out.append(xs)
 

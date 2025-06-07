@@ -8,6 +8,9 @@ from typing import NoReturn, Optional
 import click
 import hypothesis.extra.cli
 import psutil
+from hypothesis.internal.conjecture.providers import AVAILABLE_PROVIDERS
+
+AVAILABLE_PROVIDERS["hypofuzz"] = "hypofuzz.provider.HypofuzzProvider"
 
 
 @hypothesis.extra.cli.main.command()  # type: ignore
