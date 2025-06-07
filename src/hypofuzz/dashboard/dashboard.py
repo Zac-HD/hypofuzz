@@ -11,6 +11,7 @@ import black
 import trio
 from hypercorn.config import Config
 from hypercorn.trio import serve
+from hypothesis import settings
 from hypothesis.database import (
     ListenerEventT,
 )
@@ -36,12 +37,12 @@ from hypofuzz.dashboard.test import Test
 from hypofuzz.database import (
     DatabaseEvent,
     DatabaseEventKey,
+    HypofuzzDatabase,
     HypofuzzEncoder,
     Observation,
     ObservationStatus,
     Report,
     ReportWithDiff,
-    get_db,
 )
 from hypofuzz.interface import CollectionResult
 
@@ -54,6 +55,7 @@ TESTS: dict[str, "Test"] = {}
 TESTS_BY_KEY: dict[bytes, "Test"] = {}
 COLLECTION_RESULT: Optional[CollectionResult] = None
 websockets: set["HypofuzzWebsocket"] = set()
+db: Optional[HypofuzzDatabase] = None
 
 
 def _sample_reports(
@@ -309,6 +311,8 @@ class TestWebsocket(HypofuzzWebsocket):
 
 async def websocket(websocket: WebSocket) -> None:
     assert COLLECTION_RESULT is not None
+    assert db is not None
+
     nodeid = websocket.query_params.get("nodeid")
     if nodeid is not None and nodeid not in TESTS:
         # requesting a test page that doesn't exist
@@ -532,7 +536,8 @@ async def handle_event(receive_channel: MemoryReceiveChannel[ListenerEventT]) ->
 
 
 def get_failure_observations(database_key: bytes) -> dict[str, Observation]:
-    db = get_db()
+    assert db is not None
+
     failure_observations = {}
     for maybe_observed_choices in (
         *sorted(db.fetch_failures(database_key, shrunk=True), key=len),
@@ -553,6 +558,7 @@ def get_failure_observations(database_key: bytes) -> dict[str, Observation]:
 
 async def run_dashboard(port: int, host: str) -> None:
     assert COLLECTION_RESULT is not None
+    assert db is not None
 
     send_channel, receive_channel = trio.open_memory_channel[ListenerEventT](math.inf)
     token = trio.lowlevel.current_trio_token()
@@ -568,7 +574,6 @@ async def run_dashboard(port: int, host: str) -> None:
         else:
             send_channel.send_nowait(msg)
 
-    db = get_db()
     # load initial database state before starting dashboard
     for fuzz_target in COLLECTION_RESULT.fuzz_targets:
         # a fuzz target (= node id) may have many database keys over time as the
@@ -632,9 +637,12 @@ def start_dashboard_process(
     from hypofuzz.interface import _get_hypothesis_tests_with_pytest
 
     global COLLECTION_RESULT
+    global db
+
     # we run a pytest collection step for the dashboard to pick up on the database
     # from any custom profiles, and as a ground truth for what tests to display.
     COLLECTION_RESULT = _get_hypothesis_tests_with_pytest(pytest_args)
+    db = HypofuzzDatabase(settings().database)
 
     print(f"\n\tNow serving dashboard at  http://{host}:{port}/\n")
     trio.run(run_dashboard, port, host)

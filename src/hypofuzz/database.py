@@ -6,7 +6,7 @@ from collections import defaultdict, deque
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, is_dataclass
 from enum import Enum
-from functools import cache, lru_cache
+from functools import lru_cache
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -18,9 +18,7 @@ from typing import (
     overload,
 )
 
-from hypothesis import settings
 from hypothesis.database import (
-    BackgroundWriteDatabase,
     ExampleDatabase,
     ListenerEventT,
     choices_from_bytes,
@@ -340,11 +338,12 @@ test_keys_key = b"hypofuzz.test_keys"
 reports_key = b".hypofuzz.reports"
 observations_key = b".hypofuzz.observations"
 corpus_key = b".hypofuzz.corpus"
+worker_identity_key = b".hypofuzz.worker_identity"
 failures_key = b".hypofuzz.failures"
 
 
-def worker_identity_key(key: bytes, uuid: str) -> bytes:
-    return key + b".worker_identity." + uuid.encode("ascii")
+def get_worker_identity_key(key: bytes, uuid: str) -> bytes:
+    return key + worker_identity_key + b"." + uuid.encode("ascii")
 
 
 # `choices` required to be hashable for @lru_cache
@@ -484,7 +483,7 @@ class HypofuzzDatabase:
     def save_corpus_observation(
         self,
         key: bytes,
-        choices: ChoicesT,
+        choices: HashableIterable[ChoiceT],
         observation: Observation,
         *,
         delete: bool = True,
@@ -579,15 +578,15 @@ class HypofuzzDatabase:
     # worker identity (worker_identity_key)
 
     def save_worker_identity(self, key: bytes, worker: WorkerIdentity) -> None:
-        self.save(worker_identity_key(key, worker.uuid), self._encode(worker))
+        self.save(get_worker_identity_key(key, worker.uuid), self._encode(worker))
 
     def delete_worker_identity(self, key: bytes, worker: WorkerIdentity) -> None:
-        self.delete(worker_identity_key(key, worker.uuid), self._encode(worker))
+        self.delete(get_worker_identity_key(key, worker.uuid), self._encode(worker))
 
     def fetch_worker_identities(
         self, key: bytes, worker: WorkerIdentity
     ) -> Iterable[WorkerIdentity]:
-        for value in self.fetch(worker_identity_key(key, worker.uuid)):
+        for value in self.fetch(get_worker_identity_key(key, worker.uuid)):
             if worker_identity := WorkerIdentity.from_json(value):
                 yield worker_identity
 
@@ -598,16 +597,6 @@ class HypofuzzDatabase:
             return next(iter(self.fetch_worker_identities(key, worker)))
         except StopIteration:
             return None
-
-
-# cache to make the db effectively a single time, deferred until after we've run
-# a collection step on the user's code.
-@cache
-def get_db() -> HypofuzzDatabase:
-    db = settings().database
-    if isinstance(db, BackgroundWriteDatabase):
-        return HypofuzzDatabase(db)
-    return HypofuzzDatabase(BackgroundWriteDatabase(db))
 
 
 @overload
