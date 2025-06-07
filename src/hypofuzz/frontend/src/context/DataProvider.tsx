@@ -135,6 +135,20 @@ export function DataProvider({ children }: DataProviderProps) {
       return
     }
 
+    // clear `tests` whenever we navigate to a new page. We want to avoid the following:
+    //
+    // * navigate to page A
+    //   * tests[A] = v1
+    // * navigate to page B
+    //   * tests[B] = v2
+    // * navigate back to page A
+    //   * tests[A] = v1 + v1
+    //
+    // where the data in tests[A] gets doubled because we sent multiple e.g. ADD_REPORTS events,
+    // where the backend re-sent the entire reports list under the assumption this was a fresh
+    // page load, but the frontend simply appends them and duplicates the data.
+    tests.clear()
+
     // load data from local dashboard state json files iff the appropriate env var was set
     // during building.
     if (import.meta.env.VITE_USE_DASHBOARD_STATE === "1") {
