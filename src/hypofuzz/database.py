@@ -340,11 +340,12 @@ test_keys_key = b"hypofuzz.test_keys"
 reports_key = b".hypofuzz.reports"
 observations_key = b".hypofuzz.observations"
 corpus_key = b".hypofuzz.corpus"
+worker_identity_key = b".hypofuzz.worker_identity"
 failures_key = b".hypofuzz.failures"
 
 
-def worker_identity_key(key: bytes, uuid: str) -> bytes:
-    return key + b".worker_identity." + uuid.encode("ascii")
+def get_worker_identity_key(key: bytes, uuid: str) -> bytes:
+    return key + worker_identity_key + b"." + uuid.encode("ascii")
 
 
 # `choices` required to be hashable for @lru_cache
@@ -579,15 +580,15 @@ class HypofuzzDatabase:
     # worker identity (worker_identity_key)
 
     def save_worker_identity(self, key: bytes, worker: WorkerIdentity) -> None:
-        self.save(worker_identity_key(key, worker.uuid), self._encode(worker))
+        self.save(get_worker_identity_key(key, worker.uuid), self._encode(worker))
 
     def delete_worker_identity(self, key: bytes, worker: WorkerIdentity) -> None:
-        self.delete(worker_identity_key(key, worker.uuid), self._encode(worker))
+        self.delete(get_worker_identity_key(key, worker.uuid), self._encode(worker))
 
     def fetch_worker_identities(
         self, key: bytes, worker: WorkerIdentity
     ) -> Iterable[WorkerIdentity]:
-        for value in self.fetch(worker_identity_key(key, worker.uuid)):
+        for value in self.fetch(get_worker_identity_key(key, worker.uuid)):
             if worker_identity := WorkerIdentity.from_json(value):
                 yield worker_identity
 
