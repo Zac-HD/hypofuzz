@@ -6,7 +6,7 @@ from collections import defaultdict, deque
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, is_dataclass
 from enum import Enum
-from functools import cache, lru_cache
+from functools import lru_cache
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -18,9 +18,7 @@ from typing import (
     overload,
 )
 
-from hypothesis import settings
 from hypothesis.database import (
-    BackgroundWriteDatabase,
     ExampleDatabase,
     ListenerEventT,
     choices_from_bytes,
@@ -599,16 +597,6 @@ class HypofuzzDatabase:
             return next(iter(self.fetch_worker_identities(key, worker)))
         except StopIteration:
             return None
-
-
-# cache to make the db effectively a single time, deferred until after we've run
-# a collection step on the user's code.
-@cache
-def get_db() -> HypofuzzDatabase:
-    db = settings().database
-    if isinstance(db, BackgroundWriteDatabase):
-        return HypofuzzDatabase(db)
-    return HypofuzzDatabase(BackgroundWriteDatabase(db))
 
 
 @overload
