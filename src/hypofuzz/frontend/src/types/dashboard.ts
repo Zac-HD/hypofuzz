@@ -1,4 +1,4 @@
-import { bisectLeft, bisectRight, setsEqual, sum } from "../utils/utils"
+import { bisectRight, sum } from "../utils/utils"
 
 abstract class Dataclass<T> {
   withProperties(props: Partial<T>): T {

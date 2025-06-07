@@ -1,8 +1,23 @@
 import { useEffect, useRef } from "react"
-import * as d3 from "d3"
 import { Observation } from "../types/dashboard"
-import { sum, setsEqual } from "../utils/utils"
+import { sum, setsEqual, max } from "../utils/utils"
 import { TYCHE_COLOR } from "./Tyche"
+import { select as d3_select } from "d3-selection"
+import {
+  scaleLinear as d3_scaleLinear,
+  scaleOrdinal as d3_scaleOrdinal,
+  scaleBand as d3_scaleBand,
+} from "d3-scale"
+import { axisBottom as d3_axisBottom, axisLeft as d3_axisLeft } from "d3-axis"
+
+const d3 = {
+  select: d3_select,
+  scaleLinear: d3_scaleLinear,
+  scaleOrdinal: d3_scaleOrdinal,
+  scaleBand: d3_scaleBand,
+  axisBottom: d3_axisBottom,
+  axisLeft: d3_axisLeft,
+}
 
 type NominalChartProps = {
   feature: string
@@ -188,7 +203,7 @@ export function NominalChart({ feature, observations }: NominalChartProps) {
 
       const y = d3
         .scaleLinear()
-        .domain([0, d3.max(Array.from(data.values())) || 0])
+        .domain([0, max(Array.from(data.values())) || 0])
         .range([innerHeight, 0])
 
       const g = svg

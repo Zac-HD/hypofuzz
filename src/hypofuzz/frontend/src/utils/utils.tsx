@@ -3,6 +3,21 @@ export function sum(values: Iterable<number>, start: number = 0): number {
   return Array.from(values).reduce((total, val) => total + val, start)
 }
 
+export function max<T>(array: T[], key?: (value: T) => number): number | null {
+  let maxValue: number | null = null
+
+  for (let i = 0; i < array.length; i++) {
+    const element = array[i]
+    const value = key ? key(element) : (element as number)
+
+    if (value != null && (maxValue === null || value > maxValue)) {
+      maxValue = value
+    }
+  }
+
+  return maxValue
+}
+
 export function mapsEqual(m1: Map<any, any>, m2: Map<any, any>): boolean {
   return (
     m1.size === m2.size &&
