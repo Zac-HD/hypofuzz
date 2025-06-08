@@ -14,6 +14,7 @@ import {
   D3ZoomEvent,
 } from "d3-zoom"
 import { line as d3_line } from "d3-shape"
+import { quadtree as d3_quadtree, Quadtree } from "d3-quadtree"
 import { axisBottom as d3_axisBottom, axisLeft as d3_axisLeft } from "d3-axis"
 import { brush as d3_brush, BrushBehavior } from "d3-brush"
 import { schemeCategory10 as d3_schemeCategory10 } from "d3-scale-chromatic"
@@ -45,6 +46,7 @@ const d3 = {
   brush: d3_brush,
   scaleOrdinal: d3_scaleOrdinal,
   schemeCategory10: d3_schemeCategory10,
+  quadtree: d3_quadtree,
 }
 
 const mousePosition = { x: 0, y: 0 }
@@ -98,6 +100,7 @@ class Graph {
   private reportsColor: ScaleOrdinal<string, string>
   private viewportX: ScaleContinuousNumeric<number, number>
   private viewportY: ScaleContinuousNumeric<number, number>
+  private quadtree!: Quadtree<GraphReport>
 
   constructor(
     svg: SVGSVGElement,
@@ -217,26 +220,7 @@ class Graph {
     this.chartArea
       .on("mousemove", event => {
         const [mouseX, mouseY] = d3.pointer(event)
-        let closestReport = null as GraphReport | null
-        let closestDistance = Infinity
-
-        Array.from(this.reports.values()).forEach(reports => {
-          if (!reports || reports.length === 0) return
-
-          reports
-            .sortKey(report => [this.xValue(report)])
-            .forEach(report => {
-              const distance = Math.sqrt(
-                (this.viewportX(this.xValue(report)) - mouseX) ** 2 +
-                  (this.viewportY(this.yValue(report)) - mouseY) ** 2,
-              )
-
-              if (distance < closestDistance && distance < distanceThreshold) {
-                closestDistance = distance
-                closestReport = report
-              }
-            })
-        })
+        const closestReport = this.quadtree.find(mouseX, mouseY, distanceThreshold)
 
         if (closestReport) {
           this.tooltip
@@ -256,6 +240,7 @@ class Graph {
       })
 
     this.drawLines()
+    this.updateQuadtree()
   }
 
   private createXAxis(scale: ScaleContinuousNumeric<number, number>) {
@@ -297,6 +282,15 @@ class Graph {
     return d3.axisLeft(scale).ticks(5)
   }
 
+  private updateQuadtree() {
+    const allReports = Array.from(this.reports.values()).flat()
+    this.quadtree = d3
+      .quadtree<GraphReport>()
+      .x(d => this.viewportX(this.xValue(d)))
+      .y(d => this.viewportY(this.yValue(d)))
+      .addAll(allReports)
+  }
+
   zoomTo(transform: ZoomTransform, zoomY: boolean) {
     const x = transform.rescaleX(this.x)
     const y = zoomY ? transform.rescaleY(this.y) : this.y
@@ -317,6 +311,8 @@ class Graph {
         .x(d => x(this.xValue(d)))
         .y(d => y(this.yValue(d))),
     )
+
+    this.updateQuadtree()
   }
 
   drawLines() {
