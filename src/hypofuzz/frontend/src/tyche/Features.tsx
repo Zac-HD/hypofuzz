@@ -2,10 +2,14 @@ import { Observation } from "../types/dashboard"
 import { NominalChart } from "./NominalChart"
 import { TycheSection } from "./TycheSection"
 
-export function Features({ observations }: { observations: Observation[] }) {
+export function Features({
+  observations,
+}: {
+  observations: { raw: Observation[]; filtered: Observation[] }
+}) {
   const features = new Set<string>()
 
-  observations.forEach(obs => {
+  observations.raw.forEach(obs => {
     for (const key of obs.features.keys()) {
       if (key.startsWith("Retried draw from")) {
         continue

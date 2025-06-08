@@ -691,6 +691,7 @@ pre code.hljs {
             font-weight: 600;
             font-weight: 600;
             color: #2c3e50;
+            cursor: pointer;
         }
 
         &__row-header {
@@ -729,9 +730,25 @@ pre code.hljs {
             margin: 0 2px;
             border-radius: 3px;
             transition: opacity 0.1s ease;
+            cursor: pointer;
 
             &:hover {
                 opacity: 0.9;
+            }
+
+            &--selected {
+                position: relative;
+
+                &::after {
+                    content: "";
+                    position: absolute;
+                    top: 2px;
+                    left: 2px;
+                    right: 2px;
+                    bottom: 2px;
+                    border: 2.5px solid white;
+                    border-radius: 3px;
+                }
             }
         }
 
@@ -764,6 +781,66 @@ pre code.hljs {
             font-weight: 600;
             font-style: italic;
             color: #2c3e50;
+        }
+    }
+
+    &__filters {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        margin: 10px 0;
+
+        &__title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-right: 0.5rem;
+        }
+
+        &__filter {
+            display: inline-flex;
+            align-items: stretch;
+            border: 1px solid rgba(108, 117, 125, 0.5);
+            border-radius: 14px;
+            font-size: 0.85rem;
+            color: #374151;
+            overflow: hidden;
+
+            &__component {
+                display: flex;
+                align-items: center;
+                background: rgba(108, 117, 125, 0.12);
+                padding-top: 4px;
+                padding-bottom: 4px;
+                padding-left: 8px;
+                padding-right: 8px;
+                font-weight: 500;
+            }
+
+            &__name {
+                display: flex;
+                align-items: center;
+                background: white;
+                padding-left: 8px;
+                padding-right: 8px;
+            }
+
+            &__remove {
+                color: #dc3545;
+                cursor: pointer;
+                margin-right: 4px;
+                border-radius: 50%;
+                width: 18px;
+                height: 18px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 12px;
+
+                &:hover {
+                    background: rgba(220, 53, 69, 0.15);
+                }
+            }
         }
     }
 

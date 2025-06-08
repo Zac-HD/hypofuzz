@@ -42,7 +42,7 @@ class CrossOverMutator(Mutator):
 
         weights = [
             # it's possible for a fingerprint to be empty. If it is, we expect
-            # that to be the *only fingerprint in the corpus, so it doesn't
+            # that to be the *only* fingerprint in the corpus, so it doesn't
             # matter what weight we assign to it (but we can't error by giving
             # an empty iterable to `min`, or dividing by zero with `total`.)
             (_weight(fingerprint) if fingerprint else 1)
