@@ -20,8 +20,15 @@ export function Toggle<T>({ value, onChange, options }: Props<T>) {
       {options.map(option => (
         <button
           key={String(option.value)}
-          className={`scale-toggle__button ${value === option.value ? "scale-toggle__button--active" : ""}`}
-          onClick={() => onChange(option.value)}
+          className={`scale-toggle__button${value === option.value ? " scale-toggle__button--active" : ""}`}
+          onClick={() => {
+            if (options.length == 2 && value === option.value) {
+              const otherValue = options.find(o => o.value !== option.value)!.value
+              onChange(otherValue)
+            } else {
+              onChange(option.value)
+            }
+          }}
         >
           {isMobile ? (option.mobileContent ?? option.content) : option.content}
         </button>

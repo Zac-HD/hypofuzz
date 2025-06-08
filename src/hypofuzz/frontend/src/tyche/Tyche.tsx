@@ -1,9 +1,14 @@
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { Test } from "../types/dashboard"
 import { Toggle } from "../components/Toggle"
 import { Features } from "./Features"
 import { Samples } from "./Samples"
 import { Representation } from "./Representation"
+import { FilterProvider, useFilters } from "./FilterContext"
+import { Filters } from "./Filters"
+
+export const PRESENT_STRING = "Present"
+export const NOT_PRESENT_STRING = "Not present"
 
 export enum TYCHE_COLOR {
   // https://github.com/tyche-pbt/tyche-extension/blob/main/webview-ui/src/utilities/colors.ts
@@ -19,16 +24,34 @@ export enum TYCHE_COLOR {
   ACCENT5 = "#8faac6",
 }
 
-export function Tyche({ test }: { test: Test }) {
+function _Tyche({ test }: { test: Test }) {
   const [observationType, setObservationType] = useState<"covering" | "rolling">(
     "covering",
   )
+  const { filters } = useFilters()
 
-  const observations =
+  const rawObservations =
     observationType === "rolling"
       ? // newest first for rolling observations
         test.rolling_observations.sortKey(observation => -observation.run_start)
       : test.corpus_observations
+
+  const filteredobservations = useMemo(() => {
+    const allFilters = Array.from(filters.values()).flat()
+
+    if (allFilters.length === 0) {
+      return rawObservations
+    }
+
+    return rawObservations.filter(observation => {
+      return allFilters.every(filter => filter.predicate(observation))
+    })
+  }, [rawObservations, filters])
+
+  const observations = {
+    raw: rawObservations,
+    filtered: filteredobservations,
+  }
 
   return (
     <div className="card">
@@ -54,7 +77,8 @@ export function Tyche({ test }: { test: Test }) {
           ]}
         />
       </div>
-      {observations.length > 0 ? (
+      <Filters />
+      {observations.raw.length > 0 ? (
         <>
           <Samples observations={observations} />
           <Features observations={observations} />
@@ -67,5 +91,13 @@ export function Tyche({ test }: { test: Test }) {
         <div className="tyche__section">No observations</div>
       )}
     </div>
+  )
+}
+
+export function Tyche({ test }: { test: Test }) {
+  return (
+    <FilterProvider>
+      <_Tyche test={test} />
+    </FilterProvider>
   )
 }

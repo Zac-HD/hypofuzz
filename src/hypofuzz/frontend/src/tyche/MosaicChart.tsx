@@ -1,13 +1,20 @@
 import React, { useEffect, useMemo } from "react"
-import * as d3 from "d3"
+import { select as d3_select } from "d3-selection"
+import { Set, List } from "immutable"
 import { Observation } from "../types/dashboard"
+import { Filter, useFilters } from "./FilterContext"
+
+const d3 = {
+  select: d3_select,
+}
 
 const MAX_MOSAIC_WIDTH = 640
 
 type AxisItem = [string, (observation: Observation) => boolean]
 
 interface MosaicChartProps {
-  observations: Observation[]
+  name: string
+  observations: { raw: Observation[]; filtered: Observation[] }
   verticalAxis: AxisItem[]
   horizontalAxis: AxisItem[]
   cssStyle: (row: string, column: string) => React.CSSProperties
@@ -55,11 +62,25 @@ function measureText(
 }
 
 export function MosaicChart({
+  name,
   observations,
   verticalAxis,
   horizontalAxis,
   cssStyle = (row, column) => ({}),
 }: MosaicChartProps) {
+  const { filters, setFilters } = useFilters()
+  const mosaicFilters = filters.get(name) || []
+
+  const selectedCells = useMemo(() => {
+    if (mosaicFilters.length === 0) {
+      return Set<List<number>>()
+    }
+
+    console.assert(mosaicFilters.length === 1)
+    const filter = mosaicFilters[0]
+    return Set(filter.extraData.selectedCells)
+  }, [mosaicFilters])
+
   const cells: Cell[][] = []
   const rowTotals: number[] = Array(verticalAxis.length).fill(0)
   const columnTotals: number[] = Array(horizontalAxis.length).fill(0)
@@ -72,7 +93,7 @@ export function MosaicChart({
     }
   }
 
-  observations.forEach(observation => {
+  observations.filtered.forEach(observation => {
     for (let i = 0; i < verticalAxis.length; i++) {
       const [, verticalPredicate] = verticalAxis[i]
 
@@ -102,6 +123,103 @@ export function MosaicChart({
   const visibleCols = columnTotals
     .map((total, index) => (total > 0 ? index : null))
     .filter(index => index !== null)
+
+  const onCellClick = (rowIndex: number | null, colIndex: number | null) => {
+    let newSelection = Set<List<number>>()
+
+    if (rowIndex !== null && colIndex !== null) {
+      const cell = List([rowIndex, colIndex])
+      // if this cell is already selected and it's the only selection, deselect it
+      if (selectedCells.equals(Set([cell]))) {
+        newSelection = Set()
+      } else {
+        newSelection = Set([cell])
+      }
+    } else if (rowIndex !== null) {
+      console.assert(colIndex === null)
+      // select all cells in this row
+      visibleCols.forEach(colIdx => {
+        if (cells[rowIndex][colIdx].count > 0) {
+          newSelection = newSelection.add(List([rowIndex, colIdx]))
+        }
+      })
+    } else if (colIndex !== null) {
+      console.assert(rowIndex === null)
+      // select all cells in this column
+      visibleRows.forEach(rowIdx => {
+        if (cells[rowIdx][colIndex].count > 0) {
+          newSelection = newSelection.add(List([rowIdx, colIndex]))
+        }
+      })
+    }
+
+    function filterName(): string {
+      if (newSelection.size === 0) {
+        return ""
+      }
+
+      let remainingCells = newSelection
+      const canonicalNames: string[] = []
+
+      const axes = [
+        ...visibleRows.map(rowIndex => ({
+          name: verticalAxis[rowIndex][0],
+          cells: visibleCols
+            .filter(colIndex => cells[rowIndex][colIndex].count > 0)
+            .map(colIndex => List([rowIndex, colIndex])),
+        })),
+        ...visibleCols.map(colIndex => ({
+          name: horizontalAxis[colIndex][0],
+          cells: visibleRows
+            .filter(rowIndex => cells[rowIndex][colIndex].count > 0)
+            .map(rowIndex => List([rowIndex, colIndex])),
+        })),
+      ]
+
+      for (const axis of axes) {
+        if (
+          axis.cells.length > 0 &&
+          axis.cells.every(cell => remainingCells.has(cell))
+        ) {
+          canonicalNames.push(axis.name)
+          remainingCells = remainingCells.subtract(Set(axis.cells))
+        }
+      }
+
+      while (remainingCells.size > 0) {
+        const cell = remainingCells.first()!
+        const [row, col] = cell.toArray()
+        canonicalNames.push(`${verticalAxis[row][0]}+${horizontalAxis[col][0]}`)
+        remainingCells = remainingCells.delete(cell)
+      }
+      console.assert(remainingCells.size == 0)
+
+      return canonicalNames.join(" or ")
+    }
+
+    const mosaicFilters = []
+    if (newSelection.size > 0) {
+      mosaicFilters.push(
+        new Filter(
+          filterName(),
+          (obs: Observation) => {
+            return newSelection.some(cell => {
+              const [row, col] = cell.toArray()
+              const verticalPredicate = verticalAxis[row][1]
+              const horizontalPredicate = horizontalAxis[col][1]
+              return verticalPredicate(obs) && horizontalPredicate(obs)
+            })
+          },
+          name,
+          { selectedCells: newSelection },
+        ),
+      )
+    }
+
+    const newFilters = new Map(filters)
+    newFilters.set(name, mosaicFilters)
+    setFilters(newFilters)
+  }
 
   useEffect(() => {
     d3.select("body")
@@ -238,6 +356,7 @@ export function MosaicChart({
                     : "translateX(-50%)",
                 textAlign: isFirst ? "left" : isLast ? "right" : "center",
               }}
+              onClick={() => onCellClick(null, colIndex)}
             >
               {horizontalAxis[colIndex][0]}
             </div>
@@ -257,7 +376,9 @@ export function MosaicChart({
             className="tyche__mosaic__row-header"
             style={{
               width: `${rowHeaderWidth}px`,
+              cursor: "pointer",
             }}
+            onClick={() => onCellClick(rowIndex, null)}
           >
             {verticalAxis[rowIndex][0]}
           </div>
@@ -270,16 +391,18 @@ export function MosaicChart({
                 return null
               }
 
+              const isSelected = selectedCells.has(List([rowIndex, colIndex]))
               return (
                 <div
                   key={`cell-${rowIndex}-${colIndex}`}
-                  className="tyche__mosaic__cell"
+                  className={`tyche__mosaic__cell${isSelected ? " tyche__mosaic__cell--selected" : ""}`}
                   style={{
                     width: `${cell.widthPercent}%`,
                     minWidth: `${minCellWidth}px`,
                     minHeight: `${minCellHeight}px`,
                     ...cssStyle(verticalAxis[rowIndex][0], horizontalAxis[colIndex][0]),
                   }}
+                  onClick={() => onCellClick(rowIndex, colIndex)}
                   onMouseEnter={e =>
                     showTooltip(
                       e,

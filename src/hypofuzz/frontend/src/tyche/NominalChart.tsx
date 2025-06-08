@@ -1,7 +1,9 @@
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useMemo } from "react"
 import { Observation } from "../types/dashboard"
-import { sum, setsEqual, max } from "../utils/utils"
+import { sum, max } from "../utils/utils"
 import { TYCHE_COLOR } from "./Tyche"
+import { Filter, useFilters } from "./FilterContext"
+import { Set } from "immutable"
 import { select as d3_select } from "d3-selection"
 import {
   scaleLinear as d3_scaleLinear,
@@ -9,6 +11,7 @@ import {
   scaleBand as d3_scaleBand,
 } from "d3-scale"
 import { axisBottom as d3_axisBottom, axisLeft as d3_axisLeft } from "d3-axis"
+import { PRESENT_STRING, NOT_PRESENT_STRING } from "./Tyche"
 
 const d3 = {
   select: d3_select,
@@ -21,57 +24,100 @@ const d3 = {
 
 type NominalChartProps = {
   feature: string
-  observations: Observation[]
+  observations: { raw: Observation[]; filtered: Observation[] }
 }
 
-const PRESENT_STRING = "Present"
-const NOT_PRESENT_STRING = "Not present"
 const HORIZONTAL_BAR_FEATURE_CUTOFF = 5
+
+const SELECTION_STROKE_WIDTH = 2.5
 
 export function NominalChart({ feature, observations }: NominalChartProps) {
   const parentRef = useRef<HTMLDivElement>(null)
   const svgRef = useRef<SVGSVGElement>(null)
+  const { filters, setFilters } = useFilters()
+  const nominalFilters = filters.get(feature) || []
 
-  observations = observations.filter(obs => obs.status !== "gave_up")
-
-  useEffect(() => {
-    if (!parentRef.current || !svgRef.current || observations.length === 0) {
-      return
+  const selectedValues = useMemo(() => {
+    if (nominalFilters.length === 0) {
+      return Set<string>()
     }
 
-    // feature: count
+    console.assert(nominalFilters.length === 1)
+    const filter = nominalFilters[0]
+    return Set(filter.extraData.selectedValues)
+  }, [nominalFilters])
+
+  observations = {
+    raw: observations.raw.filter(obs => obs.status !== "gave_up"),
+    filtered: observations.filtered.filter(obs => obs.status !== "gave_up"),
+  }
+
+  const onValueClick = (value: string) => {
+    let newSelection = Set<string>()
+
+    // If clicking the same value that's already selected alone, deselect it
+    if (selectedValues.equals(Set([value]))) {
+      newSelection = Set()
+    } else {
+      // Otherwise, select just this value
+      newSelection = Set([value])
+    }
+
+    let name
+    if (newSelection.size === 1) {
+      name = newSelection.first()!
+    } else {
+      name = newSelection.map(value => `${value}`).join(" or ")
+    }
+
+    const nominalFilters = []
+    if (newSelection.size > 0) {
+      nominalFilters.push(
+        new Filter(
+          name,
+          (obs: Observation) => {
+            return newSelection.some(value => {
+              return obs.features.get(feature) === value
+            })
+          },
+          feature,
+          {
+            selectedValues: newSelection,
+          },
+        ),
+      )
+    }
+
+    const newFilters = new Map(filters)
+    newFilters.set(feature, nominalFilters)
+    setFilters(newFilters)
+  }
+
+  useEffect(() => {
+    const distinctRawValues = Set<string>(
+      observations.raw.map(obs => obs.features.get(feature)),
+    )
+    // value: count
     let data = new Map<string, number>()
 
-    for (const observation of observations) {
-      const featureValue = observation.features.get(feature)
-      let label
-      if (featureValue === undefined) {
-        label = NOT_PRESENT_STRING
-      } else if (featureValue === "") {
-        label = PRESENT_STRING
-      } else {
-        label = featureValue
-      }
-      if (data.has(label)) {
-        data.set(label, data.get(label)! + 1)
-      } else {
-        data.set(label, 1)
-      }
+    for (const observation of observations.filtered) {
+      const value = observation.features.get(feature)
+      data.set(value, (data.get(value) || 0) + 1)
     }
     const total = sum(Array.from(data.values()))
 
     data = new Map(
-      [...data.entries()].sortKey(([feature, _count]) => {
-        if (feature === PRESENT_STRING) return 0
-        if (feature === NOT_PRESENT_STRING) return 1
-        return feature
+      [...data.entries()].sortKey(([value, _count]) => {
+        if (value === PRESENT_STRING) return 0
+        if (value === NOT_PRESENT_STRING) return 1
+        return value
       }),
     )
 
     d3.select(svgRef.current).selectAll("*").remove()
 
-    const width = parentRef.current.clientWidth
-    const height = data.size < HORIZONTAL_BAR_FEATURE_CUTOFF ? 85 : 170
+    const width = parentRef.current!.clientWidth
+    const height = distinctRawValues.size < HORIZONTAL_BAR_FEATURE_CUTOFF ? 85 : 170
 
     const svg = d3
       .select(svgRef.current)
@@ -113,8 +159,11 @@ export function NominalChart({ feature, observations }: NominalChartProps) {
     }
 
     // use a horizontally-stacked bar chart for 1-4 different feature labels,
-    // and a standard histogram otherwise
-    if (data.size < HORIZONTAL_BAR_FEATURE_CUTOFF) {
+    // and a standard histogram otherwise.
+    //
+    // use the number of distinct values in the unfiltered observations, so we
+    // don't change up the display type on the user when they're drilling down.
+    if (distinctRawValues.size < HORIZONTAL_BAR_FEATURE_CUTOFF) {
       const margin = { top: 0, right: 15, bottom: 20, left: 15 }
       const innerWidth = width - margin.left - margin.right
       const innerHeight = height - margin.top - margin.bottom
@@ -122,12 +171,7 @@ export function NominalChart({ feature, observations }: NominalChartProps) {
       const x = d3.scaleLinear().domain([0, 1]).range([0, innerWidth])
 
       let colorScale: (feature: string) => string
-      if (
-        setsEqual(
-          new Set(Array.from(data.keys())),
-          new Set([PRESENT_STRING, NOT_PRESENT_STRING]),
-        )
-      ) {
+      if (data.has(PRESENT_STRING) || data.has(NOT_PRESENT_STRING)) {
         colorScale = (feature: string) => {
           if (feature === PRESENT_STRING) return TYCHE_COLOR.SUCCESS
           if (feature === NOT_PRESENT_STRING) return TYCHE_COLOR.ERROR
@@ -153,19 +197,35 @@ export function NominalChart({ feature, observations }: NominalChartProps) {
       let xAccumulator = 0
       const barHeight = innerHeight - margin.bottom
 
-      data.forEach((count, feature) => {
+      data.forEach((count, value) => {
         const barWidth = (count / total) * innerWidth
+        const isSelected = selectedValues.has(value)
 
+        // outer rect
         g.append("rect")
           .attr("x", xAccumulator)
           .attr("y", 0)
           .attr("width", barWidth)
           .attr("height", barHeight)
-          .attr("fill", colorScale(feature))
-          .style("opacity", 1)
-          .on("mouseover", event => showTooltip(event, [feature, count]))
+          .attr("fill", colorScale(value))
+          .style("cursor", "pointer")
+          .on("click", () => onValueClick(value))
+          .on("mouseover", event => showTooltip(event, [value, count]))
           .on("mousemove", moveTooltip)
           .on("mouseleave", hideTooltip)
+
+        // inner rect (for inset white border when selected)
+        if (isSelected) {
+          g.append("rect")
+            .attr("x", xAccumulator + SELECTION_STROKE_WIDTH)
+            .attr("y", SELECTION_STROKE_WIDTH)
+            .attr("width", barWidth - 2 * SELECTION_STROKE_WIDTH)
+            .attr("height", barHeight - 2 * SELECTION_STROKE_WIDTH)
+            .attr("fill", colorScale(value))
+            .attr("stroke", "white")
+            .attr("stroke-width", SELECTION_STROKE_WIDTH)
+            .style("pointer-events", "none") // let outer rect handle all of the clicks
+        }
 
         g.append("text")
           .attr("x", xAccumulator + barWidth / 2)
@@ -173,7 +233,7 @@ export function NominalChart({ feature, observations }: NominalChartProps) {
           .attr("text-anchor", "middle")
           .attr("dominant-baseline", "central")
           .attr("fill", "white")
-          .text(feature)
+          .text(value)
           .style("font-size", "12px")
 
         xAccumulator += barWidth
@@ -215,16 +275,41 @@ export function NominalChart({ feature, observations }: NominalChartProps) {
         .enter()
         .append("rect")
         .attr("class", "bar")
-        .attr("x", ([feature, _count]) => x(feature) || 0)
-        .attr("y", ([_feature, count]) => y(count))
+        .attr("x", ([value, _count]) => x(value) || 0)
+        .attr("y", ([_value, count]) => y(count))
         .attr("width", x.bandwidth())
-        .attr("height", ([_feature, count]) => innerHeight - y(count))
+        .attr("height", ([_value, count]) => innerHeight - y(count))
         .attr("fill", TYCHE_COLOR.PRIMARY)
+        .style("cursor", "pointer")
+        .on("click", function (event, [value, _count]) {
+          onValueClick(value)
+        })
         .on("mouseover", function (event, d) {
           showTooltip(event, d)
         })
         .on("mousemove", moveTooltip)
         .on("mouseleave", hideTooltip)
+
+      g.selectAll(".inner-bar")
+        .data(
+          Array.from(data.entries()).filter(([value, _count]) =>
+            selectedValues.has(value),
+          ),
+        )
+        .enter()
+        .append("rect")
+        .attr("class", "inner-bar")
+        .attr("x", ([value, _count]) => (x(value) || 0) + SELECTION_STROKE_WIDTH)
+        .attr("y", ([_value, count]) => y(count) + SELECTION_STROKE_WIDTH)
+        .attr("width", x.bandwidth() - 2 * SELECTION_STROKE_WIDTH)
+        .attr(
+          "height",
+          ([_value, count]) => innerHeight - y(count) - 2 * SELECTION_STROKE_WIDTH,
+        )
+        .attr("fill", TYCHE_COLOR.PRIMARY)
+        .attr("stroke", "white")
+        .attr("stroke-width", SELECTION_STROKE_WIDTH)
+        .style("pointer-events", "none")
 
       g.append("g")
         .attr("transform", `translate(0,${innerHeight})`)
@@ -252,11 +337,7 @@ export function NominalChart({ feature, observations }: NominalChartProps) {
     return () => {
       d3.select(".tyche-tooltip").remove()
     }
-  }, [observations])
-
-  if (observations.length === 0) {
-    return <div className="tyche__mosaic__title">No samples</div>
-  }
+  }, [observations, selectedValues, feature, onValueClick])
 
   return (
     <div>

@@ -9,7 +9,7 @@ import { Pagination } from "../components/Pagination"
 hljs.registerLanguage("python", python)
 
 interface Props {
-  observations: Observation[]
+  observations: { raw: Observation[]; filtered: Observation[] }
   observationType: "covering" | "rolling"
 }
 
@@ -26,7 +26,7 @@ export function Representation({ observations, observationType }: Props) {
     // Do we want to reset to page 0 whenever `observations` changes at all? I'd prefer
     // not to, to avoid resetting your page position whenever a rolling observation
     // comes in, but I think you can get into an invalid page state if we don't...
-    // (corpus observation is deleted when you're on the last page)
+    // (e.g. a corpus observation being deleted when you're on the last page)
     setPage(0)
   }, [observationType])
 
@@ -45,12 +45,8 @@ export function Representation({ observations, observationType }: Props) {
     reHighlight()
   }, [observations, page])
 
-  if (observations.length === 0) {
-    return null
-  }
-
   const rawRepresentations = new Map<string, number>()
-  observations.forEach(observation => {
+  observations.filtered.forEach(observation => {
     const repr = observation.representation
     rawRepresentations.set(repr, (rawRepresentations.get(repr) || 0) + 1)
   })

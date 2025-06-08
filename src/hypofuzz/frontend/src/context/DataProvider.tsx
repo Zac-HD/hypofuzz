@@ -6,6 +6,7 @@ import React, {
   useState,
 } from "react"
 import { Observation, Report, Test } from "../types/dashboard"
+import { PRESENT_STRING, NOT_PRESENT_STRING } from "../tyche/Tyche"
 
 interface DataContextType {
   tests: Map<string, Test>
@@ -52,6 +53,47 @@ type TestsAction =
       observation_type: "rolling" | "corpus"
       observations: Observation[]
     }
+
+function prepareObservations(observations: Observation[]) {
+  // compute uniqueness
+  const reprCounts = new Map<string, number>()
+  observations.forEach(obs => {
+    reprCounts.set(obs.representation, (reprCounts.get(obs.representation) || 0) + 1)
+  })
+
+  observations.forEach(observation => {
+    const count = reprCounts.get(observation.representation)!
+    observation.isUnique = count == 1
+    observation.isDuplicate = count > 1
+  })
+
+  // We want tyche to be able to rely on observations having a value for every feature. This makes
+  // things easier for e.g. the sorting logic. To support this, first make a set of all features.
+  // Then, for each observation, if that feature is not present, insert it with value "Not present".
+  //
+  // Also, if an observation's feature value is ever "", change that to "Present". These come from
+  // e.g. ``event(value)``, without an associated payload.
+  const features = new Set<string>()
+  observations.forEach(obs => {
+    obs.features.forEach((_value, feature) => {
+      features.add(feature)
+    })
+  })
+
+  observations.forEach(obs => {
+    features.forEach(feature => {
+      if (!obs.features.has(feature)) {
+        obs.features.set(feature, NOT_PRESENT_STRING)
+      }
+    })
+
+    for (const [feature, value] of obs.features) {
+      if (value === "") {
+        obs.features.set(feature, PRESENT_STRING)
+      }
+    }
+  })
+}
 
 function testsReducer(
   state: Map<string, Test>,
@@ -107,9 +149,11 @@ function testsReducer(
         test.rolling_observations = test.rolling_observations
           .sortKey(observation => observation.run_start)
           .slice(-300)
+        prepareObservations(test.rolling_observations)
       } else {
         console.assert(observation_type === "corpus")
         test.corpus_observations.push(...observations)
+        prepareObservations(test.corpus_observations)
       }
       return newState
     }
