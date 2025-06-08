@@ -2,6 +2,7 @@ import { Observation } from "../types/dashboard"
 import { MosaicChart } from "./MosaicChart"
 import { TYCHE_COLOR } from "./Tyche"
 import { TycheSection } from "./TycheSection"
+import { useMemo } from "react"
 
 export function Samples({ observations }: { observations: Observation[] }) {
   function isPassed(observation: Observation) {
@@ -11,24 +12,22 @@ export function Samples({ observations }: { observations: Observation[] }) {
     return observation.status === "gave_up"
   }
 
-  // map of each representation to an arbitrary observation index which we declare as the
-  // unique observation for that representation.
-  const uniqueReprIndex = new Map<string, number>()
-  for (const [index, observation] of observations.entries()) {
-    uniqueReprIndex.set(observation.representation, index)
-  }
+  const reprCounts = useMemo(() => {
+    const counts = new Map<string, number>()
+    for (const observation of observations) {
+      counts.set(
+        observation.representation,
+        (counts.get(observation.representation) || 0) + 1,
+      )
+    }
+    return counts
+  }, [observations])
 
   function isUnique(observation: Observation) {
-    return (
-      observations.indexOf(observation) ===
-      uniqueReprIndex.get(observation.representation)
-    )
+    return reprCounts.get(observation.representation)! == 1
   }
   function isDuplicate(observation: Observation) {
-    return (
-      observations.indexOf(observation) !==
-      uniqueReprIndex.get(observation.representation)
-    )
+    return reprCounts.get(observation.representation)! > 1
   }
 
   function cellStyle(row: string, column: string): React.CSSProperties {

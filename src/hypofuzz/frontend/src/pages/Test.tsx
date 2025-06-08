@@ -112,13 +112,12 @@ export function TestPage() {
       <Link to="/" className="back-link">
         ← Back to all tests
       </Link>
-      <div>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.7rem" }}>
         <span
           style={{
             wordBreak: "break-all",
             fontSize: "1.5rem",
             fontWeight: "bold",
-            marginRight: "0.7rem",
           }}
         >
           {nodeid}
