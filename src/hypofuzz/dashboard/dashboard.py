@@ -630,6 +630,7 @@ async def load_initial_state(fuzz_target: FuzzProcess) -> None:
 
 async def run_dashboard(port: int, host: str) -> None:
     assert COLLECTION_RESULT is not None
+    assert db is not None
 
     send_channel, receive_channel = trio.open_memory_channel[ListenerEventT](math.inf)
     trio_token = trio.lowlevel.current_trio_token()
