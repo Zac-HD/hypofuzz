@@ -13,6 +13,8 @@
     "jsx": "react-jsx",
     "strict": true,
     "noFallthroughCasesInSwitch": true,
+    "noImplicitReturns": true,
+    "noImplicitOverride": true,
     "types": ["react", "react-dom"]
   },
   "include": ["src"],

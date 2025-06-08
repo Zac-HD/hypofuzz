@@ -48,6 +48,7 @@ export function Table<T>({
             checkString.toLowerCase().includes(filterString.toLowerCase()),
           )
         }
+        return true
       })
     }
 
