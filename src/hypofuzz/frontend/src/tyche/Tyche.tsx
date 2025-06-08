@@ -49,8 +49,8 @@ export function Tyche({ test }: { test: Test }) {
           value={observationType}
           onChange={setObservationType}
           options={[
-            { value: "covering", label: "Covering" },
-            { value: "rolling", label: "Rolling" },
+            { value: "covering", content: "Covering" },
+            { value: "rolling", content: "Rolling" },
           ]}
         />
       </div>

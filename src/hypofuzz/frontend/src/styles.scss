@@ -640,7 +640,6 @@ pre code.hljs {
 }
 
 .tyche {
-    $max-mosaic-width: 40rem;
     $max-nominal-width: 50rem;
 
     &__section {
@@ -678,76 +677,58 @@ pre code.hljs {
     }
 
     &__mosaic {
-        &__grid {
-            max-width: $max-mosaic-width;
+        &__container {
             font-variant-numeric: tabular-nums;
         }
 
         &__column-headers {
-            display: flex;
-            align-items: center;
-            // TODO reevaluate
-            width: 100%;
+            position: relative;
+            margin-bottom: 5px;
         }
 
         &__column-header {
-            flex: 1;
-            text-align: center;
+            position: absolute;
             font-weight: 600;
-            padding: 6px 0;
-
-            &:first-child {
-                text-align: left;
-                padding-left: 56px;
-            }
-
-            &:last-child {
-                text-align: right;
-                padding-right: 56px;
-            }
-
-            &--empty {
-                width: 80px;
-                flex: 0 0 80px;
-            }
+            font-weight: 600;
+            color: #2c3e50;
         }
 
-        &__column-totals {
+        &__row-header {
             display: flex;
             align-items: center;
-            padding-top: 6px;
+            justify-content: flex-end;
+            padding-right: 10px;
+            font-weight: 600;
+            color: #2c3e50;
         }
 
         &__row {
             display: flex;
-            align-items: center;
 
             & + & {
                 margin-top: 4px;
             }
         }
 
+        &__row-cells {
+            display: flex;
+            flex: 1;
+        }
+
         &__row-total {
-            padding-left: 6px;
-            width: 3rem;
+            padding-left: 7px;
+            display: flex;
+            align-items: center;
             font-style: italic;
         }
 
-        &__row-header {
-            font-weight: 600;
-            width: 5rem;
-        }
-
         &__cell {
-            height: 45px;
             display: flex;
             align-items: center;
             justify-content: center;
             margin: 0 2px;
             border-radius: 3px;
             transition: opacity 0.1s ease;
-            min-width: 30px;
-            min-height: 30px;
 
             &:hover {
                 opacity: 0.9;
@@ -760,28 +741,29 @@ pre code.hljs {
             font-size: 1rem;
         }
 
-        &__total {
-            width: 60px;
-            flex: 0 0 60px;
-            text-align: right;
-            padding-right: 10px;
-            font-weight: 600;
-            font-style: italic;
+        &__column-totals-row {
+            display: flex;
+            margin-top: 7px;
+        }
+
+        &__column-totals {
+            position: relative;
+            flex: 1;
         }
 
         &__column-total {
-            flex: 1;
-            text-align: center;
+            position: absolute;
             font-style: italic;
+            font-size: 0.9rem;
         }
 
         &__grand-total {
-            width: 60px;
-            flex: 0 0 60px;
-            text-align: right;
-            padding-right: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             font-weight: 600;
             font-style: italic;
+            color: #2c3e50;
         }
     }
 
