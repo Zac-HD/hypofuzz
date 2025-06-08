@@ -1,6 +1,11 @@
-import React, { useEffect, useMemo } from "react"
-import * as d3 from "d3"
+import React, { useEffect, useMemo, useState } from "react"
+import { select as d3_select } from "d3-selection"
+import { Set, List } from "immutable"
 import { Observation } from "../types/dashboard"
+
+const d3 = {
+  select: d3_select,
+}
 
 const MAX_MOSAIC_WIDTH = 640
 
@@ -11,6 +16,7 @@ interface MosaicChartProps {
   verticalAxis: AxisItem[]
   horizontalAxis: AxisItem[]
   cssStyle: (row: string, column: string) => React.CSSProperties
+  onSelection?: (selectedCells: Set<List<number>>) => void
 }
 
 interface Cell {
@@ -59,7 +65,10 @@ export function MosaicChart({
   verticalAxis,
   horizontalAxis,
   cssStyle = (row, column) => ({}),
+  onSelection,
 }: MosaicChartProps) {
+  const [selectedCells, setSelectedCells] = useState(Set<List<number>>())
+
   const cells: Cell[][] = []
   const rowTotals: number[] = Array(verticalAxis.length).fill(0)
   const columnTotals: number[] = Array(horizontalAxis.length).fill(0)
@@ -102,6 +111,39 @@ export function MosaicChart({
   const visibleCols = columnTotals
     .map((total, index) => (total > 0 ? index : null))
     .filter(index => index !== null)
+
+  const cellClick = (rowIndex: number | null, colIndex: number | null) => {
+    let newSelection = Set<List<number>>()
+
+    if (rowIndex !== null && colIndex !== null) {
+      const cell = List([rowIndex, colIndex])
+      // if this cell is already selected and it's the only selection, deselect it
+      if (selectedCells.equals(Set([cell]))) {
+        newSelection = Set()
+      } else {
+        newSelection = Set([cell])
+      }
+    } else if (rowIndex !== null) {
+      console.assert(colIndex === null)
+      // select all cells in this row
+      visibleCols.forEach(colIdx => {
+        if (cells[rowIndex][colIdx].count > 0) {
+          newSelection = newSelection.add(List([rowIndex, colIdx]))
+        }
+      })
+    } else if (colIndex !== null) {
+      console.assert(rowIndex === null)
+      // select all cells in this column
+      visibleRows.forEach(rowIdx => {
+        if (cells[rowIdx][colIndex].count > 0) {
+          newSelection = newSelection.add(List([rowIdx, colIndex]))
+        }
+      })
+    }
+
+    setSelectedCells(newSelection)
+    onSelection?.(newSelection)
+  }
 
   useEffect(() => {
     d3.select("body")
@@ -238,6 +280,7 @@ export function MosaicChart({
                     : "translateX(-50%)",
                 textAlign: isFirst ? "left" : isLast ? "right" : "center",
               }}
+              onClick={() => cellClick(null, colIndex)}
             >
               {horizontalAxis[colIndex][0]}
             </div>
@@ -257,7 +300,9 @@ export function MosaicChart({
             className="tyche__mosaic__row-header"
             style={{
               width: `${rowHeaderWidth}px`,
+              cursor: "pointer",
             }}
+            onClick={() => cellClick(rowIndex, null)}
           >
             {verticalAxis[rowIndex][0]}
           </div>
@@ -270,16 +315,18 @@ export function MosaicChart({
                 return null
               }
 
+              const isSelected = selectedCells.has(List([rowIndex, colIndex]))
               return (
                 <div
                   key={`cell-${rowIndex}-${colIndex}`}
-                  className="tyche__mosaic__cell"
+                  className={`tyche__mosaic__cell${isSelected ? " tyche__mosaic__cell--selected" : ""}`}
                   style={{
                     width: `${cell.widthPercent}%`,
                     minWidth: `${minCellWidth}px`,
                     minHeight: `${minCellHeight}px`,
                     ...cssStyle(verticalAxis[rowIndex][0], horizontalAxis[colIndex][0]),
                   }}
+                  onClick={() => cellClick(rowIndex, colIndex)}
                   onMouseEnter={e =>
                     showTooltip(
                       e,

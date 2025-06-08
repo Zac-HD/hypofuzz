@@ -157,6 +157,9 @@ enum ObservationStatus {
 }
 
 export class Observation extends Dataclass<Observation> {
+  public isDuplicate: boolean | null = null
+  public isUnique: boolean | null = null
+
   // https://hypothesis.readthedocs.io/en/latest/reference/integrations.html#test-case
   constructor(
     public type: string,
