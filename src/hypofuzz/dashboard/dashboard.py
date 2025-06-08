@@ -44,6 +44,7 @@ from hypofuzz.database import (
     Report,
     ReportWithDiff,
 )
+from hypofuzz.hypofuzz import FuzzProcess
 from hypofuzz.interface import CollectionResult
 
 # these two test dicts always contain the same values, just with different access
@@ -53,6 +54,8 @@ from hypofuzz.interface import CollectionResult
 TESTS: dict[str, "Test"] = {}
 # database_key: Test
 TESTS_BY_KEY: dict[bytes, "Test"] = {}
+# databse_key: loaded
+LOADING_STATE: dict[bytes, bool] = {}
 COLLECTION_RESULT: Optional[CollectionResult] = None
 websockets: set["HypofuzzWebsocket"] = set()
 db: Optional[HypofuzzDatabase] = None
@@ -142,13 +145,13 @@ class OverviewWebsocket(HypofuzzWebsocket):
                     "nodeid": test.nodeid,
                     "failure": test.failure,
                 }
-                for test in tests.values()
+                for test in tests.copy().values()
             ],
         }
         await self.send_event(event)
 
         # then we send the reports for each test.
-        for test in tests.values():
+        for test in tests.copy().values():
             # limit for performance
             reports_by_worker = _sample_reports(test.reports_by_worker, soft_limit=1000)
             for worker_uuid, reports in reports_by_worker.items():
@@ -204,6 +207,8 @@ class TestWebsocket(HypofuzzWebsocket):
         self.nodeid = nodeid
 
     async def initial(self, tests: dict[str, Test]) -> None:
+        if self.nodeid not in tests:
+            return
         test = tests[self.nodeid]
         # send the test first
         test_data: AddTestsEvent = {
@@ -310,7 +315,6 @@ class TestWebsocket(HypofuzzWebsocket):
 
 
 async def websocket(websocket: WebSocket) -> None:
-    assert COLLECTION_RESULT is not None
     assert db is not None
 
     nodeid = websocket.query_params.get("nodeid")
@@ -338,7 +342,7 @@ async def websocket(websocket: WebSocket) -> None:
 async def broadcast_event(
     event_type: Literal["save", "delete"], key: DatabaseEventKey, value: Any
 ) -> None:
-    # avoid websocket disconnecting during iteration and causing a RuntimeError
+    # avoid error on websocket disconnecting during iteration
     for websocket in websockets.copy():
         await websocket.on_event(event_type, key, value)
 
@@ -476,6 +480,8 @@ async def serve_app(app: Any, host: str, port: str) -> None:
 
 
 async def handle_event(receive_channel: MemoryReceiveChannel[ListenerEventT]) -> None:
+    global LOADING_STATE
+
     async for listener_event in receive_channel:
         event = DatabaseEvent.from_event(listener_event)
         # In the single-command ``hypothesis fuzz`` case, this is a
@@ -487,6 +493,11 @@ async def handle_event(receive_channel: MemoryReceiveChannel[ListenerEventT]) ->
         # hypofuzz version while the dashboard runs a newer version. Here,
         # a None report from a parse error could occur.
         if event is None:
+            continue
+
+        if not LOADING_STATE.get(event.database_key, False):
+            # we haven't loaded initial state from this test yet in
+            # load_initial_state.
             continue
 
         if event.type == "save":
@@ -556,68 +567,86 @@ def get_failure_observations(database_key: bytes) -> dict[str, Observation]:
     return failure_observations
 
 
+def _load_initial_state(fuzz_target: FuzzProcess) -> None:
+    assert COLLECTION_RESULT is not None
+    assert db is not None
+    # a fuzz target (= node id) may have many database keys over time as the
+    # source code of the test changes. Show only reports from the latest
+    # database key = source code version.
+    #
+    # We may eventually want to track the database_key history of a node id
+    # and at least transfer its covering corpus across when we detect a migration,
+    # as well as possibly showing a history ui in the dashboard.
+    # (maybe use test_keys_key for this?)
+    key = fuzz_target.database_key
+
+    rolling_observations = list(db.fetch_observations(key))
+    corpus_observations = [
+        db.fetch_corpus_observation(key, choices)
+        for choices in db.fetch_corpus(key, as_bytes=True)
+    ]
+    corpus_observations = [
+        observation for observation in corpus_observations if observation is not None
+    ]
+
+    reports_by_worker = defaultdict(list)
+    for report in sorted(db.fetch_reports(key), key=lambda r: r.elapsed_time):
+        reports_by_worker[report.worker_uuid].append(report)
+
+    failure_observations = get_failure_observations(key)
+
+    test = Test(
+        database_key=fuzz_target.database_key_str,
+        nodeid=fuzz_target.nodeid,
+        rolling_observations=rolling_observations,
+        corpus_observations=corpus_observations,
+        # we're abusing this argument, post-init the reports have type
+        # ReportWithDiff, but at pre-init they have type Report. We should
+        # split this into two attributes, one for Report which we pass at init
+        # and one for ReportWithDiff which is set/stored post-init.
+        reports_by_worker=reports_by_worker,  # type: ignore
+        # TODO: refactor Test, and our frontend, to support multiple failures.
+        failure=next(iter(failure_observations.values()), None),
+    )
+    TESTS[fuzz_target.nodeid] = test
+    TESTS_BY_KEY[fuzz_target.database_key] = test
+
+
+async def load_initial_state(fuzz_target: FuzzProcess) -> None:
+    global LOADING_STATE
+
+    await trio.to_thread.run_sync(_load_initial_state, fuzz_target)
+
+    assert fuzz_target.nodeid in TESTS
+    test = TESTS[fuzz_target.nodeid]
+    LOADING_STATE[fuzz_target.database_key] = True
+
+    for websocket in websockets.copy():
+        # TODO: make this more granular? So we send incremental batches
+        # of reports as they're loaded, etc. Would need trio.from_thread inside
+        # _load_initial_state.
+        await websocket.initial({test.nodeid: test})
+
+
 async def run_dashboard(port: int, host: str) -> None:
     assert COLLECTION_RESULT is not None
     assert db is not None
 
     send_channel, receive_channel = trio.open_memory_channel[ListenerEventT](math.inf)
-    token = trio.lowlevel.current_trio_token()
+    trio_token = trio.lowlevel.current_trio_token()
 
-    def send_nowait_from_anywhere(msg: ListenerEventT) -> None:
+    def send_nowait_from_anywhere(event: ListenerEventT) -> None:
         # DirectoryBasedExampleDatabase sends events from a background thread (via watchdog),
         # so we need to support sending from anywhere, i.e. whether or not the calling thread
         # has any Trio state.  We can do that with the following branch:
         try:
             trio.lowlevel.current_task()
         except RuntimeError:
-            trio.from_thread.run_sync(send_channel.send_nowait, msg, trio_token=token)
+            trio.from_thread.run_sync(
+                send_channel.send_nowait, event, trio_token=trio_token
+            )
         else:
-            send_channel.send_nowait(msg)
-
-    # load initial database state before starting dashboard
-    for fuzz_target in COLLECTION_RESULT.fuzz_targets:
-        # a fuzz target (= node id) may have many database keys over time as the
-        # source code of the test changes. Show only reports from the latest
-        # database key = source code version.
-        #
-        # We may eventually want to track the database_key history of a node id
-        # and at least transfer its covering corpus across when we detect a migration,
-        # as well as possibly showing a history ui in the dashboard.
-        # (maybe use test_keys_key for this?)
-        key = fuzz_target.database_key
-
-        rolling_observations = list(db.fetch_observations(key))
-        corpus_observations = [
-            db.fetch_corpus_observation(key, choices)
-            for choices in db.fetch_corpus(key, as_bytes=True)
-        ]
-        corpus_observations = [
-            observation
-            for observation in corpus_observations
-            if observation is not None
-        ]
-
-        reports_by_worker = defaultdict(list)
-        for report in sorted(db.fetch_reports(key), key=lambda r: r.elapsed_time):
-            reports_by_worker[report.worker_uuid].append(report)
-
-        failure_observations = get_failure_observations(key)
-
-        test = Test(
-            database_key=fuzz_target.database_key_str,
-            nodeid=fuzz_target.nodeid,
-            rolling_observations=rolling_observations,
-            corpus_observations=corpus_observations,
-            # we're abusing this argument, post-init the reports have type
-            # ReportWithDiff, but at pre-init they have type Report. We should
-            # split this into two attributes, one for Report which we pass at init
-            # and one for ReportWithDiff which is set/stored post-init.
-            reports_by_worker=reports_by_worker,  # type: ignore
-            # TODO: refactor Test, and our frontend, to support multiple failures.
-            failure=next(iter(failure_observations.values()), None),
-        )
-        TESTS[fuzz_target.nodeid] = test
-        TESTS_BY_KEY[fuzz_target.database_key] = test
+            send_channel.send_nowait(event)
 
     # Any database events that get submitted while we're computing initial state
     # won't be displayed until a dashboard restart. We could solve this by adding the
@@ -626,7 +655,11 @@ async def run_dashboard(port: int, host: str) -> None:
     #
     # For now this is an acceptable loss.
     db._db.add_listener(send_nowait_from_anywhere)
+
     async with trio.open_nursery() as nursery:
+        for fuzz_target in COLLECTION_RESULT.fuzz_targets:
+            nursery.start_soon(load_initial_state, fuzz_target)
+
         nursery.start_soon(serve_app, app, host, port)  # type: ignore
         nursery.start_soon(handle_event, receive_channel)
 
