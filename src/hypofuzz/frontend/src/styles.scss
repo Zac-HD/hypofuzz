@@ -691,6 +691,7 @@ pre code.hljs {
             font-weight: 600;
             font-weight: 600;
             color: #2c3e50;
+            cursor: pointer;
         }
 
         &__row-header {
@@ -729,9 +730,25 @@ pre code.hljs {
             margin: 0 2px;
             border-radius: 3px;
             transition: opacity 0.1s ease;
+            cursor: pointer;
 
             &:hover {
                 opacity: 0.9;
+            }
+
+            &--selected {
+                position: relative;
+
+                &::after {
+                    content: "";
+                    position: absolute;
+                    top: 2px;
+                    left: 2px;
+                    right: 2px;
+                    bottom: 2px;
+                    border: 2.5px solid white;
+                    border-radius: 3px;
+                }
             }
         }
 

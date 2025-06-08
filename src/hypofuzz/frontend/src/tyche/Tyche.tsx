@@ -1,9 +1,10 @@
-import { useState } from "react"
-import { Test } from "../types/dashboard"
+import { useState, useEffect } from "react"
+import { Test, Observation } from "../types/dashboard"
 import { Toggle } from "../components/Toggle"
 import { Features } from "./Features"
 import { Samples } from "./Samples"
 import { Representation } from "./Representation"
+import { Set, List } from "immutable"
 
 export enum TYCHE_COLOR {
   // https://github.com/tyche-pbt/tyche-extension/blob/main/webview-ui/src/utilities/colors.ts
@@ -23,12 +24,34 @@ export function Tyche({ test }: { test: Test }) {
   const [observationType, setObservationType] = useState<"covering" | "rolling">(
     "covering",
   )
+  const [selectedCells, setSelectedCells] = useState<Set<List<number>>>(Set())
 
   const observations =
     observationType === "rolling"
       ? // newest first for rolling observations
         test.rolling_observations.sortKey(observation => -observation.run_start)
       : test.corpus_observations
+
+  const filteredObservations =
+    selectedCells.size === 0
+      ? observations
+      : observations.filter(observation => {
+          const verticalAxis: ((obs: Observation) => boolean)[] = [
+            obs => obs.status === "passed",
+            obs => obs.status === "gave_up",
+          ]
+          const horizontalAxis: ((obs: Observation) => boolean)[] = [
+            obs => obs.isUnique ?? false,
+            obs => obs.isDuplicate ?? false,
+          ]
+          return selectedCells.some(cellCoords => {
+            const [rowIndex, colIndex] = cellCoords.toArray()
+            const verticalPredicate = verticalAxis[rowIndex]
+            const horizontalPredicate = horizontalAxis[colIndex]
+
+            return verticalPredicate(observation) && horizontalPredicate(observation)
+          })
+        })
 
   return (
     <div className="card">
@@ -56,10 +79,10 @@ export function Tyche({ test }: { test: Test }) {
       </div>
       {observations.length > 0 ? (
         <>
-          <Samples observations={observations} />
+          <Samples observations={observations} onSelection={setSelectedCells} />
           <Features observations={observations} />
           <Representation
-            observations={observations}
+            observations={filteredObservations}
             observationType={observationType}
           />
         </>

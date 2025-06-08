@@ -53,6 +53,20 @@ type TestsAction =
       observations: Observation[]
     }
 
+function computeUniqueness(observations: Observation[]) {
+  const reprCounts = new Map<string, number>()
+
+  observations.forEach(obs => {
+    reprCounts.set(obs.representation, (reprCounts.get(obs.representation) || 0) + 1)
+  })
+
+  observations.forEach(observation => {
+    const count = reprCounts.get(observation.representation)!
+    observation.isUnique = count == 1
+    observation.isDuplicate = count > 1
+  })
+}
+
 function testsReducer(
   state: Map<string, Test>,
   action: TestsAction,
@@ -107,9 +121,11 @@ function testsReducer(
         test.rolling_observations = test.rolling_observations
           .sortKey(observation => observation.run_start)
           .slice(-300)
+        computeUniqueness(test.rolling_observations)
       } else {
         console.assert(observation_type === "corpus")
         test.corpus_observations.push(...observations)
+        computeUniqueness(test.corpus_observations)
       }
       return newState
     }
