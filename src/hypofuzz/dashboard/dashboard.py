@@ -653,7 +653,6 @@ async def run_dashboard(port: int, host: str) -> None:
     # computing initial state.
     #
     # For now this is an acceptable loss.
-    db = get_db()
     db._db.add_listener(send_nowait_from_anywhere)
 
     async with trio.open_nursery() as nursery:
