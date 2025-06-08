@@ -3,7 +3,7 @@ from collections import defaultdict
 from typing import Optional
 
 import pytest
-from hypothesis import assume, given, strategies as st
+from hypothesis import HealthCheck, assume, given, settings, strategies as st
 from hypothesis.internal.conjecture.data import Status
 
 from hypofuzz.dashboard.test import Test
@@ -220,6 +220,7 @@ def test_linearize_decomposes_with_addition(data):
 
 
 @given(reports())
+@settings(suppress_health_check=[HealthCheck.too_slow])
 def test_out_of_order_report_invalidates_cache(reports):
     assume(len(reports) > 1)
     test = _test_for_reports(
