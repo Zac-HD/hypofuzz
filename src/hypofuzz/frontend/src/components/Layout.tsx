@@ -1,7 +1,7 @@
-import { Link, useLocation, Outlet } from "react-router-dom"
-import { useState, useEffect, useRef } from "react"
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
 import { faBars } from "@fortawesome/free-solid-svg-icons"
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
+import { useEffect, useRef, useState } from "react"
+import { Link, Outlet, useLocation } from "react-router-dom"
 
 export function Layout() {
   const location = useLocation()

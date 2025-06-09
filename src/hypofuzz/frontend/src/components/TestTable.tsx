@@ -1,19 +1,20 @@
-import { Link } from "react-router-dom"
-import { Table } from "./Table"
-import { getTestStats, inputsPerSecond } from "../utils/testStats"
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
-import {
-  faHashtag,
-  faCodeBranch,
-  faTachometerAlt,
-  faClock,
-  faSeedling,
-  faFingerprint,
-} from "@fortawesome/free-solid-svg-icons"
-import { StatusPill } from "./StatusPill"
-import { Tooltip } from "./Tooltip"
 import { IconDefinition } from "@fortawesome/fontawesome-svg-core"
+import {
+  faClock,
+  faCodeBranch,
+  faFingerprint,
+  faHashtag,
+  faSeedling,
+  faTachometerAlt,
+} from "@fortawesome/free-solid-svg-icons"
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
+import { Link } from "react-router-dom"
+
 import { Status, Test } from "../types/dashboard"
+import { getTestStats, inputsPerSecond } from "../utils/testStats"
+import { StatusPill } from "./StatusPill"
+import { Table } from "./Table"
+import { Tooltip } from "./Tooltip"
 
 function Icon({ icon, tooltip }: { icon: IconDefinition; tooltip: string }) {
   return (

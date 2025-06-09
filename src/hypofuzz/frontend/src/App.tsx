@@ -1,11 +1,12 @@
-import { HashRouter, BrowserRouter, Routes, Route } from "react-router-dom"
-import { TestPage } from "./pages/Test"
-import { TestsPage } from "./pages/Tests"
-import { PatchesPage } from "./pages/Patches"
+import { BrowserRouter, HashRouter, Route, Routes } from "react-router-dom"
+
+import { Layout } from "./components/Layout"
+import { DataProvider } from "./context/DataProvider"
 import { CollectionStatusPage } from "./pages/CollectionStatus"
 import { NotFoundPage } from "./pages/NotFound"
-import { DataProvider } from "./context/DataProvider"
-import { Layout } from "./components/Layout"
+import { PatchesPage } from "./pages/Patches"
+import { TestPage } from "./pages/Test"
+import { TestsPage } from "./pages/Tests"
 
 export function App() {
   const Router =

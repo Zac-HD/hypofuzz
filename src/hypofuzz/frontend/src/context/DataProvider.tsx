@@ -5,8 +5,9 @@ import React, {
   useReducer,
   useState,
 } from "react"
+
+import { NOT_PRESENT_STRING, PRESENT_STRING } from "../tyche/Tyche"
 import { Observation, Report, Test } from "../types/dashboard"
-import { PRESENT_STRING, NOT_PRESENT_STRING } from "../tyche/Tyche"
 
 interface DataContextType {
   tests: Map<string, Test>

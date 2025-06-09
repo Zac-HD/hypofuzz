@@ -1,4 +1,5 @@
 import { ReactNode } from "react"
+
 import { Collapsible } from "../components/Collapsible"
 
 interface TycheSectionProps {

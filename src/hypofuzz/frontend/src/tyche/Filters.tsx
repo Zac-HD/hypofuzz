@@ -1,6 +1,7 @@
-import { useFilters } from "./FilterContext"
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
 import { faXmark } from "@fortawesome/free-solid-svg-icons"
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
+
+import { useFilters } from "./FilterContext"
 
 export function Filters() {
   const { filters, removeFilter } = useFilters()
