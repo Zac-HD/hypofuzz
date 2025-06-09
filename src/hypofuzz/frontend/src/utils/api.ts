@@ -3,8 +3,8 @@ export async function fetchData<T>(endpoint: string): Promise<T | null> {
     const response = await fetch(
       new URL(/* @vite-ignore */ "dashboard_state/api.json", import.meta.url),
     )
-    const data = JSON.parse(await response.text())
-    return data[endpoint]
+    const data = await response.json()
+    return data[endpoint.replace(/\/$/, "")]
   }
 
   try {
