@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react"
+import { useMemo } from "react"
 import { Test } from "../types/dashboard"
 import { Toggle } from "../components/Toggle"
 import { Features } from "./Features"
@@ -25,13 +25,10 @@ export enum TYCHE_COLOR {
 }
 
 function _Tyche({ test }: { test: Test }) {
-  const [observationType, setObservationType] = useState<"covering" | "rolling">(
-    "covering",
-  )
-  const { filters } = useFilters()
+  const { filters, observationCategory, setObservationCategory } = useFilters()
 
   const rawObservations =
-    observationType === "rolling"
+    observationCategory === "rolling"
       ? // newest first for rolling observations
         test.rolling_observations.sortKey(observation => -observation.run_start)
       : test.corpus_observations
@@ -69,8 +66,8 @@ function _Tyche({ test }: { test: Test }) {
         }}
       >
         <Toggle
-          value={observationType}
-          onChange={setObservationType}
+          value={observationCategory}
+          onChange={setObservationCategory}
           options={[
             { value: "covering", content: "Covering" },
             { value: "rolling", content: "Rolling" },
@@ -84,7 +81,7 @@ function _Tyche({ test }: { test: Test }) {
           <Features observations={observations} />
           <Representation
             observations={observations}
-            observationType={observationType}
+            observationCategory={observationCategory}
           />
         </>
       ) : (
