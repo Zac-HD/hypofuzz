@@ -15,6 +15,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons"
 import { StatusPill } from "../components/StatusPill"
 import { Tooltip } from "../components/Tooltip"
+import { Collapsible } from "../components/Collapsible"
 import hljs from "highlight.js/lib/core"
 import "highlight.js/styles/github.css"
 import python from "highlight.js/lib/languages/python"
