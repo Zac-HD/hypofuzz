@@ -147,8 +147,8 @@ function testsReducer(
         //
         // this is a good candidate for a proper nlogn SortedList
         test.rolling_observations = test.rolling_observations
-          .sortKey(observation => observation.run_start)
-          .slice(-300)
+          .sortKey(observation => -observation.run_start)
+          .slice(0, 300)
         prepareObservations(test.rolling_observations)
       } else {
         console.assert(observation_type === "corpus")
