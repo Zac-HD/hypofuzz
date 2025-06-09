@@ -1,18 +1,19 @@
-import { useEffect, useRef, useMemo } from "react"
-import { Observation } from "../types/dashboard"
-import { sum, max } from "../utils/utils"
-import { showTooltip, moveTooltip, hideTooltip } from "../utils/tooltip"
-import { TYCHE_COLOR } from "./Tyche"
-import { Filter, useFilters } from "./FilterContext"
-import { Set } from "immutable"
-import { select as d3_select } from "d3-selection"
+import { axisBottom as d3_axisBottom, axisLeft as d3_axisLeft } from "d3-axis"
 import {
+  scaleBand as d3_scaleBand,
   scaleLinear as d3_scaleLinear,
   scaleOrdinal as d3_scaleOrdinal,
-  scaleBand as d3_scaleBand,
 } from "d3-scale"
-import { axisBottom as d3_axisBottom, axisLeft as d3_axisLeft } from "d3-axis"
-import { PRESENT_STRING, NOT_PRESENT_STRING } from "./Tyche"
+import { select as d3_select } from "d3-selection"
+import { Set } from "immutable"
+import { useEffect, useMemo, useRef } from "react"
+
+import { Observation } from "../types/dashboard"
+import { hideTooltip, moveTooltip, showTooltip } from "../utils/tooltip"
+import { max, sum } from "../utils/utils"
+import { Filter, useFilters } from "./FilterContext"
+import { TYCHE_COLOR } from "./Tyche"
+import { NOT_PRESENT_STRING, PRESENT_STRING } from "./Tyche"
 
 const d3 = {
   select: d3_select,

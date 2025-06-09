@@ -1,11 +1,12 @@
 import { useMemo } from "react"
-import { Test } from "../types/dashboard"
+
 import { Toggle } from "../components/Toggle"
+import { Test } from "../types/dashboard"
 import { Features } from "./Features"
-import { Samples } from "./Samples"
-import { Representation } from "./Representation"
 import { FilterProvider, useFilters } from "./FilterContext"
 import { Filters } from "./Filters"
+import { Representation } from "./Representation"
+import { Samples } from "./Samples"
 
 export const PRESENT_STRING = "Present"
 export const NOT_PRESENT_STRING = "Not present"

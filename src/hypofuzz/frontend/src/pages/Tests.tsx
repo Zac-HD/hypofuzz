@@ -1,7 +1,8 @@
-import { TestTable } from "../components/TestTable"
-import { CoverageGraph } from "../components/CoverageGraph"
-import { useData } from "../context/DataProvider"
 import { useState } from "react"
+
+import { CoverageGraph } from "../components/CoverageGraph"
+import { TestTable } from "../components/TestTable"
+import { useData } from "../context/DataProvider"
 
 export function TestsPage() {
   const { tests } = useData()

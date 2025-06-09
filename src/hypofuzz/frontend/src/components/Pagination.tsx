@@ -1,5 +1,5 @@
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
 import { faArrowLeftLong, faArrowRightLong } from "@fortawesome/free-solid-svg-icons"
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
 
 interface PaginationProps {
   currentPage: number

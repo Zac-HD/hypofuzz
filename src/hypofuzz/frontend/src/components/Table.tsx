@@ -1,6 +1,7 @@
-import React, { useState, useMemo, ReactNode } from "react"
+import { faArrowDown, faArrowUp, faTimes } from "@fortawesome/free-solid-svg-icons"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
-import { faArrowUp, faArrowDown, faTimes } from "@fortawesome/free-solid-svg-icons"
+import React, { ReactNode, useMemo, useState } from "react"
+
 import { useIsMobile } from "../hooks/useIsMobile"
 
 interface TableHeader<T> {

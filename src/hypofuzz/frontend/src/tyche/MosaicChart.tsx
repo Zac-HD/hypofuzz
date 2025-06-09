@@ -1,9 +1,10 @@
+import { List, Set } from "immutable"
 import React, { useEffect, useMemo } from "react"
-import { Set, List } from "immutable"
+
 import { Observation } from "../types/dashboard"
-import { Filter, useFilters } from "./FilterContext"
+import { hideTooltip, moveTooltip, showTooltip } from "../utils/tooltip"
 import { measureText } from "../utils/utils"
-import { showTooltip, moveTooltip, hideTooltip } from "../utils/tooltip"
+import { Filter, useFilters } from "./FilterContext"
 
 const MAX_MOSAIC_WIDTH = 640
 

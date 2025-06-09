@@ -1,25 +1,27 @@
-import { useParams, Link } from "react-router-dom"
-import { CoverageGraph } from "../components/CoverageGraph"
-import { useData } from "../context/DataProvider"
-import { getTestStats } from "../utils/testStats"
-import { Table } from "../components/Table"
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
-import {
-  faHashtag,
-  faCodeBranch,
-  faTachometerAlt,
-  faClock,
-  faSeedling,
-  faFingerprint,
-  faArrowLeft,
-} from "@fortawesome/free-solid-svg-icons"
-import { StatusPill } from "../components/StatusPill"
-import { Tooltip } from "../components/Tooltip"
-import { Collapsible } from "../components/Collapsible"
-import hljs from "highlight.js/lib/core"
 import "highlight.js/styles/github.css"
+
+import {
+  faArrowLeft,
+  faClock,
+  faCodeBranch,
+  faFingerprint,
+  faHashtag,
+  faSeedling,
+  faTachometerAlt,
+} from "@fortawesome/free-solid-svg-icons"
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
+import hljs from "highlight.js/lib/core"
 import python from "highlight.js/lib/languages/python"
+import { Link, useParams } from "react-router-dom"
+
+import { Collapsible } from "../components/Collapsible"
+import { CoverageGraph } from "../components/CoverageGraph"
+import { StatusPill } from "../components/StatusPill"
+import { Table } from "../components/Table"
+import { Tooltip } from "../components/Tooltip"
+import { useData } from "../context/DataProvider"
 import { Tyche } from "../tyche/Tyche"
+import { getTestStats } from "../utils/testStats"
 
 hljs.registerLanguage("python", python)
 
