@@ -10,12 +10,15 @@ hljs.registerLanguage("python", python)
 
 interface Props {
   observations: { raw: Observation[]; filtered: Observation[] }
-  observationType: "covering" | "rolling"
+  observationCategory: "covering" | "rolling"
 }
 
 const perPage = 30
 
-export function Representation({ observations, observationType }: Props) {
+export function Representation({
+  observations,
+  observationCategory: observationType,
+}: Props) {
   const observationsDivRef = useRef<HTMLDivElement>(null)
   const [page, setPage] = useState(0)
 

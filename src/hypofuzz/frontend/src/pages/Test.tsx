@@ -11,6 +11,7 @@ import {
   faClock,
   faSeedling,
   faFingerprint,
+  faArrowLeft,
 } from "@fortawesome/free-solid-svg-icons"
 import { StatusPill } from "../components/StatusPill"
 import { Tooltip } from "../components/Tooltip"
@@ -108,39 +109,47 @@ export function TestPage() {
   ]
 
   return (
-    <div className="test-details">
+    <>
       <Link to="/" className="back-link">
-        ← Back to all tests
+        <FontAwesomeIcon icon={faArrowLeft} /> Back to all tests
       </Link>
-      <div style={{ display: "flex", alignItems: "center", gap: "0.7rem" }}>
-        <span
-          style={{
-            wordBreak: "break-all",
-            fontSize: "1.5rem",
-            fontWeight: "bold",
-          }}
-        >
-          {nodeid}
-        </span>
-        <StatusPill status={test.status} />
-      </div>
-      <div style={{ paddingTop: "1rem", paddingBottom: "1rem" }}>
-        <Table
-          headers={headers}
-          data={[stats]}
-          row={item => [
-            <div style={{ fontVariantNumeric: "tabular-nums" }}>{item.inputs}</div>,
-            <div style={{ fontVariantNumeric: "tabular-nums" }}>{item.behaviors}</div>,
-            <div style={{ fontVariantNumeric: "tabular-nums" }}>
-              {item.fingerprints}
-            </div>,
-            <div style={{ fontVariantNumeric: "tabular-nums" }}>{item.executions}</div>,
-            <div style={{ fontVariantNumeric: "tabular-nums" }}>
-              {item.inputsSinceBranch}
-            </div>,
-            <div style={{ fontVariantNumeric: "tabular-nums" }}>{item.timeSpent}</div>,
-          ]}
-        />
+      <div className="card">
+        <div style={{ display: "flex", alignItems: "center", gap: "0.7rem" }}>
+          <span
+            style={{
+              wordBreak: "break-all",
+              fontSize: "1.5rem",
+              fontWeight: "bold",
+            }}
+          >
+            {nodeid}
+          </span>
+          <StatusPill status={test.status} />
+        </div>
+        <div style={{ paddingTop: "1rem", paddingBottom: "1rem" }}>
+          <Table
+            headers={headers}
+            data={[stats]}
+            row={item => [
+              <div style={{ fontVariantNumeric: "tabular-nums" }}>{item.inputs}</div>,
+              <div style={{ fontVariantNumeric: "tabular-nums" }}>
+                {item.behaviors}
+              </div>,
+              <div style={{ fontVariantNumeric: "tabular-nums" }}>
+                {item.fingerprints}
+              </div>,
+              <div style={{ fontVariantNumeric: "tabular-nums" }}>
+                {item.executions}
+              </div>,
+              <div style={{ fontVariantNumeric: "tabular-nums" }}>
+                {item.inputsSinceBranch}
+              </div>,
+              <div style={{ fontVariantNumeric: "tabular-nums" }}>
+                {item.timeSpent}
+              </div>,
+            ]}
+          />
+        </div>
       </div>
       <CoverageGraph tests={new Map([[nodeid, test]])} />
       <Tyche test={test} />
@@ -165,6 +174,6 @@ export function TestPage() {
           </div>
         </div>
       )}
-    </div>
+    </>
   )
 }

@@ -3,6 +3,7 @@ import { select as d3_select } from "d3-selection"
 import { Set, List } from "immutable"
 import { Observation } from "../types/dashboard"
 import { Filter, useFilters } from "./FilterContext"
+import { measureText } from "../utils/utils"
 
 const d3 = {
   select: d3_select,
@@ -41,24 +42,6 @@ function moveTooltip(event: React.MouseEvent) {
 
 function hideTooltip() {
   d3.select(".tyche-tooltip").style("opacity", 0)
-}
-
-function measureText(
-  text: string,
-  className: string,
-): { width: number; height: number } {
-  const element = document.createElement("div")
-  element.className = className
-  element.style.visibility = "hidden"
-  element.style.position = "absolute"
-  element.style.whiteSpace = "nowrap"
-  element.textContent = text
-
-  document.body.appendChild(element)
-  const rect = element.getBoundingClientRect()
-  document.body.removeChild(element)
-
-  return { width: rect.width, height: rect.height }
 }
 
 export function MosaicChart({

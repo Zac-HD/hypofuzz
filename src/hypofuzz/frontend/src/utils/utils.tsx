@@ -57,3 +57,21 @@ export function bisectRight(arr: any[], x: number, key?: (x: any) => number): nu
   }
   return low
 }
+
+export function measureText(
+  text: string,
+  className: string = "",
+): { width: number; height: number } {
+  const element = document.createElement("div")
+  element.className = className
+  element.style.visibility = "hidden"
+  element.style.position = "absolute"
+  element.style.whiteSpace = "nowrap"
+  element.textContent = text
+
+  document.body.appendChild(element)
+  const rect = element.getBoundingClientRect()
+  document.body.removeChild(element)
+
+  return { width: rect.width, height: rect.height }
+}

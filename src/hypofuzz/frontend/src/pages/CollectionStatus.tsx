@@ -25,7 +25,7 @@ export function CollectionStatusPage() {
   )
 
   useEffect(() => {
-    fetchData<CollectionResults>("collected_tests").then(data => {
+    fetchData<CollectionResults>("collected_tests/").then(data => {
       setCollectionStatus(data)
     })
   }, [])
