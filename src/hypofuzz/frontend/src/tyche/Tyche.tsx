@@ -60,7 +60,6 @@ function _Tyche({ test }: { test: Test }) {
           paddingTop: "10px",
           paddingBottom: "10px",
           display: "flex",
-          justifyContent: "flex-start",
           fontSize: "1.05rem",
           fontWeight: "500",
         }}
