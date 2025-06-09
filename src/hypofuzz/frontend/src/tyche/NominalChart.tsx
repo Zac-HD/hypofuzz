@@ -1,6 +1,7 @@
 import { useEffect, useRef, useMemo } from "react"
 import { Observation } from "../types/dashboard"
 import { sum, max } from "../utils/utils"
+import { showTooltip, moveTooltip, hideTooltip } from "../utils/tooltip"
 import { TYCHE_COLOR } from "./Tyche"
 import { Filter, useFilters } from "./FilterContext"
 import { Set } from "immutable"
@@ -125,37 +126,9 @@ export function NominalChart({ feature, observations }: NominalChartProps) {
       .attr("height", height)
       .append("g")
 
-    const tooltipDiv = d3
-      .select("body")
-      .append("div")
-      .attr("class", "tyche-tooltip")
-      .style("opacity", 0)
-      .style("position", "absolute")
-      .style("background-color", "rgba(0, 0, 0, 0.8)")
-      .style("color", "white")
-      .style("border-radius", "4px")
-      .style("padding", "8px")
-      .style("font-size", "12px")
-      .style("pointer-events", "none")
-      .style("z-index", "10")
-
-    const showTooltip = function (event: MouseEvent, d: [string, number]) {
+    const showTooltipHandler = function (event: MouseEvent, d: [string, number]) {
       const [label, count] = d
-      tooltipDiv
-        .style("opacity", 1)
-        .html(`${feature}<br>${label}: ${count}`)
-        .style("left", `${event.pageX + 10}px`)
-        .style("top", `${event.pageY - 28}px`)
-    }
-
-    const moveTooltip = function (event: MouseEvent) {
-      tooltipDiv
-        .style("left", `${event.pageX + 10}px`)
-        .style("top", `${event.pageY - 28}px`)
-    }
-
-    const hideTooltip = function () {
-      tooltipDiv.style("opacity", 0)
+      showTooltip(`${feature}<br>${label}: ${count}`, event.pageX, event.pageY)
     }
 
     // use a horizontally-stacked bar chart for 1-4 different feature labels,
@@ -210,8 +183,10 @@ export function NominalChart({ feature, observations }: NominalChartProps) {
           .attr("fill", colorScale(value))
           .style("cursor", "pointer")
           .on("click", () => onValueClick(value))
-          .on("mouseover", event => showTooltip(event, [value, count]))
-          .on("mousemove", moveTooltip)
+          .on("mouseover", event => {
+            showTooltipHandler(event, [value, count])
+          })
+          .on("mousemove", event => moveTooltip(event.pageX, event.pageY))
           .on("mouseleave", hideTooltip)
 
         // inner rect (for inset white border when selected)
@@ -285,9 +260,9 @@ export function NominalChart({ feature, observations }: NominalChartProps) {
           onValueClick(value)
         })
         .on("mouseover", function (event, d) {
-          showTooltip(event, d)
+          showTooltipHandler(event, d)
         })
-        .on("mousemove", moveTooltip)
+        .on("mousemove", event => moveTooltip(event.pageX, event.pageY))
         .on("mouseleave", hideTooltip)
 
       g.selectAll(".inner-bar")
@@ -335,7 +310,7 @@ export function NominalChart({ feature, observations }: NominalChartProps) {
     }
 
     return () => {
-      d3.select(".tyche-tooltip").remove()
+      hideTooltip()
     }
   }, [observations, selectedValues, feature, onValueClick])
 

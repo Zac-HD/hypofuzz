@@ -1,13 +1,9 @@
 import React, { useEffect, useMemo } from "react"
-import { select as d3_select } from "d3-selection"
 import { Set, List } from "immutable"
 import { Observation } from "../types/dashboard"
 import { Filter, useFilters } from "./FilterContext"
 import { measureText } from "../utils/utils"
-
-const d3 = {
-  select: d3_select,
-}
+import { showTooltip, moveTooltip, hideTooltip } from "../utils/tooltip"
 
 const MAX_MOSAIC_WIDTH = 640
 
@@ -24,24 +20,6 @@ interface MosaicChartProps {
 interface Cell {
   count: number
   widthPercent: number
-}
-
-function showTooltip(event: React.MouseEvent, value: string) {
-  d3.select(".tyche-tooltip")
-    .style("opacity", 1)
-    .html(`${value}`)
-    .style("left", `${event.pageX + 10}px`)
-    .style("top", `${event.pageY - 28}px`)
-}
-
-function moveTooltip(event: React.MouseEvent) {
-  d3.select(".tyche-tooltip")
-    .style("left", `${event.pageX + 10}px`)
-    .style("top", `${event.pageY - 28}px`)
-}
-
-function hideTooltip() {
-  d3.select(".tyche-tooltip").style("opacity", 0)
 }
 
 export function MosaicChart({
@@ -205,26 +183,13 @@ export function MosaicChart({
   }
 
   useEffect(() => {
-    d3.select("body")
-      .append("div")
-      .attr("class", "tyche-tooltip")
-      .style("opacity", 0)
-      .style("position", "absolute")
-      .style("background-color", "rgba(0, 0, 0, 0.8)")
-      .style("color", "white")
-      .style("border-radius", "4px")
-      .style("padding", "8px")
-      .style("font-size", "12px")
-      .style("pointer-events", "none")
-      .style("z-index", "10")
-
     return () => {
-      d3.select(".tyche-tooltip").remove()
+      hideTooltip()
     }
   }, [observations])
 
   if (visibleRows.length === 0 || visibleCols.length === 0) {
-    return <div className="tyche__mosaic__title">No observations</div>
+    return <div>No observations</div>
   }
 
   const minCellWidth = 30
@@ -388,12 +353,13 @@ export function MosaicChart({
                   onClick={() => onCellClick(rowIndex, colIndex)}
                   onMouseEnter={e =>
                     showTooltip(
-                      e,
                       `${verticalAxis[rowIndex][0]} and ${horizontalAxis[colIndex][0]}
                       <br>Count: ${cell.count}`,
+                      e.pageX,
+                      e.pageY,
                     )
                   }
-                  onMouseMove={moveTooltip}
+                  onMouseMove={e => moveTooltip(e.pageX, e.pageY)}
                   onMouseLeave={hideTooltip}
                 >
                   <span className="tyche__mosaic__cell-value">{cell.count}</span>

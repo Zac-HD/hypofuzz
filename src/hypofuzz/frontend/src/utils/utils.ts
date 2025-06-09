@@ -58,20 +58,36 @@ export function bisectRight(arr: any[], x: number, key?: (x: any) => number): nu
   return low
 }
 
+// Dedicated container for text measurement - created once and reused
+let measureContainer: HTMLElement | null = null
+
+function getMeasureContainer(): HTMLElement {
+  if (!measureContainer) {
+    measureContainer = document.createElement("div")
+    measureContainer.style.cssText = `
+      position: absolute;
+      visibility: hidden;
+      white-space: nowrap;
+      top: -9999px;
+      left: -9999px;
+      pointer-events: none;
+      z-index: -1;
+    `
+    document.body.appendChild(measureContainer)
+  }
+  return measureContainer
+}
+
 export function measureText(
   text: string,
   className: string = "",
 ): { width: number; height: number } {
-  const element = document.createElement("div")
-  element.className = className
-  element.style.visibility = "hidden"
-  element.style.position = "absolute"
-  element.style.whiteSpace = "nowrap"
-  element.textContent = text
+  const container = getMeasureContainer()
 
-  document.body.appendChild(element)
-  const rect = element.getBoundingClientRect()
-  document.body.removeChild(element)
+  // reset to passed values
+  container.className = className
+  container.textContent = text
 
+  const rect = container.getBoundingClientRect()
   return { width: rect.width, height: rect.height }
 }
