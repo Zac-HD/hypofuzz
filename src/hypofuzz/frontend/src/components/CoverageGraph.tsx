@@ -31,6 +31,7 @@ import {
   faClock,
   faFingerprint,
 } from "@fortawesome/free-solid-svg-icons"
+import { useIsMobile } from "../hooks/useIsMobile"
 // import BoxSelect from "../assets/box-select.svg?react"
 
 const d3 = {
@@ -75,6 +76,40 @@ interface GraphReport {
 // in pixels
 const distanceThreshold = 10
 
+function prependIcon(
+  textElement: Selection<SVGTextElement, unknown, null, undefined>,
+  icon: any,
+  direction: "vertical" | "horizontal" = "horizontal",
+  iconSize: number = 12,
+  iconPadding: number = 6,
+) {
+  const textBBox = (textElement.node() as SVGTextElement).getBBox()
+  const parentGroup = d3.select(
+    (textElement.node() as SVGTextElement).parentNode as SVGGElement,
+  )
+
+  let iconX: number
+  let iconY: number
+
+  if (direction === "vertical") {
+    iconX = textBBox.x - iconSize - iconPadding
+    iconY = textBBox.y + (textBBox.height - iconSize) / 2
+  } else {
+    iconX = textBBox.x - iconSize - iconPadding
+    iconY = textBBox.y + (textBBox.height - iconSize) / 2
+  }
+
+  parentGroup
+    .append("svg")
+    .attr("x", iconX)
+    .attr("y", iconY)
+    .attr("width", iconSize)
+    .attr("height", iconSize)
+    .attr("viewBox", `0 0 ${icon.icon[0]} ${icon.icon[1]}`)
+    .append("path")
+    .attr("d", icon.icon[4] as string)
+}
+
 class Graph {
   reports: Map<string, GraphReport[]>
   scaleSetting: string
@@ -110,6 +145,7 @@ class Graph {
     axisSettingX: string,
     axisSettingY: string,
     navigate: (path: string) => void,
+    isMobile: boolean,
   ) {
     this.reports = reports
     this.scaleSetting = scaleSetting
@@ -123,7 +159,12 @@ class Graph {
     this.yValue = (report: GraphReport) =>
       axisSettingY == "behaviors" ? report.behaviors : report.fingerprints
 
-    this.margin = { top: 20, right: 20, bottom: 45, left: 60 }
+    this.margin = {
+      top: 20,
+      right: 20,
+      bottom: isMobile ? 40 : 45,
+      left: isMobile ? 50 : 60,
+    }
     this.width = svg.clientWidth - this.margin.left - this.margin.right
     this.height = 300 - this.margin.top - this.margin.bottom
 
@@ -199,23 +240,37 @@ class Graph {
 
     this.yAxis = this.g.append("g").call(this.createYAxis(this.y))
 
-    this.g
+    const yAxisGroup = this.g
+      .append("g")
+      .attr(
+        "transform",
+        `translate(${-this.margin.left}, ${this.height / 2}) rotate(-90)`,
+      )
+
+    const yIcon = this.axisSettingY == "behaviors" ? faCodeBranch : faFingerprint
+    const yLabelText = this.axisSettingY == "behaviors" ? "Behaviors" : "Fingerprints"
+    const yTextElement = yAxisGroup
       .append("text")
-      .attr("transform", "rotate(-90)")
-      .attr("y", 0 - this.margin.left)
-      .attr("x", 0 - this.height / 2)
+      .attr("x", 0)
+      .attr("y", 0)
       .attr("dy", "1em")
       .style("text-anchor", "middle")
-      .text(this.axisSettingY == "behaviors" ? "Behaviors" : "Fingerprints")
+      .text(yLabelText)
 
-    this.g
+    prependIcon(yTextElement, yIcon, "vertical")
+
+    const xIcon = this.axisSettingX == "time" ? faClock : faHashtag
+    const xLabelText = this.axisSettingX == "time" ? "Time (s)" : "Inputs"
+    const xTextElement = this.g
       .append("text")
       .attr("x", this.width / 2)
       // - 5 is an unashamed hack to prevent clipping on characters that go
       // below the font baseline
       .attr("y", this.height + this.margin.bottom - 5)
       .style("text-anchor", "middle")
-      .text(this.axisSettingX == "time" ? "Time (s)" : "Inputs")
+      .text(xLabelText)
+
+    prependIcon(xTextElement, xIcon, "horizontal")
 
     this.chartArea
       .on("mousemove", event => {
@@ -450,6 +505,7 @@ export function CoverageGraph({ tests, filterString = "" }: Props) {
   }>({ transform: null, zoomY: false })
   const [boxSelectEnabled, setBoxSelectEnabled] = useState(false)
   const navigate = useNavigate()
+  const isMobile = useIsMobile()
 
   const reports = useMemo(() => {
     return new Map(
@@ -533,6 +589,7 @@ export function CoverageGraph({ tests, filterString = "" }: Props) {
       axisSettingX,
       axisSettingY,
       navigate,
+      isMobile,
     )
 
     if (zoomTransform.transform) {
@@ -586,12 +643,20 @@ export function CoverageGraph({ tests, filterString = "" }: Props) {
           options={[
             {
               value: "behaviors",
-              content: "Behaviors",
+              content: (
+                <>
+                  <FontAwesomeIcon icon={faCodeBranch} /> Behaviors
+                </>
+              ),
               mobileContent: <FontAwesomeIcon icon={faCodeBranch} />,
             },
             {
               value: "fingerprints",
-              content: "Fingerprints",
+              content: (
+                <>
+                  <FontAwesomeIcon icon={faFingerprint} /> Fingerprints
+                </>
+              ),
               mobileContent: <FontAwesomeIcon icon={faFingerprint} />,
             },
           ]}
@@ -602,12 +667,20 @@ export function CoverageGraph({ tests, filterString = "" }: Props) {
           options={[
             {
               value: "inputs",
-              content: "Inputs",
+              content: (
+                <>
+                  <FontAwesomeIcon icon={faHashtag} /> Inputs
+                </>
+              ),
               mobileContent: <FontAwesomeIcon icon={faHashtag} />,
             },
             {
               value: "time",
-              content: "Time",
+              content: (
+                <>
+                  <FontAwesomeIcon icon={faClock} /> Time
+                </>
+              ),
               mobileContent: <FontAwesomeIcon icon={faClock} />,
             },
           ]}

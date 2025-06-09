@@ -1,6 +1,5 @@
-import { ReactNode, useState } from "react"
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
-import { faCaretDown, faCaretRight } from "@fortawesome/free-solid-svg-icons"
+import { ReactNode } from "react"
+import { Collapsible } from "../components/Collapsible"
 
 interface TycheSectionProps {
   title: string
@@ -15,28 +14,17 @@ export function TycheSection({
   defaultState = "open",
   onStateChange,
 }: TycheSectionProps) {
-  const [state, setState] = useState(defaultState)
-
-  const toggleState = () => {
-    const newState = state === "open" ? "closed" : "open"
-    setState(newState)
-    onStateChange?.(newState)
-  }
-
   return (
     <div className="tyche__section">
-      <div className="tyche__section__header" onClick={toggleState}>
-        <span className="tyche__section__header__toggle">
-          {state === "open" ? (
-            <FontAwesomeIcon icon={faCaretDown} />
-          ) : (
-            <FontAwesomeIcon icon={faCaretRight} />
-          )}
-        </span>
-        {title}
-      </div>
-
-      {state === "open" && <div className="tyche__section__content">{children}</div>}
+      <Collapsible
+        title={title}
+        defaultState={defaultState}
+        onStateChange={onStateChange}
+        headerClass="tyche__section__header"
+        contentClass="tyche__section__content"
+      >
+        {children}
+      </Collapsible>
     </div>
   )
 }

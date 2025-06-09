@@ -514,7 +514,12 @@ async def handle_event(receive_channel: MemoryReceiveChannel[ListenerEventT]) ->
             elif event.key is DatabaseEventKey.ROLLING_OBSERVATION:
                 if event.value.property not in TESTS:
                     continue
-                TESTS[event.value.property].rolling_observations.append(event.value)
+                observations = TESTS[event.value.property].rolling_observations
+                # TODO store rolling_observationas as a proper logn sortedlist,
+                # probably requires refactoring Test to be a proper class
+                observations.append(event.value)
+                observations.sort(key=lambda o: -o.run_start)
+                TESTS[event.value.property].rolling_observations = observations[:300]
             elif event.key is DatabaseEventKey.CORPUS_OBSERVATION:
                 if event.value.property not in TESTS:
                     continue

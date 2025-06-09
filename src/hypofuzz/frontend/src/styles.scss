@@ -424,6 +424,20 @@ $mobile-breakpoint: 768px;
     }
 }
 
+.collapsible {
+    &__header {
+        display: flex;
+        cursor: pointer;
+        align-items: center;
+    }
+
+    &__toggle {
+        display: inline-flex;
+        margin-right: 2px;
+        width: 16px;
+    }
+}
+
 .coverage-graph {
     &__header {
         display: flex;
@@ -644,26 +658,11 @@ pre code.hljs {
             margin-bottom: 0;
         }
 
-        &__title {
-            font-size: 1.2rem;
-            font-weight: 600;
-            margin-right: 0.5rem;
-        }
-
         &__header {
-            display: flex;
-            cursor: pointer;
             padding: 10px 0;
             font-size: 1.2rem;
             font-weight: 500;
-            align-items: center;
             margin-bottom: 0.5rem;
-
-            &__toggle {
-                display: inline-flex;
-                margin-right: 2px;
-                width: 16px;
-            }
         }
 
         &__content {
