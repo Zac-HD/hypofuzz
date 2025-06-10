@@ -16,7 +16,7 @@ from hypothesis.core import (
     Stuff,
     process_arguments_to_given,
 )
-from hypothesis.database import BackgroundWriteDatabase, ExampleDatabase, ListenerEventT
+from hypothesis.database import ListenerEventT
 from hypothesis.errors import StopTest
 from hypothesis.internal.conjecture.data import (
     ConjectureData,
@@ -73,7 +73,7 @@ class FuzzProcess:
         cls,
         wrapped_test: Any,
         *,
-        database: ExampleDatabase,
+        database: HypofuzzDatabase,
         extra_kw: Optional[dict[str, object]] = None,
         pytest_item: Optional[pytest.Item] = None,
     ) -> "FuzzProcess":
@@ -101,7 +101,7 @@ class FuzzProcess:
         stuff: Stuff,
         *,
         random_seed: int = 0,
-        database: ExampleDatabase,
+        database: HypofuzzDatabase,
         database_key: bytes,
         wrapped_test: Callable,
         pytest_item: Optional[pytest.Item] = None,
@@ -115,13 +115,12 @@ class FuzzProcess:
         ) or get_pretty_function_description(test_fn)
         self.database_key = database_key
         self.database_key_str = convert_db_key(self.database_key, to="str")
-        self.hypothesis_db = database
-        self.hypofuzz_db = HypofuzzDatabase(BackgroundWriteDatabase(database))
+        self.database = database
         self.state = HypofuzzStateForActualGivenExecution(  # type: ignore
             stuff,
             self._test_fn,
             settings(
-                database=self.hypothesis_db,
+                database=self.database._db,
                 deadline=None,
                 suppress_health_check=list(HealthCheck),
                 verbosity=Verbosity.quiet,
@@ -198,14 +197,12 @@ class FuzzProcess:
 
             self.provider._save_report(self.provider._report)
             # move this failure from the unshrunk to the shrunk key.
-            self.hypofuzz_db.save_failure(
-                self.database_key, shrinker.choices, shrunk=True
-            )
-            self.hypofuzz_db.delete_failure(
+            self.database.save_failure(self.database_key, shrinker.choices, shrunk=True)
+            self.database.delete_failure(
                 self.database_key, shrinker.choices, shrunk=False
             )
             assert observation is not None
-            self.hypofuzz_db.save_failure_observation(
+            self.database.save_failure_observation(
                 self.database_key,
                 shrinker.choices,
                 Observation.from_hypothesis(observation),

@@ -198,7 +198,7 @@ class _ItemsCollector:
                     )
                     target = item.obj
                 fuzz = FuzzProcess.from_hypothesis_test(
-                    target, database=hypofuzz_db, nodeid=item.nodeid, extra_kw=extra_kw
+                    target, database=hypofuzz_db, extra_kw=extra_kw, pytest_item=item
                 )
             except Exception as e:
                 self._skip_because(

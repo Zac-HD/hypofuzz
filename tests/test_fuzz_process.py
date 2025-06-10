@@ -46,7 +46,7 @@ def test_fuzz_one_process_explain_mode():
     assert fp.provider.status_counts[Status.INTERESTING] == 1
     # wait for the BackgroundWriteDatabase of the FuzzProcess to write its found
     # failure
-    fp.hypofuzz_db._db._join()
+    fp.database._db._join()
 
     failures = list(hypofuzz_db.fetch_failures(fp.database_key, shrunk=True))
     assert len(failures) == 1
