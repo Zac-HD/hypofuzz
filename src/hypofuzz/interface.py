@@ -13,6 +13,7 @@ import pytest
 from _pytest.nodes import Item, Node
 from _pytest.skipping import evaluate_condition
 from hypothesis import settings
+from hypothesis.database import BackgroundWriteDatabase
 from hypothesis.stateful import get_state_machine_test
 from packaging import version
 
@@ -55,7 +56,19 @@ class _ItemsCollector:
         }
 
     def pytest_collection_finish(self, session: pytest.Session) -> None:
+        from hypofuzz.database import HypofuzzDatabase
         from hypofuzz.hypofuzz import FuzzProcess
+
+        # We guarantee (and enforce here at collection-time) that all tests
+        # collected by hypofuzz use the same database, and that that database is
+        # the same as the default settings().database at the time of collection.
+        # This lets us share a single hypofuzz_db across all FuzzProcess classes,
+        # which is nice because we don't want to create a thread for every fuzz
+        # process to handle the background writes.
+        db = settings().database
+        if not isinstance(db, BackgroundWriteDatabase):
+            db = BackgroundWriteDatabase(db)
+        hypofuzz_db = HypofuzzDatabase(db)
 
         for item in session.items:
             if not isinstance(item, pytest.Function):
@@ -185,12 +198,7 @@ class _ItemsCollector:
                     )
                     target = item.obj
                 fuzz = FuzzProcess.from_hypothesis_test(
-                    target,
-                    # we checked above that this is the same as the database on
-                    # item.obj._hypothesis_internal_use_settings
-                    database=settings().database,
-                    extra_kw=extra_kw,
-                    pytest_item=item,
+                    target, database=hypofuzz_db, nodeid=item.nodeid, extra_kw=extra_kw
                 )
             except Exception as e:
                 self._skip_because(

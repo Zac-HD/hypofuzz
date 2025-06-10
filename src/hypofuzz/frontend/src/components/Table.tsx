@@ -1,6 +1,8 @@
-import React, { useState, useMemo, ReactNode, useEffect } from "react"
+import { faArrowDown, faArrowUp, faTimes } from "@fortawesome/free-solid-svg-icons"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
-import { faArrowUp, faArrowDown, faTimes } from "@fortawesome/free-solid-svg-icons"
+import React, { ReactNode, useMemo, useState } from "react"
+
+import { useIsMobile } from "../hooks/useIsMobile"
 
 interface TableHeader<T> {
   content: ReactNode
@@ -35,16 +37,7 @@ export function Table<T>({
   const [sortColumn, setSortColumn] = useState<number | null>(null)
   const [sortDirection, setSortDirection] = useState<SortOrder>(SortOrder.ASC)
   const [filterString, setFilterString] = useState("")
-  const [isMobile, setIsMobile] = useState(false)
-
-  useEffect(() => {
-    function checkIfMobile() {
-      setIsMobile(window.matchMedia("(max-width: 768px)").matches)
-    }
-    checkIfMobile()
-    window.addEventListener("resize", checkIfMobile)
-    return () => window.removeEventListener("resize", checkIfMobile)
-  }, [])
+  const isMobile = useIsMobile()
 
   const displayData = useMemo(() => {
     let displayData = data
@@ -56,6 +49,7 @@ export function Table<T>({
             checkString.toLowerCase().includes(filterString.toLowerCase()),
           )
         }
+        return true
       })
     }
 

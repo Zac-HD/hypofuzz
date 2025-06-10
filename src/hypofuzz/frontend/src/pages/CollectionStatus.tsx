@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
-import { Table } from "../components/Table"
 import { Link } from "react-router-dom"
+
+import { Table } from "../components/Table"
 import { fetchData } from "../utils/api"
 
 interface CollectionResult {
@@ -25,7 +26,7 @@ export function CollectionStatusPage() {
   )
 
   useEffect(() => {
-    fetchData<CollectionResults>("collected_tests").then(data => {
+    fetchData<CollectionResults>("collected_tests/").then(data => {
       setCollectionStatus(data)
     })
   }, [])

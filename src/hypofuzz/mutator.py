@@ -1,7 +1,7 @@
 import abc
 from random import Random
 
-from hypofuzz.corpus import Corpus
+from hypofuzz.corpus import Corpus, Fingerprint
 from hypofuzz.database import ChoicesT
 
 
@@ -35,8 +35,17 @@ class CrossOverMutator(Mutator):
         #
         # This is related to the AFL-fast trick, but doesn't track the transition
         # probabilities - just node densities in the markov chain.
+        def _weight(fingerprint: Fingerprint) -> float:
+            return 1 / min(
+                self.corpus.behavior_counts[behavior] for behavior in fingerprint
+            )
+
         weights = [
-            1 / min(self.corpus.behavior_counts[behavior] for behavior in fingerprint)
+            # it's possible for a fingerprint to be empty. If it is, we expect
+            # that to be the *only* fingerprint in the corpus, so it doesn't
+            # matter what weight we assign to it (but we can't error by giving
+            # an empty iterable to `min`, or dividing by zero with `total`.)
+            (_weight(fingerprint) if fingerprint else 1)
             for fingerprint in self.corpus.fingerprints.keys()
         ]
         total = sum(weights)

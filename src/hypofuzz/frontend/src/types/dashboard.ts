@@ -1,4 +1,4 @@
-import { bisectLeft, bisectRight, setsEqual, sum } from "../utils/utils"
+import { bisectRight, sum } from "../utils/utils"
 
 abstract class Dataclass<T> {
   withProperties(props: Partial<T>): T {
@@ -157,6 +157,9 @@ enum ObservationStatus {
 }
 
 export class Observation extends Dataclass<Observation> {
+  public isDuplicate: boolean | null = null
+  public isUnique: boolean | null = null
+
   // https://hypothesis.readthedocs.io/en/latest/reference/integrations.html#test-case
   constructor(
     public type: string,

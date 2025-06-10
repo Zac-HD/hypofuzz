@@ -1,10 +1,56 @@
-import { useEffect, useRef, useState, useMemo } from "react"
-import * as d3 from "d3"
-import { Report, Test, StatusCounts } from "../types/dashboard"
-import { Toggle } from "./Toggle"
-import { useSetting } from "../hooks/useSetting"
+import "d3-transition"
+
+import {
+  faClock,
+  faCodeBranch,
+  faFingerprint,
+  faHashtag,
+} from "@fortawesome/free-solid-svg-icons"
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
+import { axisBottom as d3_axisBottom, axisLeft as d3_axisLeft } from "d3-axis"
+import { brush as d3_brush, BrushBehavior } from "d3-brush"
+import { Quadtree, quadtree as d3_quadtree } from "d3-quadtree"
+import {
+  scaleLinear as d3_scaleLinear,
+  scaleOrdinal as d3_scaleOrdinal,
+  scaleSymlog as d3_scaleSymlog,
+} from "d3-scale"
+import { ScaleContinuousNumeric, ScaleOrdinal } from "d3-scale"
+import { schemeCategory10 as d3_schemeCategory10 } from "d3-scale-chromatic"
+import { pointer as d3_pointer, select as d3_select, Selection } from "d3-selection"
+import { line as d3_line } from "d3-shape"
+import {
+  D3ZoomEvent,
+  zoom as d3_zoom,
+  ZoomBehavior,
+  zoomIdentity as d3_zoomIdentity,
+  ZoomTransform,
+} from "d3-zoom"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
+
+import { useIsMobile } from "../hooks/useIsMobile"
+import { useSetting } from "../hooks/useSetting"
+import { StatusCounts, Test } from "../types/dashboard"
+import { max } from "../utils/utils"
+import { Toggle } from "./Toggle"
 // import BoxSelect from "../assets/box-select.svg?react"
+
+const d3 = {
+  scaleSymlog: d3_scaleSymlog,
+  scaleLinear: d3_scaleLinear,
+  select: d3_select,
+  zoom: d3_zoom,
+  zoomIdentity: d3_zoomIdentity,
+  pointer: d3_pointer,
+  line: d3_line,
+  axisBottom: d3_axisBottom,
+  axisLeft: d3_axisLeft,
+  brush: d3_brush,
+  scaleOrdinal: d3_scaleOrdinal,
+  schemeCategory10: d3_schemeCategory10,
+  quadtree: d3_quadtree,
+}
 
 const mousePosition = { x: 0, y: 0 }
 if (typeof window !== "undefined") {
@@ -32,6 +78,40 @@ interface GraphReport {
 // in pixels
 const distanceThreshold = 10
 
+function prependIcon(
+  textElement: Selection<SVGTextElement, unknown, null, undefined>,
+  icon: any,
+  direction: "vertical" | "horizontal" = "horizontal",
+  iconSize: number = 12,
+  iconPadding: number = 6,
+) {
+  const textBBox = (textElement.node() as SVGTextElement).getBBox()
+  const parentGroup = d3.select(
+    (textElement.node() as SVGTextElement).parentNode as SVGGElement,
+  )
+
+  let iconX: number
+  let iconY: number
+
+  if (direction === "vertical") {
+    iconX = textBBox.x - iconSize - iconPadding
+    iconY = textBBox.y + (textBBox.height - iconSize) / 2
+  } else {
+    iconX = textBBox.x - iconSize - iconPadding
+    iconY = textBBox.y + (textBBox.height - iconSize) / 2
+  }
+
+  parentGroup
+    .append("svg")
+    .attr("x", iconX)
+    .attr("y", iconY)
+    .attr("width", iconSize)
+    .attr("height", iconSize)
+    .attr("viewBox", `0 0 ${icon.icon[0]} ${icon.icon[1]}`)
+    .append("path")
+    .attr("d", icon.icon[4] as string)
+}
+
 class Graph {
   reports: Map<string, GraphReport[]>
   scaleSetting: string
@@ -42,30 +122,32 @@ class Graph {
   width: number
   height: number
   margin: { top: number; right: number; bottom: number; left: number }
-  x: d3.ScaleContinuousNumeric<number, number>
-  y: d3.ScaleContinuousNumeric<number, number>
-  g: d3.Selection<SVGGElement, unknown, null, undefined>
-  zoom: d3.ZoomBehavior<SVGGElement, unknown>
-  chartArea: d3.Selection<SVGGElement, unknown, null, undefined>
+  x: ScaleContinuousNumeric<number, number>
+  y: ScaleContinuousNumeric<number, number>
+  g: Selection<SVGGElement, unknown, null, undefined>
+  zoom: ZoomBehavior<SVGGElement, unknown>
+  chartArea: Selection<SVGGElement, unknown, null, undefined>
   navigate: (path: string) => void
 
-  private tooltip: d3.Selection<HTMLDivElement, unknown, HTMLElement, any>
-  private brush: d3.BrushBehavior<unknown> | null = null
+  private tooltip: Selection<HTMLDivElement, unknown, HTMLElement, any>
+  private brush: BrushBehavior<unknown> | null = null
   private eventListeners: Map<string, Array<() => void>> = new Map()
-  private xAxis: d3.Selection<SVGGElement, unknown, null, undefined>
-  private yAxis: d3.Selection<SVGGElement, unknown, null, undefined>
-  private reportsColor: d3.ScaleOrdinal<string, string>
-  private viewportX: d3.ScaleContinuousNumeric<number, number>
-  private viewportY: d3.ScaleContinuousNumeric<number, number>
+  private xAxis: Selection<SVGGElement, unknown, null, undefined>
+  private yAxis: Selection<SVGGElement, unknown, null, undefined>
+  private reportsColor: ScaleOrdinal<string, string>
+  private viewportX: ScaleContinuousNumeric<number, number>
+  private viewportY: ScaleContinuousNumeric<number, number>
+  private quadtree!: Quadtree<GraphReport>
 
   constructor(
     svg: SVGSVGElement,
     reports: Map<string, GraphReport[]>,
-    reportsColor: d3.ScaleOrdinal<string, string>,
+    reportsColor: ScaleOrdinal<string, string>,
     scaleSetting: string,
     axisSettingX: string,
     axisSettingY: string,
     navigate: (path: string) => void,
+    isMobile: boolean,
   ) {
     this.reports = reports
     this.scaleSetting = scaleSetting
@@ -79,7 +161,12 @@ class Graph {
     this.yValue = (report: GraphReport) =>
       axisSettingY == "behaviors" ? report.behaviors : report.fingerprints
 
-    this.margin = { top: 20, right: 20, bottom: 45, left: 60 }
+    this.margin = {
+      top: 20,
+      right: 20,
+      bottom: isMobile ? 40 : 45,
+      left: isMobile ? 50 : 60,
+    }
     this.width = svg.clientWidth - this.margin.left - this.margin.right
     this.height = 300 - this.margin.top - this.margin.bottom
 
@@ -89,12 +176,12 @@ class Graph {
     // symlog is like log but defined linearly in the range [0, 1].
     // https://d3js.org/d3-scale/symlog
     this.x = (scaleSetting === "log" ? d3.scaleSymlog() : d3.scaleLinear())
-      .domain([0, d3.max(allReports, d => this.xValue(d)) || 1])
+      .domain([0, max(allReports, d => this.xValue(d)) || 1])
       .range([0, this.width])
 
     this.y = d3
       .scaleLinear()
-      .domain([0, d3.max(allReports, d => this.yValue(d)) || 0])
+      .domain([0, max(allReports, d => this.yValue(d)) || 0])
       .range([this.height, 0])
 
     // this.x and this.y are the full axes which encompass all of the points.
@@ -155,47 +242,42 @@ class Graph {
 
     this.yAxis = this.g.append("g").call(this.createYAxis(this.y))
 
-    this.g
+    const yAxisGroup = this.g
+      .append("g")
+      .attr(
+        "transform",
+        `translate(${-this.margin.left}, ${this.height / 2}) rotate(-90)`,
+      )
+
+    const yIcon = this.axisSettingY == "behaviors" ? faCodeBranch : faFingerprint
+    const yLabelText = this.axisSettingY == "behaviors" ? "Behaviors" : "Fingerprints"
+    const yTextElement = yAxisGroup
       .append("text")
-      .attr("transform", "rotate(-90)")
-      .attr("y", 0 - this.margin.left)
-      .attr("x", 0 - this.height / 2)
+      .attr("x", 0)
+      .attr("y", 0)
       .attr("dy", "1em")
       .style("text-anchor", "middle")
-      .text(this.axisSettingY == "behaviors" ? "Behaviors" : "Fingerprints")
+      .text(yLabelText)
 
-    this.g
+    prependIcon(yTextElement, yIcon, "vertical")
+
+    const xIcon = this.axisSettingX == "time" ? faClock : faHashtag
+    const xLabelText = this.axisSettingX == "time" ? "Time (s)" : "Inputs"
+    const xTextElement = this.g
       .append("text")
       .attr("x", this.width / 2)
       // - 5 is an unashamed hack to prevent clipping on characters that go
       // below the font baseline
       .attr("y", this.height + this.margin.bottom - 5)
       .style("text-anchor", "middle")
-      .text(this.axisSettingX == "time" ? "Time (s)" : "Inputs")
+      .text(xLabelText)
+
+    prependIcon(xTextElement, xIcon, "horizontal")
 
     this.chartArea
       .on("mousemove", event => {
         const [mouseX, mouseY] = d3.pointer(event)
-        let closestReport = null as GraphReport | null
-        let closestDistance = Infinity
-
-        Array.from(this.reports.values()).forEach(reports => {
-          if (!reports || reports.length === 0) return
-
-          reports
-            .sortKey(report => [this.xValue(report)])
-            .forEach(report => {
-              const distance = Math.sqrt(
-                (this.viewportX(this.xValue(report)) - mouseX) ** 2 +
-                  (this.viewportY(this.yValue(report)) - mouseY) ** 2,
-              )
-
-              if (distance < closestDistance && distance < distanceThreshold) {
-                closestDistance = distance
-                closestReport = report
-              }
-            })
-        })
+        const closestReport = this.quadtree.find(mouseX, mouseY, distanceThreshold)
 
         if (closestReport) {
           this.tooltip
@@ -215,9 +297,10 @@ class Graph {
       })
 
     this.drawLines()
+    this.updateQuadtree()
   }
 
-  private createXAxis(scale: d3.ScaleContinuousNumeric<number, number>) {
+  private createXAxis(scale: ScaleContinuousNumeric<number, number>) {
     if (this.scaleSetting === "log") {
       const maxValue = scale.domain()[1]
       const tickValues = [0]
@@ -252,11 +335,20 @@ class Graph {
     }
   }
 
-  private createYAxis(scale: d3.ScaleContinuousNumeric<number, number>) {
+  private createYAxis(scale: ScaleContinuousNumeric<number, number>) {
     return d3.axisLeft(scale).ticks(5)
   }
 
-  zoomTo(transform: d3.ZoomTransform, zoomY: boolean) {
+  private updateQuadtree() {
+    const allReports = Array.from(this.reports.values()).flat()
+    this.quadtree = d3
+      .quadtree<GraphReport>()
+      .x(d => this.viewportX(this.xValue(d)))
+      .y(d => this.viewportY(this.yValue(d)))
+      .addAll(allReports)
+  }
+
+  zoomTo(transform: ZoomTransform, zoomY: boolean) {
     const x = transform.rescaleX(this.x)
     const y = zoomY ? transform.rescaleY(this.y) : this.y
 
@@ -276,6 +368,8 @@ class Graph {
         .x(d => x(this.xValue(d)))
         .y(d => y(this.yValue(d))),
     )
+
+    this.updateQuadtree()
   }
 
   drawLines() {
@@ -408,11 +502,12 @@ export function CoverageGraph({ tests, filterString = "" }: Props) {
   )
   const [forceUpdate, setForceUpdate] = useState(true)
   const [zoomTransform, setZoomTransform] = useState<{
-    transform: d3.ZoomTransform | null
+    transform: ZoomTransform | null
     zoomY: boolean
   }>({ transform: null, zoomY: false })
   const [boxSelectEnabled, setBoxSelectEnabled] = useState(false)
   const navigate = useNavigate()
+  const isMobile = useIsMobile()
 
   const reports = useMemo(() => {
     return new Map(
@@ -496,6 +591,7 @@ export function CoverageGraph({ tests, filterString = "" }: Props) {
       axisSettingX,
       axisSettingY,
       navigate,
+      isMobile,
     )
 
     if (zoomTransform.transform) {
@@ -504,12 +600,9 @@ export function CoverageGraph({ tests, filterString = "" }: Props) {
 
     graph.zoomTo(zoomTransform.transform ?? d3.zoomIdentity, zoomTransform.zoomY)
 
-    graph.zoom.on(
-      "zoom.saveTransform",
-      (event: d3.D3ZoomEvent<SVGGElement, unknown>) => {
-        setZoomTransform({ transform: event.transform, zoomY: false })
-      },
-    )
+    graph.zoom.on("zoom.saveTransform", (event: D3ZoomEvent<SVGGElement, unknown>) => {
+      setZoomTransform({ transform: event.transform, zoomY: false })
+    })
 
     if (boxSelectEnabled) {
       graph.enableBoxBrush()
@@ -550,24 +643,56 @@ export function CoverageGraph({ tests, filterString = "" }: Props) {
           value={axisSettingY}
           onChange={setAxisSettingY}
           options={[
-            { value: "behaviors", label: "Behaviors" },
-            { value: "fingerprints", label: "Fingerprints" },
+            {
+              value: "behaviors",
+              content: (
+                <>
+                  <FontAwesomeIcon icon={faCodeBranch} /> Behaviors
+                </>
+              ),
+              mobileContent: <FontAwesomeIcon icon={faCodeBranch} />,
+            },
+            {
+              value: "fingerprints",
+              content: (
+                <>
+                  <FontAwesomeIcon icon={faFingerprint} /> Fingerprints
+                </>
+              ),
+              mobileContent: <FontAwesomeIcon icon={faFingerprint} />,
+            },
           ]}
         />
         <Toggle
           value={axisSettingX}
           onChange={setAxisSettingX}
           options={[
-            { value: "inputs", label: "Inputs" },
-            { value: "time", label: "Time" },
+            {
+              value: "inputs",
+              content: (
+                <>
+                  <FontAwesomeIcon icon={faHashtag} /> Inputs
+                </>
+              ),
+              mobileContent: <FontAwesomeIcon icon={faHashtag} />,
+            },
+            {
+              value: "time",
+              content: (
+                <>
+                  <FontAwesomeIcon icon={faClock} /> Time
+                </>
+              ),
+              mobileContent: <FontAwesomeIcon icon={faClock} />,
+            },
           ]}
         />
         <Toggle
           value={scaleSetting}
           onChange={setScaleSetting}
           options={[
-            { value: "linear", label: "Linear" },
-            { value: "log", label: "Log" },
+            { value: "linear", content: "Linear" },
+            { value: "log", content: "Log" },
           ]}
         />
       </div>

@@ -1,23 +1,27 @@
-import { useParams, Link } from "react-router-dom"
-import { CoverageGraph } from "../components/CoverageGraph"
-import { useData } from "../context/DataProvider"
-import { getTestStats } from "../utils/testStats"
-import { Table } from "../components/Table"
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
-import {
-  faHashtag,
-  faCodeBranch,
-  faTachometerAlt,
-  faClock,
-  faSeedling,
-  faFingerprint,
-} from "@fortawesome/free-solid-svg-icons"
-import { StatusPill } from "../components/StatusPill"
-import { Tooltip } from "../components/Tooltip"
-import hljs from "highlight.js/lib/core"
 import "highlight.js/styles/github.css"
+
+import {
+  faArrowLeft,
+  faClock,
+  faCodeBranch,
+  faFingerprint,
+  faHashtag,
+  faSeedling,
+  faTachometerAlt,
+} from "@fortawesome/free-solid-svg-icons"
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
+import hljs from "highlight.js/lib/core"
 import python from "highlight.js/lib/languages/python"
+import { Link, useParams } from "react-router-dom"
+
+import { Collapsible } from "../components/Collapsible"
+import { CoverageGraph } from "../components/CoverageGraph"
+import { StatusPill } from "../components/StatusPill"
+import { Table } from "../components/Table"
+import { Tooltip } from "../components/Tooltip"
+import { useData } from "../context/DataProvider"
 import { Tyche } from "../tyche/Tyche"
+import { getTestStats } from "../utils/testStats"
 
 hljs.registerLanguage("python", python)
 
@@ -108,40 +112,47 @@ export function TestPage() {
   ]
 
   return (
-    <div className="test-details">
+    <>
       <Link to="/" className="back-link">
-        ← Back to all tests
+        <FontAwesomeIcon icon={faArrowLeft} /> Back to all tests
       </Link>
-      <div>
-        <span
-          style={{
-            wordBreak: "break-all",
-            fontSize: "1.5rem",
-            fontWeight: "bold",
-            marginRight: "0.7rem",
-          }}
-        >
-          {nodeid}
-        </span>
-        <StatusPill status={test.status} />
-      </div>
-      <div style={{ paddingTop: "1rem", paddingBottom: "1rem" }}>
-        <Table
-          headers={headers}
-          data={[stats]}
-          row={item => [
-            <div style={{ fontVariantNumeric: "tabular-nums" }}>{item.inputs}</div>,
-            <div style={{ fontVariantNumeric: "tabular-nums" }}>{item.behaviors}</div>,
-            <div style={{ fontVariantNumeric: "tabular-nums" }}>
-              {item.fingerprints}
-            </div>,
-            <div style={{ fontVariantNumeric: "tabular-nums" }}>{item.executions}</div>,
-            <div style={{ fontVariantNumeric: "tabular-nums" }}>
-              {item.inputsSinceBranch}
-            </div>,
-            <div style={{ fontVariantNumeric: "tabular-nums" }}>{item.timeSpent}</div>,
-          ]}
-        />
+      <div className="card">
+        <div style={{ display: "flex", alignItems: "center", gap: "0.7rem" }}>
+          <span
+            style={{
+              wordBreak: "break-all",
+              fontSize: "1.5rem",
+              fontWeight: "bold",
+            }}
+          >
+            {nodeid}
+          </span>
+          <StatusPill status={test.status} />
+        </div>
+        <div style={{ paddingTop: "1rem", paddingBottom: "1rem" }}>
+          <Table
+            headers={headers}
+            data={[stats]}
+            row={item => [
+              <div style={{ fontVariantNumeric: "tabular-nums" }}>{item.inputs}</div>,
+              <div style={{ fontVariantNumeric: "tabular-nums" }}>
+                {item.behaviors}
+              </div>,
+              <div style={{ fontVariantNumeric: "tabular-nums" }}>
+                {item.fingerprints}
+              </div>,
+              <div style={{ fontVariantNumeric: "tabular-nums" }}>
+                {item.executions}
+              </div>,
+              <div style={{ fontVariantNumeric: "tabular-nums" }}>
+                {item.inputsSinceBranch}
+              </div>,
+              <div style={{ fontVariantNumeric: "tabular-nums" }}>
+                {item.timeSpent}
+              </div>,
+            ]}
+          />
+        </div>
       </div>
       <CoverageGraph tests={new Map([[nodeid, test]])} />
       <Tyche test={test} />
@@ -166,6 +177,6 @@ export function TestPage() {
           </div>
         </div>
       )}
-    </div>
+    </>
   )
 }

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useEffect, useState } from "react"
 
 export function useSetting<T>(key: string, defaultValue: T): [T, (value: T) => void] {
   const [value, setValue] = useState<T>(() => {

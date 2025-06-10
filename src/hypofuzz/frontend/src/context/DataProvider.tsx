@@ -1,10 +1,13 @@
 import React, {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useReducer,
   useState,
 } from "react"
+
+import { NOT_PRESENT_STRING, PRESENT_STRING } from "../tyche/Tyche"
 import { Observation, Report, Test } from "../types/dashboard"
 
 interface DataContextType {
@@ -52,6 +55,47 @@ type TestsAction =
       observation_type: "rolling" | "corpus"
       observations: Observation[]
     }
+
+function prepareObservations(observations: Observation[]) {
+  // compute uniqueness
+  const reprCounts = new Map<string, number>()
+  observations.forEach(obs => {
+    reprCounts.set(obs.representation, (reprCounts.get(obs.representation) || 0) + 1)
+  })
+
+  observations.forEach(observation => {
+    const count = reprCounts.get(observation.representation)!
+    observation.isUnique = count == 1
+    observation.isDuplicate = count > 1
+  })
+
+  // We want tyche to be able to rely on observations having a value for every feature. This makes
+  // things easier for e.g. the sorting logic. To support this, first make a set of all features.
+  // Then, for each observation, if that feature is not present, insert it with value "Not present".
+  //
+  // Also, if an observation's feature value is ever "", change that to "Present". These come from
+  // e.g. ``event(value)``, without an associated payload.
+  const features = new Set<string>()
+  observations.forEach(obs => {
+    obs.features.forEach((_value, feature) => {
+      features.add(feature)
+    })
+  })
+
+  observations.forEach(obs => {
+    features.forEach(feature => {
+      if (!obs.features.has(feature)) {
+        obs.features.set(feature, NOT_PRESENT_STRING)
+      }
+    })
+
+    for (const [feature, value] of obs.features) {
+      if (value === "") {
+        obs.features.set(feature, PRESENT_STRING)
+      }
+    }
+  })
+}
 
 function testsReducer(
   state: Map<string, Test>,
@@ -105,11 +149,13 @@ function testsReducer(
         //
         // this is a good candidate for a proper nlogn SortedList
         test.rolling_observations = test.rolling_observations
-          .sortKey(observation => observation.run_start)
-          .slice(-300)
+          .sortKey(observation => -observation.run_start)
+          .slice(0, 300)
+        prepareObservations(test.rolling_observations)
       } else {
         console.assert(observation_type === "corpus")
         test.corpus_observations.push(...observations)
+        prepareObservations(test.corpus_observations)
       }
       return newState
     }
@@ -125,15 +171,29 @@ export function DataProvider({ children }: DataProviderProps) {
   const [loadData, setLoadData] = useState(false)
   const [nodeid, setNodeid] = useState<string | null>(null)
 
-  const doLoadData = (nodeid: string | null) => {
+  const doLoadData = useCallback((nodeid: string | null) => {
     setLoadData(true)
     setNodeid(nodeid)
-  }
+  }, [])
 
   useEffect(() => {
     if (!loadData) {
       return
     }
+
+    // clear `tests` whenever we navigate to a new page. We want to avoid the following:
+    //
+    // * navigate to page A
+    //   * tests[A] = v1
+    // * navigate to page B
+    //   * tests[B] = v2
+    // * navigate back to page A
+    //   * tests[A] = v1 + v1
+    //
+    // where the data in tests[A] gets doubled because we sent multiple e.g. ADD_REPORTS events,
+    // where the backend re-sent the entire reports list under the assumption this was a fresh
+    // page load, but the frontend simply appends them and duplicates the data.
+    tests.clear()
 
     // load data from local dashboard state json files iff the appropriate env var was set
     // during building.
@@ -292,6 +352,9 @@ export function useData(nodeid: string | null = null) {
     throw new Error("useData must be used within a DataProvider")
   }
 
-  context.doLoadData(nodeid)
+  useEffect(() => {
+    context.doLoadData(nodeid)
+  }, [nodeid, context.doLoadData])
+
   return context
 }

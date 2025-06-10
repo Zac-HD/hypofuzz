@@ -1,8 +1,10 @@
-import { useEffect, useState } from "react"
-import { fetchData } from "../utils/api"
-import hljs from "highlight.js/lib/core"
 import "highlight.js/styles/github.css"
+
+import hljs from "highlight.js/lib/core"
 import diff from "highlight.js/lib/languages/diff"
+import { useEffect, useState } from "react"
+
+import { fetchData } from "../utils/api"
 
 hljs.registerLanguage("diff", diff)
 
