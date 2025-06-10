@@ -62,7 +62,7 @@ def test_database_state():
 
     observations = list(db.fetch_corpus_observations(key, (2,)))
     assert len(observations) == 1
-    assert observations[0].property == "test_database_state.<locals>.test_a"
+    assert observations[0].property == "test_a"
 
     reports = list(db.fetch_reports(key))
     assert reports[0].phase is Phase.GENERATE
@@ -83,7 +83,7 @@ def test_database_state():
 
     observations = list(db.fetch_corpus_observations(key, (1,)))
     assert len(observations) == 1
-    assert observations[0].property == "test_database_state.<locals>.test_a"
+    assert observations[0].property == "test_a"
 
     reports = list(db.fetch_reports(key))
     assert len(reports) == 2
