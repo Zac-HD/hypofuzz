@@ -1,5 +1,6 @@
 import React, {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useReducer,
@@ -170,10 +171,10 @@ export function DataProvider({ children }: DataProviderProps) {
   const [loadData, setLoadData] = useState(false)
   const [nodeid, setNodeid] = useState<string | null>(null)
 
-  const doLoadData = (nodeid: string | null) => {
+  const doLoadData = useCallback((nodeid: string | null) => {
     setLoadData(true)
     setNodeid(nodeid)
-  }
+  }, [])
 
   useEffect(() => {
     if (!loadData) {
@@ -351,6 +352,9 @@ export function useData(nodeid: string | null = null) {
     throw new Error("useData must be used within a DataProvider")
   }
 
-  context.doLoadData(nodeid)
+  useEffect(() => {
+    context.doLoadData(nodeid)
+  }, [nodeid, context.doLoadData])
+
   return context
 }

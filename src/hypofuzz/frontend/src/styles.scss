@@ -638,14 +638,14 @@ $mobile-breakpoint: 768px;
 // unset some hljs styles to give us more customization control (e.g.,
 // over padding)
 .hljs {
-    background: unset;
-    padding: unset;
+    background: unset !important;
+    padding: unset !important;
 }
 
 pre code.hljs {
-    padding: unset;
-    overflow-x: unset;
-    padding: unset;
+    padding: unset !important;
+    overflow-x: unset !important;
+    padding: unset !important;
 }
 
 .tyche {
