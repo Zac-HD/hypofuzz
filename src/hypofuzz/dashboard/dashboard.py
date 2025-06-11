@@ -31,6 +31,7 @@ from hypofuzz.dashboard.models import (
     DashboardEventType,
     dashboard_observation,
     dashboard_report,
+    dashboard_test,
 )
 from hypofuzz.dashboard.patching import make_and_save_patches
 from hypofuzz.dashboard.test import Test
@@ -46,6 +47,7 @@ from hypofuzz.database import (
 )
 from hypofuzz.hypofuzz import FuzzProcess
 from hypofuzz.interface import CollectionResult
+from hypofuzz.utils import convert_to_fuzzjson
 
 # these two test dicts always contain the same values, just with different access
 # keys
@@ -98,12 +100,13 @@ def _sample_reports(
 
 class HypofuzzJSONResponse(JSONResponse):
     def render(self, content: Any) -> bytes:
-        return json.dumps(
-            content,
+        data = json.dumps(
+            convert_to_fuzzjson(content),
             ensure_ascii=False,
             separators=(",", ":"),
             cls=HypofuzzEncoder,
-        ).encode("utf-8", errors="surrogatepass")
+        )
+        return data.encode("utf-8", errors="surrogatepass")
 
 
 class HypofuzzWebsocket(abc.ABC):
@@ -355,12 +358,14 @@ def try_format(code: str) -> str:
 
 
 async def api_tests(request: Request) -> Response:
-    return HypofuzzJSONResponse(TESTS)
+    return HypofuzzJSONResponse(
+        {nodeid: dashboard_test(test) for nodeid, test in TESTS.items()}
+    )
 
 
 async def api_test(request: Request) -> Response:
     nodeid = request.path_params["nodeid"]
-    return HypofuzzJSONResponse(TESTS[nodeid])
+    return HypofuzzJSONResponse(dashboard_test(TESTS[nodeid]))
 
 
 def _patches() -> dict[str, str]:

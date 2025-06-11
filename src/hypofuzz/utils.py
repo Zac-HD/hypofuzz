@@ -2,6 +2,7 @@ import heapq
 import math
 import threading
 from collections.abc import Sequence
+from enum import Enum
 from typing import Any, Callable, Generic, Optional, TypeVar
 
 from hypofuzz.compat import bisect_right
@@ -14,7 +15,7 @@ FUZZJSON_NAN = "hypofuzz-nan-a928fa52b3ea4a9a9af36ccef7c6cf93"
 
 
 def convert_to_fuzzjson(value: Any) -> Any:
-    # converts a dict from e.g. json.dumps into "fuzzjson", which is json but
+    # converts a dict intended for json.dumps into "fuzzjson", which is json but
     # with ±math.inf and math.nan replaced by unique, stable strings, so the json
     # object can be parsed by JSON.parse in javascript instead of the slower
     # JSON5.parse.
@@ -33,6 +34,8 @@ def convert_to_fuzzjson(value: Any) -> Any:
         return [convert_to_fuzzjson(item) for item in value]
     elif isinstance(value, (bool, int, str, type(None))):
         return value
+    elif isinstance(value, Enum):
+        return convert_to_fuzzjson(value.value)
     else:
         raise ValueError(f"unknown type {type(value)} ({value!r})")
 

@@ -12,7 +12,7 @@ import sys
 import time
 from collections import defaultdict
 from collections.abc import Callable, Generator
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from enum import IntEnum
 from functools import lru_cache
 from pathlib import Path
@@ -21,6 +21,7 @@ from typing import Any, Optional, Union
 from uuid import uuid4
 
 import hypothesis
+import pytest
 from hypothesis import HealthCheck, settings
 from hypothesis.core import (
     StateForActualGivenExecution,
@@ -37,8 +38,16 @@ from hypothesis.internal.conjecture.data import (
     _Overrun,
 )
 from hypothesis.internal.conjecture.engine import RunIsComplete
-from hypothesis.internal.observability import TESTCASE_CALLBACKS
-from hypothesis.internal.reflection import function_digest, get_signature
+from hypothesis.internal.escalation import current_pytest_item
+from hypothesis.internal.observability import (
+    TESTCASE_CALLBACKS,
+    Observation as HypothesisObservation,
+)
+from hypothesis.internal.reflection import (
+    function_digest,
+    get_pretty_function_description,
+    get_signature,
+)
 from hypothesis.reporting import with_reporter
 from sortedcontainers import SortedKeyList, SortedList
 
@@ -64,7 +73,7 @@ from hypofuzz.database import (
 )
 from hypofuzz.mutator import BlackBoxMutator, CrossOverMutator
 from hypofuzz.provider import HypofuzzProvider
-from hypofuzz.utils import Value, convert_to_fuzzjson, lerp
+from hypofuzz.utils import Value, lerp
 
 process_uuid = uuid4().hex
 
@@ -117,8 +126,8 @@ class FuzzProcess:
         wrapped_test: Any,
         *,
         database: HypofuzzDatabase,
-        nodeid: Optional[str] = None,
         extra_kw: Optional[dict[str, object]] = None,
+        pytest_item: Optional[pytest.Item] = None,
     ) -> "FuzzProcess":
         """Return a FuzzProcess for an @given-decorated test function."""
         _, _, stuff = process_arguments_to_given(
@@ -132,10 +141,10 @@ class FuzzProcess:
         return cls(
             test_fn=wrapped_test.hypothesis.inner_test,
             stuff=stuff,
-            nodeid=nodeid,
             database=database,
             database_key=function_digest(wrapped_test.hypothesis.inner_test),
             wrapped_test=wrapped_test,
+            pytest_item=pytest_item,
         )
 
     def __init__(
@@ -148,13 +157,16 @@ class FuzzProcess:
         database: HypofuzzDatabase,
         database_key: bytes,
         wrapped_test: Callable,
+        pytest_item: Optional[pytest.Item] = None,
     ) -> None:
         """Construct a FuzzProcess from specific arguments."""
         # The actual fuzzer implementation
         self.random = Random(random_seed)
         self._test_fn = test_fn
         self._stuff = stuff
-        self.nodeid = nodeid or test_fn.__qualname__
+        self.nodeid = getattr(
+            pytest_item, "nodeid", None
+        ) or get_pretty_function_description(test_fn)
         self.database_key = database_key
         self.database_key_str = convert_db_key(self.database_key, to="str")
         self.db = database
@@ -167,6 +179,7 @@ class FuzzProcess:
             self.random,
             wrapped_test,
         )
+        self.pytest_item = pytest_item
 
         # The corpus is responsible for managing all seed state, including saving
         # novel seeds to the database.  This includes tracking how often each branch
@@ -467,33 +480,31 @@ class FuzzProcess:
         # inside the context manager. Yield a reference-forwarding Value instance.
         observation: Value[Optional[Observation]] = Value(None)
 
-        def callback(test_case: dict) -> None:
-            if test_case["type"] != "test_case":
+        def callback(h_observation: HypothesisObservation) -> None:
+            if h_observation.type != "test_case":
                 return
 
             # we should only get one observation per ConjectureData
             assert observation.value is None
 
-            # we rely on this for dashboard event mapping. Overwrite instead of
-            # adding a new "nodeid" field so that tyche also gets a matching nodeid.
-            # Hypothesis provides the function name here instead of the nodeid
-            # because it doesn't find a pytest item context (I didn't look further
-            # than that).
-            test_case["property"] = self.nodeid
             # run_start is relative to StateForActualGivenExecution, which we
             # re-use per FuzzProcess. Overwrite with the current timestamp for use
             # in sorting observations. This is not perfectly reliable in a
             # distributed setting, but is good enough.
-            test_case["run_start"] = time.time()
+            h_observation.run_start = time.time()
             # "arguments" duplicates part of the call repr in "representation".
             # We don't use this for anything, so drop it.
-            test_case["arguments"] = {}
-            test_case = convert_to_fuzzjson(test_case)
-            observation.value = Observation.from_dict(test_case)
+            h_observation.arguments = {}
+            observation.value = Observation.from_hypothesis(h_observation)
 
         TESTCASE_CALLBACKS.append(callback)
         try:
-            yield observation
+            with (
+                current_pytest_item.with_value(self.pytest_item)  # type: ignore
+                if self.pytest_item is not None
+                else nullcontext()
+            ):
+                yield observation
         finally:
             TESTCASE_CALLBACKS.remove(callback)
 
