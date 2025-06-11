@@ -18,54 +18,48 @@ make_patch_cached = lru_cache(maxsize=1024)(make_patch)
 
 
 def make_and_save_patches(
-    fuzz_targets: list[FuzzProcess],
-    tests: dict[str, "Test"],
+    fuzz_target: FuzzProcess,
+    test: "Test",
     *,
     canonical: bool = True,
 ) -> dict[str, Path]:
-    triples_all: list = []
-    triples_cov: list = []
-    triples_fail: list = []
+    triples_covering: list = []
+    triples_failing: list = []
 
-    test_functions = {t.nodeid: t._test_fn for t in fuzz_targets}
-    for nodeid, test in tests.items():
-        # for each func
-        #   - only strip_via if replay is complete
-        #   - only add failing if not currently shrinking
-        #   - tag covering examples with covering-via
-        assert nodeid in test_functions
-        test_fn = test_functions[nodeid]
+    # - only strip_via if replay is complete
+    # - only add failing if not currently shrinking
+    # - tag covering examples with covering-via
 
-        failing_examples = []
-        covering_examples = []
+    failing_examples = []
+    covering_examples = []
 
-        if test.failure:
-            failing_examples.append((test.failure.metadata.traceback, FAIL_MSG))
+    if test.failure:
+        failing_examples.append((test.failure.representation, FAIL_MSG))
 
-        if test.phase is not Phase.REPLAY:
-            covering_examples = [
-                (observation.representation, COV_MSG)
-                for observation in test.corpus_observations
-            ]
+    if test.phase is not Phase.REPLAY:
+        covering_examples = [
+            (observation.representation, COV_MSG)
+            for observation in test.corpus_observations
+        ]
 
-        for out, examples, strip_via in [
-            (triples_fail, failing_examples, ()),
-            (triples_cov, covering_examples, (COV_MSG,)),
-            (triples_all, failing_examples + covering_examples, (COV_MSG,)),
-        ]:
-            if examples:
-                xs = get_patch_for_cached(test_fn, tuple(examples), strip_via=strip_via)  # type: ignore
-                if xs:
-                    out.append(xs)
+    for triples, examples, strip_via in [
+        (triples_failing, failing_examples, ()),
+        (triples_covering, covering_examples, (COV_MSG,)),
+    ]:
+        if examples:
+            patch = get_patch_for_cached(
+                fuzz_target._test_fn, tuple(examples), strip_via=strip_via
+            )
+            if patch:
+                triples.append(patch)
 
     result = {}
     for key, triples in [
-        ("all", triples_all),
-        ("cov", triples_cov),
-        ("fail", triples_fail),
+        ("covering", triples_covering),
+        ("failing", triples_failing),
     ]:
         if triples:
-            patch = make_patch_cached(tuple(sorted(triples)))
+            patch = make_patch_cached(tuple(sorted(triples)), msg=f"add {key} examples")
             result[key] = save_patch(patch, slug="hypofuzz-")
             # Note that these canonical-latest locations *must* remain stable,
             # making it practical to upload them as artifacts from CI systems.

@@ -380,22 +380,39 @@ async def api_test(request: Request) -> Response:
     return HypofuzzJSONResponse(dashboard_test(TESTS[nodeid]))
 
 
-def _patches() -> dict[str, str]:
+def _patches() -> dict[str, dict[str, str]]:
     assert COLLECTION_RESULT is not None
-    patches = make_and_save_patches(COLLECTION_RESULT.fuzz_targets, TESTS)
-    return {name: str(patch_path.read_text()) for name, patch_path in patches.items()}
+    return {
+        target.nodeid: {
+            name: str(patch_path.read_text())
+            for name, patch_path in make_and_save_patches(
+                target, TESTS[target.nodeid]
+            ).items()
+        }
+        for target in COLLECTION_RESULT.fuzz_targets
+    }
 
 
 async def api_patches(request: Request) -> Response:
+    assert COLLECTION_RESULT is not None
     return HypofuzzJSONResponse(_patches())
 
 
 async def api_patch(request: Request) -> Response:
-    patch_name = request.path_params["patch_name"]
-    patches = _patches()
-    if patch_name not in patches:
+    assert COLLECTION_RESULT is not None
+    nodeid = request.path_params["nodeid"]
+    targets = [
+        target for target in COLLECTION_RESULT.fuzz_targets if target.nodeid == nodeid
+    ]
+    if not targets:
         return Response(status_code=404)
-    return Response(content=patches[patch_name], media_type="text/x-patch")
+
+    assert len(targets) == 1
+    target = targets[0]
+    patches = make_and_save_patches(target, TESTS[nodeid])
+    return HypofuzzJSONResponse(
+        {name: str(p.read_text()) for name, p in patches.items()}
+    )
 
 
 def _collection_status() -> list[dict[str, Any]]:
@@ -473,8 +490,7 @@ routes = [
     WebSocketRoute("/ws", websocket),
     Route("/api/tests/", api_tests),
     Route("/api/tests/{nodeid:path}", api_test),
-    Route("/api/patches/", api_patches),
-    Route("/api/patches/{patch_name}", api_patch),
+    Route("/api/patches/{nodeid:path}", api_patch),
     Route("/api/collected_tests/", api_collected_tests),
     Route("/api/backing_state/tests", api_backing_state_tests),
     Route("/api/backing_state/observations", api_backing_state_observations),

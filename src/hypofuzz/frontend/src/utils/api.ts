@@ -4,7 +4,19 @@ export async function fetchData<T>(endpoint: string): Promise<T | null> {
       new URL(/* @vite-ignore */ "dashboard_state/api.json", import.meta.url),
     )
     const data = await response.json()
-    return data[endpoint.replace(/\/$/, "")]
+    const params = endpoint.split("/", 1)
+    let result = data
+    for (const param of params) {
+      if (param === "") {
+        break
+      }
+      console.assert(
+        Object.keys(result).includes(param),
+        `result=${JSON.stringify(result)}, params=${param}, param=${params}`,
+      )
+      result = result[param]
+    }
+    return result
   }
 
   try {
