@@ -525,12 +525,12 @@ class HypofuzzDatabase:
             elif (choices := choices_from_bytes(value)) is not None:
                 yield choices
 
-    # corpus observations (corpus_observe_key)
-
     def _check_observation(self, observation: Observation) -> None:
         # notably, not Hypothesis{Observation, Metadata}
         assert isinstance(observation, Observation)
         assert isinstance(observation.metadata, ObservationMetadata)
+
+    # corpus observations (corpus_observe_key)
 
     def save_corpus_observation(
         self,

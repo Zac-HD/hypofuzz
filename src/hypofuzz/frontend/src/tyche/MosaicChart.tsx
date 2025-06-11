@@ -1,8 +1,8 @@
 import { List, Set } from "immutable"
-import React, { useEffect, useMemo } from "react"
+import React, { useMemo } from "react"
 
 import { Observation } from "../types/dashboard"
-import { hideTooltip, moveTooltip, showTooltip } from "../utils/tooltip"
+import { useTooltip } from "../utils/tooltip"
 import { measureText } from "../utils/utils"
 import { Filter, useFilters } from "./FilterContext"
 
@@ -31,6 +31,7 @@ export function MosaicChart({
   cssStyle = (row, column) => ({}),
 }: MosaicChartProps) {
   const { filters, setFilters } = useFilters()
+  const { showTooltip, hideTooltip, moveTooltip } = useTooltip()
   const mosaicFilters = filters.get(name) || []
 
   const selectedCells = useMemo(() => {
@@ -182,12 +183,6 @@ export function MosaicChart({
     newFilters.set(name, mosaicFilters)
     setFilters(newFilters)
   }
-
-  useEffect(() => {
-    return () => {
-      hideTooltip()
-    }
-  }, [observations])
 
   if (visibleRows.length === 0 || visibleCols.length === 0) {
     return <div>No observations</div>
@@ -341,6 +336,8 @@ export function MosaicChart({
               }
 
               const isSelected = selectedCells.has(List([rowIndex, colIndex]))
+              const tooltipContent = `${verticalAxis[rowIndex][0]} and ${horizontalAxis[colIndex][0]}<br>Count: ${cell.count}`
+
               return (
                 <div
                   key={`cell-${rowIndex}-${colIndex}`}
@@ -352,15 +349,8 @@ export function MosaicChart({
                     ...cssStyle(verticalAxis[rowIndex][0], horizontalAxis[colIndex][0]),
                   }}
                   onClick={() => onCellClick(rowIndex, colIndex)}
-                  onMouseEnter={e =>
-                    showTooltip(
-                      `${verticalAxis[rowIndex][0]} and ${horizontalAxis[colIndex][0]}
-                      <br>Count: ${cell.count}`,
-                      e.pageX,
-                      e.pageY,
-                    )
-                  }
-                  onMouseMove={e => moveTooltip(e.pageX, e.pageY)}
+                  onMouseEnter={e => showTooltip(tooltipContent, e.clientX, e.clientY)}
+                  onMouseMove={e => moveTooltip(e.clientX, e.clientY)}
                   onMouseLeave={hideTooltip}
                 >
                   <span className="tyche__mosaic__cell-value">{cell.count}</span>

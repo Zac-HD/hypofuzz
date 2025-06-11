@@ -31,6 +31,7 @@ from hypofuzz.dashboard.models import (
     DashboardEventType,
     dashboard_observation,
     dashboard_report,
+    dashboard_test,
 )
 from hypofuzz.dashboard.patching import make_and_save_patches
 from hypofuzz.dashboard.test import Test
@@ -100,12 +101,11 @@ def _sample_reports(
 class HypofuzzJSONResponse(JSONResponse):
     def render(self, content: Any) -> bytes:
         data = json.dumps(
-            content,
+            convert_to_fuzzjson(content),
             ensure_ascii=False,
             separators=(",", ":"),
             cls=HypofuzzEncoder,
         )
-        data: str = convert_to_fuzzjson(data)
         return data.encode("utf-8", errors="surrogatepass")
 
 
@@ -358,12 +358,14 @@ def try_format(code: str) -> str:
 
 
 async def api_tests(request: Request) -> Response:
-    return HypofuzzJSONResponse(TESTS)
+    return HypofuzzJSONResponse(
+        {nodeid: dashboard_test(test) for nodeid, test in TESTS.items()}
+    )
 
 
 async def api_test(request: Request) -> Response:
     nodeid = request.path_params["nodeid"]
-    return HypofuzzJSONResponse(TESTS[nodeid])
+    return HypofuzzJSONResponse(dashboard_test(TESTS[nodeid]))
 
 
 def _patches() -> dict[str, str]:

@@ -601,6 +601,9 @@ $mobile-breakpoint: 768px;
     }
 }
 
+// these names aren't great, but .tooltip is for static hover-tooltips (like on
+// the test table columns (fingerprints/etc)), while .cursor-tooltip is for dynamic
+// tooltip bubbles that follow the cursor location.
 .tooltip {
     position: relative;
     border-bottom: 2px dotted #666;
@@ -633,6 +636,18 @@ $mobile-breakpoint: 768px;
             opacity: 1;
         }
     }
+}
+
+.cursor-tooltip {
+    position: absolute;
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+    border-radius: 4px;
+    padding: 8px;
+    font-size: 12px;
+    pointer-events: none;
+    z-index: 10;
+    display: none;
 }
 
 // unset some hljs styles to give us more customization control (e.g.,
