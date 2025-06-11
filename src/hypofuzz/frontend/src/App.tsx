@@ -1,3 +1,4 @@
+import React from "react"
 import { BrowserRouter, HashRouter, Route, Routes } from "react-router-dom"
 
 import { Layout } from "./components/Layout"
@@ -7,6 +8,7 @@ import { NotFoundPage } from "./pages/NotFound"
 import { PatchesPage } from "./pages/Patches"
 import { TestPage } from "./pages/Test"
 import { TestsPage } from "./pages/Tests"
+import { TooltipProvider } from "./utils/tooltip"
 
 export function App() {
   const Router =
@@ -15,15 +17,17 @@ export function App() {
   return (
     <Router>
       <DataProvider>
-        <Routes>
-          <Route element={<Layout />}>
-            <Route path="/" element={<TestsPage />} />
-            <Route path="/patches" element={<PatchesPage />} />
-            <Route path="/collected" element={<CollectionStatusPage />} />
-            <Route path="/tests/:nodeid" element={<TestPage />} />
-            <Route path="*" element={<NotFoundPage />} />
-          </Route>
-        </Routes>
+        <TooltipProvider>
+          <Routes>
+            <Route element={<Layout />}>
+              <Route path="/" element={<TestsPage />} />
+              <Route path="/patches" element={<PatchesPage />} />
+              <Route path="/collected" element={<CollectionStatusPage />} />
+              <Route path="/tests/:nodeid" element={<TestPage />} />
+              <Route path="*" element={<NotFoundPage />} />
+            </Route>
+          </Routes>
+        </TooltipProvider>
       </DataProvider>
     </Router>
   )
