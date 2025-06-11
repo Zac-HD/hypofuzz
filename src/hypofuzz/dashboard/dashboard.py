@@ -29,6 +29,7 @@ from hypofuzz.dashboard.models import (
     AddTestsEvent,
     DashboardEventT,
     DashboardEventType,
+    SetStatusEvent,
     dashboard_observation,
     dashboard_report,
     dashboard_test,
@@ -125,11 +126,12 @@ class HypofuzzWebsocket(abc.ABC):
     async def send_event(self, event: DashboardEventT) -> None:
         await self.send_json(event)
 
-    @abc.abstractmethod
-    async def initial(self, tests: dict[str, Test]) -> None:
+    async def on_connect(self) -> None:
         pass
 
-    @abc.abstractmethod
+    async def send_tests(self, tests: dict[str, Test]) -> None:
+        pass
+
     async def on_event(
         self, event_type: Literal["save", "delete"], key: DatabaseEventKey, value: Any
     ) -> None:
@@ -137,7 +139,16 @@ class HypofuzzWebsocket(abc.ABC):
 
 
 class OverviewWebsocket(HypofuzzWebsocket):
-    async def initial(self, tests: dict[str, Test]) -> None:
+    async def send_tests(self, tests: dict[str, Test]) -> None:
+        assert COLLECTION_RESULT is not None
+
+        event: SetStatusEvent = {
+            "type": DashboardEventType.SET_STATUS,
+            "count_tests": len(COLLECTION_RESULT.fuzz_targets),
+            "count_tests_loaded": len(TESTS),
+        }
+        await self.send_event(event)
+
         # we start by sending all tests, which is the most important
         # thing for the user to see first.
         event: AddTestsEvent = {
@@ -209,7 +220,7 @@ class TestWebsocket(HypofuzzWebsocket):
         super().__init__(websocket)
         self.nodeid = nodeid
 
-    async def initial(self, tests: dict[str, Test]) -> None:
+    async def send_tests(self, tests: dict[str, Test]) -> None:
         if self.nodeid not in tests:
             return
         test = tests[self.nodeid]
@@ -333,7 +344,8 @@ async def websocket(websocket: WebSocket) -> None:
     await websocket.accept()
     websockets.add(websocket)
 
-    await websocket.initial(TESTS)
+    await websocket.on_connect()
+    await websocket.send_tests(TESTS)
 
     try:
         while True:
@@ -635,7 +647,7 @@ async def load_initial_state(fuzz_target: FuzzProcess) -> None:
         # TODO: make this more granular? So we send incremental batches
         # of reports as they're loaded, etc. Would need trio.from_thread inside
         # _load_initial_state.
-        await websocket.initial({test.nodeid: test})
+        await websocket.send_tests({test.nodeid: test})
 
 
 async def run_dashboard(port: int, host: str) -> None:

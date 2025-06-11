@@ -3,6 +3,7 @@ import { BrowserRouter, HashRouter, Route, Routes } from "react-router-dom"
 
 import { Layout } from "./components/Layout"
 import { DataProvider } from "./context/DataProvider"
+import { NotificationProvider } from "./context/NotificationProvider"
 import { CollectionStatusPage } from "./pages/CollectionStatus"
 import { NotFoundPage } from "./pages/NotFound"
 import { PatchesPage } from "./pages/Patches"
@@ -16,19 +17,21 @@ export function App() {
 
   return (
     <Router>
-      <DataProvider>
-        <TooltipProvider>
-          <Routes>
-            <Route element={<Layout />}>
-              <Route path="/" element={<TestsPage />} />
-              <Route path="/patches" element={<PatchesPage />} />
-              <Route path="/collected" element={<CollectionStatusPage />} />
-              <Route path="/tests/:nodeid" element={<TestPage />} />
-              <Route path="*" element={<NotFoundPage />} />
-            </Route>
-          </Routes>
-        </TooltipProvider>
-      </DataProvider>
+      <NotificationProvider>
+        <DataProvider>
+          <TooltipProvider>
+            <Routes>
+              <Route element={<Layout />}>
+                <Route path="/" element={<TestsPage />} />
+                <Route path="/patches" element={<PatchesPage />} />
+                <Route path="/collected" element={<CollectionStatusPage />} />
+                <Route path="/tests/:nodeid" element={<TestPage />} />
+                <Route path="*" element={<NotFoundPage />} />
+              </Route>
+            </Routes>
+          </TooltipProvider>
+        </DataProvider>
+      </NotificationProvider>
     </Router>
   )
 }
