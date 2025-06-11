@@ -9,7 +9,7 @@ import { Set } from "immutable"
 import { useEffect, useMemo, useRef } from "react"
 
 import { Observation } from "../types/dashboard"
-import { hideTooltip, moveTooltip, showTooltip } from "../utils/tooltip"
+import { useTooltip } from "../utils/tooltip"
 import { max, sum } from "../utils/utils"
 import { Filter, useFilters } from "./FilterContext"
 import { TYCHE_COLOR } from "./Tyche"
@@ -37,6 +37,7 @@ export function NominalChart({ feature, observations }: NominalChartProps) {
   const parentRef = useRef<HTMLDivElement>(null)
   const svgRef = useRef<SVGSVGElement>(null)
   const { filters, setFilters } = useFilters()
+  const { showTooltip, hideTooltip, moveTooltip } = useTooltip()
   const nominalFilters = filters.get(feature) || []
 
   const selectedValues = useMemo(() => {
@@ -129,7 +130,7 @@ export function NominalChart({ feature, observations }: NominalChartProps) {
 
     const showTooltipHandler = function (event: MouseEvent, d: [string, number]) {
       const [label, count] = d
-      showTooltip(`${feature}<br>${label}: ${count}`, event.pageX, event.pageY)
+      showTooltip(`${feature}<br>${label}: ${count}`, event.clientX, event.clientY)
     }
 
     // use a horizontally-stacked bar chart for 1-4 different feature labels,
@@ -187,7 +188,7 @@ export function NominalChart({ feature, observations }: NominalChartProps) {
           .on("mouseover", event => {
             showTooltipHandler(event, [value, count])
           })
-          .on("mousemove", event => moveTooltip(event.pageX, event.pageY))
+          .on("mousemove", event => moveTooltip(event.clientX, event.clientY))
           .on("mouseleave", hideTooltip)
 
         // inner rect (for inset white border when selected)
@@ -263,7 +264,7 @@ export function NominalChart({ feature, observations }: NominalChartProps) {
         .on("mouseover", function (event, d) {
           showTooltipHandler(event, d)
         })
-        .on("mousemove", event => moveTooltip(event.pageX, event.pageY))
+        .on("mousemove", event => moveTooltip(event.clientX, event.clientY))
         .on("mouseleave", hideTooltip)
 
       g.selectAll(".inner-bar")
