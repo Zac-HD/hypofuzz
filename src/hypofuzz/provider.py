@@ -15,7 +15,7 @@ from enum import IntEnum
 from functools import lru_cache
 from pathlib import Path
 from random import Random
-from typing import Any, Optional, TypeVar, Union, cast
+from typing import Any, ClassVar, Optional, TypeVar, Union, cast
 from uuid import uuid4
 
 import hypothesis
@@ -109,6 +109,8 @@ ReplayQueueElement = tuple[ReplayPriority, ChoicesT, Optional[Any]]
 
 
 class HypofuzzProvider(PrimitiveProvider):
+    add_observability_callback: ClassVar[bool] = True
+
     def __init__(
         self,
         conjecturedata: Optional[ConjectureData],

@@ -38,8 +38,7 @@ def test_database_stores_reports_and_metadata_correctly(tmp_path):
 
 
 def test_database_state():
-    db = InMemoryExampleDatabase()
-    hypofuzz_db = HypofuzzDatabase(db)
+    db = HypofuzzDatabase(InMemoryExampleDatabase())
 
     @given(st.integers())
     def test_a(x):
@@ -59,14 +58,14 @@ def test_database_state():
     # * database_key.hypofuzz.corpus                    (1 element)
     # * database_key.hypofuzz.corpus.<hash>.observation (1 element)
     # * database_key.hypofuzz.reports                   (1 element)
-    assert len(hypofuzz_db._db.data.keys()) == 6
-    assert list(hypofuzz_db.fetch_corpus(key)) == [(2,)]
+    assert len(db._db.data.keys()) == 6
+    assert list(db.fetch_corpus(key)) == [(2,)]
 
-    observations = list(hypofuzz_db.fetch_corpus_observations(key, (2,)))
+    observations = list(db.fetch_corpus_observations(key, (2,)))
     assert len(observations) == 1
     assert observations[0].property == "test_a"
 
-    reports = list(hypofuzz_db.fetch_reports(key))
+    reports = list(db.fetch_reports(key))
     assert reports[0].phase is Phase.GENERATE
 
     # now we run a second input, which is better than the first input in coverage.
@@ -84,21 +83,20 @@ def test_database_state():
 
     # the key for the deleted observation sticks around in the database, it's
     # just an empty mapping.
-    assert len([k for k, v in hypofuzz_db._db.data.items() if v]) == 6
-    assert list(hypofuzz_db.fetch_corpus(key)) == [(1,)]
+    assert len([k for k, v in db._db.data.items() if v]) == 6
+    assert list(db.fetch_corpus(key)) == [(1,)]
 
-    observations = list(hypofuzz_db.fetch_corpus_observations(key, (1,)))
+    observations = list(db.fetch_corpus_observations(key, (1,)))
     assert len(observations) == 1
     assert observations[0].property == "test_a"
 
-    reports = list(hypofuzz_db.fetch_reports(key))
+    reports = list(db.fetch_reports(key))
     assert len(reports) == 2
     assert reports[0].phase is Phase.GENERATE
 
 
 def test_adds_failures_to_database():
-    db = InMemoryExampleDatabase()
-    hypofuzz_db = HypofuzzDatabase(db)
+    db = HypofuzzDatabase(InMemoryExampleDatabase())
 
     @given(st.integers(0, 10))
     def test_a(x):
@@ -108,15 +106,15 @@ def test_adds_failures_to_database():
     for _ in range(50):
         process.run_one()
 
-    failures = list(hypofuzz_db.fetch_failures(process.database_key, shrunk=True))
-    failures_hypothesis = list(hypofuzz_db._db.fetch(process.database_key))
+    failures = list(db.fetch_failures(process.database_key, shrunk=True))
+    failures_hypothesis = list(db._db.fetch(process.database_key))
     assert len(failures) == 1
     assert len(failures_hypothesis) == 1
     assert failures[0] == (10,)
     assert choices_from_bytes(failures_hypothesis[0]) == (10,)
 
     # we should have fully shrunk the failure
-    assert not list(hypofuzz_db.fetch_failures(process.database_key, shrunk=False))
+    assert not list(db.fetch_failures(process.database_key, shrunk=False))
 
 
 def test_database_keys_incorporate_parametrization(tmp_path):

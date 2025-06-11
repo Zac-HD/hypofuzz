@@ -679,8 +679,8 @@ def start_dashboard_process(
 ) -> None:
     from hypofuzz.interface import _get_hypothesis_tests_with_pytest
 
-    global db
     global COLLECTION_RESULT
+    global db
 
     # we run a pytest collection step for the dashboard to pick up on the database
     # from any custom profiles, and as a ground truth for what tests to display.

@@ -18,7 +18,9 @@ def test_fuzz_one_process():
     def test_a(x):
         pass
 
-    fp = FuzzProcess.from_hypothesis_test(test_a, database=InMemoryExampleDatabase())
+    fp = FuzzProcess.from_hypothesis_test(
+        test_a, database=HypofuzzDatabase(InMemoryExampleDatabase())
+    )
     for _ in range(100):
         fp.run_one()
 
@@ -31,8 +33,7 @@ class CustomError(Exception):
 
 
 def test_fuzz_one_process_explain_mode():
-    db = InMemoryExampleDatabase()
-    hypofuzz_db = HypofuzzDatabase(db)
+    db = HypofuzzDatabase(InMemoryExampleDatabase())
 
     @given(st.integers(), st.integers())
     def test_fails(x, y):
@@ -44,13 +45,9 @@ def test_fuzz_one_process_explain_mode():
         fp.run_one()
 
     assert fp.provider.status_counts[Status.INTERESTING] == 1
-    # wait for the BackgroundWriteDatabase of the FuzzProcess to write its found
-    # failure
-    fp.database._db._join()
-
-    failures = list(hypofuzz_db.fetch_failures(fp.database_key, shrunk=True))
+    failures = list(db.fetch_failures(fp.database_key, shrunk=True))
     assert len(failures) == 1
-    observation = hypofuzz_db.fetch_failure_observation(fp.database_key, failures[0])
+    observation = db.fetch_failure_observation(fp.database_key, failures[0])
     assert "CustomError" in observation.metadata.traceback
     expected = textwrap.dedent(
         """
@@ -76,7 +73,7 @@ def test_saved_observation_property(pytest_item, expected_property):
     def test_a(n):
         pass
 
-    db = InMemoryExampleDatabase()
+    db = HypofuzzDatabase(InMemoryExampleDatabase())
     fp = FuzzProcess.from_hypothesis_test(test_a, database=db, pytest_item=pytest_item)
     assert fp.nodeid == expected_property
 
@@ -85,5 +82,5 @@ def test_saved_observation_property(pytest_item, expected_property):
 
     assert all(
         observation.property == expected_property
-        for observation in HypofuzzDatabase(db).fetch_observations(fp.database_key)
+        for observation in db.fetch_observations(fp.database_key)
     )

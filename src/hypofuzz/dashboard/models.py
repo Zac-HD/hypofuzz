@@ -4,7 +4,6 @@ from typing import Any, Literal, Optional, TypedDict, Union
 from hypofuzz.dashboard.test import Test
 from hypofuzz.database import (
     Observation,
-    ObservationMetadata,
     ObservationStatus,
     Phase,
     Report,

@@ -115,7 +115,7 @@ def test_corpus_resets_branch_counts_on_new_coverage():
             pass
 
     process = FuzzProcess.from_hypothesis_test(
-        test_a, database=InMemoryExampleDatabase()
+        test_a, database=HypofuzzDatabase(InMemoryExampleDatabase())
     )
     provider = process.provider
     for count in range(1, 10):
