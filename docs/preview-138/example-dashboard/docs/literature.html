@@ -1,0 +1,1144 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="./">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="prev" title="Development roadmap" href="roadmap.html" />
+        <link rel="canonical" href="https://hypofuzz.com/docs/literature.html" />
+
+    <!-- Generated with Sphinx 8.2.3 and Furo 2024.08.06 -->
+        <title>Summary of related research - HypoFuzz docs</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=354aac6f" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=302659d7" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="index.html"><div class="brand">HypoFuzz docs</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="index.html">
+  
+  
+  <span class="sidebar-brand-text">HypoFuzz docs</span>
+  
+</a><form class="sidebar-search-container" method="get" action="search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <ul>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="manual/index.html">User manual</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of User manual</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="manual/operating.html">Operating HypoFuzz</a></li>
+<li class="toctree-l2"><a class="reference internal" href="manual/cli.html">Command-line interface</a></li>
+<li class="toctree-l2"><a class="reference internal" href="manual/collection.html">Test collection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="manual/database.html">HypoFuzz database</a></li>
+<li class="toctree-l2"><a class="reference internal" href="manual/behavior.html">Custom coverage events</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="features.html">Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">About HypoFuzz</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="roadmap.html">Development roadmap</a></li>
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Summary of related research</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="_sources/literature.rst.txt" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div>
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="summary-of-related-research">
+<h1>Summary of related research<a class="headerlink" href="#summary-of-related-research" title="Link to this heading">¶</a></h1>
+<p>HypoFuzz is built on, and inspired by, a wide range of research and practice
+in software testing and verification.  This page summarises and comments on
+selected parts of that literature, focussing on papers which are in some sense
+prior art for fuzzing property-based tests for Python.</p>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p><a class="reference external" href="../example-dashboard/">See HypoFuzz in action here!</a></p>
+</div>
+<section id="fuzzing-background">
+<h2>Fuzzing background<a class="headerlink" href="#fuzzing-background" title="Link to this heading">¶</a></h2>
+<p>Fuzzers can generally be divided into two categories:</p>
+<ol class="arabic simple">
+<li><p><em>Generational</em> fuzzers generate new inputs from scratch, using a random number
+generator to choose various options.  This covers everything from the simplest
+use of random numbers in a unit test, to highly sophisticated tools like
+CSmith <span id="id1">[<a class="reference internal" href="#id113" title="Xuejun Yang, Yang Chen, Eric Eide, and John Regehr. Finding and understanding bugs in c compilers. In Proceedings of the 32nd ACM SIGPLAN Conference on Programming Language Design and Implementation, PLDI '11, 283–294. New York, NY, USA, 2011. Association for Computing Machinery. URL: https://www.cs.utah.edu/~regehr/papers/pldi11-preprint.pdf, doi:10.1145/1993498.1993532.">YCER11</a>]</span>.</p></li>
+<li><p><em>Mutational</em> fuzzers derive new inputs by mutating known inputs, and adding
+interesting examples to the ‘pool’ of known inputs.  Greybox mutational fuzzers
+reliabily find security vulnerabilities in almost any previously-unfuzzed C code,
+but are only rarely applied to search for semantic or non-security bugs.</p></li>
+</ol>
+<p>Hypothesis takes a hybrid approach, using (mostly) generational fuzzing to find
+failing examples, and then mutating and replaying an internal representation
+to find the minimal failing example.
+HypoFuzz takes a smarter approach by exploiting mutation-based example generation,
+running a variety of instrumentation which is too expensive for sub-second unit
+tests, and adapting the fuzzing logic to each test function as it learns.
+More on this below.</p>
+<p><em>The Fuzzing Book</em> <span id="id2">[<a class="reference internal" href="#id67" title="Andreas Zeller, Rahul Gopinath, Marcel Böhme, Gordon Fraser, and Christian Holler. The fuzzing book. In The Fuzzing Book. Saarland University, 2019. URL: https://www.fuzzingbook.org/ (visited on 2019-09-09 16:42:54+02:00).">ZGBohme+19</a>]</span> is a fantastic introduction to
+and overview of the field.  While many of the papers cited below may not be
+relevant unless you’re <em>implementing</em> a fuzzer like HypoFuzz, the book is
+a great resource for anyone involved in software testing.</p>
+<section id="fuzz-fuzz-revisited-fuzz-2020">
+<h3>Fuzz / Fuzz Revisited / Fuzz 2020<a class="headerlink" href="#fuzz-fuzz-revisited-fuzz-2020" title="Link to this heading">¶</a></h3>
+<p><a class="reference external" href="http://pages.cs.wisc.edu/-bart/fuzz/">Bart Miller’s pioneering work on fuzzing</a>
+defined the field, and proved that unguided random fuzzing works scarily well.
+From 1990 <span id="id3">[<a class="reference internal" href="#id74" title="Barton P. Miller, Louis Fredriksen, and Bryan So. An empirical study of the reliability of unix utilities. Commun. ACM, 33(12):32–44, December 1990. URL: http://www.paradyn.org/papers/fuzz.pdf, doi:10.1145/96267.96279.">MFS90</a>]</span> to 1995 <span id="id4">[<a class="reference internal" href="#id75" title="Barton Miller, David Koski, Cjin Lee, Vivekananda Maganty, Ravi Murthy, Ajitkumar Natarajan, and Jeff Steidl. Fuzz revisited: a re-examination of the reliability of unix utilities and services. 1998. URL: http://www.paradyn.org/papers/fuzz-revisited.pdf.">MKL+98</a>]</span>, and again in 2020 <span id="id5">[<a class="reference internal" href="#id76" title="Barton P. Miller, Mengxiao Zhang, and Elisa R. Heymann. The relevance of classic fuzz testing: have we solved this one? 2020. arXiv:2008.06537.">MZH20</a>]</span>,
+the persistence of bugs which can be caught by such simple tools seems timeless.
+Unfortunately, so does the very slow adoption of such tools - if you’re reading
+this sentence, you have unusual (and excellent!) taste in testing technologies.</p>
+</section>
+<section id="afl-classic">
+<h3>AFL (classic)<a class="headerlink" href="#afl-classic" title="Link to this heading">¶</a></h3>
+<p><a class="reference external" href="https://lcamtuf.blogspot.com/2014/11/pulling-jpegs-out-of-thin-air.html">Pulling JPEGs out of thin air</a> made
+a splash: <a class="reference external" href="https://lcamtuf.coredump.cx/afl/">AFL</a> was the first fuzzer tool
+to reach mainstream awareness, and its success - measured in important bugs rather
+than citations or benchmarks - revitalised the field.</p>
+<p>The key insights were that lightweight instrumentation for coverage guided fuzzing
+would often outperform fancier but slower techniques, and that usability counts -
+with almost no configuration and a robust design applicable to any project,
+AFL saw much wider adoption and therefore impact than previous tools.</p>
+<p>Since 2017, <a class="reference external" href="https://aflplus.plus/">AFL++ has been maintained by the community</a>
+<span id="id6">[<a class="reference internal" href="#id77" title="Andrea Fioraldi, Dominik Maier, Heiko Eißfeldt, and Marc Heuse. Afl++ : combining incremental steps of fuzzing research. In 14th USENIX Workshop on Offensive Technologies (WOOT 20). USENIX Association, August 2020. URL: https://www.usenix.org/system/files/woot20-paper-fioraldi.pdf.">FMEissfeldtH20</a>]</span> with a variety of bugfixes, patches, and additional features - many of
+which are covered below.</p>
+</section>
+<section id="libfuzzer">
+<h3>LibFuzzer<a class="headerlink" href="#libfuzzer" title="Link to this heading">¶</a></h3>
+<p><a class="reference external" href="https://llvm.org/docs/LibFuzzer.html">LibFuzzer</a> targets functions, rather than
+whole binaries, and typically runs in-process.
+<a class="extlink-hydocs reference external" href="https://hypothesis.readthedocs.io/en/latest/details.html#use-with-external-fuzzers">Hypothesis’ .fuzz_one_input</a>
+function is directly inspired by the <code class="docutils literal notranslate"><span class="pre">LLVMFuzzOneInput</span></code> entry point, though
+Hypothesis tests have much more sophisticated support for <a class="reference external" href="https://github.com/google/fuzzing/blob/master/docs/structure-aware-fuzzing.md">structured fuzzing</a>.</p>
+</section>
+</section>
+<section id="property-based-testing">
+<h2>Property-based testing<a class="headerlink" href="#property-based-testing" title="Link to this heading">¶</a></h2>
+<p>It’s common to observe that property-based testing (PBT) is conceptually
+related to fuzzing - see for example Dan Luu’s <a class="reference external" href="https://danluu.com/testing/">AFL + QuickCheck = ?</a> or Nelson Elhage’s <a class="reference external" href="https://blog.nelhage.com/post/property-testing-is-fuzzing/">Property-Based Testing Is Fuzzing</a> and
+<a class="reference external" href="https://blog.nelhage.com/post/property-testing-like-afl/">Property Testing Like AFL</a>.
+For an essay on the <em>differences</em>, see David MacIver’s <a class="reference external" href="https://hypothesis.works/articles/what-is-property-based-testing/">What is Property-Based Testing</a>.</p>
+<p>The core of Hypothesis in in fact a blackbox structure-aware fuzzer,
+and of course HypoFuzz itself is a greybox fuzzer built on our shared
+IR layer.  Three things make HypoFuzz different from tradional fuzzers.</p>
+<ol class="arabic simple">
+<li><p>HypoFuzz is designed to work with many more targets than most fuzzers -
+we operate on <em>test suites</em>, not single binaries.</p></li>
+<li><p>Because we’re fuzzing property-based tests, HypoFuzz looks for semantics
+errors - not just crashes - and can check properties that are only expected
+to hold for a subset of valid inputs.</p></li>
+<li><p>It’s designed to fit into your development cycle, and be used by developers -
+so that the bugs get caught <em>before</em> the code ships.</p></li>
+</ol>
+<section id="hypothesis">
+<h3>Hypothesis<a class="headerlink" href="#hypothesis" title="Link to this heading">¶</a></h3>
+<p>Hypothesis <span id="id7">[<a class="reference internal" href="#id63" title="David MacIver, Zac Hatfield-Dodds, and Many Contributors. Hypothesis: a new approach to property-based testing. Journal of Open Source Software, 4(43):1891, 2019. URL: https://doi.org/10.21105/joss.01891, doi:10.21105/joss.01891.">MHDC19</a>]</span> is implemented around a bytestring representation for all
+test cases.  All “strategies” (data generators) can transparently
+generate random instances via a PRNG, or replay past test-cases by
+substituting a recorded bytestring for the PRNG stream.</p>
+<p><span id="id8">[<a class="reference internal" href="#id64" title="David R. MacIver and Alastair F. Donaldson. Test-Case Reduction via Test-Case Generation: Insights from the Hypothesis Reducer (Tool Insights Paper). In Robert Hirschfeld and Tobias Pape, editors, 34th European Conference on Object-Oriented Programming (ECOOP 2020), volume 166 of Leibniz International Proceedings in Informatics (LIPIcs), 13:1–13:27. Dagstuhl, Germany, 2020. Schloss Dagstuhl–Leibniz-Zentrum für Informatik. URL: https://drops.dagstuhl.de/opus/volltexte/2020/13170, doi:10.4230/LIPIcs.ECOOP.2020.13.">MD20</a>]</span> goes into more depth about the design of this IR layer,
+and in particular how it enables efficient test-case reduction and normalisation.
+This is the key to reporting minimal and de-duplicated failing examples, and
+makes using a fuzzer much more productive (and less frustrating).</p>
+<p>The IR layer has also proven invaluable as a clean and universal interface
+to support other techniques such as targeted property-based testing
+<span id="id9">[<a class="reference internal" href="#id65" title="Andreas Löscher and Konstantinos Sagonas. Targeted property-based testing. In Proceedings of the 26th ACM SIGSOFT International Symposium on Software Testing and Analysis, ISSTA 2017, 46–56. New York, NY, USA, 2017. Association for Computing Machinery. URL: https://proper-testing.github.io/papers/issta2017.pdf, doi:10.1145/3092703.3092711.">LoscherS17</a>]</span> - we get to automate (<span id="id10">[<a class="reference internal" href="#id66" title="A. Löscher and K. Sagonas. Automating targeted property-based testing. In 2018 IEEE 11th International Conference on Software Testing, Verification and Validation (ICST), volume, 70-80. 2018. URL: https://proper-testing.github.io/papers/icst2018.pdf, doi:10.1109/ICST.2018.00017.">LoscherSagonas18</a>]</span>)
+the setup for free, and support multi-dimensional optimisation into the
+bargain.  See <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.target" title="(in Hypothesis v6.135.6)"><code class="docutils literal notranslate"><span class="pre">hypothesis.target()</span></code></a> for details.</p>
+</section>
+<section id="fuzzer-taming-with-test-case-reduction">
+<h3>‘Fuzzer taming’ with test-case reduction<a class="headerlink" href="#fuzzer-taming-with-test-case-reduction" title="Link to this heading">¶</a></h3>
+<p>Because Hypothesis presents a single <a class="reference external" href="https://blog.trailofbits.com/2019/11/11/test-case-reduction/">reduced</a> and normalised
+<span id="id11">[<a class="reference internal" href="#id71" title="Alex Groce, Josie Holmes, and Kevin Kellar. One test to rule them all. In Proceedings of the 26th ACM SIGSOFT International Symposium on Software Testing and Analysis - ISSTA 2017. ACM Press, 2017. URL: https://agroce.github.io/issta17.pdf, doi:10.1145/3092703.3092704.">GHK17</a>]</span> failing input for each unique exception type and location,
+HypoFuzz largely avoids the <a class="reference external" href="https://blog.regehr.org/archives/925">fuzzer taming problem</a>
+<span id="id12">[<a class="reference internal" href="#id68" title="Yang Chen, Alex Groce, Chaoqiang Zhang, Weng-Keen Wong, Xiaoli Fern, Eric Eide, and John Regehr. Taming compiler fuzzers. In Proceedings of the 34th ACM SIGPLAN Conference on Programming Language Design and Implementation, PLDI '13, 197–208. New York, NY, USA, 2013. Association for Computing Machinery. URL: http://www.cs.utah.edu/~regehr/papers/pldi13.pdf, doi:10.1145/2491956.2462173.">CGZ+13</a>]</span>.</p>
+</section>
+<section id="strategies-are-parser-combinators-designed-for-structured-fuzzing">
+<h3>‘Strategies’ are parser-combinators designed for structured fuzzing<a class="headerlink" href="#strategies-are-parser-combinators-designed-for-structured-fuzzing" title="Link to this heading">¶</a></h3>
+<p>Hypothesis users specify the allowed inputs to their test function by composing
+“strategies”, which are internally used to parse PRNG or replayed bytestrings
+into valid data.  Users may compose strategies with arbitrary code, including code
+under test, but while in principle this leads to an unrestricted grammar the
+structure is usually tractable (<a class="reference external" href="https://github.com/HypothesisWorks/hypothesis/blob/master/guides/strategies-that-shrink.rst">see here for some details</a>).</p>
+<p>Strategies are also designed such that, in the absence of user-defined filters,
+most random bytestrings can be parsed into valid examples - which makes it easy
+to support a hybrid generational/mutational fuzzer.</p>
+<p>Some also use <a class="reference external" href="https://blog.regehr.org/archives/591">swarm testing</a>
+<span id="id13">[<a class="reference internal" href="#id72" title="Alex Groce, Chaoqiang Zhang, Eric Eide, Yang Chen, and John Regehr. Swarm testing. In Proceedings of the 2012 International Symposium on Software Testing and Analysis, ISSTA 2012, 78–88. New York, NY, USA, 2012. Association for Computing Machinery. URL: https://www.cs.utah.edu/~regehr/papers/swarm12.pdf, doi:10.1145/2338965.2336763.">GZE+12</a>]</span>, which improves the diversity of “weird” examples generated
+without any user interaction at all.  Increasing our usage of this and
+<a class="reference external" href="https://blog.regehr.org/archives/1700">other techniques</a> is an ongoing
+project for Hypothesis.</p>
+</section>
+<section id="other-property-based-fuzzers">
+<h3>Other property-based fuzzers<a class="headerlink" href="#other-property-based-fuzzers" title="Link to this heading">¶</a></h3>
+<section id="java-junit-quickcheck-jqf-zest-rlcheck">
+<h4>(Java) junit-quickcheck + JQF + Zest + RLCheck<a class="headerlink" href="#java-junit-quickcheck-jqf-zest-rlcheck" title="Link to this heading">¶</a></h4>
+<p>Starting with the <code class="docutils literal notranslate"><span class="pre">junit-quickcheck</span></code> library, <a class="reference external" href="https://github.com/rohanpadhye/JQF">JQF</a>
+<span id="id14">[<a class="reference internal" href="#id92" title="Rohan Padhye, Caroline Lemieux, and Koushik Sen. JQF: coverage-guided property-based testing in java. In Proceedings of the 28th ACM SIGSOFT International Symposium on Software Testing and Analysis - ISSTA 2019. ACM Press, 2019. URL: https://cs.berkeley.edu/~rohanpadhye/files/zest-issta19.pdf, doi:10.1145/3293882.3339002.">PLS19</a>]</span> provides an interface to run property-based tests with a variety of fuzzing
+backends including AFL, Zest <span id="id15">[<a class="reference internal" href="#id93" title="Rohan Padhye, Caroline Lemieux, Koushik Sen, Mike Papadakis, and Yves Le Traon. Semantic fuzzing with zest. In Proceedings of the 28th ACM SIGSOFT International Symposium on Software Testing and Analysis - ISSTA 2019. ACM Press, 2019. URL: https://people.eecs.berkeley.edu/~rohanpadhye/files/zest-issta19.pdf, doi:10.1145/3293882.3330576.">PLS+19a</a>]</span> (adding validity metrics), and PerfFuzz.</p>
+<p><a class="reference external" href="https://github.com/sameerreddy13/rlcheck">RLCheck</a> <span id="id16">[<a class="reference internal" href="#id94" title="Sameer Reddy, Caroline Lemieux, Rohan Padhye, and Koushik Sen. Quickly generating diverse valid test inputs with reinforcement learning. In Proceedings of the 42st International Conference on Software Engineering. IEEE Press, 2020. URL: https://www.carolemieux.com/rlcheck_preprint.pdf.">RLPS20</a>]</span> is distinctive
+as a blackbox fuzzer, using reinforcement learning to generate valid inputs according
+to some predicate.  While expressing constraints as predicates on a more general
+input description is more natural for users, most PBT libraries require a constructive
+approach to generation for acceptable performance - even when seriously unintuitive.</p>
+</section>
+<section id="rust-proptest-propfuzz-propverify">
+<h4>(Rust) proptest + propfuzz + propverify<a class="headerlink" href="#rust-proptest-propfuzz-propverify" title="Link to this heading">¶</a></h4>
+<p>The <a class="reference external" href="https://github.com/AltSysrq/proptest/">proptest</a> library for Rust is directly
+inspired by Hypothesis.  Showing the power of a good intermediate representation,
+recent tools have attempted to build on top of this to provide both <a class="reference external" href="https://github.com/facebookincubator/propfuzz">fuzzing</a> and <a class="reference external" href="https://github.com/project-oak/rust-verification-tools">formal verification</a> with (almost) the same
+user-facing API.</p>
+<p>Hypothesis supports symbolic execution via the <a class="extlink-pypi reference external" href="https://pypi.org/project/hypothesis-crosshair">hypothesis-crosshair</a>
+<a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/extensions.html#alternative-backends" title="(in Hypothesis v6.135.6)"><span class="xref std std-ref">alternative backend</span></a>, and we plan to incorporate
+this into HypoFuzz with an ensemble-style approach.</p>
+</section>
+<section id="c-c-trailofbits-deepstate-google-s-fuzztest">
+<h4>(C / C++) TrailofBits’ DeepState, Google’s <code class="docutils literal notranslate"><span class="pre">fuzztest</span></code><a class="headerlink" href="#c-c-trailofbits-deepstate-google-s-fuzztest" title="Link to this heading">¶</a></h4>
+<p><a class="reference external" href="https://github.com/trailofbits/deepstate">DeepState</a> <span id="id17">[<a class="reference internal" href="#id95" title="Peter Goodman and Alex Groce. DeepState: symbolic unit testing for c and c$\mathplus $$\mathplus $. In Proceedings 2018 Workshop on Binary Analysis Research. Internet Society, 2018. URL: https://www.ndss-symposium.org/wp-content/uploads/2018/07/bar2018_9_Goodman_paper.pdf, doi:10.14722/bar.2018.23009.">GG18</a>]</span> provides
+a common interface to various symbolic execution and fuzzing engines - write your
+tests once with a Google Test-style API, and then run them with a variety of backends
+and at various stages of your development cycle.</p>
+<p>Google’s <a class="reference external" href="https://github.com/google/fuzztest">fuzztest</a> library is described as
+a tool that bridges the gap between fuzzing and property-based testing, allowing you
+to write fuzz test side by side with regular unit tests.  <code class="docutils literal notranslate"><span class="pre">fuzztest</span></code> always runs
+with coverage guidance, but is designed to be used as part of a testing (rather than
+standard fuzzing) workflow.</p>
+</section>
+<section id="haskell-quickfuzz">
+<h4>(Haskell) QuickFuzz<a class="headerlink" href="#haskell-quickfuzz" title="Link to this heading">¶</a></h4>
+<p>QuickFuzz <span id="id18">[<a class="reference internal" href="#id96" title="Gustavo Grieco, Mart\'ın Ceresa, Agust\'ın Mista, and Pablo Buiras. QuickFuzz testing for fun and profit. Journal of Systems and Software, 134:340–354, December 2017. URL: http://www.cse.chalmers.se/~mista/assets/pdf/jss17.pdf, doi:10.1016/j.jss.2017.09.018.">GCMB17</a>]</span> uses the venerable QuickCheck <span id="id19">[<a class="reference internal" href="#id69" title="Koen Claessen and John Hughes. Quickcheck: a lightweight tool for random testing of haskell programs. Proceedings of the Fifth ACM SIGPLAN International Conference on Functional Programming, 2000. URL: https://www.cs.tufts.edu/~nr/cs257/archive/john-hughes/quick.pdf, doi:10.1145/357766.351266.">CH00</a>]</span> and
+file format parsers from <a class="reference external" href="https://hackage.haskell.org/">Hackage</a> to implement
+an unguided generational fuzzer.</p>
+</section>
+<section id="coq-fuzzchick">
+<h4>(Coq) FuzzChick<a class="headerlink" href="#coq-fuzzchick" title="Link to this heading">¶</a></h4>
+<p>FuzzChick <span id="id20">[<a class="reference internal" href="#id98" title="Leonidas Lampropoulos, Michael Hicks, and Benjamin C. Pierce. Coverage guided, property based testing. Proceedings of the ACM on Programming Languages, 3(OOPSLA):1–29, 2019. URL: https://lemonidas.github.io/pdf/FuzzChick.pdf, doi:10.1145/3360607.">LHP19</a>]</span> is a coverage-guided backed for QuickChick <span id="id21">[<a class="reference internal" href="#id97" title="Zoe Paraskevopoulou, Cătălin Hriţcu, Maxime Dénès, Leonidas Lampropoulos, and Benjamin C. Pierce. Foundational property-based testing. In Interactive Theorem Proving, pages 325–343. Springer International Publishing, 2015. URL: https://prosecco.gforge.inria.fr/personal/hritcu/publications/foundational-pbt.pdf, doi:10.1007/978-3-319-22102-1_22.">PHrictcuDenes+15</a>]</span>,
+a property-based testing library for the <a class="reference external" href="https://en.wikipedia.org/wiki/Coq">Coq</a>
+theorem prover.</p>
+</section>
+</section>
+</section>
+<section id="mutation-operators">
+<h2>Mutation operators<a class="headerlink" href="#mutation-operators" title="Link to this heading">¶</a></h2>
+<section id="structure-aware-mutation-with-aflsmart">
+<h3>Structure-aware mutation with AFLSmart<a class="headerlink" href="#structure-aware-mutation-with-aflsmart" title="Link to this heading">¶</a></h3>
+<p>AFLSmart <span id="id22">[<a class="reference internal" href="#id80" title="V. Pham, M. Böhme, A. E. Santosa, A. R. Caciulescu, and A. Roychoudhury. Smart greybox fuzzing. IEEE Transactions on Software Engineering, 2019. URL: https://thuanpv.github.io/publications/TSE19_aflsmart.pdf, doi:10.1109/TSE.2019.2941681.">PhamBohmeSantosa+19</a>]</span> proposes using “smart mutation operators”, specifically
+adding, deleting, or replacing chunks of one seed input with corresponding chunks
+of another input.  They find that this is a substantial improvement over
+structure-naive converage-guided fuzzing, and that (as you’d expect) adding
+feedback offers a very large improvement over blackbox generational fuzzing.</p>
+<p>While they use <a class="reference external" href="https://www.peach.tech/products/peach-fuzzer/peach-pits/">“Peach pits”</a>
+to define the input grammar - and as the blackbox baseline - we can get the same
+structural information directly from instrumentation in the Hypothesis internals
+without any additional work for users or implementors.
+Doing so will also give Hypothesis <a class="reference external" href="https://github.com/HypothesisWorks/hypothesis/issues/3411">better ways to explain why your test failed</a> essentially for free.</p>
+<p>Note that <em>structure-aware mutation</em> is a different technique to what is often
+called <em>structure-aware fuzzing</em> (e.g. <a class="reference external" href="https://github.com/google/fuzzing/blob/master/docs/structure-aware-fuzzing.md">here</a>)
+- the latter is simply a parsing step to allow e.g. classic AFL to operate on
+structured data, and Hypothesis gives us a well-tuned version of that for free.</p>
+</section>
+<section id="adaptive-mutation-operator-selection">
+<h3>Adaptive mutation operator selection<a class="headerlink" href="#adaptive-mutation-operator-selection" title="Link to this heading">¶</a></h3>
+<p><a class="reference external" href="https://github.com/puppet-meteor/MOpt-AFL">MOpt-AFL</a> <span id="id23">[<a class="reference internal" href="#id85" title="Chenyang Lyu, Shouling Ji, Chao Zhang, Yuwei Li, Wei-Han Lee, Yu Song, and Raheem Beyah. MOPT: optimized mutation scheduling for fuzzers. In 28th USENIX Security Symposium (USENIX Security 19), 1949–1966. Santa Clara, CA, August 2019. USENIX Association. URL: https://www.usenix.org/system/files/sec19-lyu.pdf.">LJZ+19</a>]</span> finds that
+the effectiveness of mutation strategies varies by target, and evaluates an adaptive
+particle-swarm algorithm to customise the mutation logic accordingly.</p>
+<p><span id="id24">[<a class="reference internal" href="#id115" title="Mingyuan Wu, Ling Jiang, Jiahong Xiang, Yanwei Huang, Heming Cui, Lingming Zhang, and Yuqun Zhang. One fuzzing strategy to rule them all. In 2022 IEEE/ACM 44th International Conference on Software Engineering (ICSE), volume, 1634-1645. 2022. URL: http://zhangyuqun.com/publications/icse2022b.pdf, doi:10.1145/3510003.3510174.">WJX+22</a>]</span> study “Havoc” mode, in which multiple
+randomly-selected mutation operators are applied in a single step.  They find that
+this typically outperforms a one-operator-at-a-time approach, and that dynamically
+tuning the operator weights with a (non-stationary) multi-arm-bandit approach yields
+further large improvements.</p>
+<p>TOFU <span id="id25">[<a class="reference internal" href="#id84" title="Zi Wang, Ben Liblit, and Thomas Reps. Tofu: target-oriented fuzzer. 2020. arXiv:2004.14375.">WLR20</a>]</span> varies the weighting of mutation operators with distance to the
+goal; preferring large (add, delete, splice, etc.) operations while distant and small
+(e.g. bitflip) when closer.</p>
+</section>
+<section id="inputs-from-hell">
+<h3>Inputs from Hell<a class="headerlink" href="#inputs-from-hell" title="Link to this heading">¶</a></h3>
+<p><span id="id26">[<a class="reference internal" href="#id105" title="Ezekiel Soremekun, Esteban Pavese, Nikolas Havrikov, Lars Grunske, and Andreas Zeller. Inputs from hell: learning input distributions for grammar-based test generation. IEEE Transactions on Software Engineering, PP:1-1, 08 2020. URL: https://publications.cispa.saarland/3167/7/inputs-from-hell.pdf, doi:10.1109/TSE.2020.3013716.">SPH+20</a>]</span> generates inputs matching a grammar, with a twist: by observing
+the frequency with which various generation choices appear in a sample, you can
+<em>invert</em> this distribution to instead generate dissimilar inputs.  While partly
+subsumed by rare-branch-targeting tricks (under scheduling inputs, below), this trick
+might also have some synergistic effects.</p>
+</section>
+</section>
+<section id="scheduling-inputs">
+<h2>Scheduling inputs<a class="headerlink" href="#scheduling-inputs" title="Link to this heading">¶</a></h2>
+<section id="aflfast-fairfuzz-and-alphafuzz">
+<h3>AFLFast, FairFuzz, and AlphaFuzz<a class="headerlink" href="#aflfast-fairfuzz-and-alphafuzz" title="Link to this heading">¶</a></h3>
+<p>AFLFast <span id="id27">[<a class="reference internal" href="#id78" title="M. Böhme, V. Pham, and A. Roychoudhury. Coverage-based greybox fuzzing as markov chain. IEEE Transactions on Software Engineering, 45(5):489-506, 2019. URL: https://mboehme.github.io/paper/TSE18.pdf, doi:10.1109/TSE.2017.2785841.">BohmePhamRoychoudhury19</a>]</span> and FairFuzz <span id="id28">[<a class="reference internal" href="#id79" title="Caroline Lemieux and Koushik Sen. Fairfuzz: a targeted mutation strategy for increasing greybox fuzz testing coverage. In Proceedings of the 33rd ACM/IEEE International Conference on Automated Software Engineering, ASE 2018, 475–485. New York, NY, USA, 2018. Association for Computing Machinery. URL: https://www.carolemieux.com/fairfuzz-ase18.pdf, doi:10.1145/3238147.3238176.">LS18</a>]</span> observe that some branches
+are covered by a higher proportion of inputs than others - for example, code which
+rejects invalid inputs is usually overrepresented.</p>
+<p>When AFL-Fast selects an input to mutate, it biases the choice towards inputs which
+execute rare branches - and finds both an order-of-magnitude performance improvement
+and more bugs than previous approaches.  Technically, the trick is to represent
+the probability of covering each branch from a random mutation of each input as a
+Markov chain, and then using the inverse of the stationary distribution as our
+choice weights.</p>
+<p>AlphaFuzz <span id="id29">[<a class="reference internal" href="#id114" title="Yiru Zhao, Ruiheng Shi, Lei Zhao, and Yueqiang Cheng. Alphafuzz: evolutionary mutation-based fuzzing as monte carlo tree search. CoRR, 2021. URL: https://arxiv.org/abs/2101.00612, arXiv:2101.00612.">ZSZC21</a>]</span> observes that because mutation operators tend to make
+local changes, modelling the lineage of each seed (again, as a Markov chain) further
+improves on AFL-Fast by accounting for semantic diversity among seeds that reach
+the same set of branches.  However, I doubt this would help HypoFuzz, given our
+larger mutation steps and strong reduction and normalization of seeds.</p>
+<p>FairFuzz shares the goal of increasing coverage of rare branches, but does so by
+detecting regions of the input which may be required to do so and disabling
+mutations of those regions.  Their evaluation finds that this noticeably improves
+coverage on code with deeply nested conditionals, against a baseline which includes
+an early version of AFL-Fast (<code class="docutils literal notranslate"><span class="pre">-explore</span></code> schedule added in 2.33, evaulation uses
+2.40, <code class="docutils literal notranslate"><span class="pre">-fast</span></code> schedule seems to be best).</p>
+</section>
+<section id="directed-fuzzing">
+<h3>Directed fuzzing<a class="headerlink" href="#directed-fuzzing" title="Link to this heading">¶</a></h3>
+<p>A <a class="reference external" href="https://github.com/strongcourage/awesome-directed-fuzzing">directed fuzzer</a>,
+such as <a class="reference external" href="https://github.com/aflgo/aflgo">AFL-go</a> <span id="id30">[<a class="reference internal" href="#id83" title="Marcel Böhme, Van-Thuan Pham, Manh-Dung Nguyen, and Abhik Roychoudhury. Directed greybox fuzzing. In Proceedings of the 2017 ACM SIGSAC Conference on Computer and Communications Security, CCS '17, 2329–2344. New York, NY, USA, 2017. Association for Computing Machinery. URL: https://mboehme.github.io/paper/CCS17.pdf, doi:10.1145/3133956.3134020.">BohmePNR17</a>]</span>, prioritizes inputs
+which are ‘closer’ to a target location.  This can be used to focus on recently-changed
+code paths, areas flagged as bug-prone by static analysis, functions seen in logged
+errors to reproduce a crash, etc.
+TOFU <span id="id31">[<a class="reference internal" href="#id84" title="Zi Wang, Ben Liblit, and Thomas Reps. Tofu: target-oriented fuzzer. 2020. arXiv:2004.14375.">WLR20</a>]</span> also exploits input structure, and claims that this is substantially
+responsible for it’s -40% improvement over AFL-go.
+<span id="id32">[<a class="reference internal" href="#id104" title="Pengfei Wang, Xu Zhou, Kai Lu, Yingying Liu, and Tai Yue. Sok: the progress, challenges, and perspectives of directed greybox fuzzing. 2020. arXiv:2005.11907.">WZL+20</a>]</span> survey the state-of-the-art in directed greybox fuzzing as of  mid-2020.</p>
+<p>HypoFuzz could get the control-flow graph from coverage.py, which tracks possible branches
+in order to report un-covered branches, so the implementation is straightforward.
+The tradeoff between simplicity and power-requiring-configuration is less obvious;
+we’re inclined to initially stick to zero-config direction towards recent patches and/or
+lines flagged by e.g. <a class="extlink-pypi reference external" href="https://pypi.org/project/flake8">flake8</a>; though the balance between directed and general
+exploration might take some tuning.</p>
+<p>Directed swarm testing <span id="id33">[<a class="reference internal" href="#id73" title="Mohammad Amin Alipour, Alex Groce, Rahul Gopinath, and Arpit Christi. Generating focused random tests using directed swarm testing. In Proceedings of the 25th International Symposium on Software Testing and Analysis, ISSTA 2016, 70–81. New York, NY, USA, 2016. Association for Computing Machinery. URL: https://rahul.gopinath.org/resources/issta2016/alipour2016focused.pdf, doi:10.1145/2931037.2931056.">AGGC16</a>]</span> takes a slightly different approach:
+it is assumed that <em>some</em> randomly generated test cases will execute the target code,
+and so the goal is to increase that proportion by biasing the swarm configuration
+towards including ‘trigger’ features and omitting ‘suppressors’.</p>
+<p>SyML <span id="id34">[<a class="reference internal" href="#id116" title="Nicola Ruaro, Kyle Zeng, Lukas Dresel, Mario Polino, Tiffany Bao, Andrea Continella, Stefano Zanero, Christopher Kruegel, and Giovanni Vigna. SyML: Guiding Symbolic Execution Toward Vulnerable States Through Pattern Learning, pages 456–468. Association for Computing Machinery, New York, NY, USA, 2021. URL: https://conand.me/publications/ruaro-syml-2021.pdf.">RZD+21</a>]</span> learn patterns among vulnerability-triggering paths
+in known-buggy programs, and find that the learned features are predictive in unrelated
+programs.  Originally motivated by mitigating path explosion in symbolic execution, it
+seems equally applicable to directed fuzzing and could be a substantial advantage for
+a centralized platform where there are more programs (and bugs) to learn from.</p>
+</section>
+<section id="predictive-fuzzing-scaling-laws-when-to-stop">
+<h3>Predictive fuzzing, scaling laws, &amp; when to stop<a class="headerlink" href="#predictive-fuzzing-scaling-laws-when-to-stop" title="Link to this heading">¶</a></h3>
+<p><a class="reference external" href="https://mboehme.github.io/">Dr. Marcel Böhme</a> has done groundbreaking work
+characterising the behaviour of fuzzers (as well as co-creating AFLfast, AFLsmart,
+and AFLgo!), in order to understand the assurances that fuzzing can provide and
+quantify the residual risk <span id="id35">[<a class="reference internal" href="#id86" title="Marcel Böhme. Assurance in software testing: a roadmap. In Proceedings of the 41st International Conference on Software Engineering: New Ideas and Emerging Results, ICSE-NIER '19, 5–8. IEEE Press, 2019. URL: https://arxiv.org/abs/1807.10255, doi:10.1109/ICSE-NIER.2019.00010.">Bohme19</a>]</span>.</p>
+<p><a class="reference external" href="https://github.com/mboehme/pythia">Pythia</a> <span id="id36">[<a class="reference internal" href="#id87" title="Marcel Böhme. Stads: software testing as species discovery. ACM Trans. Softw. Eng. Methodol., June 2018. URL: https://mboehme.github.io/paper/TOSEM18.pdf, doi:10.1145/3210309.">Bohme18</a>]</span> adds statistical predictions
+to AFL, including bounds on the probability of finding a bug, estimated progress towards
+maximal coverage, and a difficulty metric.  These metrics are obviously of interest
+to users, and can also be used to schedule those targets with the highest expected
+value - maximising the overall rate of progress.</p>
+<p>Applying this scheduling insight to seeds rather than targets yields Entropic
+<span id="id37">[<a class="reference internal" href="#id89" title="Marcel Böhme and Brandon Falk. Boosting fuzzer efficiency: an information theoretic perspective. In Proceedings of the ACM European Software Engineering Conference and Symposium on the Foundations of Software Engineering (ESEC/FSE) 2020. Association for Computing Machinery, 2020. URL: https://mboehme.github.io/paper/FSE20.Entropy.pdf.">BohmeF20a</a>]</span>, which prioritizes those seeds
+which maximise the rate of discovery of new information about the behaviour of the
+fuzzed program.  This shows <a class="reference external" href="https://www.fuzzbench.com/reports/2020-05-24/index.html">substantial improvement over baseline LibFuzzer</a>, and is now heavily used
+by <a class="reference external" href="https://google.github.io/oss-fuzz/">OSS-Fuzz</a>.</p>
+<p>Finally, <span id="id38">[<a class="reference internal" href="#id88" title="Marcel Böhme and Brandon Falk. Fuzzing: on the exponential cost of vulnerability discovery. In Proceedings of the ACM European Software Engineering Conference and Symposium on the Foundations of Software Engineering (ESEC/FSE) 2020. Association for Computing Machinery, 2020. URL: https://mboehme.github.io/paper/FSE20.EmpiricalLaw.pdf.">BohmeF20b</a>]</span> describes empirical scaling laws for fuzzers -
+spending more CPU time finds a given set of bugs or coverage proportionally faster,
+but finding <em>new</em> or <em>additional</em> bugs or coverage requires exponentially more
+computation.  This means that spending a little effort on very many targets is
+often worthwhile, but simply throwing more compute at a given target is eventually
+of limited value.  On the other hand, improving the fuzzer or diversifing its
+behaviour is correspondingly very valuable for well-fuzzed targets!</p>
+</section>
+</section>
+<section id="seed-selection">
+<h2>Seed selection<a class="headerlink" href="#seed-selection" title="Link to this heading">¶</a></h2>
+<section id="corpus-distillation">
+<h3>Corpus distillation<a class="headerlink" href="#corpus-distillation" title="Link to this heading">¶</a></h3>
+<p>Corpus distillation refers to the technique of selecting an appropriately minimal
+subset of a large initial corpus which covers the same set of branches in the code
+under test (<code class="docutils literal notranslate"><span class="pre">afl-cmin</span></code>, if you’ve used that).  While traditionally defined only
+for coverage, this is trivially extensible to other metrics - just ensure that there
+are no discarded inputs which would be kept if freshly discovered by the fuzzer.</p>
+<p><span id="id39">[<a class="reference internal" href="#id99" title="Adrian Herrera, Hendra Gunadi, Liam Hayes, Shane Magrath, Felix Friedlander, Maggi Sebastian, Michael Norrish, and Antony L. Hosking. Corpus distillation for effective fuzzing: a comparative evaluation. 2019. arXiv:1905.13055.">HGH+19</a>]</span> evaluates a variety of approaches to designing input corpora,
+given a typically much larger initial corpus (which might be <a class="reference external" href="https://security.googleblog.com/2011/08/fuzzing-at-scale.html">scraped from the internet</a> or created with
+a generative fuzzer), and finds that minimising both the number of inputs in the
+seed pool and their cumulative size improves fuzzer performance - and that no
+single approach dominates the others.</p>
+<p>Reducing (<span id="id40">[<a class="reference internal" href="#id70" title="Andreas Zeller and Ralf Hildebrandt. Simplifying and isolating failure-inducing input. IEEE Trans. Softw. Eng., 28(2):183–200, February 2002. URL: https://www.cs.purdue.edu/homes/xyzhang/fall07/Papers/delta-debugging.pdf, doi:10.1109/32.988498.">ZH02</a>]</span> or <code class="docutils literal notranslate"><span class="pre">afl-tmin</span></code>) and normalising
+(<span id="id41">[<a class="reference internal" href="#id71" title="Alex Groce, Josie Holmes, and Kevin Kellar. One test to rule them all. In Proceedings of the 26th ACM SIGSOFT International Symposium on Software Testing and Analysis - ISSTA 2017. ACM Press, 2017. URL: https://agroce.github.io/issta17.pdf, doi:10.1145/3092703.3092704.">GHK17</a>]</span>) failing test-cases is a well-known as technique
+to assist in debugging, and supported - often called <em>shrinking</em> - by all good
+property-based testing tools.  HypoFuzz uses Hypothesis’ world-class test case
+reduction to calculate the minimal example for each feature of interest - covered
+branch, high score from <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.target" title="(in Hypothesis v6.135.6)"><code class="docutils literal notranslate"><span class="pre">hypothesis.target()</span></code></a>, etc. - and uses
+this as a basis for further fuzzing as well as reporting failing examples.</p>
+<p>We are unaware of previous work which uses this approach or evaluates it in
+comparison to less-intensive distillation.  We expect that it works very well
+if-and-only-if combined with generative and structure-aware fuzzing, to allow
+for exploitation of the covering structure without unduly standardising
+unrelated parts of the input.</p>
+</section>
+<section id="nezha-efficient-differential-testing">
+<h3>Nezha - efficient differential testing<a class="headerlink" href="#nezha-efficient-differential-testing" title="Link to this heading">¶</a></h3>
+<p><a class="reference external" href="https://github.com/nezha-dt/nezha">Nezha</a> <span id="id42">[<a class="reference internal" href="#id91" title="T. Petsios, A. Tang, S. Stolfo, A. D. Keromytis, and S. Jana. Nezha: efficient domain-independent differential testing. In 2017 IEEE Symposium on Security and Privacy (SP), 615-632. 2017. URL: https://www.ieee-security.org/TC/SP2017/papers/390.pdf.">PetsiosTangStolfo+17</a>]</span> provides efficient
+differential testing, by taking the product of the coverage for each input fed
+to multiple targets.</p>
+<p>While the original AFL docs observed that a distilled corpus from one e.g. jpeg
+library would often trigger bugs in another, as branches to handle edge cases select
+for edge-case inputs which may be mishandled by the other, using joint instead of
+independent coverage has similar advantages to that of ensemble fuzzing.</p>
+<p>This is relatively easy to implement using <a class="extlink-pypi reference external" href="https://pypi.org/project/coverage">coverage</a> dynamic contexts and
+a context manager or decorator API <em>within a given process</em>; while we’d also like
+to support differential coverage between Python versions or operating systems
+that will require some deeper changes to HypoFuzz’s execution model.</p>
+</section>
+<section id="domain-specific-targets-with-fuzzfactory">
+<h3>Domain-specific targets with FuzzFactory<a class="headerlink" href="#domain-specific-targets-with-fuzzfactory" title="Link to this heading">¶</a></h3>
+<p><a class="reference external" href="https://github.com/rohanpadhye/FuzzFactory">FuzzFactory</a> <span id="id43">[<a class="reference internal" href="#id90" title="Rohan Padhye, Caroline Lemieux, Koushik Sen, Laurent Simon, and Hayawardh Vijayakumar. FuzzFactory: domain-specific fuzzing with waypoints. Proceedings of the ACM on Programming Languages, 3(OOPSLA):1–29, October 2019. URL: https://dl.acm.org/doi/pdf/10.1145/3360600, doi:10.1145/3360600.">PLS+19b</a>]</span>
+observes that coverage may not be the only metric of interest, and extends the feedback
+mechanism in AFL to support user-specified labels.</p>
+<p>This essentially brings targeted property-based testing (above) to fuzzing workflows,
+and provides prior art (outside Hypothesis’ implementation) of the multi-objective
+approach - finding that this is often much more effective than optimising component
+metrics independently.</p>
+</section>
+<section id="virtual-branches-with-ijon">
+<h3>Virtual branches with IJON<a class="headerlink" href="#virtual-branches-with-ijon" title="Link to this heading">¶</a></h3>
+<p><a class="reference external" href="https://github.com/RUB-SysSec/ijon">IJON</a> <span id="id44">[<a class="reference internal" href="#id102" title="C. Aschermann, S. Schumilo, A. Abbasi, and T. Holz. IJON: exploring deep state spaces via fuzzing. In 2020 IEEE Symposium on Security and Privacy (SP), volume, 1597-1612. 2020. URL: https://www.syssec.ruhr-uni-bochum.de/media/emma/veroeffentlichungen/2020/02/27/IJON-Oakland20.pdf.">AschermannSchumiloAbbasiHolz20</a>]</span> adds custom feedback to
+AFL.  The <code class="docutils literal notranslate"><span class="pre">IJON_SET</span></code> macro adds a ‘virtual branch’ based on the value passed, so
+that at least one input exhibiting whatever custom behaviour will be retained in
+the seed pool (HypoFuzz implements this with the <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.event" title="(in Hypothesis v6.135.6)"><code class="docutils literal notranslate"><span class="pre">hypothesis.event()</span></code></a>
+function).  The <code class="docutils literal notranslate"><span class="pre">IJON_MAX</span></code> macro is equivalent to <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.target" title="(in Hypothesis v6.135.6)"><code class="docutils literal notranslate"><span class="pre">hypothesis.target()</span></code></a>,
+similar to FuzzFactory above.</p>
+<p>IJON is particularly notable for winning 29 out of 32 <em>Super Mario Bros</em> levels,
+a feat more typical of dedicated reinforcement learning systems, as well as
+fuzzing a Trusted Platform Module, complex format parsers, mazes, and a hash map.</p>
+</section>
+<section id="diversity">
+<h3>Diversity<a class="headerlink" href="#diversity" title="Link to this heading">¶</a></h3>
+<p>A key point here is that fuzzing and testing tools should search for <em>diverse</em> inputs,
+to avoid getting trapped in a “optimal” but non-bug-finding state.  For example, IJON
+optimized x-distance <em>at each distinct altitude</em> to avoid dead-ends.</p>
+<p>Hypothesis tracks the <a class="extlink-wikipedia reference external" href="https://en.wikipedia.org/wiki/Pareto_front">pareto frontier</a> of metrics passed
+to <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.target" title="(in Hypothesis v6.135.6)"><code class="xref py py-func docutils literal notranslate"><span class="pre">hypothesis.target()</span></code></a> (plus some internal metrics).  For observable dimensions
+where there is <em>not</em> a clear “best” direction and may be thousands of dimensions,
+such as the hit-count of each branch, there are a variety of approaches.</p>
+<p>AFL and related fuzzers “bucketize” the hitcount and then track uniqueness up to a
+64k hash of this vector, as a compromise between performance (driven by CPU cache sizes)
+and collision rate (typically 10-15% for library-like targets, but up to 75% for
+larger applications <span id="id45">[<a class="reference internal" href="#id120" title="Shuitao Gan, Chao Zhang, Xiaojun Qin, Xuwen Tu, Kang Li, Zhongyu Pei, and Zuoning Chen. Collafl: path sensitive fuzzing. In 2018 IEEE Symposium on Security and Privacy (SP), volume, 679-696. 2018. URL: https://chao.100871.net/papers/oakland18.pdf, doi:10.1109/SP.2018.00040.">GZQ+18</a>]</span>).</p>
+<p>HypoFuzz’s approach of keeping the best (shortlex-minimal) seed covering each branch
+is reminiscent of SugarSearch <span id="id46">[<a class="reference internal" href="#id121" title="David Herel, Dominika Zogatova, Matej Kripner, and Tomas Mikolov. Emergence of novelty in evolutionary algorithms. In The 2022 Conference on Artificial Life. MIT Press, 2022. URL: https://doi.org/10.1162%2Fisal_a_00501, doi:10.1162/isal_a_00501.">HZKM22</a>]</span>; that paper opens with a lovely
+survey of <a class="reference external" href="https://quality-diversity.github.io/">quality-diversity algorithms</a>
+algorithms - including CVT-MAP-elites <span id="id47">[<a class="reference internal" href="#id118" title="Jean-Baptiste Mouret and Jeff Clune. Illuminating search spaces by mapping elites. CoRR, 2015. URL: http://arxiv.org/abs/1504.04909, arXiv:1504.04909.">MC15</a>, <a class="reference internal" href="#id119" title="Vassilis Vassiliades, Konstantinos Chatzilygeroudis, and Jean-Baptiste Mouret. Using centroidal voronoi tessellations to scale up the multidimensional archive of phenotypic elites algorithm. IEEE Transactions on Evolutionary Computation, 22(4):623-630, 2018. doi:10.1109/TEVC.2017.2735550.">VCM18</a>]</span>, which might
+be nice to try for prioritization in high-dimensional spaces.</p>
+<p>BeDivFuzz <span id="id48">[<a class="reference internal" href="#id117" title="Hoang Lam Nguyen and Lars Grunske. Bedivfuzz: integrating behavioral diversity into generator-based fuzzing. 2022. arXiv:2202.13114.">NG22</a>]</span> proposes measuring behavioural diversity using the
+<a class="extlink-wikipedia reference external" href="https://en.wikipedia.org/wiki/Diversity_index">‘Hill numbers’</a> from ecology; HypoFuzz already selects
+seeds via (a mixed distribution including) sampling seeds in inverse proportion to
+the observed frequency of the rarest branch covered by each.</p>
+</section>
+</section>
+<section id="coverage">
+<h2>Coverage<a class="headerlink" href="#coverage" title="Link to this heading">¶</a></h2>
+<p>Before diving in to the use of coverage information as feedback for test-case generation
+in fuzzers, it’s worth covering the use of code coverage in a software development cycle.</p>
+<p><em>How to Misuse Code Coverage</em> <span id="id49">[<a class="reference internal" href="#id111" title="Brian Marick. How to misuse code coverage. 1997. URL: http://www.exampler.com/testing-com/writings/coverage.pdf.">Mar97</a>]</span> still resonates:
+“I wouldn’t have written four coverage tools if I didn’t think they’re helpful.
+But they’re only helpful if they’re used to <em>enhance</em> thought, not <em>replace</em> it.”.
+More than 20 years later, <a class="reference external" href="https://testing.googleblog.com/2020/08/code-coverage-best-practices.html">code coverage best practices</a>
+from the Google Testing Blog gives similar advice.</p>
+<p><em>Coverage and its discontents</em> <span id="id50">[<a class="reference internal" href="#id112" title="Alex Groce, Mohammad Amin Alipour, and Rahul Gopinath. Coverage and its discontents. In Proceedings of the 2014 ACM International Symposium on New Ideas, New Paradigms, and Reflections on Programming &amp; Software, Onward! 2014, 255–268. New York, NY, USA, 2014. Association for Computing Machinery. URL: https://agroce.github.io/onwardessays14.pdf, doi:10.1145/2661136.2661157.">GAG14</a>]</span> explores the role of coverage
+metrics in test-suite evaluation, and argues that there is an underlying uncertainty as
+to what exactly measuring coverage should achieve, how we would know if it can, and what
+we as researchers and developers can do about it.</p>
+<p><a class="reference external" href="https://blog.foretellix.com/2016/12/23/verification-coverage-and-maximization-the-big-picture/">Verification, coverage and maximization: the big picture</a>
+aims to explain how coverage is used to optimize the verification process, what it means to
+auto-maximize coverage, and how people have tried to do it - from a background in
+hardware design, which brings an instructively different perspective to analogous problems.
+(similar to Dan Luu’s <a class="reference external" href="https://danluu.com/testing/">AFL + QuickCheck = ?</a>, above)</p>
+<section id="reducing-coverage-overhead-by-rewriting-the-target">
+<h3>Reducing coverage overhead by rewriting the target<a class="headerlink" href="#reducing-coverage-overhead-by-rewriting-the-target" title="Link to this heading">¶</a></h3>
+<p>Full-speed fuzzing <span id="id51">[<a class="reference internal" href="#id82" title="Stefan Nagy and Matthew Hicks. Full-speed fuzzing: reducing fuzzing overhead through coverage-guided tracing. 2018. arXiv:1812.11875.">NH18</a>]</span> reduces the performance overhead of
+coverage measurement by rewriting the target - because most executions do not find
+new coverage, this allows you to instrument a very small proportion of executions.</p>
+<p>While offering very impressive speedups, this doesn’t support differential metrics
+or non-coverage metrics, and the rewriting trick would be rather difficult in Python.
+Nonetheless, the <a class="reference external" href="https://plasma-umass.org/">PLASMA-UMass</a> team have released
+<a class="reference external" href="https://github.com/plasma-umass/slipcover">Slipcover</a>, a super-low-overhead
+coverage tool for Python based on just this principle - and explicitly list fuzzing
+as one of the applications.</p>
+<p>Augumenting PyPy’s tracing JIT to report coverage information would probably also be
+fruitful, and very fast given the JIT-friendly repeated execution pattern of fuzzing.</p>
+</section>
+<section id="faster-coverage-measurement-for-python">
+<h3>Faster coverage measurement for Python<a class="headerlink" href="#faster-coverage-measurement-for-python" title="Link to this heading">¶</a></h3>
+<p>On Python 3.11 and earlier, coverage instrumentation uses <a class="reference external" href="https://docs.python.org/3/library/sys.html#sys.settrace" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">sys.settrace()</span></code></a>,
+which has substantial overhead as it cannot be disabled after the first time a line or
+branch executes. <a class="extlink-pypi reference external" href="https://pypi.org/project/coverage">coverage</a> typically slows instrumented programs
+by a factor of several times, typically ranging from 2-5x but with as much as 70x known
+on some workloads.</p>
+<p>Fortunately, on Python 3.12 and newer, <a class="reference external" href="https://docs.python.org/3/library/sys.monitoring.html#module-sys.monitoring" title="(in Python v3.13)"><code class="xref py py-mod docutils literal notranslate"><span class="pre">sys.monitoring</span></code></a> (via <span class="target" id="index-0"></span><a class="pep reference external" href="https://peps.python.org/pep-0669/"><strong>PEP 669</strong></a>) provides coverage
+instrumentation at a much lower overhead. HypoFuzz uses <code class="docutils literal notranslate"><span class="pre">sys.monitoring</span></code> on 3.12+, and
+falls back to <code class="docutils literal notranslate"><span class="pre">sys.settrace</span></code> on earlier Python versions.</p>
+</section>
+<section id="sensitive-coverage-metrics">
+<h3>Sensitive coverage metrics<a class="headerlink" href="#sensitive-coverage-metrics" title="Link to this heading">¶</a></h3>
+<p><em>Be Sensitive and Collaborative: Analyzing Impact of Coverage Metrics in Greybox Fuzzing</em>
+<span id="id52">[<a class="reference internal" href="#id100" title="Jinghan Wang, Yue Duan, Wei Song, Heng Yin, and Chengyu Song. Be sensitive and collaborative: analyzing impact of coverage metrics in greybox fuzzing. In 22nd International Symposium on Research in Attacks, Intrusions and Defenses (RAID 2019), 1–15. Chaoyang District, Beijing, September 2019. USENIX Association. URL: https://www.usenix.org/conference/raid2019/presentation/wang.">WDS+19</a>]</span> compares a range of coverage metrics - from branch
+coverage, to n-gram-coverage (chains of branches, when standard branch coverage is 2-gram),
+full path coverage, and several others.  Due to resource limits - time, memory, compute -
+no metric dominates all others, suggesting that adapting the metric per-target might
+be helpful.</p>
+</section>
+<section id="compressing-coverage-information">
+<h3>Compressing coverage information<a class="headerlink" href="#compressing-coverage-information" title="Link to this heading">¶</a></h3>
+<p>Ankou <span id="id53">[<a class="reference internal" href="#id103" title="Valentin J. M. Manès, Soomin Kim, and Sang Kil Cha. Ankou: guiding grey-box fuzzing towards combinatorial difference. In Proceedings of the International Conference on Software Engineering, 1024–1036. 2020. URL: https://www.jiliac.com/files/ankou-icse2020.pdf.">ManesKC20</a>]</span> measures coverage of the <em>number of times</em> each branch was executed,
+i.e. order-insensitive path coverage.  To manage the very large number of covering inputs,
+they use a dynamic distance-based metric to retain only dissimilar inputs rather than
+all covering inputs.  By comparison AFL bucketizes branch hit-counts.</p>
+</section>
+</section>
+<section id="miscellaneous">
+<h2>Miscellaneous<a class="headerlink" href="#miscellaneous" title="Link to this heading">¶</a></h2>
+<section id="ensemble-fuzzing-with-seed-sharing">
+<h3>Ensemble fuzzing with seed sharing<a class="headerlink" href="#ensemble-fuzzing-with-seed-sharing" title="Link to this heading">¶</a></h3>
+<p>EnFuzz <span id="id54">[<a class="reference internal" href="#id81" title="Yuanliang Chen, Yu Jiang, Fuchen Ma, Jie Liang, Mingzhe Wang, Chijin Zhou, Xun Jiao, and Zhuo Su. Enfuzz: ensemble fuzzing with seed synchronization among diverse fuzzers. In USENIX Security Symposium. 2019. URL: https://www.usenix.org/system/files/sec19-chen-yuanliang.pdf.">CJM+19</a>]</span> demonstrates that combining diverse fuzzers both improves their
+joint performance (given equal resources), and makes the performance much more robust.
+The argument that this works by allowing specialised fuzzers to build on each other’s
+work, including iteratively, is compelling.</p>
+<p>Cupid <span id="id55">[<a class="reference internal" href="#id106" title="Emre Güler, Philipp Görz, Elia Geretto, Andrea Jemmett, Sebastian Österlund, Herbert Bos, Cristiano Giuffrida, and Thorste Holz. Cupid: automatic fuzzer selection for collaborative fuzzing. December 2020. URL: https://www.ei.ruhr-uni-bochum.de/media/emma/veroeffentlichungen/2020/09/26/ACSAC20-Cupid_TiM9H07.pdf, doi:10.1145/3427228.3427266.">GulerGorzG+20</a>]</span> demonstrates significant practical advances in ensemble fuzzing,
+defining a <em>complementarity</em> metric (union of the expected value of the set of covered
+branches for each fuzzer).  This allows for efficient selection of fuzzers to be ensembled
+based only on ‘solo’ runs of each.  Because Cupid leaves seed scheduling to future work
+and is based on target-independent characterisation, this technique is used to design
+HypoFuzz ‘tactics’ but not for runtime adaptation.</p>
+<p>It’s less clear how to leverage this for HypoFuzz, since there aren’t many other
+fuzzers targeting Hypothesis tests.  You could use <a class="extlink-pypi reference external" href="https://pypi.org/project/python-afl">python-afl</a>,
+<a class="extlink-pypi reference external" href="https://pypi.org/project/pythonfuzz">pythonfuzz</a>, or <a class="reference external" href="https://github.com/thebabush/python-hfuzz">python-hfuzz</a>
+on Hypothesis’ <a class="extlink-hydocs reference external" href="https://hypothesis.readthedocs.io/en/latest/details.html#use-with-external-fuzzers">.fuzz_one_input</a> hook
+if you were careful enough about the database location; we intend to evaluate this
+approach but don’t expect an advantage from adding structure-naive fuzzers.</p>
+<p>We think the general lesson is more like that of swarm testing: diversity is the
+key to effective fuzzing.  Knowing that in advance though, we can build our single
+fuzzer to execute a mixture of the relevant behaviours with the desired distribution,
+and even make that distribution adaptive with respect to each target.</p>
+</section>
+<section id="hybrid-concrete-symbolic-fuzzing">
+<h3>Hybrid concrete/symbolic fuzzing<a class="headerlink" href="#hybrid-concrete-symbolic-fuzzing" title="Link to this heading">¶</a></h3>
+<p>This literature review has largely ignored symbolic execution, because support for
+Python is at a very early stage and does not scale to real-world programs.</p>
+<p>For native code, <em>concolic execution</em> - tools which combine concrete and symbolic
+execution of tests - date back to DART <span id="id56">[<a class="reference internal" href="#id107" title="Patrice Godefroid, Nils Klarlund, and Koushik Sen. Dart: directed automated random testing. In Proceedings of the 2005 ACM SIGPLAN Conference on Programming Language Design and Implementation, PLDI '05, 213–223. New York, NY, USA, 2005. Association for Computing Machinery. URL: https://patricegodefroid.github.io/public_psfiles/pldi2005.pdf, doi:10.1145/1065010.1065036.">GKS05</a>]</span> and CUTE <span id="id57">[<a class="reference internal" href="#id108" title="Koushik Sen, Darko Marinov, and Gul Agha. Cute: a concolic unit testing engine for c. In Proceedings of the 10th European Software Engineering Conference Held Jointly with 13th ACM SIGSOFT International Symposium on Foundations of Software Engineering, ESEC/FSE-13, 263–272. New York, NY, USA, 2005. Association for Computing Machinery. URL: http://mir.cs.illinois.edu/marinov/publications/SenETAL05CUTE.pdf, doi:10.1145/1081706.1081750.">SMA05</a>]</span> in 2005;
+while Microsoft’s SAGE <span id="id58">[<a class="reference internal" href="#id109" title="Patrice Godefroid, Michael Y Levin, David A Molnar, and others. Automated whitebox fuzz testing. In NDSS, volume 8, 151–166. 2008. URL: https://patricegodefroid.github.io/public_psfiles/ndss2008.pdf.">GLM+08</a>]</span> found <a class="reference external" href="https://queue.acm.org/detail.cfm?id=2094081">roughly one-third of all the bugs</a> discovered by file fuzzing during
+the development of Windows 7 - running <em>after</em> static analysis and other fuzzers.</p>
+<p>Inputs synthesised by symbolic or concolic approaches could provide the initial
+seed pool for a classic mutational fuzzer, and provide a way to ‘get unstuck’
+on conditions which are hard to satisfy by chance.
+Hypothesis supports symbolic execution via the <a class="extlink-pypi reference external" href="https://pypi.org/project/hypothesis-crosshair">hypothesis-crosshair</a>
+<a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/extensions.html#alternative-backends" title="(in Hypothesis v6.135.6)"><span class="xref std std-ref">alternative backend</span></a>, and we plan to incorporate
+this into HypoFuzz with an ensemble-style approach.</p>
+</section>
+<section id="scaling-fuzzers-up-to-many-cores">
+<h3>Scaling fuzzers up to many cores<a class="headerlink" href="#scaling-fuzzers-up-to-many-cores" title="Link to this heading">¶</a></h3>
+<p>The <a class="reference external" href="https://gamozolabs.github.io/2020/08/11/some_fuzzing_thoughts.html#scaling">scaling behaviour of fuzzers is often neglected</a>,
+which can make academic evaluations running on single cores misleading as users
+in industry run campaigns on tens, hundreds, or even thousands of cores.
+For example, classic AFL quickly (5-20 cores) bottlenecks on <code class="docutils literal notranslate"><span class="pre">fork()</span></code>,
+and adding more than 40 cores may <em>reduce total throughput</em>.
+IO bottlenecks are also common in filesystem accesses for ensemble fuzzing campaigns.</p>
+<p><span id="id59">[<a class="reference internal" href="#id110" title="Jie Liang, Yu Jiang, Yuanliang Chen, Mingzhe Wang, Chijin Zhou, and Jiaguang Sun. Pafl: extend fuzzing optimizations of single mode to industrial parallel mode. In Proceedings of the 2018 26th ACM Joint Meeting on European Software Engineering Conference and Symposium on the Foundations of Software Engineering, ESEC/FSE 2018, 809–814. New York, NY, USA, 2018. Association for Computing Machinery. URL: http://wingtecher.com/themes/WingTecherResearch/assets/papers/fse18-pafl.pdf, doi:10.1145/3236024.3275525.">LJC+18</a>]</span> finds that this problem is <em>worse</em> among more advanced fuzzers -
+if you share seeds but not e.g. the branch hit-counts for AFL-Fast, each process
+must duplicate the discovery process.  P-AFL adds a mechanism for global sharing
+of guidance information as well as seeds, and additionally focusses each process
+on fuzzing a subset of the branches in the program - which diversifies the search
+process and effectively ensembles variants of a single base fuzzer.</p>
+<p>We plan to mitigate this in HypoFuzz, by sharing ephemeral state between instances
+and runs via the database.</p>
+</section>
+<section id="visualising-fuzzer-performance">
+<h3>Visualising fuzzer performance<a class="headerlink" href="#visualising-fuzzer-performance" title="Link to this heading">¶</a></h3>
+<p>HypoFuzz does not offer many configuration options, but users are effectively
+co-developers of the fuzzer because they provide the system under test, the
+test function, and the strategies which define possible inputs.  Providing
+clear and detailed - but not overwhelming - information about what the fuzzer
+is doing can therefore support a wider feedback loop of improvement to the tests
+and ultimately better bug-detection.</p>
+<p>Brandon Falk’s <a class="reference external" href="https://gamozolabs.github.io/2020/08/11/some_fuzzing_thoughts.html">some fuzzing thoughts</a> points
+out that a log-x-axis is almost always the right way to view fuzzer progress
+graphs, especially considering the well-known exponential scaling curve
+<span id="id60">[<a class="reference internal" href="#id88" title="Marcel Böhme and Brandon Falk. Fuzzing: on the exponential cost of vulnerability discovery. In Proceedings of the ACM European Software Engineering Conference and Symposium on the Foundations of Software Engineering (ESEC/FSE) 2020. Association for Computing Machinery, 2020. URL: https://mboehme.github.io/paper/FSE20.EmpiricalLaw.pdf.">BohmeF20b</a>]</span>.</p>
+<p>Cornelius Aschermann’s <a class="reference external" href="https://hexgolems.com/2020/08/on-measuring-and-visualizing-fuzzer-performance/">on measuring and visualising fuzzer performance</a>
+suggests a range of other helpful visualisations, including the proportion of
+inputs from various generation or mutation strategies which cover each known
+branch.</p>
+<p><em>Evaluating Fuzz Testing</em> <span id="id61">[<a class="reference internal" href="#id101" title="George Klees, Andrew Ruef, Benji Cooper, Shiyi Wei, and Michael Hicks. Evaluating fuzz testing. In Proceedings of the 2018 ACM SIGSAC Conference on Computer and Communications Security, CCS '18, 2123–2138. New York, NY, USA, 2018. Association for Computing Machinery. URL: https://www.cs.umd.edu/~mwh/papers/fuzzeval.pdf, doi:10.1145/3243734.3243804.">KRC+18</a>]</span> investigates serious
+problems in previous evaluations, and provides the now-canonical guidelines
+for evaluating fuzzers.  Essential reading if you wish to publish an evaluation,
+or simply decide whether some tweak was actually helpful without getting the
+sign of the relationship wrong due to random noise.</p>
+</section>
+</section>
+<section id="references">
+<h2>References<a class="headerlink" href="#references" title="Link to this heading">¶</a></h2>
+<p><em>While not all the referenced papers are open access, they
+do all have freely accessible PDFs.  Enjoy!</em></p>
+<div class="docutils container" id="id62">
+<div role="list" class="citation-list">
+<div class="citation" id="id73" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id33">AGGC16</a><span class="fn-bracket">]</span></span>
+<p>Mohammad Amin Alipour, Alex Groce, Rahul Gopinath, and Arpit Christi. Generating focused random tests using directed swarm testing. In <em>Proceedings of the 25th International Symposium on Software Testing and Analysis</em>, ISSTA 2016, 70–81. New York, NY, USA, 2016. Association for Computing Machinery. URL: <a class="reference external" href="https://rahul.gopinath.org/resources/issta2016/alipour2016focused.pdf">https://rahul.gopinath.org/resources/issta2016/alipour2016focused.pdf</a>, <a class="reference external" href="https://doi.org/10.1145/2931037.2931056">doi:10.1145/2931037.2931056</a>.</p>
+</div>
+<div class="citation" id="id87" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id36">Bohme18</a><span class="fn-bracket">]</span></span>
+<p>Marcel Böhme. Stads: software testing as species discovery. <em>ACM Trans. Softw. Eng. Methodol.</em>, June 2018. URL: <a class="reference external" href="https://mboehme.github.io/paper/TOSEM18.pdf">https://mboehme.github.io/paper/TOSEM18.pdf</a>, <a class="reference external" href="https://doi.org/10.1145/3210309">doi:10.1145/3210309</a>.</p>
+</div>
+<div class="citation" id="id86" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id35">Bohme19</a><span class="fn-bracket">]</span></span>
+<p>Marcel Böhme. Assurance in software testing: a roadmap. In <em>Proceedings of the 41st International Conference on Software Engineering: New Ideas and Emerging Results</em>, ICSE-NIER '19, 5–8. IEEE Press, 2019. URL: <a class="reference external" href="https://arxiv.org/abs/1807.10255">https://arxiv.org/abs/1807.10255</a>, <a class="reference external" href="https://doi.org/10.1109/ICSE-NIER.2019.00010">doi:10.1109/ICSE-NIER.2019.00010</a>.</p>
+</div>
+<div class="citation" id="id89" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id37">BohmeF20a</a><span class="fn-bracket">]</span></span>
+<p>Marcel Böhme and Brandon Falk. Boosting fuzzer efficiency: an information theoretic perspective. In <em>Proceedings of the ACM European Software Engineering Conference and Symposium on the Foundations of Software Engineering (ESEC/FSE) 2020</em>. Association for Computing Machinery, 2020. URL: <a class="reference external" href="https://mboehme.github.io/paper/FSE20.Entropy.pdf">https://mboehme.github.io/paper/FSE20.Entropy.pdf</a>.</p>
+</div>
+<div class="citation" id="id88" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>BohmeF20b<span class="fn-bracket">]</span></span>
+<span class="backrefs">(<a role="doc-backlink" href="#id38">1</a>,<a role="doc-backlink" href="#id60">2</a>)</span>
+<p>Marcel Böhme and Brandon Falk. Fuzzing: on the exponential cost of vulnerability discovery. In <em>Proceedings of the ACM European Software Engineering Conference and Symposium on the Foundations of Software Engineering (ESEC/FSE) 2020</em>. Association for Computing Machinery, 2020. URL: <a class="reference external" href="https://mboehme.github.io/paper/FSE20.EmpiricalLaw.pdf">https://mboehme.github.io/paper/FSE20.EmpiricalLaw.pdf</a>.</p>
+</div>
+<div class="citation" id="id83" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id30">BohmePNR17</a><span class="fn-bracket">]</span></span>
+<p>Marcel Böhme, Van-Thuan Pham, Manh-Dung Nguyen, and Abhik Roychoudhury. Directed greybox fuzzing. In <em>Proceedings of the 2017 ACM SIGSAC Conference on Computer and Communications Security</em>, CCS '17, 2329–2344. New York, NY, USA, 2017. Association for Computing Machinery. URL: <a class="reference external" href="https://mboehme.github.io/paper/CCS17.pdf">https://mboehme.github.io/paper/CCS17.pdf</a>, <a class="reference external" href="https://doi.org/10.1145/3133956.3134020">doi:10.1145/3133956.3134020</a>.</p>
+</div>
+<div class="citation" id="id68" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id12">CGZ+13</a><span class="fn-bracket">]</span></span>
+<p>Yang Chen, Alex Groce, Chaoqiang Zhang, Weng-Keen Wong, Xiaoli Fern, Eric Eide, and John Regehr. Taming compiler fuzzers. In <em>Proceedings of the 34th ACM SIGPLAN Conference on Programming Language Design and Implementation</em>, PLDI '13, 197–208. New York, NY, USA, 2013. Association for Computing Machinery. URL: <a class="reference external" href="http://www.cs.utah.edu/~regehr/papers/pldi13.pdf">http://www.cs.utah.edu/~regehr/papers/pldi13.pdf</a>, <a class="reference external" href="https://doi.org/10.1145/2491956.2462173">doi:10.1145/2491956.2462173</a>.</p>
+</div>
+<div class="citation" id="id81" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id54">CJM+19</a><span class="fn-bracket">]</span></span>
+<p>Yuanliang Chen, Yu Jiang, Fuchen Ma, Jie Liang, Mingzhe Wang, Chijin Zhou, Xun Jiao, and Zhuo Su. Enfuzz: ensemble fuzzing with seed synchronization among diverse fuzzers. In <em>USENIX Security Symposium</em>. 2019. URL: <a class="reference external" href="https://www.usenix.org/system/files/sec19-chen-yuanliang.pdf">https://www.usenix.org/system/files/sec19-chen-yuanliang.pdf</a>.</p>
+</div>
+<div class="citation" id="id69" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id19">CH00</a><span class="fn-bracket">]</span></span>
+<p>Koen Claessen and John Hughes. Quickcheck: a lightweight tool for random testing of haskell programs. <em>Proceedings of the Fifth ACM SIGPLAN International Conference on Functional Programming</em>, 2000. URL: <a class="reference external" href="https://www.cs.tufts.edu/~nr/cs257/archive/john-hughes/quick.pdf">https://www.cs.tufts.edu/~nr/cs257/archive/john-hughes/quick.pdf</a>, <a class="reference external" href="https://doi.org/10.1145/357766.351266">doi:10.1145/357766.351266</a>.</p>
+</div>
+<div class="citation" id="id77" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id6">FMEissfeldtH20</a><span class="fn-bracket">]</span></span>
+<p>Andrea Fioraldi, Dominik Maier, Heiko Eißfeldt, and Marc Heuse. Afl++ : combining incremental steps of fuzzing research. In <em>14th USENIX Workshop on Offensive Technologies (WOOT 20)</em>. USENIX Association, August 2020. URL: <a class="reference external" href="https://www.usenix.org/system/files/woot20-paper-fioraldi.pdf">https://www.usenix.org/system/files/woot20-paper-fioraldi.pdf</a>.</p>
+</div>
+<div class="citation" id="id120" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id45">GZQ+18</a><span class="fn-bracket">]</span></span>
+<p>Shuitao Gan, Chao Zhang, Xiaojun Qin, Xuwen Tu, Kang Li, Zhongyu Pei, and Zuoning Chen. Collafl: path sensitive fuzzing. In <em>2018 IEEE Symposium on Security and Privacy (SP)</em>, volume, 679–696. 2018. URL: <a class="reference external" href="https://chao.100871.net/papers/oakland18.pdf">https://chao.100871.net/papers/oakland18.pdf</a>, <a class="reference external" href="https://doi.org/10.1109/SP.2018.00040">doi:10.1109/SP.2018.00040</a>.</p>
+</div>
+<div class="citation" id="id107" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id56">GKS05</a><span class="fn-bracket">]</span></span>
+<p>Patrice Godefroid, Nils Klarlund, and Koushik Sen. Dart: directed automated random testing. In <em>Proceedings of the 2005 ACM SIGPLAN Conference on Programming Language Design and Implementation</em>, PLDI '05, 213–223. New York, NY, USA, 2005. Association for Computing Machinery. URL: <a class="reference external" href="https://patricegodefroid.github.io/public_psfiles/pldi2005.pdf">https://patricegodefroid.github.io/public_psfiles/pldi2005.pdf</a>, <a class="reference external" href="https://doi.org/10.1145/1065010.1065036">doi:10.1145/1065010.1065036</a>.</p>
+</div>
+<div class="citation" id="id109" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id58">GLM+08</a><span class="fn-bracket">]</span></span>
+<p>Patrice Godefroid, Michael Y Levin, David A Molnar, and others. Automated whitebox fuzz testing. In <em>NDSS</em>, volume 8, 151–166. 2008. URL: <a class="reference external" href="https://patricegodefroid.github.io/public_psfiles/ndss2008.pdf">https://patricegodefroid.github.io/public_psfiles/ndss2008.pdf</a>.</p>
+</div>
+<div class="citation" id="id95" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id17">GG18</a><span class="fn-bracket">]</span></span>
+<p>Peter Goodman and Alex Groce. DeepState: symbolic unit testing for c and c$\mathplus $$\mathplus $. In <em>Proceedings 2018 Workshop on Binary Analysis Research</em>. Internet Society, 2018. URL: <a class="reference external" href="https://www.ndss-symposium.org/wp-content/uploads/2018/07/bar2018_9_Goodman_paper.pdf">https://www.ndss-symposium.org/wp-content/uploads/2018/07/bar2018_9_Goodman_paper.pdf</a>, <a class="reference external" href="https://doi.org/10.14722/bar.2018.23009">doi:10.14722/bar.2018.23009</a>.</p>
+</div>
+<div class="citation" id="id96" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id18">GCMB17</a><span class="fn-bracket">]</span></span>
+<p>Gustavo Grieco, Mart\'ın Ceresa, Agust\'ın Mista, and Pablo Buiras. QuickFuzz testing for fun and profit. <em>Journal of Systems and Software</em>, 134:340–354, December 2017. URL: <a class="reference external" href="http://www.cse.chalmers.se/~mista/assets/pdf/jss17.pdf">http://www.cse.chalmers.se/~mista/assets/pdf/jss17.pdf</a>, <a class="reference external" href="https://doi.org/10.1016/j.jss.2017.09.018">doi:10.1016/j.jss.2017.09.018</a>.</p>
+</div>
+<div class="citation" id="id112" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id50">GAG14</a><span class="fn-bracket">]</span></span>
+<p>Alex Groce, Mohammad Amin Alipour, and Rahul Gopinath. Coverage and its discontents. In <em>Proceedings of the 2014 ACM International Symposium on New Ideas, New Paradigms, and Reflections on Programming &amp; Software</em>, Onward! 2014, 255–268. New York, NY, USA, 2014. Association for Computing Machinery. URL: <a class="reference external" href="https://agroce.github.io/onwardessays14.pdf">https://agroce.github.io/onwardessays14.pdf</a>, <a class="reference external" href="https://doi.org/10.1145/2661136.2661157">doi:10.1145/2661136.2661157</a>.</p>
+</div>
+<div class="citation" id="id71" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>GHK17<span class="fn-bracket">]</span></span>
+<span class="backrefs">(<a role="doc-backlink" href="#id11">1</a>,<a role="doc-backlink" href="#id41">2</a>)</span>
+<p>Alex Groce, Josie Holmes, and Kevin Kellar. One test to rule them all. In <em>Proceedings of the 26th ACM SIGSOFT International Symposium on Software Testing and Analysis - ISSTA 2017</em>. ACM Press, 2017. URL: <a class="reference external" href="https://agroce.github.io/issta17.pdf">https://agroce.github.io/issta17.pdf</a>, <a class="reference external" href="https://doi.org/10.1145/3092703.3092704">doi:10.1145/3092703.3092704</a>.</p>
+</div>
+<div class="citation" id="id72" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id13">GZE+12</a><span class="fn-bracket">]</span></span>
+<p>Alex Groce, Chaoqiang Zhang, Eric Eide, Yang Chen, and John Regehr. Swarm testing. In <em>Proceedings of the 2012 International Symposium on Software Testing and Analysis</em>, ISSTA 2012, 78–88. New York, NY, USA, 2012. Association for Computing Machinery. URL: <a class="reference external" href="https://www.cs.utah.edu/~regehr/papers/swarm12.pdf">https://www.cs.utah.edu/~regehr/papers/swarm12.pdf</a>, <a class="reference external" href="https://doi.org/10.1145/2338965.2336763">doi:10.1145/2338965.2336763</a>.</p>
+</div>
+<div class="citation" id="id106" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id55">GulerGorzG+20</a><span class="fn-bracket">]</span></span>
+<p>Emre Güler, Philipp Görz, Elia Geretto, Andrea Jemmett, Sebastian Österlund, Herbert Bos, Cristiano Giuffrida, and Thorste Holz. Cupid: automatic fuzzer selection for collaborative fuzzing. December 2020. URL: <a class="reference external" href="https://www.ei.ruhr-uni-bochum.de/media/emma/veroeffentlichungen/2020/09/26/ACSAC20-Cupid_TiM9H07.pdf">https://www.ei.ruhr-uni-bochum.de/media/emma/veroeffentlichungen/2020/09/26/ACSAC20-Cupid_TiM9H07.pdf</a>, <a class="reference external" href="https://doi.org/10.1145/3427228.3427266">doi:10.1145/3427228.3427266</a>.</p>
+</div>
+<div class="citation" id="id121" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id46">HZKM22</a><span class="fn-bracket">]</span></span>
+<p>David Herel, Dominika Zogatova, Matej Kripner, and Tomas Mikolov. Emergence of novelty in evolutionary algorithms. In <em>The 2022 Conference on Artificial Life</em>. MIT Press, 2022. URL: <a class="reference external" href="https://doi.org/10.1162%2Fisal_a_00501">https://doi.org/10.1162%2Fisal_a_00501</a>, <a class="reference external" href="https://doi.org/10.1162/isal_a_00501">doi:10.1162/isal_a_00501</a>.</p>
+</div>
+<div class="citation" id="id99" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id39">HGH+19</a><span class="fn-bracket">]</span></span>
+<p>Adrian Herrera, Hendra Gunadi, Liam Hayes, Shane Magrath, Felix Friedlander, Maggi Sebastian, Michael Norrish, and Antony L. Hosking. Corpus distillation for effective fuzzing: a comparative evaluation. 2019. <a class="reference external" href="https://arxiv.org/abs/1905.13055">arXiv:1905.13055</a>.</p>
+</div>
+<div class="citation" id="id101" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id61">KRC+18</a><span class="fn-bracket">]</span></span>
+<p>George Klees, Andrew Ruef, Benji Cooper, Shiyi Wei, and Michael Hicks. Evaluating fuzz testing. In <em>Proceedings of the 2018 ACM SIGSAC Conference on Computer and Communications Security</em>, CCS '18, 2123–2138. New York, NY, USA, 2018. Association for Computing Machinery. URL: <a class="reference external" href="https://www.cs.umd.edu/~mwh/papers/fuzzeval.pdf">https://www.cs.umd.edu/~mwh/papers/fuzzeval.pdf</a>, <a class="reference external" href="https://doi.org/10.1145/3243734.3243804">doi:10.1145/3243734.3243804</a>.</p>
+</div>
+<div class="citation" id="id65" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id9">LoscherS17</a><span class="fn-bracket">]</span></span>
+<p>Andreas Löscher and Konstantinos Sagonas. Targeted property-based testing. In <em>Proceedings of the 26th ACM SIGSOFT International Symposium on Software Testing and Analysis</em>, ISSTA 2017, 46–56. New York, NY, USA, 2017. Association for Computing Machinery. URL: <a class="reference external" href="https://proper-testing.github.io/papers/issta2017.pdf">https://proper-testing.github.io/papers/issta2017.pdf</a>, <a class="reference external" href="https://doi.org/10.1145/3092703.3092711">doi:10.1145/3092703.3092711</a>.</p>
+</div>
+<div class="citation" id="id98" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id20">LHP19</a><span class="fn-bracket">]</span></span>
+<p>Leonidas Lampropoulos, Michael Hicks, and Benjamin C. Pierce. Coverage guided, property based testing. <em>Proceedings of the ACM on Programming Languages</em>, 3(OOPSLA):1–29, 2019. URL: <a class="reference external" href="https://lemonidas.github.io/pdf/FuzzChick.pdf">https://lemonidas.github.io/pdf/FuzzChick.pdf</a>, <a class="reference external" href="https://doi.org/10.1145/3360607">doi:10.1145/3360607</a>.</p>
+</div>
+<div class="citation" id="id79" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id28">LS18</a><span class="fn-bracket">]</span></span>
+<p>Caroline Lemieux and Koushik Sen. Fairfuzz: a targeted mutation strategy for increasing greybox fuzz testing coverage. In <em>Proceedings of the 33rd ACM/IEEE International Conference on Automated Software Engineering</em>, ASE 2018, 475–485. New York, NY, USA, 2018. Association for Computing Machinery. URL: <a class="reference external" href="https://www.carolemieux.com/fairfuzz-ase18.pdf">https://www.carolemieux.com/fairfuzz-ase18.pdf</a>, <a class="reference external" href="https://doi.org/10.1145/3238147.3238176">doi:10.1145/3238147.3238176</a>.</p>
+</div>
+<div class="citation" id="id110" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id59">LJC+18</a><span class="fn-bracket">]</span></span>
+<p>Jie Liang, Yu Jiang, Yuanliang Chen, Mingzhe Wang, Chijin Zhou, and Jiaguang Sun. Pafl: extend fuzzing optimizations of single mode to industrial parallel mode. In <em>Proceedings of the 2018 26th ACM Joint Meeting on European Software Engineering Conference and Symposium on the Foundations of Software Engineering</em>, ESEC/FSE 2018, 809–814. New York, NY, USA, 2018. Association for Computing Machinery. URL: <a class="reference external" href="http://wingtecher.com/themes/WingTecherResearch/assets/papers/fse18-pafl.pdf">http://wingtecher.com/themes/WingTecherResearch/assets/papers/fse18-pafl.pdf</a>, <a class="reference external" href="https://doi.org/10.1145/3236024.3275525">doi:10.1145/3236024.3275525</a>.</p>
+</div>
+<div class="citation" id="id85" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id23">LJZ+19</a><span class="fn-bracket">]</span></span>
+<p>Chenyang Lyu, Shouling Ji, Chao Zhang, Yuwei Li, Wei-Han Lee, Yu Song, and Raheem Beyah. MOPT: optimized mutation scheduling for fuzzers. In <em>28th USENIX Security Symposium (USENIX Security 19)</em>, 1949–1966. Santa Clara, CA, August 2019. USENIX Association. URL: <a class="reference external" href="https://www.usenix.org/system/files/sec19-lyu.pdf">https://www.usenix.org/system/files/sec19-lyu.pdf</a>.</p>
+</div>
+<div class="citation" id="id63" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id7">MHDC19</a><span class="fn-bracket">]</span></span>
+<p>David MacIver, Zac Hatfield-Dodds, and Many Contributors. Hypothesis: a new approach to property-based testing. <em>Journal of Open Source Software</em>, 4(43):1891, 2019. URL: <a class="reference external" href="https://doi.org/10.21105/joss.01891">https://doi.org/10.21105/joss.01891</a>, <a class="reference external" href="https://doi.org/10.21105/joss.01891">doi:10.21105/joss.01891</a>.</p>
+</div>
+<div class="citation" id="id64" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id8">MD20</a><span class="fn-bracket">]</span></span>
+<p>David R. MacIver and Alastair F. Donaldson. Test-Case Reduction via Test-Case Generation: Insights from the Hypothesis Reducer (Tool Insights Paper). In Robert Hirschfeld and Tobias Pape, editors, <em>34th European Conference on Object-Oriented Programming (ECOOP 2020)</em>, volume 166 of Leibniz International Proceedings in Informatics (LIPIcs), 13:1–13:27. Dagstuhl, Germany, 2020. Schloss Dagstuhl–Leibniz-Zentrum für Informatik. URL: <a class="reference external" href="https://drops.dagstuhl.de/opus/volltexte/2020/13170">https://drops.dagstuhl.de/opus/volltexte/2020/13170</a>, <a class="reference external" href="https://doi.org/10.4230/LIPIcs.ECOOP.2020.13">doi:10.4230/LIPIcs.ECOOP.2020.13</a>.</p>
+</div>
+<div class="citation" id="id103" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id53">ManesKC20</a><span class="fn-bracket">]</span></span>
+<p>Valentin J. M. Manès, Soomin Kim, and Sang Kil Cha. Ankou: guiding grey-box fuzzing towards combinatorial difference. In <em>Proceedings of the International Conference on Software Engineering</em>, 1024–1036. 2020. URL: <a class="reference external" href="https://www.jiliac.com/files/ankou-icse2020.pdf">https://www.jiliac.com/files/ankou-icse2020.pdf</a>.</p>
+</div>
+<div class="citation" id="id111" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id49">Mar97</a><span class="fn-bracket">]</span></span>
+<p>Brian Marick. How to misuse code coverage. 1997. URL: <a class="reference external" href="http://www.exampler.com/testing-com/writings/coverage.pdf">http://www.exampler.com/testing-com/writings/coverage.pdf</a>.</p>
+</div>
+<div class="citation" id="id75" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id4">MKL+98</a><span class="fn-bracket">]</span></span>
+<p>Barton Miller, David Koski, Cjin Lee, Vivekananda Maganty, Ravi Murthy, Ajitkumar Natarajan, and Jeff Steidl. Fuzz revisited: a re-examination of the reliability of unix utilities and services. 1998. URL: <a class="reference external" href="http://www.paradyn.org/papers/fuzz-revisited.pdf">http://www.paradyn.org/papers/fuzz-revisited.pdf</a>.</p>
+</div>
+<div class="citation" id="id74" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id3">MFS90</a><span class="fn-bracket">]</span></span>
+<p>Barton P. Miller, Louis Fredriksen, and Bryan So. An empirical study of the reliability of unix utilities. <em>Commun. ACM</em>, 33(12):32–44, December 1990. URL: <a class="reference external" href="http://www.paradyn.org/papers/fuzz.pdf">http://www.paradyn.org/papers/fuzz.pdf</a>, <a class="reference external" href="https://doi.org/10.1145/96267.96279">doi:10.1145/96267.96279</a>.</p>
+</div>
+<div class="citation" id="id76" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id5">MZH20</a><span class="fn-bracket">]</span></span>
+<p>Barton P. Miller, Mengxiao Zhang, and Elisa R. Heymann. The relevance of classic fuzz testing: have we solved this one? 2020. <a class="reference external" href="https://arxiv.org/abs/2008.06537">arXiv:2008.06537</a>.</p>
+</div>
+<div class="citation" id="id118" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id47">MC15</a><span class="fn-bracket">]</span></span>
+<p>Jean-Baptiste Mouret and Jeff Clune. Illuminating search spaces by mapping elites. <em>CoRR</em>, 2015. URL: <a class="reference external" href="http://arxiv.org/abs/1504.04909">http://arxiv.org/abs/1504.04909</a>, <a class="reference external" href="https://arxiv.org/abs/1504.04909">arXiv:1504.04909</a>.</p>
+</div>
+<div class="citation" id="id82" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id51">NH18</a><span class="fn-bracket">]</span></span>
+<p>Stefan Nagy and Matthew Hicks. Full-speed fuzzing: reducing fuzzing overhead through coverage-guided tracing. 2018. <a class="reference external" href="https://arxiv.org/abs/1812.11875">arXiv:1812.11875</a>.</p>
+</div>
+<div class="citation" id="id117" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id48">NG22</a><span class="fn-bracket">]</span></span>
+<p>Hoang Lam Nguyen and Lars Grunske. Bedivfuzz: integrating behavioral diversity into generator-based fuzzing. 2022. <a class="reference external" href="https://arxiv.org/abs/2202.13114">arXiv:2202.13114</a>.</p>
+</div>
+<div class="citation" id="id92" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id14">PLS19</a><span class="fn-bracket">]</span></span>
+<p>Rohan Padhye, Caroline Lemieux, and Koushik Sen. JQF: coverage-guided property-based testing in java. In <em>Proceedings of the 28th ACM SIGSOFT International Symposium on Software Testing and Analysis - ISSTA 2019</em>. ACM Press, 2019. URL: <a class="reference external" href="https://cs.berkeley.edu/~rohanpadhye/files/zest-issta19.pdf">https://cs.berkeley.edu/~rohanpadhye/files/zest-issta19.pdf</a>, <a class="reference external" href="https://doi.org/10.1145/3293882.3339002">doi:10.1145/3293882.3339002</a>.</p>
+</div>
+<div class="citation" id="id93" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id15">PLS+19a</a><span class="fn-bracket">]</span></span>
+<p>Rohan Padhye, Caroline Lemieux, Koushik Sen, Mike Papadakis, and Yves Le Traon. Semantic fuzzing with zest. In <em>Proceedings of the 28th ACM SIGSOFT International Symposium on Software Testing and Analysis - ISSTA 2019</em>. ACM Press, 2019. URL: <a class="reference external" href="https://people.eecs.berkeley.edu/~rohanpadhye/files/zest-issta19.pdf">https://people.eecs.berkeley.edu/~rohanpadhye/files/zest-issta19.pdf</a>, <a class="reference external" href="https://doi.org/10.1145/3293882.3330576">doi:10.1145/3293882.3330576</a>.</p>
+</div>
+<div class="citation" id="id90" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id43">PLS+19b</a><span class="fn-bracket">]</span></span>
+<p>Rohan Padhye, Caroline Lemieux, Koushik Sen, Laurent Simon, and Hayawardh Vijayakumar. FuzzFactory: domain-specific fuzzing with waypoints. <em>Proceedings of the ACM on Programming Languages</em>, 3(OOPSLA):1–29, October 2019. URL: <a class="reference external" href="https://dl.acm.org/doi/pdf/10.1145/3360600">https://dl.acm.org/doi/pdf/10.1145/3360600</a>, <a class="reference external" href="https://doi.org/10.1145/3360600">doi:10.1145/3360600</a>.</p>
+</div>
+<div class="citation" id="id97" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id21">PHrictcuDenes+15</a><span class="fn-bracket">]</span></span>
+<p>Zoe Paraskevopoulou, Cătălin Hriţcu, Maxime Dénès, Leonidas Lampropoulos, and Benjamin C. Pierce. Foundational property-based testing. In <em>Interactive Theorem Proving</em>, pages 325–343. Springer International Publishing, 2015. URL: <a class="reference external" href="https://prosecco.gforge.inria.fr/personal/hritcu/publications/foundational-pbt.pdf">https://prosecco.gforge.inria.fr/personal/hritcu/publications/foundational-pbt.pdf</a>, <a class="reference external" href="https://doi.org/10.1007/978-3-319-22102-1_22">doi:10.1007/978-3-319-22102-1_22</a>.</p>
+</div>
+<div class="citation" id="id94" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id16">RLPS20</a><span class="fn-bracket">]</span></span>
+<p>Sameer Reddy, Caroline Lemieux, Rohan Padhye, and Koushik Sen. Quickly generating diverse valid test inputs with reinforcement learning. In <em>Proceedings of the 42st International Conference on Software Engineering</em>. IEEE Press, 2020. URL: <a class="reference external" href="https://www.carolemieux.com/rlcheck_preprint.pdf">https://www.carolemieux.com/rlcheck_preprint.pdf</a>.</p>
+</div>
+<div class="citation" id="id116" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id34">RZD+21</a><span class="fn-bracket">]</span></span>
+<p>Nicola Ruaro, Kyle Zeng, Lukas Dresel, Mario Polino, Tiffany Bao, Andrea Continella, Stefano Zanero, Christopher Kruegel, and Giovanni Vigna. <em>SyML: Guiding Symbolic Execution Toward Vulnerable States Through Pattern Learning</em>, pages 456–468. Association for Computing Machinery, New York, NY, USA, 2021. URL: <a class="reference external" href="https://conand.me/publications/ruaro-syml-2021.pdf">https://conand.me/publications/ruaro-syml-2021.pdf</a>.</p>
+</div>
+<div class="citation" id="id108" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id57">SMA05</a><span class="fn-bracket">]</span></span>
+<p>Koushik Sen, Darko Marinov, and Gul Agha. Cute: a concolic unit testing engine for c. In <em>Proceedings of the 10th European Software Engineering Conference Held Jointly with 13th ACM SIGSOFT International Symposium on Foundations of Software Engineering</em>, ESEC/FSE-13, 263–272. New York, NY, USA, 2005. Association for Computing Machinery. URL: <a class="reference external" href="http://mir.cs.illinois.edu/marinov/publications/SenETAL05CUTE.pdf">http://mir.cs.illinois.edu/marinov/publications/SenETAL05CUTE.pdf</a>, <a class="reference external" href="https://doi.org/10.1145/1081706.1081750">doi:10.1145/1081706.1081750</a>.</p>
+</div>
+<div class="citation" id="id105" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id26">SPH+20</a><span class="fn-bracket">]</span></span>
+<p>Ezekiel Soremekun, Esteban Pavese, Nikolas Havrikov, Lars Grunske, and Andreas Zeller. Inputs from hell: learning input distributions for grammar-based test generation. <em>IEEE Transactions on Software Engineering</em>, PP:1–1, 08 2020. URL: <a class="reference external" href="https://publications.cispa.saarland/3167/7/inputs-from-hell.pdf">https://publications.cispa.saarland/3167/7/inputs-from-hell.pdf</a>, <a class="reference external" href="https://doi.org/10.1109/TSE.2020.3013716">doi:10.1109/TSE.2020.3013716</a>.</p>
+</div>
+<div class="citation" id="id119" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id47">VCM18</a><span class="fn-bracket">]</span></span>
+<p>Vassilis Vassiliades, Konstantinos Chatzilygeroudis, and Jean-Baptiste Mouret. Using centroidal voronoi tessellations to scale up the multidimensional archive of phenotypic elites algorithm. <em>IEEE Transactions on Evolutionary Computation</em>, 22(4):623–630, 2018. <a class="reference external" href="https://doi.org/10.1109/TEVC.2017.2735550">doi:10.1109/TEVC.2017.2735550</a>.</p>
+</div>
+<div class="citation" id="id100" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id52">WDS+19</a><span class="fn-bracket">]</span></span>
+<p>Jinghan Wang, Yue Duan, Wei Song, Heng Yin, and Chengyu Song. Be sensitive and collaborative: analyzing impact of coverage metrics in greybox fuzzing. In <em>22nd International Symposium on Research in Attacks, Intrusions and Defenses (RAID 2019)</em>, 1–15. Chaoyang District, Beijing, September 2019. USENIX Association. URL: <a class="reference external" href="https://www.usenix.org/conference/raid2019/presentation/wang">https://www.usenix.org/conference/raid2019/presentation/wang</a>.</p>
+</div>
+<div class="citation" id="id104" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id32">WZL+20</a><span class="fn-bracket">]</span></span>
+<p>Pengfei Wang, Xu Zhou, Kai Lu, Yingying Liu, and Tai Yue. Sok: the progress, challenges, and perspectives of directed greybox fuzzing. 2020. <a class="reference external" href="https://arxiv.org/abs/2005.11907">arXiv:2005.11907</a>.</p>
+</div>
+<div class="citation" id="id84" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>WLR20<span class="fn-bracket">]</span></span>
+<span class="backrefs">(<a role="doc-backlink" href="#id25">1</a>,<a role="doc-backlink" href="#id31">2</a>)</span>
+<p>Zi Wang, Ben Liblit, and Thomas Reps. Tofu: target-oriented fuzzer. 2020. <a class="reference external" href="https://arxiv.org/abs/2004.14375">arXiv:2004.14375</a>.</p>
+</div>
+<div class="citation" id="id115" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id24">WJX+22</a><span class="fn-bracket">]</span></span>
+<p>Mingyuan Wu, Ling Jiang, Jiahong Xiang, Yanwei Huang, Heming Cui, Lingming Zhang, and Yuqun Zhang. One fuzzing strategy to rule them all. In <em>2022 IEEE/ACM 44th International Conference on Software Engineering (ICSE)</em>, volume, 1634–1645. 2022. URL: <a class="reference external" href="http://zhangyuqun.com/publications/icse2022b.pdf">http://zhangyuqun.com/publications/icse2022b.pdf</a>, <a class="reference external" href="https://doi.org/10.1145/3510003.3510174">doi:10.1145/3510003.3510174</a>.</p>
+</div>
+<div class="citation" id="id113" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id1">YCER11</a><span class="fn-bracket">]</span></span>
+<p>Xuejun Yang, Yang Chen, Eric Eide, and John Regehr. Finding and understanding bugs in c compilers. In <em>Proceedings of the 32nd ACM SIGPLAN Conference on Programming Language Design and Implementation</em>, PLDI '11, 283–294. New York, NY, USA, 2011. Association for Computing Machinery. URL: <a class="reference external" href="https://www.cs.utah.edu/~regehr/papers/pldi11-preprint.pdf">https://www.cs.utah.edu/~regehr/papers/pldi11-preprint.pdf</a>, <a class="reference external" href="https://doi.org/10.1145/1993498.1993532">doi:10.1145/1993498.1993532</a>.</p>
+</div>
+<div class="citation" id="id67" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id2">ZGBohme+19</a><span class="fn-bracket">]</span></span>
+<p>Andreas Zeller, Rahul Gopinath, Marcel Böhme, Gordon Fraser, and Christian Holler. The fuzzing book. In <em>The Fuzzing Book</em>. Saarland University, 2019. URL: <a class="reference external" href="https://www.fuzzingbook.org/">https://www.fuzzingbook.org/</a> (visited on 2019-09-09 16:42:54+02:00).</p>
+</div>
+<div class="citation" id="id70" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id40">ZH02</a><span class="fn-bracket">]</span></span>
+<p>Andreas Zeller and Ralf Hildebrandt. Simplifying and isolating failure-inducing input. <em>IEEE Trans. Softw. Eng.</em>, 28(2):183–200, February 2002. URL: <a class="reference external" href="https://www.cs.purdue.edu/homes/xyzhang/fall07/Papers/delta-debugging.pdf">https://www.cs.purdue.edu/homes/xyzhang/fall07/Papers/delta-debugging.pdf</a>, <a class="reference external" href="https://doi.org/10.1109/32.988498">doi:10.1109/32.988498</a>.</p>
+</div>
+<div class="citation" id="id114" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id29">ZSZC21</a><span class="fn-bracket">]</span></span>
+<p>Yiru Zhao, Ruiheng Shi, Lei Zhao, and Yueqiang Cheng. Alphafuzz: evolutionary mutation-based fuzzing as monte carlo tree search. <em>CoRR</em>, 2021. URL: <a class="reference external" href="https://arxiv.org/abs/2101.00612">https://arxiv.org/abs/2101.00612</a>, <a class="reference external" href="https://arxiv.org/abs/2101.00612">arXiv:2101.00612</a>.</p>
+</div>
+<div class="citation" id="id102" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id44">AschermannSchumiloAbbasiHolz20</a><span class="fn-bracket">]</span></span>
+<p>C. Aschermann, S. Schumilo, A. Abbasi, and T. Holz. IJON: exploring deep state spaces via fuzzing. In <em>2020 IEEE Symposium on Security and Privacy (SP)</em>, volume, 1597–1612. 2020. URL: <a class="reference external" href="https://www.syssec.ruhr-uni-bochum.de/media/emma/veroeffentlichungen/2020/02/27/IJON-Oakland20.pdf">https://www.syssec.ruhr-uni-bochum.de/media/emma/veroeffentlichungen/2020/02/27/IJON-Oakland20.pdf</a>.</p>
+</div>
+<div class="citation" id="id78" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id27">BohmePhamRoychoudhury19</a><span class="fn-bracket">]</span></span>
+<p>M. Böhme, V. Pham, and A. Roychoudhury. Coverage-based greybox fuzzing as markov chain. <em>IEEE Transactions on Software Engineering</em>, 45(5):489–506, 2019. URL: <a class="reference external" href="https://mboehme.github.io/paper/TSE18.pdf">https://mboehme.github.io/paper/TSE18.pdf</a>, <a class="reference external" href="https://doi.org/10.1109/TSE.2017.2785841">doi:10.1109/TSE.2017.2785841</a>.</p>
+</div>
+<div class="citation" id="id66" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id10">LoscherSagonas18</a><span class="fn-bracket">]</span></span>
+<p>A. Löscher and K. Sagonas. Automating targeted property-based testing. In <em>2018 IEEE 11th International Conference on Software Testing, Verification and Validation (ICST)</em>, volume, 70–80. 2018. URL: <a class="reference external" href="https://proper-testing.github.io/papers/icst2018.pdf">https://proper-testing.github.io/papers/icst2018.pdf</a>, <a class="reference external" href="https://doi.org/10.1109/ICST.2018.00017">doi:10.1109/ICST.2018.00017</a>.</p>
+</div>
+<div class="citation" id="id91" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id42">PetsiosTangStolfo+17</a><span class="fn-bracket">]</span></span>
+<p>T. Petsios, A. Tang, S. Stolfo, A. D. Keromytis, and S. Jana. Nezha: efficient domain-independent differential testing. In <em>2017 IEEE Symposium on Security and Privacy (SP)</em>, 615–632. 2017. URL: <a class="reference external" href="https://www.ieee-security.org/TC/SP2017/papers/390.pdf">https://www.ieee-security.org/TC/SP2017/papers/390.pdf</a>.</p>
+</div>
+<div class="citation" id="id80" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id22">PhamBohmeSantosa+19</a><span class="fn-bracket">]</span></span>
+<p>V. Pham, M. Böhme, A. E. Santosa, A. R. Caciulescu, and A. Roychoudhury. Smart greybox fuzzing. <em>IEEE Transactions on Software Engineering</em>, 2019. URL: <a class="reference external" href="https://thuanpv.github.io/publications/TSE19_aflsmart.pdf">https://thuanpv.github.io/publications/TSE19_aflsmart.pdf</a>, <a class="reference external" href="https://doi.org/10.1109/TSE.2019.2941681">doi:10.1109/TSE.2019.2941681</a>.</p>
+</div>
+</div>
+</div>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          <a class="prev-page" href="roadmap.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">Development roadmap</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2025, Zac Hatfield-Dodds
+            </div>
+            Made with 
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Summary of related research</a><ul>
+<li><a class="reference internal" href="#fuzzing-background">Fuzzing background</a><ul>
+<li><a class="reference internal" href="#fuzz-fuzz-revisited-fuzz-2020">Fuzz / Fuzz Revisited / Fuzz 2020</a></li>
+<li><a class="reference internal" href="#afl-classic">AFL (classic)</a></li>
+<li><a class="reference internal" href="#libfuzzer">LibFuzzer</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#property-based-testing">Property-based testing</a><ul>
+<li><a class="reference internal" href="#hypothesis">Hypothesis</a></li>
+<li><a class="reference internal" href="#fuzzer-taming-with-test-case-reduction">‘Fuzzer taming’ with test-case reduction</a></li>
+<li><a class="reference internal" href="#strategies-are-parser-combinators-designed-for-structured-fuzzing">‘Strategies’ are parser-combinators designed for structured fuzzing</a></li>
+<li><a class="reference internal" href="#other-property-based-fuzzers">Other property-based fuzzers</a><ul>
+<li><a class="reference internal" href="#java-junit-quickcheck-jqf-zest-rlcheck">(Java) junit-quickcheck + JQF + Zest + RLCheck</a></li>
+<li><a class="reference internal" href="#rust-proptest-propfuzz-propverify">(Rust) proptest + propfuzz + propverify</a></li>
+<li><a class="reference internal" href="#c-c-trailofbits-deepstate-google-s-fuzztest">(C / C++) TrailofBits’ DeepState, Google’s <code class="docutils literal notranslate"><span class="pre">fuzztest</span></code></a></li>
+<li><a class="reference internal" href="#haskell-quickfuzz">(Haskell) QuickFuzz</a></li>
+<li><a class="reference internal" href="#coq-fuzzchick">(Coq) FuzzChick</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#mutation-operators">Mutation operators</a><ul>
+<li><a class="reference internal" href="#structure-aware-mutation-with-aflsmart">Structure-aware mutation with AFLSmart</a></li>
+<li><a class="reference internal" href="#adaptive-mutation-operator-selection">Adaptive mutation operator selection</a></li>
+<li><a class="reference internal" href="#inputs-from-hell">Inputs from Hell</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#scheduling-inputs">Scheduling inputs</a><ul>
+<li><a class="reference internal" href="#aflfast-fairfuzz-and-alphafuzz">AFLFast, FairFuzz, and AlphaFuzz</a></li>
+<li><a class="reference internal" href="#directed-fuzzing">Directed fuzzing</a></li>
+<li><a class="reference internal" href="#predictive-fuzzing-scaling-laws-when-to-stop">Predictive fuzzing, scaling laws, &amp; when to stop</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#seed-selection">Seed selection</a><ul>
+<li><a class="reference internal" href="#corpus-distillation">Corpus distillation</a></li>
+<li><a class="reference internal" href="#nezha-efficient-differential-testing">Nezha - efficient differential testing</a></li>
+<li><a class="reference internal" href="#domain-specific-targets-with-fuzzfactory">Domain-specific targets with FuzzFactory</a></li>
+<li><a class="reference internal" href="#virtual-branches-with-ijon">Virtual branches with IJON</a></li>
+<li><a class="reference internal" href="#diversity">Diversity</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#coverage">Coverage</a><ul>
+<li><a class="reference internal" href="#reducing-coverage-overhead-by-rewriting-the-target">Reducing coverage overhead by rewriting the target</a></li>
+<li><a class="reference internal" href="#faster-coverage-measurement-for-python">Faster coverage measurement for Python</a></li>
+<li><a class="reference internal" href="#sensitive-coverage-metrics">Sensitive coverage metrics</a></li>
+<li><a class="reference internal" href="#compressing-coverage-information">Compressing coverage information</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#miscellaneous">Miscellaneous</a><ul>
+<li><a class="reference internal" href="#ensemble-fuzzing-with-seed-sharing">Ensemble fuzzing with seed sharing</a></li>
+<li><a class="reference internal" href="#hybrid-concrete-symbolic-fuzzing">Hybrid concrete/symbolic fuzzing</a></li>
+<li><a class="reference internal" href="#scaling-fuzzers-up-to-many-cores">Scaling fuzzers up to many cores</a></li>
+<li><a class="reference internal" href="#visualising-fuzzer-performance">Visualising fuzzer performance</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#references">References</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="_static/doctools.js?v=9bcbadda"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/scripts/furo.js?v=5fa4622c"></script>
+    </body>
+</html>
