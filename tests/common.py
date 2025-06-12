@@ -1,19 +1,23 @@
 import inspect
 import os
+import queue
 import re
-import select
 import signal
 import subprocess
+import threading
 import time
 from collections.abc import Generator
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
+from queue import Queue
 from typing import Optional
 
 import requests
 from hypothesis.internal.escalation import InterestingOrigin
 from hypothesis.internal.reflection import get_pretty_function_description
+
+from hypofuzz.database import test_keys_key
 
 
 @dataclass(frozen=True)
@@ -21,9 +25,17 @@ class Dashboard:
     port: int
     process: subprocess.Popen
 
-    def state(self, *, id=None):
+    def state(self, *, nodeid=None):
         r = requests.get(
-            f"http://localhost:{self.port}/api/tests/{'' if id is None else id}",
+            f"http://localhost:{self.port}/api/tests/{'' if nodeid is None else nodeid}",
+            timeout=10,
+        )
+        r.raise_for_status()
+        return r.json()
+
+    def patches(self, *, nodeid):
+        r = requests.get(
+            f"http://localhost:{self.port}/api/patches/{nodeid}",
             timeout=10,
         )
         r.raise_for_status()
@@ -41,6 +53,19 @@ def wait_for(condition, *, timeout=10, interval):
     )
 
 
+def wait_for_test_key(db):
+    keys = wait_for(lambda: list(db.fetch(test_keys_key)), interval=0.1)
+    # assume we're only working with a single test
+    assert len(keys) == 1
+    return list(keys)[0]
+
+
+def _enqueue_output(stream, queue):
+    for line in iter(stream.readline, ""):
+        queue.put((stream, line))
+    stream.close()
+
+
 @contextmanager
 def dashboard(
     *, port: int = 0, test_path: Optional[Path] = None
@@ -52,38 +77,68 @@ def dashboard(
     args = ["hypothesis", "fuzz", "--dashboard-only", "--port", str(port)]
     if test_path is not None:
         args += ["--", str(test_path)]
+
     process = subprocess.Popen(
         args,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         start_new_session=True,
         text=True,
+        # line buffered
+        bufsize=1,
     )
     assert process.stdout is not None
     assert process.stderr is not None
+
+    output_queue = Queue()
+    output_thread = threading.Thread(
+        target=_enqueue_output, args=(process.stdout, output_queue), daemon=True
+    )
+    stderr_thread = threading.Thread(
+        target=_enqueue_output, args=(process.stderr, output_queue), daemon=True
+    )
+    output_thread.start()
+    stderr_thread.start()
+    stdout = []
+    stderr = []
+
+    def read_output():
+        try:
+            while True:
+                stream, line = output_queue.get(block=True, timeout=0.1)
+                if stream == process.stdout:
+                    stdout.append(line)
+                else:
+                    stderr.append(line)
+        except queue.Empty:
+            pass
+
     port = None
     # wait for dashboard to start up
     for _ in range(25):
         time.sleep(0.05)
         if process.poll() is not None:
-            stdout, stderr = process.communicate()
+            read_output()
+            stdout_text = "".join(stdout)
+            stderr_text = "".join(stderr)
             raise Exception(
                 f"dashboard exited with return code {process.returncode}. "
                 f"args: {args}, cwd: {os.getcwd()}\n"
-                f"stdout:\n{stdout!r}\nstderr:\n{stderr!r}"
+                f"stdout:\n{stdout_text!r}\nstderr:\n{stderr_text!r}"
             )
 
-        # wait to call the blocking .readline call until the stderr is readable
-        readable, _writable, _exceptional = select.select([process.stderr], [], [], 0.5)
-        if process.stderr in readable:
-            output = process.stderr.readline()
-            if m := re.search(r"Running on http://127.0.0.1:(\d+)", output):
-                port = int(m.group(1))
-                break
+        read_output()
+        stderr_text = "".join(stderr)
+        if m := re.search(r"Running on http://127.0.0.1:(\d+)", stderr_text):
+            port = int(m.group(1))
+            break
     else:
+        read_output()
+        stdout_text = "".join(stdout)
+        stderr_text = "".join(stderr)
         raise Exception(
             "dashboard took too long to start up. "
-            f"stdout:\n{process.stdout}\nstderr:\n{process.stderr}"
+            f"stdout:\n{stdout_text!r}\nstderr:\n{stderr_text!r}"
         )
 
     wait_for(
@@ -96,16 +151,23 @@ def dashboard(
     try:
         yield dashboard
     finally:
+        read_output()
+
         os.killpg(os.getpgid(process.pid), signal.SIGTERM)
         process.wait()
-        stdout, stderr = process.communicate()
-        process.stdout.close()
-        process.stderr.close()
+
+        if process.stdout:
+            process.stdout.close()
+        if process.stderr:
+            process.stderr.close()
+
+        stdout_text = "".join(stdout)
+        stderr_text = "".join(stderr)
         debug_msg = ""
         debug_msg += f"[pid {process.pid}] dashboard stdout: "
-        debug_msg += f"\n{stdout!r}" if stdout != "" else "''"
+        debug_msg += f"\n{stdout_text!r}" if stdout_text else "''"
         debug_msg += f"\n[pid {process.pid}] dashboard stderr: "
-        debug_msg += f"\n{stderr!r}" if stderr != "" else "''"
+        debug_msg += f"\n{stderr_text!r}" if stderr_text else "''"
         print(debug_msg)
 
 
