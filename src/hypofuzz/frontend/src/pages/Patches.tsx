@@ -1,3 +1,7 @@
+import { faArrowRight } from "@fortawesome/free-solid-svg-icons"
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
+import { Link } from "react-router-dom"
+
 import { Collapsible } from "../components/Collapsible"
 import { TestPatches } from "../components/TestPatches"
 import { useData } from "../context/DataProvider"
@@ -20,7 +24,26 @@ export function PatchesPage() {
         Patches
       </div>
       {Array.from(tests.keys()).map(nodeid => (
-        <Collapsible title={nodeid} headerClass="patches__test" defaultState="closed">
+        <Collapsible
+          title={
+            <div style={{ display: "flex", alignItems: "center" }}>
+              <span>{nodeid}</span>
+              <Link
+                to={`/tests/${encodeURIComponent(nodeid)}`}
+                style={{
+                  color: "var(--secondary-color, #888)",
+                  fontSize: "0.9em",
+                  textDecoration: "none",
+                  marginLeft: "12px",
+                }}
+              >
+                View Test <FontAwesomeIcon icon={faArrowRight} />
+              </Link>
+            </div>
+          }
+          headerClass="patches__test"
+          defaultState="closed"
+        >
           <TestPatches nodeid={nodeid} />
         </Collapsible>
       ))}

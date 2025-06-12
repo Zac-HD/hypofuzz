@@ -6,7 +6,7 @@ import hljs from "highlight.js/lib/core"
 import diff from "highlight.js/lib/languages/diff"
 import { useEffect, useRef, useState } from "react"
 
-import { fetchData } from "../utils/api"
+import { fetchPatches } from "../utils/api"
 import { reHighlight } from "../utils/utils"
 import { Toggle } from "./Toggle"
 
@@ -20,7 +20,7 @@ export function TestPatches({ nodeid }: { nodeid: string }) {
   const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    fetchData<Record<string, string>>(`patches/${nodeid}`).then(data => {
+    fetchPatches<Record<string, string>>(nodeid).then(data => {
       if (data) {
         setPatches(data)
       }
@@ -40,7 +40,7 @@ export function TestPatches({ nodeid }: { nodeid: string }) {
     )
   }
 
-  if (Object.keys(patches).length === 0) {
+  if (Object.values(patches).every(patch => patch === null)) {
     return (
       <div className="card">
         <p>No patches for this test</p>
@@ -94,10 +94,12 @@ export function TestPatches({ nodeid }: { nodeid: string }) {
         <Toggle
           value={activePatch}
           onChange={setPatchType}
-          options={Array.from(patchNames.entries()).map(([value, content]) => ({
-            value,
-            content,
-          }))}
+          options={Array.from(patchNames.entries())
+            .filter(([value]) => patches[value])
+            .map(([value, content]) => ({
+              value,
+              content,
+            }))}
         />
       </div>
       <pre className="patch__pre">

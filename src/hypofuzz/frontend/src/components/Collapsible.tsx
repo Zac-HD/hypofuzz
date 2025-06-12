@@ -3,7 +3,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
 import { ReactNode, useState } from "react"
 
 interface CollapsibleProps {
-  title: string
+  title: ReactNode
   children: ReactNode
   defaultState?: "open" | "closed"
   onStateChange?: (state: "open" | "closed") => void

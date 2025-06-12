@@ -1,6 +1,8 @@
 import subprocess
 
-from common import BASIC_TEST_CODE, fuzz, setup_test_code, wait_for
+import pytest
+
+from common import BASIC_TEST_CODE, fuzz, setup_test_code, wait_for, wait_for_test_key
 from hypothesis import given, strategies as st
 from hypothesis.database import (
     DirectoryBasedExampleDatabase,
@@ -23,11 +25,7 @@ def test_database_stores_reports_and_metadata_correctly(tmp_path):
     assert not list(db.fetch(test_keys_key))
 
     with fuzz(test_path=test_dir):
-        keys = wait_for(lambda: list(db.fetch(test_keys_key)), interval=0.1)
-        # we're only working with a single test
-        assert len(keys) == 1
-        key = list(keys)[0]
-
+        key = wait_for_test_key(db)
         previous_size = 0
         for _ in range(5):
             # wait for new db entries to roll in
@@ -36,6 +34,7 @@ def test_database_stores_reports_and_metadata_correctly(tmp_path):
                 timeout=15,
                 interval=0.05,
             )
+            previous_size = len(list(db.fetch_reports(key)))
 
 
 def test_database_state():
@@ -153,3 +152,27 @@ def test_database_keys_incorporate_parametrization(tmp_path):
     assert hypofuzz_keys == set(
         db_hypothesis.fetch(DirectoryBasedExampleDatabase._metakeys_name)
     )
+
+
+@pytest.mark.xfail(
+    reason=(
+        "fixed in the hypofuzz backend pr (choicetemplate=simplest in "
+        "phase.replay skips the observation)"
+    )
+)
+def test_all_corpus_choices_have_observations(tmp_path):
+    test_dir, db_dir = setup_test_code(tmp_path, BASIC_TEST_CODE)
+    db = HypofuzzDatabase(DirectoryBasedExampleDatabase(db_dir))
+
+    with fuzz(test_path=test_dir):
+        key = wait_for_test_key(db)
+        wait_for(
+            # 3 is arbitrary here
+            lambda: len(list(db.fetch_corpus(key))) > 3,
+            timeout=15,
+            interval=0.05,
+        )
+
+    for choices in db.fetch_corpus(key):
+        observations = list(db.fetch_corpus_observations(key, choices))
+        assert len(observations) == 1

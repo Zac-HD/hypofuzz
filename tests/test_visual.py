@@ -24,3 +24,11 @@ def test_visual_tyche_almost_always_invalid(n):
     # we can't actually do assume(False), or hypothesis would error.
     # (and we can't xfail that because then hypofuzz won't collect it).
     assume(n == 0)
+
+
+@given(st.lists(st.integers()))
+def test_visual_no_data(l):
+    if len(l) == 0:
+        pass
+    else:
+        pass

@@ -34,7 +34,10 @@ from hypofuzz.dashboard.models import (
     dashboard_report,
     dashboard_test,
 )
-from hypofuzz.dashboard.patching import make_and_save_patches
+from hypofuzz.dashboard.patching import (
+    covering_patch,
+    failing_patch,
+)
 from hypofuzz.dashboard.test import Test
 from hypofuzz.database import (
     DatabaseEvent,
@@ -380,14 +383,18 @@ async def api_test(request: Request) -> Response:
     return HypofuzzJSONResponse(dashboard_test(TESTS[nodeid]))
 
 
-def _patches() -> dict[str, dict[str, str]]:
+def _patches() -> dict[str, dict[str, Optional[str]]]:
     assert COLLECTION_RESULT is not None
     return {
         target.nodeid: {
-            name: str(patch_path.read_text())
-            for name, patch_path in make_and_save_patches(
-                target, TESTS[target.nodeid]
-            ).items()
+            "failing": (
+                failing_patch(target._test_fn, failure)
+                if (failure := TESTS[target.nodeid].failure)
+                else None
+            ),
+            "covering": covering_patch(
+                target._test_fn, TESTS[target.nodeid].corpus_observations
+            ),
         }
         for target in COLLECTION_RESULT.fuzz_targets
     }
@@ -409,9 +416,15 @@ async def api_patch(request: Request) -> Response:
 
     assert len(targets) == 1
     target = targets[0]
-    patches = make_and_save_patches(target, TESTS[nodeid])
+    failure = TESTS[nodeid].failure
+
     return HypofuzzJSONResponse(
-        {name: str(p.read_text()) for name, p in patches.items()}
+        {
+            "failing": failing_patch(target._test_fn, failure) if failure else None,
+            "covering": covering_patch(
+                target._test_fn, TESTS[nodeid].corpus_observations
+            ),
+        }
     )
 
 
@@ -457,8 +470,8 @@ async def api_backing_state_tests(request: Request) -> Response:
 async def api_backing_state_observations(request: Request) -> Response:
     observations = {
         nodeid: {
-            "rolling": test.rolling_observations,
-            "corpus": test.corpus_observations,
+            "rolling": [dashboard_observation(obs) for obs in test.rolling_observations],
+            "corpus": [dashboard_observation(obs) for obs in test.corpus_observations],
         }
         for nodeid, test in TESTS.items()
     }
