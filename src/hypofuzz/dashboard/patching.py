@@ -17,7 +17,7 @@ get_patch_for = lru_cache(maxsize=8192)(_get_patch_for)
 
 @lru_cache(maxsize=1024)
 def make_patch(triples: tuple[tuple[str, str, str]], *, msg: str) -> str:
-    return _make_patch(
+    return _make_patch(  # type: ignore
         triples,
         msg=msg,
         author=f"HypoFuzz {__version__} <no-reply@hypofuzz.com>",
@@ -31,7 +31,7 @@ def failing_patch(test_function: Callable, failure: Observation) -> Optional[str
     if not triple:
         return None
 
-    return make_patch((triple,), msg=f"add failing example")
+    return make_patch((triple,), msg="add failing example")
 
 
 def covering_patch(

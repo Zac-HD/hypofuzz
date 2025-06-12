@@ -470,7 +470,9 @@ async def api_backing_state_tests(request: Request) -> Response:
 async def api_backing_state_observations(request: Request) -> Response:
     observations = {
         nodeid: {
-            "rolling": [dashboard_observation(obs) for obs in test.rolling_observations],
+            "rolling": [
+                dashboard_observation(obs) for obs in test.rolling_observations
+            ],
             "corpus": [dashboard_observation(obs) for obs in test.corpus_observations],
         }
         for nodeid, test in TESTS.items()

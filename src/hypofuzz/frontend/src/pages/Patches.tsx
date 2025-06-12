@@ -37,7 +37,7 @@ export function PatchesPage() {
                   marginLeft: "12px",
                 }}
               >
-                View Test <FontAwesomeIcon icon={faArrowRight} />
+                View test <FontAwesomeIcon icon={faArrowRight} />
               </Link>
             </div>
           }

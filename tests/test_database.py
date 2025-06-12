@@ -1,7 +1,6 @@
 import subprocess
 
 import pytest
-
 from common import BASIC_TEST_CODE, fuzz, setup_test_code, wait_for, wait_for_test_key
 from hypothesis import given, strategies as st
 from hypothesis.database import (
