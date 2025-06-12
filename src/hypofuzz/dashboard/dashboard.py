@@ -29,8 +29,10 @@ from hypofuzz.dashboard.models import (
     AddTestsEvent,
     DashboardEventT,
     DashboardEventType,
+    SetStatusEvent,
     dashboard_observation,
     dashboard_report,
+    dashboard_test,
 )
 from hypofuzz.dashboard.patching import make_and_save_patches
 from hypofuzz.dashboard.test import Test
@@ -46,6 +48,7 @@ from hypofuzz.database import (
 )
 from hypofuzz.hypofuzz import FuzzProcess
 from hypofuzz.interface import CollectionResult
+from hypofuzz.utils import convert_to_fuzzjson
 
 # these two test dicts always contain the same values, just with different access
 # keys
@@ -98,12 +101,13 @@ def _sample_reports(
 
 class HypofuzzJSONResponse(JSONResponse):
     def render(self, content: Any) -> bytes:
-        return json.dumps(
-            content,
+        data = json.dumps(
+            convert_to_fuzzjson(content),
             ensure_ascii=False,
             separators=(",", ":"),
             cls=HypofuzzEncoder,
-        ).encode("utf-8", errors="surrogatepass")
+        )
+        return data.encode("utf-8", errors="surrogatepass")
 
 
 class HypofuzzWebsocket(abc.ABC):
@@ -122,11 +126,12 @@ class HypofuzzWebsocket(abc.ABC):
     async def send_event(self, event: DashboardEventT) -> None:
         await self.send_json(event)
 
-    @abc.abstractmethod
-    async def initial(self, tests: dict[str, Test]) -> None:
+    async def on_connect(self) -> None:
         pass
 
-    @abc.abstractmethod
+    async def send_tests(self, tests: dict[str, Test]) -> None:
+        pass
+
     async def on_event(
         self, event_type: Literal["save", "delete"], key: DatabaseEventKey, value: Any
     ) -> None:
@@ -134,7 +139,16 @@ class HypofuzzWebsocket(abc.ABC):
 
 
 class OverviewWebsocket(HypofuzzWebsocket):
-    async def initial(self, tests: dict[str, Test]) -> None:
+    async def send_tests(self, tests: dict[str, Test]) -> None:
+        assert COLLECTION_RESULT is not None
+
+        event: SetStatusEvent = {
+            "type": DashboardEventType.SET_STATUS,
+            "count_tests": len(COLLECTION_RESULT.fuzz_targets),
+            "count_tests_loaded": len(TESTS),
+        }
+        await self.send_event(event)
+
         # we start by sending all tests, which is the most important
         # thing for the user to see first.
         event: AddTestsEvent = {
@@ -206,7 +220,7 @@ class TestWebsocket(HypofuzzWebsocket):
         super().__init__(websocket)
         self.nodeid = nodeid
 
-    async def initial(self, tests: dict[str, Test]) -> None:
+    async def send_tests(self, tests: dict[str, Test]) -> None:
         if self.nodeid not in tests:
             return
         test = tests[self.nodeid]
@@ -330,7 +344,8 @@ async def websocket(websocket: WebSocket) -> None:
     await websocket.accept()
     websockets.add(websocket)
 
-    await websocket.initial(TESTS)
+    await websocket.on_connect()
+    await websocket.send_tests(TESTS)
 
     try:
         while True:
@@ -355,12 +370,14 @@ def try_format(code: str) -> str:
 
 
 async def api_tests(request: Request) -> Response:
-    return HypofuzzJSONResponse(TESTS)
+    return HypofuzzJSONResponse(
+        {nodeid: dashboard_test(test) for nodeid, test in TESTS.items()}
+    )
 
 
 async def api_test(request: Request) -> Response:
     nodeid = request.path_params["nodeid"]
-    return HypofuzzJSONResponse(TESTS[nodeid])
+    return HypofuzzJSONResponse(dashboard_test(TESTS[nodeid]))
 
 
 def _patches() -> dict[str, str]:
@@ -630,7 +647,7 @@ async def load_initial_state(fuzz_target: FuzzProcess) -> None:
         # TODO: make this more granular? So we send incremental batches
         # of reports as they're loaded, etc. Would need trio.from_thread inside
         # _load_initial_state.
-        await websocket.initial({test.nodeid: test})
+        await websocket.send_tests({test.nodeid: test})
 
 
 async def run_dashboard(port: int, host: str) -> None:

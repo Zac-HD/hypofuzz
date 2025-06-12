@@ -1,6 +1,7 @@
 from enum import IntEnum
 from typing import Any, Literal, Optional, TypedDict, Union
 
+from hypofuzz.dashboard.test import Test
 from hypofuzz.database import (
     Observation,
     ObservationStatus,
@@ -8,6 +9,11 @@ from hypofuzz.database import (
     Report,
     StatusCounts,
 )
+
+
+class DashboardObservationMetadata(TypedDict):
+    traceback: Optional[str]
+    reproduction_decorator: Optional[str]
 
 
 class DashboardObservation(TypedDict):
@@ -19,7 +25,7 @@ class DashboardObservation(TypedDict):
     how_generated: str
     features: dict[str, Any]
     timing: dict[str, Any]
-    metadata: dict[str, Any]
+    metadata: DashboardObservationMetadata
     property: str
     run_start: float
 
@@ -34,7 +40,10 @@ def dashboard_observation(observation: Observation) -> DashboardObservation:
         "how_generated": observation.how_generated,
         "features": observation.features,
         "timing": observation.timing,
-        "metadata": observation.metadata,
+        "metadata": {
+            "traceback": observation.metadata.traceback,
+            "reproduction_decorator": observation.metadata.reproduction_decorator,
+        },
         "property": observation.property,
         "run_start": observation.run_start,
     }
@@ -62,14 +71,44 @@ def dashboard_report(report: Report) -> DashboardReport:
     }
 
 
+# We only return this in api routes. It's not actually used by or sent to
+# DataProvider.tsx.
+class DashboardTest(TypedDict):
+    database_key: str
+    nodeid: str
+    rolling_observations: list[DashboardObservation]
+    corpus_observations: list[DashboardObservation]
+    failure: Optional[DashboardObservation]
+    reports_by_worker: dict[str, list[DashboardReport]]
+
+
+def dashboard_test(test: Test) -> DashboardTest:
+    return {
+        "database_key": test.database_key,
+        "nodeid": test.nodeid,
+        "rolling_observations": [
+            dashboard_observation(obs) for obs in test.rolling_observations
+        ],
+        "corpus_observations": [
+            dashboard_observation(obs) for obs in test.corpus_observations
+        ],
+        "failure": dashboard_observation(test.failure) if test.failure else None,
+        "reports_by_worker": {
+            worker_uuid: [dashboard_report(report) for report in reports]
+            for worker_uuid, reports in test.reports_by_worker.items()
+        },
+    }
+
+
 # keep in sync with DashboardEventType in DataProvider.tsx
 class DashboardEventType(IntEnum):
     # minimize header frame overhead with a shared IntEnum definition between
     # python and ts.
-    ADD_TESTS = 1
-    ADD_REPORTS = 2
-    ADD_OBSERVATIONS = 3
-    SET_FAILURE = 4
+    SET_STATUS = 1
+    ADD_TESTS = 2
+    ADD_REPORTS = 3
+    ADD_OBSERVATIONS = 4
+    SET_FAILURE = 5
 
 
 ObservationType = Literal["rolling", "corpus"]
@@ -107,9 +146,16 @@ class SetFailureEvent(TypedDict):
     failure: Optional[DashboardObservation]
 
 
+class SetStatusEvent(TypedDict):
+    type: Literal[DashboardEventType.SET_STATUS]
+    count_tests: int
+    count_tests_loaded: int
+
+
 DashboardEventT = Union[
     AddTestsEvent,
     AddReportsEvent,
     AddObservationsEvent,
     SetFailureEvent,
+    SetStatusEvent,
 ]

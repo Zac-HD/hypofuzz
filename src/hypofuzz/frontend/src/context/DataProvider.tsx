@@ -4,11 +4,14 @@ import React, {
   useContext,
   useEffect,
   useReducer,
+  useRef,
   useState,
 } from "react"
 
+import { ProgressBar } from "../components/ProgressBar"
 import { NOT_PRESENT_STRING, PRESENT_STRING } from "../tyche/Tyche"
 import { Observation, Report, Test } from "../types/dashboard"
+import { useNotification } from "./NotificationProvider"
 
 interface DataContextType {
   tests: Map<string, Test>
@@ -23,13 +26,19 @@ interface DataProviderProps {
 }
 
 enum DashboardEventType {
-  ADD_TESTS = 1,
-  ADD_REPORTS = 2,
-  ADD_OBSERVATIONS = 3,
-  SET_FAILURE = 4,
+  SET_STATUS = 1,
+  ADD_TESTS = 2,
+  ADD_REPORTS = 3,
+  ADD_OBSERVATIONS = 4,
+  SET_FAILURE = 5,
 }
 
 type TestsAction =
+  | {
+      type: DashboardEventType.SET_STATUS
+      count_tests: number
+      count_tests_loaded: number
+    }
   | {
       type: DashboardEventType.ADD_TESTS
       tests: {
@@ -114,6 +123,10 @@ function testsReducer(
   }
 
   switch (action.type) {
+    case DashboardEventType.SET_STATUS: {
+      return state
+    }
+
     case DashboardEventType.ADD_TESTS: {
       const { tests } = action
       for (const { database_key, nodeid, failure } of tests) {
@@ -170,6 +183,8 @@ export function DataProvider({ children }: DataProviderProps) {
   const [tests, dispatch] = useReducer(testsReducer, new Map<string, Test>())
   const [loadData, setLoadData] = useState(false)
   const [nodeid, setNodeid] = useState<string | null>(null)
+  const { addNotification, updateNotification, dismissNotification } = useNotification()
+  const statusNotification = useRef<number | null>(null)
 
   const doLoadData = useCallback((nodeid: string | null) => {
     setLoadData(true)
@@ -278,8 +293,41 @@ export function DataProvider({ children }: DataProviderProps) {
 
     ws.onmessage = event => {
       const data = JSON.parse(event.data)
+      const type = Number(data.type)
+      const count_tests = Number(data.count_tests)
+      const count_tests_loaded = Number(data.count_tests_loaded)
 
-      switch (Number(data.type)) {
+      switch (type) {
+        case DashboardEventType.SET_STATUS: {
+          dispatch({
+            type: DashboardEventType.SET_STATUS,
+            count_tests: count_tests,
+            count_tests_loaded: count_tests_loaded,
+          })
+
+          if (count_tests_loaded === count_tests) {
+            if (statusNotification.current !== null) {
+              dismissNotification(statusNotification.current)
+              statusNotification.current = null
+            }
+            break
+          }
+
+          const progressContent = React.createElement(ProgressBar, {
+            current: count_tests_loaded,
+            total: count_tests,
+            message: `Note: dashboard is still starting up (${count_tests_loaded}/${count_tests} tests loaded)`,
+          })
+
+          if (!statusNotification.current) {
+            statusNotification.current = addNotification(progressContent, null)
+          } else {
+            updateNotification(statusNotification.current, progressContent, null)
+          }
+
+          break
+        }
+
         case DashboardEventType.ADD_TESTS: {
           dispatch({
             type: DashboardEventType.ADD_TESTS,
