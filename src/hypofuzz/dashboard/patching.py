@@ -17,7 +17,7 @@ get_patch_for = lru_cache(maxsize=8192)(_get_patch_for)
 
 @lru_cache(maxsize=1024)
 def make_patch(triples: tuple[tuple[str, str, str]], *, msg: str) -> str:
-    return _make_patch(  # type: ignore
+    return _make_patch(
         triples,
         msg=msg,
         author=f"HypoFuzz {__version__} <no-reply@hypofuzz.com>",
