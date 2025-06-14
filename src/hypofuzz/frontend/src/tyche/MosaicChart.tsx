@@ -349,9 +349,11 @@ export function MosaicChart({
                     ...cssStyle(verticalAxis[rowIndex][0], horizontalAxis[colIndex][0]),
                   }}
                   onClick={() => onCellClick(rowIndex, colIndex)}
-                  onMouseEnter={e => showTooltip(tooltipContent, e.clientX, e.clientY)}
-                  onMouseMove={e => moveTooltip(e.clientX, e.clientY)}
-                  onMouseLeave={hideTooltip}
+                  onMouseEnter={e =>
+                    showTooltip(tooltipContent, e.clientX, e.clientY, "tyche-mosaic")
+                  }
+                  onMouseMove={e => moveTooltip(e.clientX, e.clientY, "tyche-mosaic")}
+                  onMouseLeave={() => hideTooltip("tyche-mosaic")}
                 >
                   <span className="tyche__mosaic__cell-value">{cell.count}</span>
                 </div>
