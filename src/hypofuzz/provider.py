@@ -333,7 +333,7 @@ class HypofuzzProvider(PrimitiveProvider):
         replay_priority = None
         extra_queue_data = None
         while self._replay_queue:
-            (replay_priority, choices, extra_queue_data) = self._replay_queue.pop()
+            (replay_priority, choices, extra_queue_data) = self._replay_queue.pop(0)
 
             # we checked if we had this choice sequence when we put it into the
             # replay_queue on on_event, but we check again here, since we might have
