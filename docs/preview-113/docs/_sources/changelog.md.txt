@@ -2,6 +2,13 @@
 HypoFuzz uses [calendar-based versioning](https://calver.org/), with a
 `YY-MM-patch` format.
 
+## 25.06.01
+
+Substantial improvements to the dashboard UI and coverage tracking. Most notably:
+
+* The dashboard now includes [Hypothesis observability](https://hypothesis.readthedocs.io/en/latest/reference/internals.html#observability), showing details about what inputs passed or failed an [`assume`](https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.assume) statement, custom [`event`](https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.event) occurrences, and more.
+* HypoFuzz now separately tracks coverage of "Behaviors" (branches, [`event`](https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.event), etc) and "Fingerprints" (unique sets of behaviors).
+
 ## 25.05.01
 
 Improve assignment of tests to fuzz workers, and bundle version-specific docs with the dashboard.
