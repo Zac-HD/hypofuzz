@@ -50,10 +50,13 @@ export function NominalChart({ feature, observations }: NominalChartProps) {
     return Set(filter.extraData.selectedValues)
   }, [nominalFilters])
 
-  observations = {
-    raw: observations.raw.filter(obs => obs.status !== "gave_up"),
-    filtered: observations.filtered.filter(obs => obs.status !== "gave_up"),
-  }
+  const filteredObservations = useMemo(
+    () => ({
+      raw: observations.raw.filter(obs => obs.status !== "gave_up"),
+      filtered: observations.filtered.filter(obs => obs.status !== "gave_up"),
+    }),
+    [observations],
+  )
 
   const onValueClick = (value: string) => {
     let newSelection = Set<string>()
@@ -98,12 +101,12 @@ export function NominalChart({ feature, observations }: NominalChartProps) {
 
   useEffect(() => {
     const distinctRawValues = Set<string>(
-      observations.raw.map(obs => obs.features.get(feature)),
+      filteredObservations.raw.map(obs => obs.features.get(feature)),
     )
     // value: count
     let data = new Map<string, number>()
 
-    for (const observation of observations.filtered) {
+    for (const observation of filteredObservations.filtered) {
       const value = observation.features.get(feature)
       data.set(value, (data.get(value) || 0) + 1)
     }
@@ -130,7 +133,12 @@ export function NominalChart({ feature, observations }: NominalChartProps) {
 
     const showTooltipHandler = function (event: MouseEvent, d: [string, number]) {
       const [label, count] = d
-      showTooltip(`${feature}<br>${label}: ${count}`, event.clientX, event.clientY)
+      showTooltip(
+        `${feature}<br>${label}: ${count}`,
+        event.clientX,
+        event.clientY,
+        "tyche-nominal",
+      )
     }
 
     // use a horizontally-stacked bar chart for 1-4 different feature labels,
@@ -188,8 +196,10 @@ export function NominalChart({ feature, observations }: NominalChartProps) {
           .on("mouseover", event => {
             showTooltipHandler(event, [value, count])
           })
-          .on("mousemove", event => moveTooltip(event.clientX, event.clientY))
-          .on("mouseleave", hideTooltip)
+          .on("mousemove", event =>
+            moveTooltip(event.clientX, event.clientY, "tyche-nominal"),
+          )
+          .on("mouseleave", () => hideTooltip("tyche-nominal"))
 
         // inner rect (for inset white border when selected)
         if (isSelected) {
@@ -264,8 +274,10 @@ export function NominalChart({ feature, observations }: NominalChartProps) {
         .on("mouseover", function (event, d) {
           showTooltipHandler(event, d)
         })
-        .on("mousemove", event => moveTooltip(event.clientX, event.clientY))
-        .on("mouseleave", hideTooltip)
+        .on("mousemove", event =>
+          moveTooltip(event.clientX, event.clientY, "tyche-nominal"),
+        )
+        .on("mouseleave", () => hideTooltip("tyche-nominal"))
 
       g.selectAll(".inner-bar")
         .data(
@@ -310,11 +322,7 @@ export function NominalChart({ feature, observations }: NominalChartProps) {
         .text("Count")
         .style("font-size", "12px")
     }
-
-    return () => {
-      hideTooltip()
-    }
-  }, [observations, selectedValues, feature, onValueClick])
+  }, [filteredObservations])
 
   return (
     <div>
