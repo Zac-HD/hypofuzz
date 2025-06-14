@@ -1,14 +1,12 @@
 """Tests for the hypofuzz library."""
 
 import os
-import signal
 import subprocess
 import sys
-import time
 
 import pytest
 import requests
-from common import wait_for
+from common import dashboard
 
 TEST_CODE = """
 from hypothesis import given, settings, strategies as st
@@ -36,34 +34,10 @@ def test_end_to_end(numprocesses, tmp_path):
     """An end-to-end test to start the fuzzer and access the dashboard."""
     test_fname = tmp_path / "test_demo2.py"
     test_fname.write_text(TEST_CODE, encoding="utf-8")
-    process = subprocess.Popen(
-        [
-            "hypothesis",
-            "fuzz",
-            "--numprocesses",
-            str(numprocesses),
-            "--port",
-            "7777",
-            "--",
-            str(test_fname),
-        ],
-        stderr=subprocess.PIPE,
-        start_new_session=True,
-    )
-    wait_for(
-        lambda: b"Running on http://127.0.0.1" in process.stderr.readline(),
-        timeout=2,
-        interval=0.01,
-    )
-    # ...plus a little more, for slow CI?
-    time.sleep(0.1)
-    try:
-        resp = requests.get("http://localhost:7777", timeout=10)
+
+    with dashboard(test_path=tmp_path, numprocesses=numprocesses) as dash:
+        resp = requests.get(f"http://localhost:{dash.port}", timeout=2)
         resp.raise_for_status()
-    finally:
-        process.stderr.close()
-        os.killpg(os.getpgid(process.pid), signal.SIGTERM)
-        process.wait()
 
 
 @pytest.mark.skipif(sys.version_info < (3, 12), reason="we only check on 3.12+")
