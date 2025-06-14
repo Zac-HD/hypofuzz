@@ -221,7 +221,9 @@ class FuzzProcess:
         data: ConjectureData,
         *,
         observation_callback: Union[
-            Callable[[TestCaseObservation], None], Literal["provider"]
+            Callable[[Union[InfoObservation, TestCaseObservation]], None],
+            Literal["provider"],
+            None,
         ] = "provider",
     ) -> None:
         # setting current_pytest_item lets us access it in HypofuzzProvider,
