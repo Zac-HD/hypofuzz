@@ -50,6 +50,9 @@ from hypofuzz.database import (
 )
 from hypofuzz.provider import HypofuzzProvider
 
+# 1 hour
+SHRINK_TIMEOUT = 60 * 60
+
 
 class HitShrinkTimeoutError(Exception):
     pass
@@ -159,8 +162,9 @@ class FuzzProcess:
         if result.status is Status.INTERESTING:
             assert not isinstance(result, _Overrun)
             # Shrink to our minimal failing example, since we'll stop after this.
-            # horrible horrible hack, reporting and phase logic needs to be
-            # extracted / unified somehow
+
+            # _start_phase here is a horrible horrible hack, reporting and phase
+            # logic needs to be extracted / unified somehow
             self.provider._start_phase(Phase.SHRINK)
             shrinker = get_shrinker(
                 self._execute_once_for_shrinker,
@@ -169,13 +173,13 @@ class FuzzProcess:
                 random=self.random,
                 explain=True,
             )
-            self.stop_shrinking_at = self.provider.elapsed_time + 300
+            self.stop_shrinking_at = self.provider.elapsed_time + SHRINK_TIMEOUT
             with contextlib.suppress(HitShrinkTimeoutError, RunIsComplete):
                 shrinker.shrink()
 
             self.provider._start_phase(Phase.FAILED)
-            # we re-execute the failing example under observability, for
-            # db.save_failure_observation.
+            # re-execute the failing example under observability, for so we
+            # can save the shrunk obervation.
             data = ConjectureData.for_choices(shrinker.shrink_target.choices)
             # make sure to carry over explain-phase comments
             data.slice_comments = shrinker.shrink_target.slice_comments
