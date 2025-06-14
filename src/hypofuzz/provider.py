@@ -429,8 +429,8 @@ class HypofuzzProvider(PrimitiveProvider):
             # payload as a distinct behavior. We probably want to bucket `v` for
             # target (but not event?)
             {
-                # strip in case v == "", as is the case for e.g. event without payload
-                f"event:{k}:{v}".strip(":")
+                # v is "" for e.g. an `event` call without a payload argument
+                f"event:{k if v == '' else f'{k}:{v}'}"
                 for k, v in observation.features.items()
                 if not k.startswith(("invalid because", "Retried draw from "))
             }
