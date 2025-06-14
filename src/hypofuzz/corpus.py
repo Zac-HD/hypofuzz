@@ -3,7 +3,7 @@
 from collections import Counter, defaultdict
 from collections.abc import Callable, Iterator, Set
 from random import Random
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Union
 
 from hypothesis import settings
 from hypothesis.internal.conjecture.choice import (
@@ -15,11 +15,11 @@ from hypothesis.internal.conjecture.data import (
     ConjectureData,
     ConjectureResult,
     Status,
-    _Overrun,
 )
 from hypothesis.internal.conjecture.engine import ConjectureRunner
 from hypothesis.internal.conjecture.shrinker import Shrinker, sort_key as _sort_key
 from hypothesis.internal.escalation import InterestingOrigin
+from hypothesis.internal.observability import TestCaseObservation
 
 from hypofuzz.database import ChoicesT, HypofuzzDatabase, Observation
 
@@ -104,7 +104,9 @@ def get_shrinker(
 class Corpus:
     """Manage the corpus for a fuzz target.
 
-    The class tracks the minimal valid example which covers each known branch.
+    The corpus is responsible for managing all seed state, including saving
+    novel seeds to the database.  This includes tracking how often each branch
+    has been hit, minimal covering examples for each branch, and so on.
     """
 
     def __init__(self, database: HypofuzzDatabase, database_key: bytes) -> None:
@@ -126,9 +128,7 @@ class Corpus:
         # fingerprints. The correctness of this refcounting is validated in
         # _check_invariants.
         self._count_fingerprints: dict[Choices, int] = defaultdict(int)
-        self.interesting_examples: dict[
-            InterestingOrigin, tuple[ConjectureResult, Optional[Observation]]
-        ] = {}
+        self.interesting_examples: dict[InterestingOrigin, TestCaseObservation] = {}
 
         self.__shrunk_to_nodes: set[NodesT] = set()
 
@@ -170,17 +170,18 @@ class Corpus:
     def _add_fingerprint(
         self,
         fingerprint: Fingerprint,
-        result: ConjectureResult,
+        observation: TestCaseObservation,
         *,
-        observation: Optional[Observation] = None,
+        save_observation: bool,
     ) -> None:
-        self.fingerprints[fingerprint] = result.nodes
-        choices = Choices(result.choices)
+        assert observation.metadata.choice_nodes is not None
+        self.fingerprints[fingerprint] = observation.metadata.choice_nodes
+        choices = Choices(tuple(n.value for n in observation.metadata.choice_nodes))
         if choices not in self.corpus:
-            self._db.save_corpus(self.database_key, result.choices)
-            if observation is not None:
+            self._db.save_corpus(self.database_key, choices)
+            if save_observation:
                 self._db.save_corpus_observation(
-                    self.database_key, result.choices, observation
+                    self.database_key, choices, Observation.from_hypothesis(observation)
                 )
         self.corpus.add(choices)
         self._count_fingerprints[choices] += 1
@@ -204,66 +205,76 @@ class Corpus:
 
     def add(
         self,
-        result: Union[ConjectureResult, _Overrun],
+        observation: TestCaseObservation,
         *,
-        observation: Optional[Observation] = None,
+        behaviors: Set[Behavior],
+        save_observation: bool,
     ) -> bool:
         """Update the corpus with the result of running a test.
 
         Returns whether this changed the corpus.
         """
-        if result.status < Status.VALID:
+        if observation.metadata.data_status < Status.VALID:
             return False
-        assert isinstance(result, ConjectureResult)
-        assert result.extra_information is not None
 
-        fingerprint: Fingerprint = result.extra_information.behaviors  # type: ignore
+        assert observation.metadata.choice_nodes is not None
 
-        if result.status is Status.INTERESTING:
-            origin = result.interesting_origin
+        if observation.metadata.data_status is Status.INTERESTING:
+            origin = observation.metadata.interesting_origin
             assert origin is not None
             if origin not in self.interesting_examples or (
-                sort_key(result) < sort_key(self.interesting_examples[origin][0])
+                sort_key(observation.metadata.choice_nodes)
+                < sort_key(self.interesting_examples[origin].metadata.choice_nodes)  # type: ignore
             ):
                 previous = self.interesting_examples.get(origin)
-                self.interesting_examples[origin] = (result, observation)
+                choices = tuple(n.value for n in observation.metadata.choice_nodes)
+                self.interesting_examples[origin] = observation
                 # We save interesting examples to the unshrunk/secondary database
                 # so they can appear immediately without waiting for shrinking to
                 # finish. (also in case of a fatal hypofuzz error etc).
-                self._db.save_failure(self.database_key, result.choices, shrunk=False)
-                # observation might be none even for failures if we are replaying
-                # a failure in Phase.REPLAY, since we know observations already
-                # exist when replaying.
-                if observation is not None:
-                    self._db.save_failure_observation(
-                        self.database_key, result.choices, observation
-                    )
+                #
+                # Note that `observation`` might be none even for failures if we
+                # are replaying a failure in Phase.REPLAY, since we know observations
+                # already exist when replaying.
+                self._db.save_failure(
+                    self.database_key,
+                    choices,
+                    Observation.from_hypothesis(observation),
+                    shrunk=False,
+                )
+
                 if previous is not None:
-                    (previous_node, previous_observation) = previous
+                    assert previous.metadata.choice_nodes is not None
+                    previous_choices = tuple(
+                        n.value for n in previous.metadata.choice_nodes
+                    )
                     # remove the now-redundant failure we had previously saved.
                     self._db.delete_failure(
-                        self.database_key, previous_node.choices, shrunk=False
+                        self.database_key,
+                        previous_choices,
+                        Observation.from_hypothesis(previous),
+                        shrunk=False,
                     )
-                    if previous_observation is not None:
-                        self._db.delete_failure_observation(
-                            self.database_key,
-                            previous_node.choices,
-                            previous_observation,
-                        )
                 return True
 
-        self.behavior_counts.update(fingerprint)
-        if fingerprint not in self.fingerprints:
-            self._add_fingerprint(fingerprint, result, observation=observation)
+        self.behavior_counts.update(behaviors)
+        if behaviors not in self.fingerprints:
+            self._add_fingerprint(
+                behaviors, observation, save_observation=save_observation
+            )
             return True
 
-        if sort_key(result.nodes) < sort_key(self.fingerprints[fingerprint]):
+        if sort_key(observation.metadata.choice_nodes) < sort_key(
+            self.fingerprints[behaviors]
+        ):
             existing_choices = Choices(
-                tuple(n.value for n in self.fingerprints[fingerprint])
+                tuple(n.value for n in self.fingerprints[behaviors])
             )
 
             self._count_fingerprints[existing_choices] -= 1
-            self._add_fingerprint(fingerprint, result, observation=observation)
+            self._add_fingerprint(
+                behaviors, observation, save_observation=save_observation
+            )
             if self._count_fingerprints[existing_choices] == 0:
                 self._evict_choices(existing_choices)
             return True

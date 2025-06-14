@@ -23,7 +23,7 @@ def test_fuzz_one_process():
         fp.run_one()
 
     # We expect that this test will always pass; check that.
-    assert fp.status_counts[Status.INTERESTING] == 0
+    assert fp.provider.status_counts[Status.INTERESTING] == 0
 
 
 class CustomError(Exception):
@@ -42,7 +42,7 @@ def test_fuzz_one_process_explain_mode():
     while not fp.has_found_failure:
         fp.run_one()
 
-    assert fp.status_counts[Status.INTERESTING] >= 1
+    assert fp.provider.status_counts[Status.INTERESTING] == 1
     failures = list(db.fetch_failures(fp.database_key, shrunk=True))
     assert len(failures) == 1
     observation = db.fetch_failure_observation(fp.database_key, failures[0])
@@ -76,6 +76,7 @@ def test_observations_use_pytest_nodeid(pytest_item, expected_property):
     assert fp.nodeid == expected_property
 
     fp.run_one()
+    fp.provider.db._db._join()
 
     assert all(
         observation.property == expected_property
