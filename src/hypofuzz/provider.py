@@ -390,11 +390,11 @@ class HypofuzzProvider(PrimitiveProvider):
         assert self.db is not None
 
         assert observation.type == "test_case"
-        # run_start is relative to StateForActualGivenExecution, which we
+        # run_start is normally relative to StateForActualGivenExecution, which we
         # re-use per FuzzProcess. Overwrite with the current timestamp for use
         # in sorting observations. This is not perfectly reliable in a
         # distributed setting, but is good enough.
-        observation.run_start = time.time()
+        observation.run_start = self._state.start_time
         # "arguments" duplicates part of the call repr in "representation".
         # We don't use this for anything, and it can be substantial in size, so
         # drop it.
