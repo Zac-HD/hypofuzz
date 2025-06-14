@@ -32,7 +32,14 @@ def observations(
     return st.builds(
         TestCaseObservation,
         type=st.just("test_case"),
-        status=st.just("passed"),
+        status=statuses.map(
+            lambda status: {
+                Status.OVERRUN: "gave_up",
+                Status.INVALID: "gave_up",
+                Status.VALID: "passed",
+                Status.INTERESTING: "failed",
+            }[status]
+        ),
         status_reason=st.just(""),
         representation=st.just(""),
         arguments=st.just({}),
