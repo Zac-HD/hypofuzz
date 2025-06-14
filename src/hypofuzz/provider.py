@@ -382,6 +382,7 @@ class HypofuzzProvider(PrimitiveProvider):
         self, observation: Union[TestCaseObservation, InfoObservation]
     ) -> None:
         assert observation.type == "test_case"
+        assert observation.property == self.nodeid
         self.after_test_case(observation)
 
     def after_test_case(self, observation: TestCaseObservation) -> None:
@@ -420,16 +421,20 @@ class HypofuzzProvider(PrimitiveProvider):
             # it's not possible for another worker to move the same choice
             # sequence from unshrunk to shrunk - and failures are rare +
             # deletions cheap. Just try deleting from both.
-            self.db.delete_failure(self.database_key, self._state.choices, shrunk=True)
-            self.db.delete_failure(self.database_key, self._state.choices, shrunk=False)
             failure_observation = self._state.extra_queue_data
             assert failure_observation is not None
             assert isinstance(failure_observation, Observation)
-            self.db.delete_failure_observation(
-                self.database_key, self._state.choices, failure_observation
-            )
+            for shrunk in [True, False]:
+                self.db.delete_failure(
+                    self.database_key,
+                    self._state.choices,
+                    failure_observation,
+                    shrunk=shrunk,
+                )
 
-        behaviors: Set[Behavior] = self._state.branches | (
+        # TODO this is a real type error, we need to unify the Branch namedtuple
+        # with the real usages of `behaviors` here
+        behaviors: Set[Behavior] = self._state.branches | (  # type: ignore
             # include |event| and |target| as pseudo-branch behaviors.
             # TODO this treats every distinct value of target and every event
             # payload as a distinct behavior. We probably want to bucket `v` for

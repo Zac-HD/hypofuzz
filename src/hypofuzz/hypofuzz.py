@@ -6,8 +6,9 @@ import math
 from collections import defaultdict
 from collections.abc import Callable
 from contextlib import nullcontext
+from functools import partial
 from random import Random
-from typing import Any, Optional, Union
+from typing import Any, Literal, Optional, Union
 
 import pytest
 from hypothesis import HealthCheck, Verbosity, settings
@@ -154,7 +155,7 @@ class FuzzProcess:
         """
         data = self.new_conjecture_data()
         # seen_count = len(self.provider.corpus.branch_counts)
-        self._execute_once(data)
+        self._execute_once(data, observation_callback=self.provider.on_observation)
 
         data.freeze()
         result = data.as_result()
@@ -167,7 +168,7 @@ class FuzzProcess:
             # logic needs to be extracted / unified somehow
             self.provider._start_phase(Phase.SHRINK)
             shrinker = get_shrinker(
-                self._execute_once_for_shrinker,
+                partial(self._execute_once, observation_callback=None),
                 initial=result,
                 predicate=lambda d: d.status is Status.INTERESTING,
                 random=self.random,
@@ -190,26 +191,23 @@ class FuzzProcess:
                 passed_observation: Union[TestCaseObservation, InfoObservation],
             ) -> None:
                 assert passed_observation.type == "test_case"
+                assert passed_observation.property == self.nodeid
                 nonlocal observation
                 observation = passed_observation
 
-            with with_observation_callback(on_observation):
-                try:
-                    self.state._execute_once_for_engine(data)
-                except StopTest:
-                    pass
-
+            self._execute_once(data, observation_callback=on_observation)
             self.provider._save_report(self.provider._report)
+
             # move this failure from the unshrunk to the shrunk key.
-            self.database.save_failure(self.database_key, shrinker.choices, shrunk=True)
-            self.database.delete_failure(
-                self.database_key, shrinker.choices, shrunk=False
-            )
             assert observation is not None
-            self.database.save_failure_observation(
+            self.database.delete_failure(
+                self.database_key, shrinker.choices, observation=None, shrunk=False
+            )
+            self.database.save_failure(
                 self.database_key,
                 shrinker.choices,
                 Observation.from_hypothesis(observation),
+                shrunk=True,
             )
 
         # NOTE: this distillation logic works fine, it's just discovering new coverage
@@ -218,13 +216,26 @@ class FuzzProcess:
         #     self._start_phase(Phase.DISTILL)
         #     self.corpus.distill(self._run_test_on, self.random)
 
-    def _execute_once(self, data: ConjectureData) -> None:
-        assert data.provider is self.provider
-        # setting current_pytest_item lets use access it in HypofuzzProvider,
+    def _execute_once(
+        self,
+        data: ConjectureData,
+        *,
+        observation_callback: Union[
+            Callable[[TestCaseObservation], None], Literal["provider"]
+        ] = "provider",
+    ) -> None:
+        # setting current_pytest_item lets us access it in HypofuzzProvider,
         # and lets observability's "property" attribute be the proper nodeid,
         # instead of just the function name
+        if observation_callback == "provider":
+            observation_callback = self.provider.on_observation
+
         with (
-            with_observation_callback(self.provider.on_observation),
+            (
+                with_observation_callback(observation_callback)
+                if observation_callback is not None
+                else nullcontext()
+            ),
             (
                 current_pytest_item.with_value(self.pytest_item)  # type: ignore
                 if self.pytest_item is not None
@@ -235,13 +246,6 @@ class FuzzProcess:
                 self.state._execute_once_for_engine(data)
             except StopTest:
                 pass
-
-    def _execute_once_for_shrinker(self, data: ConjectureData) -> None:
-        assert not isinstance(data.provider, HypofuzzProvider)
-        try:
-            self.state._execute_once_for_engine(data)
-        except StopTest:
-            pass
 
         if self.provider.elapsed_time > self.stop_shrinking_at:
             raise HitShrinkTimeoutError

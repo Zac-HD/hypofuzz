@@ -232,16 +232,17 @@ class Corpus:
                 # We save interesting examples to the unshrunk/secondary database
                 # so they can appear immediately without waiting for shrinking to
                 # finish. (also in case of a fatal hypofuzz error etc).
-                self._db.save_failure(self.database_key, choices, shrunk=False)
-                # observation might be none even for failures if we are replaying
-                # a failure in Phase.REPLAY, since we know observations already
-                # exist when replaying.
-                if observation is not None:
-                    self._db.save_failure_observation(
-                        self.database_key,
-                        choices,
-                        Observation.from_hypothesis(observation),
-                    )
+                #
+                # Note that `observation`` might be none even for failures if we
+                # are replaying a failure in Phase.REPLAY, since we know observations
+                # already exist when replaying.
+                self._db.save_failure(
+                    self.database_key,
+                    choices,
+                    Observation.from_hypothesis(observation),
+                    shrunk=False,
+                )
+
                 if previous is not None:
                     assert previous.metadata.choice_nodes is not None
                     previous_choices = tuple(
@@ -249,12 +250,10 @@ class Corpus:
                     )
                     # remove the now-redundant failure we had previously saved.
                     self._db.delete_failure(
-                        self.database_key, previous_choices, shrunk=False
-                    )
-                    self._db.delete_failure_observation(
                         self.database_key,
                         previous_choices,
                         Observation.from_hypothesis(previous),
+                        shrunk=False,
                     )
                 return True
 
