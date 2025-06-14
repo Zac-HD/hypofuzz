@@ -508,6 +508,7 @@ export function CoverageGraph({ tests, filterString = "" }: Props) {
   const [boxSelectEnabled, setBoxSelectEnabled] = useState(false)
   const navigate = useNavigate()
   const isMobile = useIsMobile()
+  const [currentlyHovered, setCurrentlyHovered] = useState(false)
 
   const reports = useMemo(() => {
     return new Map(
@@ -567,14 +568,7 @@ export function CoverageGraph({ tests, filterString = "" }: Props) {
     // Though, we should really replace all of this with updating directly
     // from websocket events, so the graph never gets redrawn. Not sure
     // yet how that would work in react.
-    const svgRect = svgRef.current!.getBoundingClientRect()
-    if (
-      !forceUpdate &&
-      mousePosition.x >= svgRect.left &&
-      mousePosition.x <= svgRect.right &&
-      mousePosition.y >= svgRect.top &&
-      mousePosition.y <= svgRect.bottom
-    ) {
+    if (!forceUpdate && currentlyHovered) {
       return
     }
 
@@ -701,6 +695,11 @@ export function CoverageGraph({ tests, filterString = "" }: Props) {
         className="coverage-graph__svg"
         ref={svgRef}
         style={{ width: "100%", height: "300px" }}
+        onMouseEnter={() => setCurrentlyHovered(true)}
+        onMouseLeave={() => {
+          setCurrentlyHovered(false)
+          setForceUpdate(true)
+        }}
       />
     </div>
   )

@@ -28,7 +28,7 @@ def test_fuzzing_fills_dashboard(tmp_path):
         assert not state["test_a.py::test"]["reports_by_worker"]
 
         # now launch a fuzzer, and check that it eventually updates the dashboard state
-        with fuzz(n=1, test_path=test_dir):
+        with fuzz(test_path=test_dir):
             wait_for(
                 lambda: len(dash.state()["test_a.py::test"]["reports_by_worker"]) > 0,
                 interval=0.25,
@@ -50,7 +50,7 @@ def test_dashboard_failure(tmp_path):
 
     with dashboard(test_path=test_dir) as dash:
         assert dash.state()["test_a.py::test_maybe_fail"]["failure"] is None
-        with fuzz(n=1, test_path=test_dir):
+        with fuzz(test_path=test_dir):
             wait_for(
                 lambda: (
                     dash.state()["test_a.py::test_maybe_fail"]["failure"] is not None
@@ -84,7 +84,7 @@ def test_dashboard_failure(tmp_path):
         assert failure["property"] == "test_a.py::test_maybe_fail"
 
         # but if we run the worker again, the failure disappears
-        with fuzz(n=1, test_path=test_dir):
+        with fuzz(test_path=test_dir):
             wait_for(
                 lambda: (dash.state()["test_a.py::test_maybe_fail"]["failure"] is None),
                 interval=0.25,

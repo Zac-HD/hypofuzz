@@ -1,5 +1,3 @@
-"""Tests for the hypofuzz library."""
-
 import textwrap
 from types import SimpleNamespace
 
@@ -66,7 +64,7 @@ def test_fuzz_one_process_explain_mode():
     # requires .from_parent.
     [(None, "test_a"), (SimpleNamespace(nodeid="unique_nodeid"), "unique_nodeid")],
 )
-def test_saved_observation_property(pytest_item, expected_property):
+def test_observations_use_pytest_nodeid(pytest_item, expected_property):
     # we save observations using the pytest item's nodeid if available, or
     # get_pretty_function_description(f) otherwise.
     @given(st.integers())

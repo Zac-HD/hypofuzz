@@ -104,10 +104,11 @@ def dashboard_test(test: Test) -> DashboardTest:
 class DashboardEventType(IntEnum):
     # minimize header frame overhead with a shared IntEnum definition between
     # python and ts.
-    ADD_TESTS = 1
-    ADD_REPORTS = 2
-    ADD_OBSERVATIONS = 3
-    SET_FAILURE = 4
+    SET_STATUS = 1
+    ADD_TESTS = 2
+    ADD_REPORTS = 3
+    ADD_OBSERVATIONS = 4
+    SET_FAILURE = 5
 
 
 ObservationType = Literal["rolling", "corpus"]
@@ -145,9 +146,16 @@ class SetFailureEvent(TypedDict):
     failure: Optional[DashboardObservation]
 
 
+class SetStatusEvent(TypedDict):
+    type: Literal[DashboardEventType.SET_STATUS]
+    count_tests: int
+    count_tests_loaded: int
+
+
 DashboardEventT = Union[
     AddTestsEvent,
     AddReportsEvent,
     AddObservationsEvent,
     SetFailureEvent,
+    SetStatusEvent,
 ]
