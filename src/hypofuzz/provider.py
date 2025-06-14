@@ -99,6 +99,7 @@ class State:
     choices: ChoicesT
     replay_priority: Optional[ReplayPriority]
     start_time: float
+    save_rolling_observation: bool
     branches: Optional[frozenset[Branch]] = None
     observation: Optional[Observation] = None
     extra_queue_data: Optional[Any] = None
@@ -361,6 +362,10 @@ class HypofuzzProvider(PrimitiveProvider):
             choices = mutator.generate_choices()
             self._start_phase(Phase.GENERATE)
 
+        # We're aiming for a rolling buffer of the last 300 observations, downsampling
+        # to one per second if we're executing more than one test case per second.
+        # Decide here, so that runtime doesn't bias our choice of what to observe.
+        save_rolling_observation = self.elapsed_time > self._last_observed + 1
         start = time.perf_counter()
 
         self._state = State(
@@ -368,6 +373,7 @@ class HypofuzzProvider(PrimitiveProvider):
             replay_priority=replay_priority,
             start_time=start,
             extra_queue_data=extra_queue_data,
+            save_rolling_observation=save_rolling_observation,
         )
 
     def on_observation(
@@ -452,12 +458,7 @@ class HypofuzzProvider(PrimitiveProvider):
         if self.since_new_branch == 0 or self._should_save_timed_report():
             self._save_report(self._report)
 
-        # We're aiming for a rolling buffer of the last 300 observations, downsampling
-        # to one per second if we're executing more than one test case per second.
-        # Decide here, so that runtime doesn't bias our choice of what to observe.
-        if self.phase is Phase.GENERATE and (
-            self.elapsed_time > self._last_observed + 1
-        ):
+        if self.phase is Phase.GENERATE and self._state.save_rolling_observation:
             self.db.save_observation(
                 self.database_key,
                 Observation.from_hypothesis(observation),
