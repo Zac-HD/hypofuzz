@@ -12,7 +12,7 @@ from collections.abc import Generator, Set
 from contextlib import contextmanager
 from dataclasses import dataclass
 from enum import IntEnum
-from functools import lru_cache
+from functools import cache
 from pathlib import Path
 from random import Random
 from typing import Any, ClassVar, Optional, TypeVar, Union, cast
@@ -570,7 +570,7 @@ class HypofuzzProvider(PrimitiveProvider):
         return choice
 
 
-@lru_cache
+@cache
 def _git_head(*, in_directory: Optional[Path] = None) -> Optional[str]:
     if in_directory is not None:
         assert in_directory.is_dir()
@@ -588,7 +588,7 @@ def _git_head(*, in_directory: Optional[Path] = None) -> Optional[str]:
         return None
 
 
-@lru_cache
+@cache
 def worker_identity(*, in_directory: Optional[Path] = None) -> WorkerIdentity:
     """Returns a class identifying the machine running this code.
 
