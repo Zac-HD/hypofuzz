@@ -1,4 +1,4 @@
-import "./styles.scss"
+import "./styles/styles.scss"
 // ensure our array prototype definitions get loaded
 import "./utils/prototypes"
 
