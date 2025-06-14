@@ -34,7 +34,10 @@ from hypofuzz.dashboard.models import (
     dashboard_report,
     dashboard_test,
 )
-from hypofuzz.dashboard.patching import make_and_save_patches
+from hypofuzz.dashboard.patching import (
+    covering_patch,
+    failing_patch,
+)
 from hypofuzz.dashboard.test import Test
 from hypofuzz.database import (
     DatabaseEvent,
@@ -380,22 +383,49 @@ async def api_test(request: Request) -> Response:
     return HypofuzzJSONResponse(dashboard_test(TESTS[nodeid]))
 
 
-def _patches() -> dict[str, str]:
+def _patches() -> dict[str, dict[str, Optional[str]]]:
     assert COLLECTION_RESULT is not None
-    patches = make_and_save_patches(COLLECTION_RESULT.fuzz_targets, TESTS)
-    return {name: str(patch_path.read_text()) for name, patch_path in patches.items()}
+    return {
+        target.nodeid: {
+            "failing": (
+                failing_patch(target._test_fn, failure)
+                if (failure := TESTS[target.nodeid].failure)
+                else None
+            ),
+            "covering": covering_patch(
+                target._test_fn, TESTS[target.nodeid].corpus_observations
+            ),
+        }
+        for target in COLLECTION_RESULT.fuzz_targets
+    }
 
 
 async def api_patches(request: Request) -> Response:
+    assert COLLECTION_RESULT is not None
     return HypofuzzJSONResponse(_patches())
 
 
 async def api_patch(request: Request) -> Response:
-    patch_name = request.path_params["patch_name"]
-    patches = _patches()
-    if patch_name not in patches:
+    assert COLLECTION_RESULT is not None
+    nodeid = request.path_params["nodeid"]
+    targets = [
+        target for target in COLLECTION_RESULT.fuzz_targets if target.nodeid == nodeid
+    ]
+    if not targets:
         return Response(status_code=404)
-    return Response(content=patches[patch_name], media_type="text/x-patch")
+
+    assert len(targets) == 1
+    target = targets[0]
+    failure = TESTS[nodeid].failure
+
+    return HypofuzzJSONResponse(
+        {
+            "failing": failing_patch(target._test_fn, failure) if failure else None,
+            "covering": covering_patch(
+                target._test_fn, TESTS[nodeid].corpus_observations
+            ),
+        }
+    )
 
 
 def _collection_status() -> list[dict[str, Any]]:
@@ -440,8 +470,10 @@ async def api_backing_state_tests(request: Request) -> Response:
 async def api_backing_state_observations(request: Request) -> Response:
     observations = {
         nodeid: {
-            "rolling": test.rolling_observations,
-            "corpus": test.corpus_observations,
+            "rolling": [
+                dashboard_observation(obs) for obs in test.rolling_observations
+            ],
+            "corpus": [dashboard_observation(obs) for obs in test.corpus_observations],
         }
         for nodeid, test in TESTS.items()
     }
@@ -473,8 +505,7 @@ routes = [
     WebSocketRoute("/ws", websocket),
     Route("/api/tests/", api_tests),
     Route("/api/tests/{nodeid:path}", api_test),
-    Route("/api/patches/", api_patches),
-    Route("/api/patches/{patch_name}", api_patch),
+    Route("/api/patches/{nodeid:path}", api_patch),
     Route("/api/collected_tests/", api_collected_tests),
     Route("/api/backing_state/tests", api_backing_state_tests),
     Route("/api/backing_state/observations", api_backing_state_observations),

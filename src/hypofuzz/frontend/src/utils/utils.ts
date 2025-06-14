@@ -1,6 +1,29 @@
+import hljs from "highlight.js/lib/core"
+
 // a small taste of home in this wild land
 export function sum(values: Iterable<number>, start: number = 0): number {
   return Array.from(values).reduce((total, val) => total + val, start)
+}
+
+export function reHighlight(
+  containerRef: React.RefObject<HTMLElement | null>,
+  force: boolean = false,
+) {
+  if (!containerRef.current) {
+    return
+  }
+
+  if (force) {
+    containerRef.current.querySelectorAll("code").forEach(element => {
+      element.removeAttribute("data-highlighted")
+    })
+  }
+
+  containerRef.current
+    .querySelectorAll("code:not([data-highlighted='yes'])")
+    .forEach(element => {
+      hljs.highlightElement(element as HTMLElement)
+    })
 }
 
 export function max<T>(array: T[], key?: (value: T) => number): number | null {
