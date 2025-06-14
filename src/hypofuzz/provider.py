@@ -125,10 +125,7 @@ class HypofuzzProvider(PrimitiveProvider):
             key=lambda x: (x[0], _choices_size(x[1]))
         )
 
-        # TODO: thread through a random instance from FuzzProcess here, or access
-        # the current BuildContext random?
         self.random = Random()
-        self.ninputs = 0
         self.elapsed_time = 0.0
         self.since_new_branch = 0
         self.phase: Optional[Phase] = None
@@ -145,6 +142,10 @@ class HypofuzzProvider(PrimitiveProvider):
         self.db: Optional[HypofuzzDatabase] = None
         # per-test-case state, reset at the beginning of each test case.
         self._state: Optional[State] = None
+
+    @property
+    def ninputs(self) -> int:
+        return sum(self.status_counts.values())
 
     def _startup(self) -> None:
         if settings().database is None:
@@ -290,7 +291,6 @@ class HypofuzzProvider(PrimitiveProvider):
         assert self.corpus is not None
         assert self.worker_identity is not None
         assert self.nodeid is not None
-        assert sum(self.status_counts.values()) == self.ninputs
 
         return Report(
             database_key=b64encode(self.database_key).decode(),
@@ -362,7 +362,6 @@ class HypofuzzProvider(PrimitiveProvider):
             self._start_phase(Phase.GENERATE)
 
         start = time.perf_counter()
-        self.ninputs += 1
 
         self._state = State(
             choices=choices,
