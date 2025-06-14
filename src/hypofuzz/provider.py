@@ -60,7 +60,7 @@ from hypofuzz.database import (
     WorkerIdentity,
     test_keys_key,
 )
-from hypofuzz.mutator import BlackBoxMutator, CrossOverMutator, Mutator
+from hypofuzz.mutator import BlackBoxMutator, CrossOverMutator
 from hypofuzz.utils import lerp
 
 T = TypeVar("T")
@@ -348,16 +348,17 @@ class HypofuzzProvider(PrimitiveProvider):
             self._start_phase(Phase.REPLAY)
             break
         else:
-            # We stay in blackbox mode until we've generated 1000 consecutive examples
-            # without new coverage, and then switch to mutation.
-
-            # TODO: currently hard-coding a particular mutator; we want to do MOpt-style
-            # adaptive weighting of all the different mutators we could use.
-            # For now though, we'll just use a hardcoded swapover point
-            if self.since_new_branch < 1000 or self.random.random() < 0.05:
-                mutator: Mutator = BlackBoxMutator(self.corpus, self.random)
-            else:
-                mutator = CrossOverMutator(self.corpus, self.random)
+            # Eventually we'll want an MOpt-style adaptive weighting of all the
+            # different mutators we could use.
+            p_mutate = (
+                0
+                if self.ninputs == 0
+                else (self.ninputs - len(self.corpus.corpus)) / self.ninputs
+            )
+            Mutator = (
+                CrossOverMutator if self.random.random() < p_mutate else BlackBoxMutator
+            )
+            mutator = Mutator(self.corpus, self.random)
 
             choices = mutator.generate_choices()
             self._start_phase(Phase.GENERATE)
