@@ -147,9 +147,8 @@ class HypofuzzProvider(PrimitiveProvider):
         self._state: Optional[State] = None
 
     def _startup(self) -> None:
-        assert (
-            settings().database is not None
-        ), "pointless to use HypofuzzProvider without a database"
+        if settings().database is None:
+            raise ValueError("HypofuzzProvider must be used with a database")
 
         # TODO: make this a context manager we enter in per_test_case_context_manager,
         # so it resets after using hypofuzz?
