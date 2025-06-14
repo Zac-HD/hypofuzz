@@ -177,10 +177,6 @@ class HypofuzzProvider(PrimitiveProvider):
         )
         self.corpus = Corpus(self.db, self.database_key)
 
-        # Report that we've started this fuzz target
-        self.db.save(test_keys_key, self.database_key)
-        # save the worker identity once at startup
-        self.db.save_worker_identity(self.database_key, self.worker_identity)
         # restore our saved minimal covering corpus, as well as any failures to
         # replay.
         for shrunk in [True, False]:
@@ -204,6 +200,11 @@ class HypofuzzProvider(PrimitiveProvider):
         # )
         for choices in self.db.fetch_corpus(self.database_key):
             self._enqueue(ReplayPriority.COVERING, choices)
+
+        # Report that we've started this fuzz target
+        self.db.save(test_keys_key, self.database_key)
+        # save the worker identity once at startup
+        self.db.save_worker_identity(self.database_key, self.worker_identity)
 
         if not self._replay_queue:
             # if no worker has ever worked on this test before, save an initial
