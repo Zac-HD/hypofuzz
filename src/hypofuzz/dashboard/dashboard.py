@@ -24,6 +24,7 @@ from starlette.types import Scope
 from starlette.websockets import WebSocket, WebSocketDisconnect
 from trio import MemoryReceiveChannel
 
+from hypofuzz.collection import CollectionResult
 from hypofuzz.dashboard.models import (
     AddReportsEvent,
     AddTestsEvent,
@@ -47,7 +48,6 @@ from hypofuzz.database import (
     ReportWithDiff,
 )
 from hypofuzz.hypofuzz import FuzzProcess
-from hypofuzz.interface import CollectionResult
 from hypofuzz.utils import convert_to_fuzzjson
 
 # these two test dicts always contain the same values, just with different access
@@ -689,14 +689,14 @@ async def run_dashboard(port: int, host: str) -> None:
 def start_dashboard_process(
     port: int, *, pytest_args: list, host: str = "localhost"
 ) -> None:
-    from hypofuzz.interface import _get_hypothesis_tests_with_pytest
+    from hypofuzz.collection import collect_tests
 
     global COLLECTION_RESULT
     global db
 
     # we run a pytest collection step for the dashboard to pick up on the database
     # from any custom profiles, and as a ground truth for what tests to display.
-    COLLECTION_RESULT = _get_hypothesis_tests_with_pytest(pytest_args)
+    COLLECTION_RESULT = collect_tests(pytest_args)
     db = HypofuzzDatabase(settings().database)
 
     print(f"\n\tNow serving dashboard at  http://{host}:{port}/\n")

@@ -131,10 +131,11 @@ def _fuzz_impl(numprocesses: int, pytest_args: tuple[str, ...]) -> None:
             f"fuzzer option{plural} {names} would be passed to pytest instead"
         )
 
-    from hypofuzz.interface import _fuzz_several, _get_hypothesis_tests_with_pytest
+    from hypofuzz.collection import collect_tests
+    from hypofuzz.hypofuzz import _fuzz_several
 
     # With our arguments validated, it's time to actually do the work.
-    tests = _get_hypothesis_tests_with_pytest(pytest_args).fuzz_targets
+    tests = collect_tests(pytest_args).fuzz_targets
     if not tests:
         raise click.UsageError(
             f"No property-based tests were collected. args: {pytest_args}"
