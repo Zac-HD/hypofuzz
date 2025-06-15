@@ -164,6 +164,14 @@ def test_provider_deletes_old_timed_reports(monkeypatch):
     f()
     reports = hypofuzz_db.fetch_reports(function_digest(f.hypothesis.inner_test))
     reports = sorted(reports, key=lambda r: r.elapsed_time)
-    for report1, report2 in zip(reports, reports[1:]):
+
+    # explicitly use `- 2` instead of `- 1` here. We do not want to compare
+    # the second to last report to the last report, because the last report is
+    # likely to be a timed report, in which case it is valid for it to have the
+    # same behaviors and fingerprints as its predecessor.
+    for i in range(len(reports) - 2):
+        report1 = reports[i]
+        report2 = reports[i + 1]
+        assert report1.elapsed_time < report2.elapsed_time
         assert report1.behaviors < report2.behaviors
         assert report1.fingerprints < report2.fingerprints

@@ -279,6 +279,7 @@ class HypofuzzProvider(PrimitiveProvider):
         # a new report), it's no longer useful, so delete it from the db.
         if self._last_timed_report:
             self.db.delete_report(self.database_key, self._last_timed_report)
+            self._last_timed_report = None
 
     @property
     def _report(self) -> Report:
@@ -460,8 +461,8 @@ class HypofuzzProvider(PrimitiveProvider):
             self._save_report(self._report)
         elif _should_save_timed_report(self.elapsed_time, self._last_saved_report_at):
             report = self._report
-            self._last_timed_report = report
             self._save_report(report)
+            self._last_timed_report = report
 
         if self.phase is Phase.GENERATE and self._state.save_rolling_observation:
             self.db.save_observation(
