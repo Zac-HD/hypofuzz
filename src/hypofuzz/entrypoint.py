@@ -135,17 +135,25 @@ def _fuzz_impl(numprocesses: int, pytest_args: tuple[str, ...]) -> None:
     from hypofuzz.hypofuzz import _fuzz_several
 
     # With our arguments validated, it's time to actually do the work.
-    tests = collect_tests(pytest_args).fuzz_targets
+    collection = collect_tests(pytest_args)
+    tests = collection.fuzz_targets
     if not tests:
         raise click.UsageError(
             f"No property-based tests were collected. args: {pytest_args}"
         )
 
-    print(f"collected {len(tests)} property-based tests")
-
-    testnames = "\n    ".join(t.nodeid for t in tests)
-    plural = "" if numprocesses == 1 else "es"
-    print(f"using {numprocesses} process{plural} to fuzz:\n    {testnames}\n")
+    skipped_s = "s" * (len(collection.not_collected) != 1)
+    skipped_msg = (
+        ""
+        if not collection.not_collected
+        else f" (skipped {len(collection.not_collected)} test{skipped_s})"
+    )
+    n_s = "es" * (numprocesses != 1)
+    tests_s = "s" * (len(tests) != 1)
+    print(
+        f"using {numprocesses} process{n_s} to fuzz {len(tests)} "
+        f"test{tests_s}{skipped_msg}"
+    )
 
     if numprocesses <= 1:
         _fuzz_several(pytest_args=pytest_args, nodeids=[t.nodeid for t in tests])
