@@ -88,6 +88,16 @@ def _choices_size(choices: tuple[Union[ChoiceT, ChoiceTemplate], ...]) -> int:
     )
 
 
+def _should_save_timed_report(elapsed_time: float, last_saved_at: float) -> bool:
+    # linear interpolation from 1 report/s at the start to 1 report/60s after
+    # 5 minutes have passed
+    increment = lerp(1, 60, min(last_saved_at / 60 * 5, 1))
+    # A "timed report" is one that we expect to be discarded from the database
+    # on the next saved report, but which serves as an incremental progress
+    # marker for the dashboard.
+    return elapsed_time > last_saved_at + increment
+
+
 class ReplayPriority(IntEnum):
     FAILURE_SHRUNK = 0
     FAILURE_UNSHRUNK = 1
@@ -132,7 +142,7 @@ class HypofuzzProvider(PrimitiveProvider):
         self.phase: Optional[Phase] = None
         self.status_counts = StatusCounts()
 
-        self._last_report: Report | None = None
+        self._last_timed_report: Report | None = None
         self._last_saved_report_at = -math.inf
         self._last_observed = -math.inf
         self._started = False
@@ -250,18 +260,9 @@ class HypofuzzProvider(PrimitiveProvider):
         if phase is self.phase:
             return
         if self.phase is not None:
-            # don't save a report the very first time we start a phase
+            # don't save a report the very first time we start any phase
             self._save_report(self._report)
         self.phase = phase
-
-    def _should_save_timed_report(self) -> bool:
-        # linear interpolation from 1 report/s at the start to 1 report/60s after
-        # 5 minutes have passed
-        increment = lerp(1, 60, min(self._last_saved_report_at / 60 * 5, 1))
-        # A "timed report" is one that we expect to be discarded from the database
-        # on the next saved report, but which serves as an incremental progress
-        # marker for the dashboard.
-        return self.elapsed_time > self._last_saved_report_at + increment
 
     def _save_report(self, report: Report) -> None:
         assert self.database_key is not None
@@ -271,20 +272,13 @@ class HypofuzzProvider(PrimitiveProvider):
         self.db.save_report(self.database_key, report)
         self._last_saved_report_at = self.elapsed_time
 
-        # Having written the latest report, we can keep the database small
-        # by dropping the previous report unless it differs from the latest in
-        # an important way.
-        if self._last_report and not (
-            self._last_report.behaviors != report.behaviors
-            or self._last_report.fingerprints != report.fingerprints
-            or self._last_report.phase != report.phase
-            or self.corpus.interesting_examples
-            # always keep reports which discovered new coverage
-            or self._last_report.since_new_branch == 0
-        ):
-            self.db.delete_report(self.database_key, self._last_report)
-
-        self._last_report = report
+        # A timed report is just a marker of the latest status of the test. It
+        # contains no critical transition information.
+        #
+        # If a timed report is no longer the latest report (because we just saved
+        # a new report), it's no longer useful, so delete it from the db.
+        if self._last_timed_report:
+            self.db.delete_report(self.database_key, self._last_timed_report)
 
     @property
     def _report(self) -> Report:
@@ -462,8 +456,12 @@ class HypofuzzProvider(PrimitiveProvider):
         else:
             self.since_new_branch += 1
 
-        if self.since_new_branch == 0 or self._should_save_timed_report():
+        if self.since_new_branch == 0:
             self._save_report(self._report)
+        elif _should_save_timed_report(self.elapsed_time, self._last_saved_report_at):
+            report = self._report
+            self._last_timed_report = report
+            self._save_report(report)
 
         if self.phase is Phase.GENERATE and self._state.save_rolling_observation:
             self.db.save_observation(
