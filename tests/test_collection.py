@@ -239,3 +239,35 @@ def test_skips_differing_database():
             pass
         """
     assert not collect_names(code)
+
+
+def test_evaluates_only_closest_skipif(tmp_path):
+    # match pytest semantics of short-circuit skipif evaluation.
+    file_1 = tmp_path / "skipif_side_effect_test_1"
+    file_2 = tmp_path / "skipif_side_effect_test_2"
+
+    code = f"""
+    @pytest.mark.skipif(
+        \"\"\"(
+            (f := open('{file_2}', 'w')) and
+            os.write(f.fileno(), b'0') and
+            f.close()
+        ) or True\"\"\",
+        reason="",
+    )
+    @pytest.mark.skipif(
+        \"\"\"(
+            (f := open('{file_1}', 'w')) and
+            os.write(f.fileno(), b'0') and
+            f.close()
+        ) or True\"\"\",
+        reason="",
+    )
+    @given(st.none())
+    def test_a(a):
+        pass
+    """
+
+    assert collect_names(code) == set()
+    assert file_1.exists()
+    assert not file_2.exists()
