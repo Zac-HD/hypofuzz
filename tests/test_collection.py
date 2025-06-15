@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from hypofuzz import interface
+from hypofuzz.collection import collect_tests
 from hypofuzz.hypofuzz import FuzzProcess
 
 
@@ -25,7 +25,7 @@ def collect(code: str) -> list[FuzzProcess]:
     )
     p = Path(tempfile.mkstemp(prefix="test_", suffix=".py")[1])
     p.write_text(code)
-    fps = interface._get_hypothesis_tests_with_pytest([str(p)]).fuzz_targets
+    fps = collect_tests([str(p)]).fuzz_targets
     p.unlink()
     return fps
 

@@ -210,9 +210,7 @@ class _ItemsCollector:
                 self.fuzz_targets.append(fuzz)
 
 
-def _get_hypothesis_tests_with_pytest(
-    args: Iterable[str], *, debug: bool = False
-) -> CollectionResult:
+def collect_tests(args: Iterable[str], *, debug: bool = False) -> CollectionResult:
     """Find the hypothesis-only test functions run by pytest.
 
     This basically uses `pytest --collect-only -m hypothesis $args`.
@@ -246,20 +244,3 @@ def _get_hypothesis_tests_with_pytest(
     return CollectionResult(
         fuzz_targets=collector.fuzz_targets, not_collected=collector.not_collected
     )
-
-
-def _fuzz_several(pytest_args: tuple[str, ...], nodeids: list[str]) -> None:
-    """Collect and fuzz tests.
-
-    Designed to be used inside a multiprocessing.Process started with the spawn()
-    method - requires picklable arguments but works on Windows too.
-    """
-    # Import within the function to break an import cycle when used as an entry point.
-    from hypofuzz.hypofuzz import fuzz_several
-
-    tests = [
-        t
-        for t in _get_hypothesis_tests_with_pytest(pytest_args).fuzz_targets
-        if t.nodeid in nodeids
-    ]
-    fuzz_several(tests)

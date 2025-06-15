@@ -38,6 +38,7 @@ from hypothesis.internal.reflection import (
 )
 from sortedcontainers import SortedKeyList
 
+from hypofuzz.collection import collect_tests
 from hypofuzz.corpus import (
     get_shrinker,
 )
@@ -308,3 +309,13 @@ def fuzz_several(targets: list[FuzzProcess], random_seed: Optional[int] = None) 
         if not targets:
             return
     raise NotImplementedError("unreachable")
+
+
+def _fuzz_several(pytest_args: tuple[str, ...], nodeids: list[str]) -> None:
+    """Collect and fuzz tests.
+
+    Designed to be used inside a multiprocessing.Process started with the spawn()
+    method - requires picklable arguments but works on Windows too.
+    """
+    tests = [t for t in collect_tests(pytest_args).fuzz_targets if t.nodeid in nodeids]
+    fuzz_several(tests)
