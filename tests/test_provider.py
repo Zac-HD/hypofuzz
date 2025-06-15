@@ -8,6 +8,7 @@ from hypothesis.internal.conjecture.data import ConjectureData
 from hypothesis.internal.reflection import function_digest
 from strategies import choice_type_and_constraints, constraints_strategy, nodes
 
+from hypofuzz import provider
 from hypofuzz.coverage import CoverageCollector
 from hypofuzz.database import HypofuzzDatabase
 from hypofuzz.provider import HypofuzzProvider, ReplayPriority, ReplayQueueElement
@@ -133,9 +134,36 @@ def test_provider_loads_from_database():
 
     @given(st.integers())
     @settings(backend="hypofuzz", database=db, max_examples=10)
-    def f(v):
-        values.add(v)
+    def f(n):
+        values.add(n)
 
     hypofuzz_db.save_corpus(function_digest(f.hypothesis.inner_test), (n,))
     f()
     assert n in values
+
+
+def test_provider_deletes_old_timed_reports(monkeypatch):
+    db = InMemoryExampleDatabase()
+    hypofuzz_db = HypofuzzDatabase(db)
+    monkeypatch.setattr(
+        provider, "_should_save_timed_report", lambda elapsed_time, last_saved_at: True
+    )
+
+    @given(st.integers())
+    @settings(backend="hypofuzz", database=db, max_examples=100)
+    def f(n):
+        if n == 0:
+            pass
+        elif 0 < n <= 10:
+            pass
+        elif 10 < n <= 50:
+            pass
+        elif 50 < n <= 100:
+            pass
+
+    f()
+    reports = hypofuzz_db.fetch_reports(function_digest(f.hypothesis.inner_test))
+    reports = sorted(reports, key=lambda r: r.elapsed_time)
+    for report1, report2 in zip(reports, reports[1:]):
+        assert report1.behaviors < report2.behaviors
+        assert report1.fingerprints < report2.fingerprints
