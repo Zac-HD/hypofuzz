@@ -423,6 +423,14 @@ $mobile-breakpoint: 768px;
         font-weight: 550;
     }
 
+    &__text {
+        margin-top: 1rem;
+
+        &__paragraph {
+            margin-bottom: 0.5rem;
+        }
+    }
+
     @media (max-width: $mobile-breakpoint) {
         padding: 15px 15px;
 
@@ -604,7 +612,7 @@ $mobile-breakpoint: 768px;
     // upwards could cause this.
     display: none;
 
-    @media (max-width: 768px) {
+    @media (max-width: $mobile-breakpoint) {
         display: block;
     }
 }
@@ -871,7 +879,7 @@ pre code.hljs {
             margin-left: 1.75rem;
             margin-bottom: 0.75rem;
 
-            @media (max-width: 768px) {
+            @media (max-width: $mobile-breakpoint) {
                 margin-left: 0;
             }
         }
@@ -1160,7 +1168,7 @@ pre code.hljs {
     flex-direction: column;
     gap: 0;
 
-    &__time-controls {
+    &__controls {
         background: #f8f9fa;
         border: 1px solid #e9ecef;
         border-radius: 8px;
@@ -1180,20 +1188,6 @@ pre code.hljs {
             font-weight: 600;
             color: #495057;
         }
-
-        &__reset {
-            background: $color-primary;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            padding: 6px 12px;
-            font-size: 0.875rem;
-            cursor: pointer;
-
-            &:hover {
-                background: #0056b3;
-            }
-        }
     }
 
     &__timeline-header {
@@ -1209,11 +1203,81 @@ pre code.hljs {
     }
 
     &__worker {
-        margin-bottom: 1px;
-        position: relative;
-        height: 12px;
-        background: #f8f9fa;
-        overflow: hidden;
+        $hover-color: #e8e8e8d7;
+
+        padding-top: 2px;
+        padding-bottom: 2px;
+        padding-left: 8px;
+        padding-right: 8px;
+
+        border-radius: 4px;
+
+        cursor: pointer;
+
+        &:hover:not(:has(.workers__timeline__segment:hover)) {
+            background: $hover-color;
+
+            .workers__worker__bar {
+                background: $hover-color;
+            }
+
+            .workers__worker__details {
+                background: $hover-color;
+            }
+        }
+
+        &:active {
+            transform: scale(0.995);
+        }
+
+        &--expanded {
+            background: rgba(44, 62, 80, 0.03);
+            border-radius: 4px 4px 0 0;
+        }
+
+        &__bar {
+            position: relative;
+            height: 12px;
+            background: #f8f9fa;
+            overflow: hidden;
+        }
+
+        &__details {
+            background: #f8f9fa;
+            border-radius: 0 0 4px 4px;
+            padding: 16px;
+
+            &__grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 12px;
+
+                @media (max-width: $mobile-breakpoint) {
+                    grid-template-columns: 1fr;
+                }
+            }
+
+            &__item {
+                display: flex;
+                flex-direction: column;
+                gap: 4px;
+            }
+
+            &__label {
+                font-size: 0.8rem;
+                color: #666;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+
+            &__value {
+                font-size: 0.9rem;
+                color: #2c3e50;
+                font-family: monospace;
+                word-break: break-all;
+            }
+        }
     }
 
     &__timeline {
@@ -1221,7 +1285,6 @@ pre code.hljs {
             position: absolute;
             top: 0;
             height: 100%;
-            background: $color-primary;
             cursor: pointer;
             border-radius: 1px;
 

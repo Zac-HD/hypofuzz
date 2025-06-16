@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom"
 
 import { RangeSlider } from "../components/RangeSlider"
 import { useData } from "../context/DataProvider"
+import { formatTime } from "../utils/testStats"
 import { useTooltip } from "../utils/tooltip"
 import { navigateOnClick, readableNodeid } from "../utils/utils"
 
@@ -48,10 +49,20 @@ function nodeColor(nodeid: string): string {
   return `hsl(${hue}, ${saturation}%, ${lightness}%)`
 }
 
+function DetailsItem({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="workers__worker__details__item">
+      <span className="workers__worker__details__label">{label}</span>
+      <span className="workers__worker__details__value">{value}</span>
+    </div>
+  )
+}
+
 export function WorkersPage() {
   const { tests } = useData()
   const navigate = useNavigate()
   const { showTooltip, hideTooltip, moveTooltip } = useTooltip()
+  const [expandedWorkers, setExpandedWorkers] = useState<Set<string>>(new Set())
 
   const workers = OrderedSet(
     Array.from(tests.values())
@@ -152,21 +163,110 @@ export function WorkersPage() {
   }
 
   const visibleSegments = new Map<string, Segment[]>()
-  for (const [worker, segments] of workerSegments.entries()) {
+  for (const [uuid, segments] of workerSegments.entries()) {
     visibleSegments.set(
-      worker,
+      uuid,
       segments.filter(
         segment => segment.end >= visibleMin && segment.start <= visibleMax,
       ),
     )
   }
 
+  function onWorkerClick(uuid: string) {
+    setExpandedWorkers(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(uuid)) {
+        newSet.delete(uuid)
+      } else {
+        newSet.add(uuid)
+      }
+      return newSet
+    })
+  }
+
+  function WorkerBar({ uuid, segments }: { uuid: string; segments: Segment[] }) {
+    return (
+      <div
+        key={uuid}
+        className={`workers__worker ${expandedWorkers.has(uuid) ? "workers__worker--expanded" : ""}`}
+        onClick={() => onWorkerClick(uuid)}
+        // these extra onMouseLeave calls shouldn't be necessary, but I've had trouble
+        // with the workers__timeline__segment mouse leave handler not firing consistently
+        onMouseLeave={() => hideTooltip("workers")}
+      >
+        <div
+          className="workers__worker__bar"
+          onMouseLeave={() => hideTooltip("workers")}
+        >
+          {segments.map((segment, index) => (
+            <div
+              key={index}
+              className="workers__timeline__segment"
+              style={segmentStyle(segment)}
+              onClick={event => {
+                // prevent the worker click handler from firing (which would distractingly
+                // expand the worker details for this worker during navigation)
+                event.stopPropagation()
+                navigateOnClick(
+                  event,
+                  `/tests/${encodeURIComponent(segment.nodeid)}`,
+                  navigate,
+                )
+              }}
+              onMouseEnter={event =>
+                showTooltip(
+                  readableNodeid(segment.nodeid),
+                  event.clientX,
+                  event.clientY,
+                  "workers",
+                )
+              }
+              onMouseLeave={() => hideTooltip("workers")}
+              onMouseMove={event =>
+                moveTooltip(event.clientX, event.clientY, "workers")
+              }
+            />
+          ))}
+        </div>
+        {expandedWorkers.has(uuid) && <WorkerDetails uuid={uuid} segments={segments} />}
+      </div>
+    )
+  }
+
+  function WorkerDetails({ uuid, segments }: { uuid: string; segments: Segment[] }) {
+    return (
+      <div className="workers__worker__details">
+        <div className="workers__worker__details__grid">
+          <DetailsItem label="Worker UUID" value={uuid} />
+          <DetailsItem
+            label="Lifetime"
+            value={formatTime(segments[segments.length - 1].end - segments[0].start)}
+          />
+          <DetailsItem label="Started" value={formatTimestamp(segments[0].start)} />
+          <DetailsItem
+            label="Last seen"
+            value={formatTimestamp(segments[segments.length - 1].end)}
+          />
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="card">
-      <div className="card__header">Workers</div>
+      <div className="card__header">Workers </div>
       <div className="card__body">
+        <div className="card__text">
+          <div className="card__text__paragraph">
+            This page shows the history of your workers, and what tests they have been
+            fuzzing.
+          </div>
+          <div className="card__text__paragraph">
+            Roughly speaking, "one worker" = "one CPU core".
+          </div>
+        </div>
         <div className="workers">
-          <div className="workers__time-controls">
+          <div className="workers__controls">
             <RangeSlider
               min={minTimestamp}
               max={maxTimestamp}
@@ -184,39 +284,8 @@ export function WorkersPage() {
             </span>
           </div>
           {Array.from(visibleSegments.entries()).map(
-            ([worker, segments]) =>
-              segments.length > 0 && (
-                <div key={worker} className="workers__worker">
-                  {segments.map((segment, index) => (
-                    <div
-                      key={index}
-                      className="workers__timeline__segment"
-                      style={segmentStyle(segment)}
-                      onClick={event =>
-                        navigateOnClick(
-                          event,
-                          `/tests/${encodeURIComponent(segment.nodeid)}`,
-                          navigate,
-                        )
-                      }
-                      onMouseEnter={event => {
-                        showTooltip(
-                          readableNodeid(segment.nodeid),
-                          event.clientX,
-                          event.clientY,
-                          "workers",
-                        )
-                      }}
-                      onMouseLeave={() => {
-                        hideTooltip("workers")
-                      }}
-                      onMouseMove={event => {
-                        moveTooltip(event.clientX, event.clientY, "workers")
-                      }}
-                    />
-                  ))}
-                </div>
-              ),
+            ([uuid, segments]) =>
+              segments.length > 0 && <WorkerBar uuid={uuid} segments={segments} />,
           )}
         </div>
       </div>

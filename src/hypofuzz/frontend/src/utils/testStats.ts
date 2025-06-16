@@ -9,7 +9,7 @@ export interface TestStats {
   timeSpent: string
 }
 
-function formatTime(t: number): string {
+export function formatTime(t: number): string {
   const hours = Math.floor(t / 3600)
   const minutes = Math.floor((t % 3600) / 60)
   const seconds = Math.floor(t % 60)
