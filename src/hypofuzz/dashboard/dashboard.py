@@ -47,7 +47,7 @@ from hypofuzz.database import (
     Report,
     ReportWithDiff,
 )
-from hypofuzz.hypofuzz import FuzzProcess
+from hypofuzz.hypofuzz import FuzzTarget
 from hypofuzz.utils import convert_to_fuzzjson
 
 # these two test dicts always contain the same values, just with different access
@@ -589,7 +589,7 @@ def get_failure_observations(database_key: bytes) -> dict[str, Observation]:
     return failure_observations
 
 
-def _load_initial_state(fuzz_target: FuzzProcess) -> None:
+def _load_initial_state(fuzz_target: FuzzTarget) -> None:
     assert COLLECTION_RESULT is not None
     assert db is not None
     # a fuzz target (= node id) may have many database keys over time as the
@@ -634,7 +634,7 @@ def _load_initial_state(fuzz_target: FuzzProcess) -> None:
     TESTS_BY_KEY[fuzz_target.database_key] = test
 
 
-async def load_initial_state(fuzz_target: FuzzProcess) -> None:
+async def load_initial_state(fuzz_target: FuzzTarget) -> None:
     global LOADING_STATE
 
     await trio.to_thread.run_sync(_load_initial_state, fuzz_target)

@@ -7,7 +7,7 @@ from hypothesis.configuration import storage_directory
 from hypothesis.extra._patching import FAIL_MSG, get_patch_for, make_patch, save_patch
 
 from hypofuzz.database import Phase
-from hypofuzz.hypofuzz import FuzzProcess
+from hypofuzz.hypofuzz import FuzzTarget
 
 if TYPE_CHECKING:
     from hypofuzz.dashboard.test import Test
@@ -18,7 +18,7 @@ make_patch_cached = lru_cache(maxsize=1024)(make_patch)
 
 
 def make_and_save_patches(
-    fuzz_targets: list[FuzzProcess],
+    fuzz_targets: list[FuzzTarget],
     tests: dict[str, "Test"],
     *,
     canonical: bool = True,
