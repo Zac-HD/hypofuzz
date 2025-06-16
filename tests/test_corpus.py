@@ -18,7 +18,7 @@ from hypofuzz.corpus import (
     sort_key,
 )
 from hypofuzz.database import HypofuzzDatabase
-from hypofuzz.hypofuzz import FuzzProcess
+from hypofuzz.hypofuzz import FuzzTarget
 
 
 def behaviors(fnames=st.sampled_from("abc")) -> st.SearchStrategy[frozenset[Branch]]:
@@ -121,7 +121,7 @@ def test_corpus_resets_branch_counts_on_new_coverage():
         if x == 2:
             pass
 
-    process = FuzzProcess.from_hypothesis_test(
+    process = FuzzTarget.from_hypothesis_test(
         test_a, database=HypofuzzDatabase(InMemoryExampleDatabase())
     )
     provider = process.provider

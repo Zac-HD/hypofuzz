@@ -11,6 +11,7 @@ from base64 import b64encode
 from collections.abc import Generator, Set
 from contextlib import contextmanager
 from dataclasses import dataclass
+from datetime import date, timedelta
 from enum import IntEnum
 from functools import cache
 from pathlib import Path
@@ -389,7 +390,7 @@ class HypofuzzProvider(PrimitiveProvider):
 
         assert observation.type == "test_case"
         # run_start is normally relative to StateForActualGivenExecution, which we
-        # re-use per FuzzProcess. Overwrite with the current timestamp for use
+        # re-use per FuzzTarget. Overwrite with the current timestamp for use
         # in sorting observations. This is not perfectly reliable in a
         # distributed setting, but is good enough.
         observation.run_start = self._state.start_time
@@ -419,13 +420,20 @@ class HypofuzzProvider(PrimitiveProvider):
             failure_observation = self._state.extra_queue_data
             assert failure_observation is not None
             assert isinstance(failure_observation, Observation)
-            for shrunk in [True, False]:
-                self.db.delete_failure(
-                    self.database_key,
-                    self._state.choices,
-                    failure_observation,
-                    shrunk=shrunk,
-                )
+            # failures are hard to find, and shrunk ones even more so. If a failure
+            # does not reproduce, only delete it if it's been more than 8 days,
+            # so we don't accidentally delete a useful failure.
+            if (
+                date.fromtimestamp(failure_observation.run_start) + timedelta(days=8)
+                < date.today()
+            ):
+                for shrunk in [True, False]:
+                    self.db.delete_failure(
+                        self.database_key,
+                        self._state.choices,
+                        failure_observation,
+                        shrunk=shrunk,
+                    )
 
         # TODO this is a real type error, we need to unify the Branch namedtuple
         # with the real usages of `behaviors` here

@@ -16,8 +16,8 @@ pytestmark = pytest.mark.skipif(
 
 class Collector:
     """
-    A Corpus-compatible collector (can be used in FuzzProcess._run_test_on) which
-    improves branch readability in tests:
+    A Corpus-compatible coverage collector which improves branch readability in
+    tests:
     * drop the filename from branches (assumes single-file usage)
     * offset branches relative to the first line of the passed function (decorators
       count as part of the definition)
