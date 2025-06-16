@@ -301,7 +301,7 @@ export class Test extends Dataclass<Test> {
 
     const linear_report = report_with_diff(report, last_report_worker)
 
-    if (!(worker_uuid in this.reports_by_worker)) {
+    if (!this.reports_by_worker.has(worker_uuid)) {
       this.reports_by_worker.set(worker_uuid, [])
     }
     this.reports_by_worker.get(worker_uuid)!.splice(reports_index, 0, linear_report)

@@ -32,7 +32,7 @@ import { useNavigate } from "react-router-dom"
 import { useIsMobile } from "../hooks/useIsMobile"
 import { useSetting } from "../hooks/useSetting"
 import { StatusCounts, Test } from "../types/dashboard"
-import { max } from "../utils/utils"
+import { max, navigateOnClick, readableNodeid } from "../utils/utils"
 import { Toggle } from "./Toggle"
 // import BoxSelect from "../assets/box-select.svg?react"
 
@@ -284,7 +284,7 @@ class Graph {
             .style("display", "block")
             .style("left", `${event.pageX + 10}px`)
             .style("top", `${event.pageY - 10}px`).html(`
-              <strong>${closestReport.nodeid.split("::").pop() || closestReport.nodeid}</strong><br/>
+              <strong>${readableNodeid(closestReport.nodeid)}</strong><br/>
               ${closestReport.behaviors.toLocaleString()} behaviors / ${closestReport.fingerprints.toLocaleString()} fingerprints<br/>
               ${closestReport.ninputs.toLocaleString()} inputs / ${closestReport.elapsed_time.toFixed(1)} seconds
             `)
@@ -394,11 +394,7 @@ class Graph {
           d3.select(this).classed("coverage-line__selected", false)
         })
         .on("click", event => {
-          if (event.metaKey || event.ctrlKey) {
-            window.open(`/tests/${encodeURIComponent(nodeid)}`, "_blank")
-          } else {
-            this.navigate(`/tests/${encodeURIComponent(nodeid)}`)
-          }
+          navigateOnClick(event, `/tests/${encodeURIComponent(nodeid)}`, this.navigate)
         })
     })
   }
