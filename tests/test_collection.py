@@ -7,10 +7,10 @@ from pathlib import Path
 import pytest
 
 from hypofuzz.collection import collect_tests
-from hypofuzz.hypofuzz import FuzzProcess
+from hypofuzz.hypofuzz import FuzzTarget
 
 
-def collect(code: str) -> list[FuzzProcess]:
+def collect(code: str) -> list[FuzzTarget]:
     code = (
         inspect.cleandoc(
             """

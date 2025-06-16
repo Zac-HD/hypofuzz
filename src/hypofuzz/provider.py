@@ -279,6 +279,7 @@ class HypofuzzProvider(PrimitiveProvider):
         # a new report), it's no longer useful, so delete it from the db.
         if self._last_timed_report:
             self.db.delete_report(self.database_key, self._last_timed_report)
+            self._last_timed_report = None
 
     @property
     def _report(self) -> Report:
@@ -388,7 +389,7 @@ class HypofuzzProvider(PrimitiveProvider):
 
         assert observation.type == "test_case"
         # run_start is normally relative to StateForActualGivenExecution, which we
-        # re-use per FuzzProcess. Overwrite with the current timestamp for use
+        # re-use per FuzzTarget. Overwrite with the current timestamp for use
         # in sorting observations. This is not perfectly reliable in a
         # distributed setting, but is good enough.
         observation.run_start = self._state.start_time
@@ -460,8 +461,8 @@ class HypofuzzProvider(PrimitiveProvider):
             self._save_report(self._report)
         elif _should_save_timed_report(self.elapsed_time, self._last_saved_report_at):
             report = self._report
-            self._last_timed_report = report
             self._save_report(report)
+            self._last_timed_report = report
 
         if self.phase is Phase.GENERATE and self._state.save_rolling_observation:
             self.db.save_observation(

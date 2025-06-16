@@ -91,3 +91,20 @@ export function measureText(
   const rect = container.getBoundingClientRect()
   return { width: rect.width, height: rect.height }
 }
+
+export function navigateOnClick(
+  event: MouseEvent | React.MouseEvent,
+  url: string,
+  navigate: (path: string) => void,
+): void {
+  // support cmd for onclick
+  if (event.metaKey || event.ctrlKey) {
+    window.open(url, "_blank")
+  } else {
+    navigate(url)
+  }
+}
+
+export function readableNodeid(nodeid: string): string {
+  return nodeid.split("::").pop() || nodeid
+}
