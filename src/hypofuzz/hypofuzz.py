@@ -299,7 +299,17 @@ class FuzzProcess:
             # of its estimator.
             estimators = [behaviors_per_second(target) for target in self.targets]
             estimators = softmax(estimators)
-            target = self.random.choices(self.targets, weights=estimators, k=1)[0]
+            # softmax might return 0.0 probability for some targets if there is
+            # a substantial gap in estimator values (e.g. behaviors_per_second=1_000
+            # vs behaviors_per_second=1.0). We don't expect this to happen normally,
+            # but it might when our estimator state is just getting started.
+            #
+            # Mix in a uniform probability of 1%, so we will eventually get out of
+            # such a hole.
+            if self.random.random() < 0.01:
+                target = self.random.choice(self.targets)
+            else:
+                target = self.random.choices(self.targets, weights=estimators, k=1)[0]
 
             # TODO we should scale this up we our estimator expects that it will
             # take a long time to discover a new behavior, to reduce the overhead
