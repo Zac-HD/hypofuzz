@@ -21,7 +21,7 @@ def distribute_nodes(
     # specifically "longest processing time first scheduling".
     #
     # (intuitively, we assign the "best" nodes to processes first. So with
-    # e.g. 10 processes with estimator of \hat{v}_i = 1 behavior per second (which
+    # e.g. 10 nodes with an estimator of \hat{v}_i = 1 behavior per second (which
     # is really good!) they would all go to different processes (at least until
     # the cap of n processes), which is what we want.
 

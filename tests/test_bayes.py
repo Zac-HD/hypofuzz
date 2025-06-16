@@ -1,5 +1,6 @@
-from hypothesis import given, strategies as st
 import itertools
+
+from hypothesis import given, strategies as st
 
 from hypofuzz.bayes import distribute_nodes
 
