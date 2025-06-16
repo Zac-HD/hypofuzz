@@ -10,6 +10,8 @@ import hypothesis.extra.cli
 import psutil
 from hypothesis.internal.conjecture.providers import AVAILABLE_PROVIDERS
 
+from hypofuzz.bayes import distribute_nodes
+
 AVAILABLE_PROVIDERS["hypofuzz"] = "hypofuzz.provider.HypofuzzProvider"
 
 
@@ -155,24 +157,23 @@ def _fuzz_impl(n_processes: int, pytest_args: tuple[str, ...]) -> None:
         f"test{tests_s}{skipped_msg}"
     )
 
+    nodeids = [t.nodeid for t in tests]
+    # TODO actually save/load estimator state
+    estimators = [1.0 for _ in tests]
     if n_processes <= 1:
-        _fuzz(pytest_args=pytest_args, nodeids=[t.nodeid for t in tests])
+        _fuzz(pytest_args=pytest_args, nodeids=nodeids)
     else:
-        processes: list[Process] = []
-        for i in range(n_processes):
-            # Round-robin for large test suites; all-on-all for tiny, etc.
-            nodeids: set[str] = set()
-            for ix in range(n_processes):
-                nodeids.update(t.nodeid for t in tests[i + ix :: n_processes])
-                if len(nodeids) >= 10:  # enough to prioritize between
-                    break
-
-            p = Process(
+        partitions = distribute_nodes(nodeids, estimators, n=n_processes)
+        processes = [
+            Process(
                 target=_fuzz,
                 kwargs={"pytest_args": pytest_args, "nodeids": nodeids},
             )
+            for nodeids in partitions
+        ]
+        for p in processes:
             p.start()
-            processes.append(p)
+
         for p in processes:
             p.join()
 
