@@ -11,6 +11,7 @@ interface RangeSliderProps {
 export function RangeSlider({ min, max, value, onChange, step = 1 }: RangeSliderProps) {
   const [dragging, setDragging] = useState<"min" | "max" | null>(null)
   const sliderRef = useRef<HTMLDivElement>(null)
+  console.assert(min <= max, `min: ${min} max: ${max}`)
 
   const [minValue, maxValue] = value
   const range = max - min

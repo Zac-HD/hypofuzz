@@ -1,5 +1,5 @@
 import { OrderedSet } from "immutable"
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 
 import { RangeSlider } from "../components/RangeSlider"
@@ -23,6 +23,18 @@ function formatTimestamp(timestamp: number): string {
   return date.toLocaleString()
 }
 
+// 24 hours
+const DEFAULT_RANGE_DURATION = 24 * 60 * 60
+
+function niceDefaultRange(
+  minTimestamp: number,
+  maxTimestamp: number,
+): [number, number] {
+  // by default: show from maxTimestamp at the end, to DEFAULT_RANGE_DURATION seconds before
+  // that at the start.
+  return [Math.max(minTimestamp, maxTimestamp - DEFAULT_RANGE_DURATION), maxTimestamp]
+}
+
 function nodeColor(nodeid: string): string {
   let hash = 0
   for (let i = 0; i < nodeid.length; i++) {
@@ -30,7 +42,7 @@ function nodeColor(nodeid: string): string {
   }
 
   const hue = Math.abs(hash) % 360
-  const saturation = 60 + (Math.abs(hash >> 8) % 30) // 60-90%
+  const saturation = 45 + (Math.abs(hash >> 8) % 30) // 45-75%
   const lightness = 45 + (Math.abs(hash >> 16) % 20) // 45-65%
 
   return `hsl(${hue}, ${saturation}%, ${lightness}%)`
@@ -72,7 +84,7 @@ export function WorkersPage() {
   let minTimestamp: number = Infinity
   let maxTimestamp: number = -Infinity
 
-  const workerSegments = new Map<string, Segment[]>()
+  let workerSegments = new Map<string, Segment[]>()
   workers.forEach(uuid => {
     const reports = workerReports.get(uuid)!
     const segments: Segment[] = []
@@ -106,13 +118,16 @@ export function WorkersPage() {
     workerSegments.set(uuid, segments)
   })
 
-  const [visibleRange, setVisibleRange] = useState<[number, number]>([
-    minTimestamp,
-    maxTimestamp,
-  ])
+  workerSegments = new Map(
+    [...workerSegments.entries()].sortKey(([_, segments]) => segments[0].start),
+  )
+
+  const [visibleRange, setVisibleRange] = useState<[number, number]>(
+    niceDefaultRange(minTimestamp, maxTimestamp),
+  )
 
   useEffect(() => {
-    setVisibleRange([minTimestamp, maxTimestamp])
+    setVisibleRange(niceDefaultRange(minTimestamp, maxTimestamp))
   }, [minTimestamp, maxTimestamp])
 
   const [visibleMin, visibleMax] = visibleRange
@@ -136,9 +151,13 @@ export function WorkersPage() {
     }
   }
 
-  function visibleSegments(segments: Segment[]): Segment[] {
-    return segments.filter(
-      segment => segment.end >= visibleMin && segment.start <= visibleMax,
+  const visibleSegments = new Map<string, Segment[]>()
+  for (const [worker, segments] of workerSegments.entries()) {
+    visibleSegments.set(
+      worker,
+      segments.filter(
+        segment => segment.end >= visibleMin && segment.start <= visibleMax,
+      ),
     )
   }
 
@@ -164,11 +183,11 @@ export function WorkersPage() {
               {formatTimestamp(visibleMax)}
             </span>
           </div>
-          {workers.map(worker => (
-            <div key={worker} className="workers__worker">
-              {visibleSegments(workerSegments.get(worker) || []).map(
-                (segment, index) => {
-                  return (
+          {Array.from(visibleSegments.entries()).map(
+            ([worker, segments]) =>
+              segments.length > 0 && (
+                <div key={worker} className="workers__worker">
+                  {segments.map((segment, index) => (
                     <div
                       key={index}
                       className="workers__timeline__segment"
@@ -194,12 +213,11 @@ export function WorkersPage() {
                       onMouseMove={event => {
                         moveTooltip(event.clientX, event.clientY, "workers")
                       }}
-                    ></div>
-                  )
-                },
-              )}
-            </div>
-          ))}
+                    />
+                  ))}
+                </div>
+              ),
+          )}
         </div>
       </div>
     </div>
