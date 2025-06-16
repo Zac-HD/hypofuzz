@@ -10,7 +10,7 @@ attrs==25.3.0             # via hypothesis, outcome, trio
 babel==2.17.0             # via sphinx
 beautifulsoup4==4.13.4    # via furo
 black==25.1.0             # via hypofuzz (pyproject.toml), hypothesis
-certifi==2025.4.26        # via requests
+certifi==2025.6.15        # via requests
 charset-normalizer==3.4.2  # via requests
 click==8.1.8              # via black, hypothesis
 coverage==7.9.1           # via hypofuzz (pyproject.toml)
@@ -22,14 +22,14 @@ h2==4.2.0                 # via hypercorn
 hpack==4.1.0              # via h2
 hypercorn==0.17.3         # via hypofuzz (pyproject.toml)
 hyperframe==6.1.0         # via h2
-hypothesis[cli,watchdog]==6.135.9  # via hypofuzz (pyproject.toml)
+hypothesis[cli,watchdog]==6.135.10  # via hypofuzz (pyproject.toml)
 idna==3.10                # via anyio, requests, trio
 imagesize==1.4.1          # via sphinx
 importlib-metadata==8.7.0  # via sphinx, sphinxcontrib-bibtex
 iniconfig==2.1.0          # via pytest
 jinja2==3.1.6             # via myst-parser, sphinx
 latexcodec==3.0.0         # via pybtex
-libcst==1.8.1             # via hypofuzz (pyproject.toml)
+libcst==1.8.2             # via hypofuzz (pyproject.toml)
 markdown-it-py==3.0.0     # via mdit-py-plugins, myst-parser, rich
 markupsafe==3.0.2         # via jinja2
 mdit-py-plugins==0.4.2    # via myst-parser
@@ -68,7 +68,7 @@ starlette==0.47.0         # via hypofuzz (pyproject.toml)
 taskgroup==0.2.2          # via hypercorn
 tomli==2.2.1              # via black, hypercorn, pytest, sphinx
 trio==0.30.0              # via hypofuzz (pyproject.toml)
-typing-extensions==4.14.0  # via anyio, beautifulsoup4, black, exceptiongroup, hypercorn, rich, starlette, taskgroup
+typing-extensions==4.14.0  # via anyio, beautifulsoup4, black, exceptiongroup, hypercorn, libcst, rich, starlette, taskgroup
 urllib3==2.4.0            # via requests
 watchdog==6.0.0           # via hypothesis
 wsproto==1.2.0            # via hypercorn
