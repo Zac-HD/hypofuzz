@@ -4,6 +4,10 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from hypofuzz.hypofuzz import FuzzTarget
 
+# for the behaviors estimators, we should incorporate a lookback across the
+# history of workers for this test. Give higher weight to newer estimators
+# (proportional to their confidence ie sample size).
+
 
 def behaviors_per_input(target: "FuzzTarget") -> float:
     # an estimator for the number of behaviors the next input will discover.
@@ -26,6 +30,11 @@ def behaviors_per_second(target: "FuzzTarget") -> float:
 
 
 def softmax(values: list[float]) -> list[float]:
+    if not values:
+        return []
     # subtract max for numerical stability
-    softmaxed = [math.exp(value - max(values)) for value in values]
-    return [value / sum(softmaxed) for value in softmaxed]
+    max_value = max(values)
+    softmaxed = [math.exp(value - max_value) for value in values]
+
+    total = sum(softmaxed)
+    return [value / total for value in softmaxed]

@@ -301,6 +301,9 @@ class FuzzProcess:
             estimators = softmax(estimators)
             target = self.random.choices(self.targets, weights=estimators, k=1)[0]
 
+            # TODO we should scale this up we our estimator expects that it will
+            # take a long time to discover a new behavior, to reduce the overhead
+            # of switching.
             for _ in range(100):
                 target.run_one()
 

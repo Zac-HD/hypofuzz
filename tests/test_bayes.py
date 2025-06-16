@@ -1,3 +1,4 @@
+import pytest
 from hypothesis import given, note, strategies as st
 
 from hypofuzz.bayes import softmax
@@ -19,3 +20,6 @@ def test_softmax(values):
             assert softmaxed[i] <= softmaxed[i + 1]
         if values[i] > values[i + 1]:
             assert softmaxed[i] >= softmaxed[i + 1]
+
+    if values:
+        assert sum(softmaxed) == pytest.approx(1)
