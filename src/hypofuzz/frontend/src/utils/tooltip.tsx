@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from "react"
 import { createPortal } from "react-dom"
+import { useLocation } from "react-router-dom"
 
 interface TooltipState {
   visible: boolean
@@ -46,6 +47,7 @@ function TooltipPortal({ state }: { state: TooltipState }) {
 }
 
 export function TooltipProvider({ children }: { children: React.ReactNode }) {
+  const location = useLocation()
   const [tooltipState, setTooltipState] = useState<TooltipState>({
     visible: false,
     content: "",
@@ -53,6 +55,16 @@ export function TooltipProvider({ children }: { children: React.ReactNode }) {
     y: 0,
     owner: null,
   })
+
+  // Navigation avoids firing onmouseleave events, leaving dangling tooltips.
+  // Hide any tooltips when navigating to a new page.
+  useEffect(() => {
+    setTooltipState(prev => ({
+      ...prev,
+      visible: false,
+      owner: null,
+    }))
+  }, [location.pathname])
 
   const showTooltip = (content: string, x: number, y: number, owner: string) => {
     setTooltipState({
