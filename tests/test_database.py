@@ -9,7 +9,7 @@ from hypothesis.database import (
 )
 
 from hypofuzz.database import HypofuzzDatabase, Phase, test_keys_key
-from hypofuzz.hypofuzz import FuzzProcess
+from hypofuzz.hypofuzz import FuzzTarget
 
 
 def test_database_stores_reports_and_metadata_correctly(tmp_path):
@@ -45,7 +45,7 @@ def test_database_state():
         if x:
             pass
 
-    process = FuzzProcess.from_hypothesis_test(test_a, database=db)
+    process = FuzzTarget.from_hypothesis_test(test_a, database=db)
     process._execute_once(process.new_conjecture_data(choices=[2]))
     process.provider.db._db._join()
 
@@ -102,7 +102,7 @@ def test_adds_failures_to_database():
     def test_a(x):
         assert x != 10
 
-    process = FuzzProcess.from_hypothesis_test(test_a, database=db)
+    process = FuzzTarget.from_hypothesis_test(test_a, database=db)
     for _ in range(50):
         process.run_one()
 

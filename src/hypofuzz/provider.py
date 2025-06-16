@@ -389,7 +389,7 @@ class HypofuzzProvider(PrimitiveProvider):
 
         assert observation.type == "test_case"
         # run_start is normally relative to StateForActualGivenExecution, which we
-        # re-use per FuzzProcess. Overwrite with the current timestamp for use
+        # re-use per FuzzTarget. Overwrite with the current timestamp for use
         # in sorting observations. This is not perfectly reliable in a
         # distributed setting, but is good enough.
         observation.run_start = self._state.start_time

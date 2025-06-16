@@ -67,10 +67,10 @@ class HypofuzzStateForActualGivenExecution(StateForActualGivenExecution):
         return False
 
 
-class FuzzProcess:
+class FuzzTarget:
     """
-    Thin wrapper around HypofuzzProvider, which also handles shrinking failures
-    in a way that saves observations correctly for Hypofuzz.
+    FuzzTarget is a thin wrapper around HypofuzzProvider, which also handles
+    shrinking failures in a way that saves observations correctly for Hypofuzz.
     """
 
     @classmethod
@@ -81,8 +81,7 @@ class FuzzProcess:
         database: HypofuzzDatabase,
         extra_kw: Optional[dict[str, object]] = None,
         pytest_item: Optional[pytest.Item] = None,
-    ) -> "FuzzProcess":
-        """Return a FuzzProcess for an @given-decorated test function."""
+    ) -> "FuzzTarget":
         _, _, stuff = process_arguments_to_given(
             wrapped_test,
             arguments=(),
@@ -111,7 +110,6 @@ class FuzzProcess:
         wrapped_test: Callable,
         pytest_item: Optional[pytest.Item] = None,
     ) -> None:
-        """Construct a FuzzProcess from specific arguments."""
         self.random = Random(random_seed)
         self._test_fn = test_fn
         self._stuff = stuff
@@ -260,10 +258,10 @@ class FuzzProcess:
         return corpus is not None and bool(corpus.interesting_examples)
 
 
-def fuzz_several(targets: list[FuzzProcess], random_seed: Optional[int] = None) -> None:
+def fuzz_several(targets: list[FuzzTarget], random_seed: Optional[int] = None) -> None:
     """Take N fuzz targets and run them all."""
     random = Random(random_seed)
-    targets: SortedKeyList[FuzzProcess, int] = SortedKeyList(
+    targets: SortedKeyList[FuzzTarget, int] = SortedKeyList(
         targets, lambda p: p.provider.since_new_branch
     )
 
@@ -272,7 +270,7 @@ def fuzz_several(targets: list[FuzzProcess], random_seed: Optional[int] = None) 
     # TODO: make this aware of test runtime, so it adapts for behaviors-per-second
     #       rather than behaviors-per-input.
 
-    dispatch: dict[bytes, list[FuzzProcess]] = defaultdict(list)
+    dispatch: dict[bytes, list[FuzzTarget]] = defaultdict(list)
     for target in targets:
         dispatch[target.database_key].append(target)
 
