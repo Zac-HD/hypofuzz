@@ -12,9 +12,10 @@ import {
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
 import hljs from "highlight.js/lib/core"
 import python from "highlight.js/lib/languages/python"
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Link, useParams } from "react-router-dom"
 
+import { Collapsible } from "../components/Collapsible"
 import { CoverageGraph } from "../components/CoverageGraph"
 import { StatusPill } from "../components/StatusPill"
 import { Table } from "../components/Table"
@@ -22,6 +23,7 @@ import { TestPatches } from "../components/TestPatches"
 import { Tooltip } from "../components/Tooltip"
 import { useData } from "../context/DataProvider"
 import { Tyche } from "../tyche/Tyche"
+import { fetchData } from "../utils/api"
 import { getTestStats } from "../utils/testStats"
 import { reHighlight } from "../utils/utils"
 
@@ -31,6 +33,13 @@ export function TestPage() {
   const { nodeid } = useParams<{ nodeid: string }>()
   const { tests } = useData(nodeid)
   const containerRef = useRef<HTMLDivElement>(null)
+  const [nodeidsWithPatches, setNodeidsWithPatches] = useState<string[] | null>(null)
+
+  useEffect(() => {
+    fetchData<string[]>("available_patches/").then(data => {
+      setNodeidsWithPatches(data)
+    })
+  }, [])
 
   const test = tests.get(nodeid!) ?? null
 
@@ -187,11 +196,13 @@ export function TestPage() {
         </div>
       )}
       <Tyche test={test} />
-      <div className="card">
-        <Collapsible title="Patches" defaultState="closed" headerClass="card__header">
-          <TestPatches nodeid={nodeid} />
-        </Collapsible>
-      </div>
+      {nodeidsWithPatches?.includes(nodeid) && (
+        <div className="card">
+          <Collapsible title="Patches" defaultState="closed" headerClass="card__header">
+            <TestPatches nodeid={nodeid} />
+          </Collapsible>
+        </div>
+      )}
     </div>
   )
 }

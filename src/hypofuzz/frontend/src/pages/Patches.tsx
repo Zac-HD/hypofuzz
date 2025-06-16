@@ -1,15 +1,22 @@
 import { faArrowRight } from "@fortawesome/free-solid-svg-icons"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
+import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
 
 import { Collapsible } from "../components/Collapsible"
 import { TestPatches } from "../components/TestPatches"
-import { useData } from "../context/DataProvider"
+import { fetchData } from "../utils/api"
 
 export function PatchesPage() {
-  const { tests } = useData()
+  const [nodeids, setNodeids] = useState<string[] | null>(null)
 
-  if (tests.size === 0) {
+  useEffect(() => {
+    fetchData<string[]>("available_patches/").then(data => {
+      setNodeids(data)
+    })
+  }, [])
+
+  if (nodeids === null || nodeids.length === 0) {
     return (
       <div className="card">
         <div className="card__header">Patches</div>
@@ -23,7 +30,7 @@ export function PatchesPage() {
       <div className="card__header" style={{ marginBottom: "1rem" }}>
         Patches
       </div>
-      {Array.from(tests.keys()).map(nodeid => (
+      {nodeids.map(nodeid => (
         <Collapsible
           title={
             <div style={{ display: "flex", alignItems: "center" }}>

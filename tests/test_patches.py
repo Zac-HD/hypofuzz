@@ -34,10 +34,6 @@ def test_patches(tmp_path):
     for choices in db.fetch_corpus(key):
         observation = db.fetch_corpus_observation(key, choices)
 
-        # TODO remove when backend="hypofuzz" is merged
-        if observation is None:
-            continue
-
         namespace = {}
         code = (test_dir / "test_a.py").read_text()
         exec(code, namespace)
