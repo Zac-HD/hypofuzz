@@ -1,8 +1,9 @@
 import itertools
 
-from hypothesis import given, strategies as st
+import pytest
+from hypothesis import given, note, strategies as st
 
-from hypofuzz.bayes import distribute_nodes
+from hypofuzz.bayes import distribute_nodes, softmax
 
 
 @given(
@@ -32,3 +33,24 @@ def test_distribute_nodes_more_processes_than_nodes(n):
     assert distribute_nodes(["1", "2", "3"], [1, 3, 2], n=n) == tuple(
         itertools.islice(itertools.cycle([("2",), ("3",), ("1",)]), n)
     )
+
+
+@given(st.lists(st.floats(min_value=0, allow_nan=False, allow_infinity=False)))
+def test_softmax(values):
+    softmaxed = softmax(values)
+    note(f"{softmaxed=}")
+    assert all(0 <= v <= 1 for v in softmaxed)
+
+    # check that softmax preserves ordering
+    for i in range(len(values) - 1):
+        if values[i] == values[i + 1]:
+            assert softmaxed[i] == softmaxed[i + 1]
+        if values[i] < values[i + 1]:
+            # note <= and not < here, since softmax may round down small
+            # differences in values to 0
+            assert softmaxed[i] <= softmaxed[i + 1]
+        if values[i] > values[i + 1]:
+            assert softmaxed[i] >= softmaxed[i + 1]
+
+    if values:
+        assert sum(softmaxed) == pytest.approx(1)
