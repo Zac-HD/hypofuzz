@@ -1,3 +1,4 @@
+import pytest
 from hypothesis import (
     HealthCheck,
     assume,
@@ -32,3 +33,18 @@ def test_visual_no_data(l):
         pass
     else:
         pass
+
+
+# this is a clear no-op success, butfails when running `hypothesis fuzz` on
+# the hypofuzz test suite itself.
+# Something about the observability callback on nested test functions?
+@pytest.mark.skip(
+    "broken, but nested @given is sufficiently rare that I'm deferring this"
+)
+@given(st.integers())
+def test_nested(n):
+    @given(st.integers())
+    def f(m):
+        pass
+
+    f()

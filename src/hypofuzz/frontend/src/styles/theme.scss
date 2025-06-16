@@ -1,0 +1,15 @@
+$primary-h: 210;
+$primary-s: 50%;
+$primary-l: 30%;
+$color-primary: hsl($primary-h, $primary-s, $primary-l);
+
+$secondary-h: 24;
+$secondary-s: 80%;
+$secondary-l: 60%;
+$color-secondary: hsl($secondary-h, $secondary-s, $secondary-l);
+
+// TODO these are converted from rgb, no principled reason for the specific values
+$color-neutral: hsla(0, 5%, 68%, 0.2);
+$color-failure: hsla(6, 78%, 67%, 0.2);
+$color-warning: hsla(45, 100%, 50%, 0.2);
+$color-success: hsla(142, 54%, 54%, 0.2);

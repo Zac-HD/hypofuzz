@@ -1,4 +1,9 @@
 /* using BEM for naming convention https://getbem.com/ */
+@use "theme.scss" as *;
+
+// lato only has these weights: 100 / 300 / 400 / 700 / 900
+// https://fonts.google.com/specimen/Lato
+@import url("https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap");
 
 // css reset
 
@@ -14,8 +19,18 @@
 
 body {
     font-family:
-        -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial,
-        sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+        "Lato",
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        Roboto,
+        "Helvetica Neue",
+        Arial,
+        sans-serif,
+        "Apple Color Emoji",
+        "Segoe UI Emoji",
+        "Segoe UI Symbol";
+    background-color: hsla($primary-h, $primary-s, $primary-l, 0.05);
 }
 
 input,
@@ -26,13 +41,6 @@ select {
 }
 
 // actual styles
-
-$color-primary: #32465b;
-
-$color-neutral: rgba(179, 170, 170, 0.2);
-$color-failure: rgba(237, 120, 107, 0.2);
-$color-warning: rgba(255, 215, 0, 0.2);
-$color-success: rgba(71, 204, 126, 0.2);
 
 $mobile-breakpoint: 768px;
 

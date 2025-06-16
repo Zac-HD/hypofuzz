@@ -8,10 +8,9 @@ from hypothesis.database import (
     InMemoryExampleDatabase,
     choices_from_bytes,
 )
-from hypothesis.internal.conjecture.data import ConjectureData
 
 from hypofuzz.database import HypofuzzDatabase, Phase, test_keys_key
-from hypofuzz.hypofuzz import FuzzProcess
+from hypofuzz.hypofuzz import FuzzTarget
 
 
 def test_database_stores_reports_and_metadata_correctly(tmp_path):
@@ -44,18 +43,20 @@ def test_database_state():
         if x:
             pass
 
-    process = FuzzProcess.from_hypothesis_test(test_a, database=db)
-    process._start_phase(Phase.GENERATE)
-    process._run_test_on(ConjectureData.for_choices([2]))
+    process = FuzzTarget.from_hypothesis_test(test_a, database=db)
+    process._execute_once(process.new_conjecture_data(choices=[2]))
+    process.provider.db._db._join()
 
     key = process.database_key
 
     # the database state should be:
+    # * database_key.hypofuzz.test_keys                 (1 element)
+    # * database_key.hypofuzz.worker_identity           (1 element)
     # * database_key.hypofuzz.observations              (1 element)
     # * database_key.hypofuzz.corpus                    (1 element)
     # * database_key.hypofuzz.corpus.<hash>.observation (1 element)
     # * database_key.hypofuzz.reports                   (1 element)
-    assert len(db._db.data.keys()) == 4
+    assert len(db._db.data.keys()) == 6
     assert list(db.fetch_corpus(key)) == [(2,)]
 
     observations = list(db.fetch_corpus_observations(key, (2,)))
@@ -69,14 +70,18 @@ def test_database_state():
     # This should clear out both the corpus and observation entry for the old
     # input.
     # The database state should be:
+    # * database_key.hypofuzz.test_keys                 (1 element)
+    # * database_key.hypofuzz.worker_identity           (1 element)
     # * database_key.hypofuzz.observations              (maybe 2 elements, if > 1 second)
     # * database_key.hypofuzz.corpus                    (1 element) (a new one)
     # * database_key.hypofuzz.corpus.<hash>.observation (1 element) (a new one)
     # * database_key.hypofuzz.reports                   (2 elements)
-    process._run_test_on(ConjectureData.for_choices([1]))
+    process._execute_once(process.new_conjecture_data(choices=[1]))
+    process.provider.db._db._join()
+
     # the key for the deleted observation sticks around in the database, it's
     # just an empty mapping.
-    assert len([k for k, v in db._db.data.items() if v]) == 4
+    assert len([k for k, v in db._db.data.items() if v]) == 6
     assert list(db.fetch_corpus(key)) == [(1,)]
 
     observations = list(db.fetch_corpus_observations(key, (1,)))
@@ -95,7 +100,7 @@ def test_adds_failures_to_database():
     def test_a(x):
         assert x != 10
 
-    process = FuzzProcess.from_hypothesis_test(test_a, database=db)
+    process = FuzzTarget.from_hypothesis_test(test_a, database=db)
     for _ in range(50):
         process.run_one()
 

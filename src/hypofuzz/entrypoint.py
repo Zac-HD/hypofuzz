@@ -8,6 +8,9 @@ from typing import NoReturn, Optional
 import click
 import hypothesis.extra.cli
 import psutil
+from hypothesis.internal.conjecture.providers import AVAILABLE_PROVIDERS
+
+AVAILABLE_PROVIDERS["hypofuzz"] = "hypofuzz.provider.HypofuzzProvider"
 
 
 @hypothesis.extra.cli.main.command()  # type: ignore
@@ -82,7 +85,7 @@ def fuzz(
 
     try:
         _fuzz_impl(
-            numprocesses=numprocesses,
+            n_processes=numprocesses,
             pytest_args=pytest_args,
         )
     except BaseException:
@@ -109,7 +112,7 @@ def _debug_ranges_disabled() -> bool:
     )
 
 
-def _fuzz_impl(numprocesses: int, pytest_args: tuple[str, ...]) -> None:
+def _fuzz_impl(n_processes: int, pytest_args: tuple[str, ...]) -> None:
     if sys.version_info >= (3, 12) and _debug_ranges_disabled():
         raise Exception(
             "The current python interpreter lacks position information for its "
@@ -128,39 +131,49 @@ def _fuzz_impl(numprocesses: int, pytest_args: tuple[str, ...]) -> None:
             f"fuzzer option{plural} {names} would be passed to pytest instead"
         )
 
-    from hypofuzz.interface import _fuzz_several, _get_hypothesis_tests_with_pytest
+    from hypofuzz.collection import collect_tests
+    from hypofuzz.hypofuzz import _fuzz
 
     # With our arguments validated, it's time to actually do the work.
-    tests = _get_hypothesis_tests_with_pytest(pytest_args).fuzz_targets
+    collection = collect_tests(pytest_args)
+    tests = collection.fuzz_targets
     if not tests:
         raise click.UsageError(
             f"No property-based tests were collected. args: {pytest_args}"
         )
 
-    print(f"collected {len(tests)} property-based tests")
+    skipped_s = "s" * (len(collection.not_collected) != 1)
+    skipped_msg = (
+        ""
+        if not collection.not_collected
+        else f" (skipped {len(collection.not_collected)} test{skipped_s})"
+    )
+    n_s = "es" * (n_processes != 1)
+    tests_s = "s" * (len(tests) != 1)
+    print(
+        f"using {n_processes} process{n_s} to fuzz {len(tests)} "
+        f"test{tests_s}{skipped_msg}"
+    )
 
-    testnames = "\n    ".join(t.nodeid for t in tests)
-    plural = "" if numprocesses == 1 else "es"
-    print(f"using {numprocesses} process{plural} to fuzz:\n    {testnames}\n")
-
-    if numprocesses <= 1:
-        _fuzz_several(pytest_args=pytest_args, nodeids=[t.nodeid for t in tests])
+    if n_processes <= 1:
+        _fuzz(pytest_args=pytest_args, nodeids=[t.nodeid for t in tests])
     else:
         processes: list[Process] = []
-        for i in range(numprocesses):
+        for i in range(n_processes):
             # Round-robin for large test suites; all-on-all for tiny, etc.
             nodeids: set[str] = set()
-            for ix in range(numprocesses):
-                nodeids.update(t.nodeid for t in tests[i + ix :: numprocesses])
+            for ix in range(n_processes):
+                nodeids.update(t.nodeid for t in tests[i + ix :: n_processes])
                 if len(nodeids) >= 10:  # enough to prioritize between
                     break
 
             p = Process(
-                target=_fuzz_several,
+                target=_fuzz,
                 kwargs={"pytest_args": pytest_args, "nodeids": nodeids},
             )
             p.start()
             processes.append(p)
         for p in processes:
             p.join()
+
     print("Found a failing input for every test!", file=sys.stderr)

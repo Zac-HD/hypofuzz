@@ -68,13 +68,25 @@ def _enqueue_output(stream, queue):
 
 @contextmanager
 def dashboard(
-    *, port: int = 0, test_path: Optional[Path] = None
+    *, port: int = 0, test_path: Optional[Path] = None, numprocesses: int = 0
 ) -> Generator[Dashboard, None, None]:
     """
-    Launches a dashboard process with --dashboard-only. Defaults to a random open
-    port.
+    Launches a dashboard process with --dashboard-only (unless numprocesses is
+    passed). Defaults to a random open port.
     """
-    args = ["hypothesis", "fuzz", "--dashboard-only", "--port", str(port)]
+
+    args = [
+        "hypothesis",
+        "fuzz",
+        "--port",
+        str(port),
+        *(
+            ["--dashboard-only"]
+            if numprocesses == 0
+            else ["--numprocesses", str(numprocesses)]
+        ),
+    ]
+
     if test_path is not None:
         args += ["--", str(test_path)]
 

@@ -20,7 +20,7 @@ from packaging import version
 if TYPE_CHECKING:
     # We have to defer imports to within functions here, because this module
     # is a Hypothesis entry point and is thus imported earlier than the others.
-    from hypofuzz.hypofuzz import FuzzProcess
+    from hypofuzz.hypofuzz import FuzzTarget
 
 pytest8 = version.parse(pytest.__version__) >= version.parse("8.0.0")
 
@@ -36,7 +36,7 @@ def has_true_skipif(item: Item) -> tuple[bool, Optional[str]]:
 
 @dataclass
 class CollectionResult:
-    fuzz_targets: list["FuzzProcess"]
+    fuzz_targets: list["FuzzTarget"]
     not_collected: dict[str, dict[str, Any]]
 
 
@@ -44,7 +44,7 @@ class _ItemsCollector:
     """A pytest plugin which grabs all the fuzzable tests at the end of collection."""
 
     def __init__(self) -> None:
-        self.fuzz_targets: list[FuzzProcess] = []
+        self.fuzz_targets: list[FuzzTarget] = []
         self.not_collected: dict[str, dict[str, Any]] = {}
 
     def _skip_because(
@@ -57,12 +57,12 @@ class _ItemsCollector:
 
     def pytest_collection_finish(self, session: pytest.Session) -> None:
         from hypofuzz.database import HypofuzzDatabase
-        from hypofuzz.hypofuzz import FuzzProcess
+        from hypofuzz.hypofuzz import FuzzTarget
 
         # We guarantee (and enforce here at collection-time) that all tests
         # collected by hypofuzz use the same database, and that that database is
         # the same as the default settings().database at the time of collection.
-        # This lets us share a single hypofuzz_db across all FuzzProcess classes,
+        # This lets us share a single hypofuzz_db across all FuzzTarget classes,
         # which is nice because we don't want to create a thread for every fuzz
         # process to handle the background writes.
         db = settings().database
@@ -127,7 +127,7 @@ class _ItemsCollector:
 
             all_autouse = set(all_autouse_)
             # from @pytest.mark.parametrize. Pytest gives us the params and their
-            # values directly, so we can pass them as extra kwargs to FuzzProcess.
+            # values directly, so we can pass them as extra kwargs to FuzzTarget.
             params = item.callspec.params if hasattr(item, "callspec") else {}
             param_names = set(params)
             extra_kw = params
@@ -197,7 +197,7 @@ class _ItemsCollector:
                         item.nodeid.encode()
                     )
                     target = item.obj
-                fuzz = FuzzProcess.from_hypothesis_test(
+                fuzz = FuzzTarget.from_hypothesis_test(
                     target, database=hypofuzz_db, extra_kw=extra_kw, pytest_item=item
                 )
             except Exception as e:
@@ -210,9 +210,7 @@ class _ItemsCollector:
                 self.fuzz_targets.append(fuzz)
 
 
-def _get_hypothesis_tests_with_pytest(
-    args: Iterable[str], *, debug: bool = False
-) -> CollectionResult:
+def collect_tests(args: Iterable[str], *, debug: bool = False) -> CollectionResult:
     """Find the hypothesis-only test functions run by pytest.
 
     This basically uses `pytest --collect-only -m hypothesis $args`.
@@ -246,20 +244,3 @@ def _get_hypothesis_tests_with_pytest(
     return CollectionResult(
         fuzz_targets=collector.fuzz_targets, not_collected=collector.not_collected
     )
-
-
-def _fuzz_several(pytest_args: tuple[str, ...], nodeids: list[str]) -> None:
-    """Collect and fuzz tests.
-
-    Designed to be used inside a multiprocessing.Process started with the spawn()
-    method - requires picklable arguments but works on Windows too.
-    """
-    # Import within the function to break an import cycle when used as an entry point.
-    from hypofuzz.hypofuzz import fuzz_several
-
-    tests = [
-        t
-        for t in _get_hypothesis_tests_with_pytest(pytest_args).fuzz_targets
-        if t.nodeid in nodeids
-    ]
-    fuzz_several(tests)

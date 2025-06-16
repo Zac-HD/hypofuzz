@@ -6,12 +6,20 @@ interface TooltipState {
   content: string
   x: number
   y: number
+  // the concept of a "tooltip owner" simplifies investigation if anything goes wrong. For instance,
+  // I got into an infinite render loop when multiple components used tooltips. This ended up being
+  // because of an over-aggressive useEffect for cleanup, but I at first thought it was due to conflicting
+  // components.
+  //
+  // And also the concept of an owner probably genuinely removes a class of bugs - but that's not why I
+  // added it initially.
+  owner: string | null
 }
 
 interface TooltipContextType {
-  showTooltip: (content: string, x: number, y: number) => void
-  hideTooltip: () => void
-  moveTooltip: (x: number, y: number) => void
+  showTooltip: (content: string, x: number, y: number, owner: string) => void
+  hideTooltip: (owner: string) => void
+  moveTooltip: (x: number, y: number, owner: string) => void
   visible: boolean
 }
 
@@ -43,32 +51,43 @@ export function TooltipProvider({ children }: { children: React.ReactNode }) {
     content: "",
     x: 0,
     y: 0,
+    owner: null,
   })
 
-  const showTooltip = (content: string, x: number, y: number) => {
+  const showTooltip = (content: string, x: number, y: number, owner: string) => {
     setTooltipState({
       visible: true,
       content,
       x,
       y,
+      owner,
     })
   }
 
-  const hideTooltip = () => {
-    setTooltipState(prev => ({
-      ...prev,
-      visible: false,
-    }))
+  const hideTooltip = (owner: string) => {
+    setTooltipState(prev => {
+      if (prev.owner === owner) {
+        return {
+          ...prev,
+          visible: false,
+          owner: null,
+        }
+      }
+      return prev
+    })
   }
 
-  const moveTooltip = (x: number, y: number) => {
-    if (tooltipState.visible) {
-      setTooltipState(prev => ({
-        ...prev,
-        x,
-        y,
-      }))
-    }
+  const moveTooltip = (x: number, y: number, owner: string) => {
+    setTooltipState(prev => {
+      if (prev.visible && prev.owner === owner) {
+        return {
+          ...prev,
+          x,
+          y,
+        }
+      }
+      return prev
+    })
   }
 
   const contextValue: TooltipContextType = {

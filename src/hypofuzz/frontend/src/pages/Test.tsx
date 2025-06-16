@@ -15,7 +15,6 @@ import python from "highlight.js/lib/languages/python"
 import { useEffect, useRef } from "react"
 import { Link, useParams } from "react-router-dom"
 
-import { Collapsible } from "../components/Collapsible"
 import { CoverageGraph } from "../components/CoverageGraph"
 import { StatusPill } from "../components/StatusPill"
 import { Table } from "../components/Table"

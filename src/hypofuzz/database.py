@@ -577,44 +577,47 @@ class HypofuzzDatabase:
             if observation := Observation.from_json(value):
                 yield observation
 
-    # failures (failure_key)
+    # failures (failure_key and failure_observation_key)
 
-    def save_failure(self, key: bytes, choices: ChoicesT, *, shrunk: bool) -> None:
+    def save_failure(
+        self,
+        key: bytes,
+        choices: ChoicesT,
+        observation: Optional[Observation],
+        *,
+        shrunk: bool,
+    ) -> None:
         self.save(failure_key(key, shrunk=shrunk), choices_to_bytes(choices))
 
-    def delete_failure(self, key: bytes, choices: ChoicesT, *, shrunk: bool) -> None:
+        if observation is not None:
+            self._check_observation(observation)
+            existing_observations = list(self.fetch_failure_observations(key, choices))
+            self.save(failure_observation_key(key, choices), self._encode(observation))
+            for observation in existing_observations:
+                self._check_observation(observation)
+                self.delete(
+                    failure_observation_key(key, choices), self._encode(observation)
+                )
+
+    def delete_failure(
+        self,
+        key: bytes,
+        choices: ChoicesT,
+        observation: Optional[Observation],
+        *,
+        shrunk: bool,
+    ) -> None:
         self.delete(failure_key(key, shrunk=shrunk), choices_to_bytes(choices))
+        if observation is not None:
+            self._check_observation(observation)
+            self.delete(
+                failure_observation_key(key, choices), self._encode(observation)
+            )
 
     def fetch_failures(self, key: bytes, *, shrunk: bool) -> Iterable[ChoicesT]:
         for value in self.fetch(failure_key(key, shrunk=shrunk)):
             if (choices := choices_from_bytes(value)) is not None:
                 yield choices
-
-    # failure observation (failure_observation_key)
-
-    def save_failure_observation(
-        self,
-        key: bytes,
-        choices: ChoicesT,
-        observation: Observation,
-        *,
-        delete: bool = True,
-    ) -> None:
-        self._check_observation(observation)
-        if not delete:
-            self.save(failure_observation_key(key, choices), self._encode(observation))
-            return
-
-        existing = list(self.fetch_failure_observations(key, choices))
-        self.save(failure_observation_key(key, choices), self._encode(observation))
-        for observation in existing:
-            self.delete_failure_observation(key, choices, observation)
-
-    def delete_failure_observation(
-        self, key: bytes, choices: ChoicesT, observation: Observation
-    ) -> None:
-        self._check_observation(observation)
-        self.delete(failure_observation_key(key, choices), self._encode(observation))
 
     def fetch_failure_observation(
         self, key: bytes, choices: ChoicesT
