@@ -1123,3 +1123,115 @@ pre code.hljs {
         text-align: right;
     }
 }
+
+.range-slider {
+    &__track {
+        position: relative;
+        height: 8px;
+        background: #e9ecef;
+        border-radius: 4px;
+        cursor: pointer;
+        user-select: none;
+    }
+
+    &__range {
+        position: absolute;
+        height: 100%;
+        background: $color-primary;
+        border-radius: 4px;
+        pointer-events: none;
+    }
+
+    &__thumb {
+        position: absolute;
+        top: 50%;
+        width: 20px;
+        height: 20px;
+        background: white;
+        border: 3px solid $color-primary;
+        border-radius: 50%;
+        cursor: pointer;
+        transform: translate(-50%, -50%);
+    }
+}
+
+.workers {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+
+    &__time-controls {
+        background: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+
+        padding-top: 15px;
+        padding-bottom: 15px;
+        padding-left: 20px;
+        padding-right: 20px;
+        margin-top: 20px;
+        margin-bottom: 15px;
+
+        &__header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        &__reset {
+            background: $color-primary;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 6px 12px;
+            font-size: 0.875rem;
+            cursor: pointer;
+
+            &:hover {
+                background: #0056b3;
+            }
+        }
+    }
+
+    &__timeline-header {
+        display: flex;
+        justify-content: space-between;
+        color: #666;
+        border-bottom: 1px solid #e1e1e1;
+        margin-bottom: 5px;
+
+        &__label {
+            font-family: monospace;
+        }
+    }
+
+    &__worker {
+        margin-bottom: 1px;
+        position: relative;
+        height: 12px;
+        background: #f8f9fa;
+        overflow: hidden;
+    }
+
+    &__timeline {
+        &__segment {
+            position: absolute;
+            top: 0;
+            height: 100%;
+            background: $color-primary;
+            cursor: pointer;
+            border-radius: 1px;
+
+            &:hover {
+                opacity: 0.8;
+            }
+
+            &:active {
+                transform: scale(0.98);
+            }
+        }
+    }
+}
