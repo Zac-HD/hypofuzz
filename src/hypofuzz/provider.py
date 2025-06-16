@@ -11,6 +11,7 @@ from base64 import b64encode
 from collections.abc import Generator, Set
 from contextlib import contextmanager
 from dataclasses import dataclass
+from datetime import date, timedelta
 from enum import IntEnum
 from functools import cache
 from pathlib import Path
@@ -422,7 +423,10 @@ class HypofuzzProvider(PrimitiveProvider):
             # failures are hard to find, and shrunk ones even more so. If a failure
             # does not reproduce, only delete it if it's been more than 8 days,
             # so we don't accidentally delete a useful failure.
-            if time.time() > failure_observation.run_start + 8 * 24 * 60 * 60:
+            if (
+                date.fromtimestamp(failure_observation.run_start) + timedelta(days=8)
+                < date.today()
+            ):
                 for shrunk in [True, False]:
                     self.db.delete_failure(
                         self.database_key,
