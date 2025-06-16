@@ -16,12 +16,12 @@ h2==4.2.0                 # via hypercorn
 hpack==4.1.0              # via h2
 hypercorn==0.17.3         # via -r deps/check.in
 hyperframe==6.1.0         # via h2
-hypothesis==6.135.5       # via -r deps/check.in
+hypothesis==6.135.10      # via -r deps/check.in
 idna==3.10                # via anyio, trio
 iniconfig==2.1.0          # via pytest
-libcst==1.8.1             # via shed
+libcst==1.8.2             # via shed
 mccabe==0.7.0             # via flake8
-mypy==1.16.0              # via -r deps/check.in
+mypy==1.16.1              # via -r deps/check.in
 mypy-extensions==1.1.0    # via black, mypy
 outcome==1.3.0.post0      # via trio
 packaging==25.0           # via black, pytest
@@ -47,7 +47,7 @@ taskgroup==0.2.2          # via hypercorn
 tokenize-rt==6.2.0        # via pyupgrade
 tomli==2.2.1              # via black, hypercorn, mypy, pytest
 trio==0.30.0              # via -r deps/check.in
-types-requests==2.32.0.20250602  # via -r deps/check.in
-typing-extensions==4.14.0  # via anyio, black, exceptiongroup, hypercorn, mypy, sortedcontainers-stubs, starlette, taskgroup
+types-requests==2.32.4.20250611  # via -r deps/check.in
+typing-extensions==4.14.0  # via anyio, black, exceptiongroup, hypercorn, libcst, mypy, sortedcontainers-stubs, starlette, taskgroup
 urllib3==2.4.0            # via types-requests
 wsproto==1.2.0            # via hypercorn
