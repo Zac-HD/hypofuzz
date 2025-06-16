@@ -23,7 +23,7 @@ import { TestPatches } from "../components/TestPatches"
 import { Tooltip } from "../components/Tooltip"
 import { useData } from "../context/DataProvider"
 import { Tyche } from "../tyche/Tyche"
-import { fetchData } from "../utils/api"
+import { fetchAvailablePatches } from "../utils/api"
 import { getTestStats } from "../utils/testStats"
 import { reHighlight } from "../utils/utils"
 
@@ -36,7 +36,7 @@ export function TestPage() {
   const [nodeidsWithPatches, setNodeidsWithPatches] = useState<string[] | null>(null)
 
   useEffect(() => {
-    fetchData<string[]>("available_patches/").then(data => {
+    fetchAvailablePatches().then(data => {
       setNodeidsWithPatches(data)
     })
   }, [])

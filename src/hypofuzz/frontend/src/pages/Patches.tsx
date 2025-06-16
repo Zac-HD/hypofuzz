@@ -5,13 +5,13 @@ import { Link } from "react-router-dom"
 
 import { Collapsible } from "../components/Collapsible"
 import { TestPatches } from "../components/TestPatches"
-import { fetchData } from "../utils/api"
+import { fetchAvailablePatches } from "../utils/api"
 
 export function PatchesPage() {
   const [nodeids, setNodeids] = useState<string[] | null>(null)
 
   useEffect(() => {
-    fetchData<string[]>("available_patches/").then(data => {
+    fetchAvailablePatches().then(data => {
       setNodeids(data)
     })
   }, [])
