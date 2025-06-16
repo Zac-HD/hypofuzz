@@ -85,7 +85,7 @@ def fuzz(
 
     try:
         _fuzz_impl(
-            numprocesses=numprocesses,
+            n_processes=numprocesses,
             pytest_args=pytest_args,
         )
     except BaseException:
@@ -112,7 +112,7 @@ def _debug_ranges_disabled() -> bool:
     )
 
 
-def _fuzz_impl(numprocesses: int, pytest_args: tuple[str, ...]) -> None:
+def _fuzz_impl(n_processes: int, pytest_args: tuple[str, ...]) -> None:
     if sys.version_info >= (3, 12) and _debug_ranges_disabled():
         raise Exception(
             "The current python interpreter lacks position information for its "
@@ -132,7 +132,7 @@ def _fuzz_impl(numprocesses: int, pytest_args: tuple[str, ...]) -> None:
         )
 
     from hypofuzz.collection import collect_tests
-    from hypofuzz.hypofuzz import _fuzz_several
+    from hypofuzz.hypofuzz import _fuzz
 
     # With our arguments validated, it's time to actually do the work.
     collection = collect_tests(pytest_args)
@@ -148,31 +148,32 @@ def _fuzz_impl(numprocesses: int, pytest_args: tuple[str, ...]) -> None:
         if not collection.not_collected
         else f" (skipped {len(collection.not_collected)} test{skipped_s})"
     )
-    n_s = "es" * (numprocesses != 1)
+    n_s = "es" * (n_processes != 1)
     tests_s = "s" * (len(tests) != 1)
     print(
-        f"using {numprocesses} process{n_s} to fuzz {len(tests)} "
+        f"using {n_processes} process{n_s} to fuzz {len(tests)} "
         f"test{tests_s}{skipped_msg}"
     )
 
-    if numprocesses <= 1:
-        _fuzz_several(pytest_args=pytest_args, nodeids=[t.nodeid for t in tests])
+    if n_processes <= 1:
+        _fuzz(pytest_args=pytest_args, nodeids=[t.nodeid for t in tests])
     else:
         processes: list[Process] = []
-        for i in range(numprocesses):
+        for i in range(n_processes):
             # Round-robin for large test suites; all-on-all for tiny, etc.
             nodeids: set[str] = set()
-            for ix in range(numprocesses):
-                nodeids.update(t.nodeid for t in tests[i + ix :: numprocesses])
+            for ix in range(n_processes):
+                nodeids.update(t.nodeid for t in tests[i + ix :: n_processes])
                 if len(nodeids) >= 10:  # enough to prioritize between
                     break
 
             p = Process(
-                target=_fuzz_several,
+                target=_fuzz,
                 kwargs={"pytest_args": pytest_args, "nodeids": nodeids},
             )
             p.start()
             processes.append(p)
         for p in processes:
             p.join()
+
     print("Found a failing input for every test!", file=sys.stderr)

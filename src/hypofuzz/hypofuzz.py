@@ -104,13 +104,12 @@ class FuzzTarget:
         test_fn: Callable,
         stuff: Stuff,
         *,
-        random_seed: int = 0,
         database: HypofuzzDatabase,
         database_key: bytes,
         wrapped_test: Callable,
         pytest_item: Optional[pytest.Item] = None,
     ) -> None:
-        self.random = Random(random_seed)
+        self.random = Random()
         self._test_fn = test_fn
         self._stuff = stuff
         self.nodeid = getattr(
@@ -149,7 +148,7 @@ class FuzzTarget:
     def run_one(self) -> None:
         """Run a single input through the fuzz target, or maybe more.
 
-        The "more" part is in cases where we discover new coverage, and shrink
+        The "more" part is in cases where we discover a new behavior, and shrink
         to the minimal covering example.
         """
         data = self.new_conjecture_data()
@@ -258,62 +257,72 @@ class FuzzTarget:
         return corpus is not None and bool(corpus.interesting_examples)
 
 
-def fuzz_several(targets: list[FuzzTarget], random_seed: Optional[int] = None) -> None:
-    """Take N fuzz targets and run them all."""
-    random = Random(random_seed)
-    targets: SortedKeyList[FuzzTarget, int] = SortedKeyList(
-        targets, lambda p: p.provider.since_new_branch
-    )
+class FuzzProcess:
+    """
+    Manages switching between several FuzzTargets, and managing their associated
+    higher-level state, like setting up and tearing down pytest fixtures.
+    """
 
-    # Loop forever: at each timestep, we choose a target using an epsilon-greedy
-    # strategy for simplicity (TODO: improve this later) and run it once.
-    # TODO: make this aware of test runtime, so it adapts for behaviors-per-second
-    #       rather than behaviors-per-input.
+    def __init__(self, targets: list[FuzzTarget]) -> None:
+        self.random = Random()
+        self.targets: SortedKeyList[FuzzTarget, int] = SortedKeyList(
+            targets, lambda p: p.provider.since_new_branch
+        )
 
-    dispatch: dict[bytes, list[FuzzTarget]] = defaultdict(list)
-    for target in targets:
-        dispatch[target.database_key].append(target)
+        dispatch: dict[bytes, list[FuzzTarget]] = defaultdict(list)
+        for target in targets:
+            dispatch[target.database_key].append(target)
 
-    def on_event(listener_event: ListenerEventT) -> None:
-        event = DatabaseEvent.from_event(listener_event)
-        if event is None or event.database_key not in dispatch:
-            return
+        def on_event(listener_event: ListenerEventT) -> None:
+            event = DatabaseEvent.from_event(listener_event)
+            if event is None or event.database_key not in dispatch:
+                return
 
-        for target in dispatch[event.database_key]:
-            target.provider.on_event(event)
+            for target in dispatch[event.database_key]:
+                target.provider.on_event(event)
 
-    settings().database.add_listener(on_event)
+        settings().database.add_listener(on_event)
 
-    resort = False
-    for count in itertools.count():
-        if count % 20 == 0:
-            resort = True
-            i = random.randrange(len(targets))
-        else:
-            i = 0
-        target = targets[i]
-        target.run_one()
-        if target.has_found_failure:
-            print(f"found failing example for {target.nodeid}")
-            targets.pop(i)
+    def fuzz(self) -> None:
+        # Loop forever: at each timestep, we choose a target using an epsilon-greedy
+        # strategy for simplicity (TODO: improve this later) and run it once.
+        # TODO: make this aware of test runtime, so it adapts for behaviors-per-second
+        #       rather than behaviors-per-input.
 
-        if targets and (
-            resort
-            or (len(targets) > 1 and targets.key(targets[0]) > targets.key(targets[1]))
-        ):
-            # pay our log-n cost to keep the list sorted
-            targets.add(targets.pop(0))
+        resort = False
+        for count in itertools.count():
+            if count % 20 == 0:
+                resort = True
+                i = self.random.randrange(len(self.targets))
+            else:
+                i = 0
+            target = self.targets[i]
+            target.run_one()
+            if target.has_found_failure:
+                print(f"found failing example for {target.nodeid}")
+                self.targets.pop(i)
 
-        if not targets:
-            return
-    raise NotImplementedError("unreachable")
+            if self.targets and (
+                resort
+                or (
+                    len(self.targets) > 1
+                    and self.targets.key(self.targets[0])
+                    > self.targets.key(self.targets[1])
+                )
+            ):
+                # pay our log-n cost to keep the list sorted
+                self.targets.add(self.targets.pop(0))
+
+            if not self.targets:
+                return
 
 
-def _fuzz_several(pytest_args: tuple[str, ...], nodeids: list[str]) -> None:
+def _fuzz(pytest_args: tuple[str, ...], nodeids: list[str]) -> None:
     """Collect and fuzz tests.
 
     Designed to be used inside a multiprocessing.Process started with the spawn()
     method - requires picklable arguments but works on Windows too.
     """
     tests = [t for t in collect_tests(pytest_args).fuzz_targets if t.nodeid in nodeids]
-    fuzz_several(tests)
+    process = FuzzProcess(tests)
+    process.fuzz()
