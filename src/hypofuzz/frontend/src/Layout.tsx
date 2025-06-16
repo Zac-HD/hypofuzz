@@ -3,10 +3,28 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
 import { useEffect, useRef, useState } from "react"
 import { Link, Outlet, useLocation } from "react-router-dom"
 
+function SidebarLink({
+  to,
+  children,
+  isActive,
+}: {
+  to: string
+  children: React.ReactNode
+  isActive: (pathname: string) => boolean
+}) {
+  const location = useLocation()
+  return (
+    <Link
+      to={to}
+      className={`sidebar__link ${isActive(location.pathname) ? "sidebar__link--active" : ""}`}
+    >
+      {children}
+    </Link>
+  )
+}
+
 export function Layout() {
   const location = useLocation()
-  const isTestsActive =
-    location.pathname === "/" || location.pathname.startsWith("/tests/")
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const sidebarRef = useRef<HTMLDivElement>(null)
 
@@ -44,24 +62,21 @@ export function Layout() {
           HypoFuzz
         </Link>
         <nav className="sidebar__nav">
-          <Link
+          <SidebarLink
             to="/"
-            className={`sidebar__link ${isTestsActive ? "sidebar__link--active" : ""}`}
+            isActive={pathname => pathname === "/" || pathname.startsWith("/tests/")}
           >
             Tests
-          </Link>
-          <Link
-            to="/patches"
-            className={`sidebar__link ${location.pathname === "/patches" ? "sidebar__link--active" : ""}`}
-          >
+          </SidebarLink>
+          <SidebarLink to="/patches" isActive={pathname => pathname === "/patches"}>
             Patches
-          </Link>
-          <Link
-            to="/collected"
-            className={`sidebar__link ${location.pathname === "/collected" ? "sidebar__link--active" : ""}`}
-          >
+          </SidebarLink>
+          <SidebarLink to="/collected" isActive={pathname => pathname === "/collected"}>
             Collection
-          </Link>
+          </SidebarLink>
+          <SidebarLink to="/workers" isActive={pathname => pathname === "/workers"}>
+            Workers
+          </SidebarLink>
           <div className="sidebar__separator"></div>
           <a
             href={`${import.meta.env.BASE_URL.replace(/\/$/, "")}/docs/`}
