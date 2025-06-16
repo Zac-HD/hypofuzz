@@ -419,13 +419,17 @@ class HypofuzzProvider(PrimitiveProvider):
             failure_observation = self._state.extra_queue_data
             assert failure_observation is not None
             assert isinstance(failure_observation, Observation)
-            for shrunk in [True, False]:
-                self.db.delete_failure(
-                    self.database_key,
-                    self._state.choices,
-                    failure_observation,
-                    shrunk=shrunk,
-                )
+            # failures are hard to find, and shrunk ones even more so. If a failure
+            # does not reproduce, only delete it if it's been more than 8 days,
+            # so we don't accidentally delete a useful failure.
+            if time.time() > failure_observation.run_start + 8 * 24 * 60 * 60:
+                for shrunk in [True, False]:
+                    self.db.delete_failure(
+                        self.database_key,
+                        self._state.choices,
+                        failure_observation,
+                        shrunk=shrunk,
+                    )
 
         # TODO this is a real type error, we need to unify the Branch namedtuple
         # with the real usages of `behaviors` here
