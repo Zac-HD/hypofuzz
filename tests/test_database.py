@@ -1,4 +1,5 @@
 import subprocess
+import time
 
 from common import BASIC_TEST_CODE, fuzz, setup_test_code, wait_for, wait_for_test_key
 from hypothesis import given, strategies as st
@@ -169,9 +170,11 @@ def test_all_corpus_choices_have_observations(tmp_path):
         wait_for(
             # 3 is arbitrary here
             lambda: len(list(db.fetch_corpus(key))) > 3,
-            timeout=15,
+            timeout=10,
             interval=0.05,
         )
+        # give some time to clean up before shutting down?
+        time.sleep(0.1)
 
     for choices in db.fetch_corpus(key):
         observations = list(db.fetch_corpus_observations(key, choices))
