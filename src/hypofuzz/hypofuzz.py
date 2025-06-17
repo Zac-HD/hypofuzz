@@ -1,11 +1,14 @@
 """Adaptive fuzzing for property-based tests using Hypothesis."""
 
 import contextlib
+import inspect
 import math
 from collections import defaultdict
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from contextlib import nullcontext
+from dataclasses import dataclass
 from functools import partial
+from pathlib import Path
 from random import Random
 from typing import Any, Literal, Optional, Union
 
@@ -53,6 +56,12 @@ from hypofuzz.provider import HypofuzzProvider
 
 # 1 hour
 SHRINK_TIMEOUT = 60 * 60
+
+
+@dataclass(frozen=True)
+class NodeLocation:
+    nodeid: str
+    file: Path
 
 
 class HitShrinkTimeoutError(Exception):
@@ -115,8 +124,10 @@ class FuzzTarget:
             pytest_item, "nodeid", None
         ) or get_pretty_function_description(test_fn)
         self.database_key = database_key
-        self.database_key_str = convert_db_key(self.database_key, to="str")
         self.database = database
+        self.wrapped_test = wrapped_test
+        self.pytest_item = pytest_item
+
         self.state = HypofuzzStateForActualGivenExecution(  # type: ignore
             stuff,
             self._test_fn,
@@ -129,9 +140,10 @@ class FuzzTarget:
             self.random,
             wrapped_test,
         )
-        self.wrapped_test = wrapped_test
-        self.pytest_item = pytest_item
-
+        self.node_location = NodeLocation(
+            nodeid=self.nodeid, file=Path(inspect.getfile(self._test_fn))
+        )
+        self.database_key_str = convert_db_key(self.database_key, to="str")
         self.provider = HypofuzzProvider(None)
         self.stop_shrinking_at = math.inf
 
@@ -262,42 +274,55 @@ class FuzzProcess:
     higher-level state, like setting up and tearing down pytest fixtures.
     """
 
-    def __init__(self, targets: list[FuzzTarget]) -> None:
+    def __init__(
+        self, nodes: Sequence[NodeLocation], pytest_args: Sequence[str]
+    ) -> None:
         self.random = Random()
-        self.targets = targets
+        self.nodes = nodes
+        self.pytest_args = pytest_args
 
-        dispatch: dict[bytes, list[FuzzTarget]] = defaultdict(list)
-        for target in targets:
-            dispatch[target.database_key].append(target)
+        self.targets: list[FuzzTarget] = []
+        self.event_dispatch: dict[bytes, list[FuzzTarget]] = defaultdict(list)
 
-        def on_event(listener_event: ListenerEventT) -> None:
-            event = DatabaseEvent.from_event(listener_event)
-            if event is None or event.database_key not in dispatch:
-                return
+    def on_event(self, listener_event: ListenerEventT) -> None:
+        event = DatabaseEvent.from_event(listener_event)
+        if event is None or event.database_key not in self.event_dispatch:
+            return
 
-            for target in dispatch[event.database_key]:
-                target.provider.on_event(event)
+        for target in self.event_dispatch[event.database_key]:
+            target.provider.on_event(event)
 
-        settings().database.add_listener(on_event)
+    def _maybe_startup_targets(self) -> None:
+        # TODO for now we unconditionally startup all unstarted targets. We should
+        # make this smarter in the future, so we actually defer pytest collection
+        # and corpus replay costs.
+        for node in self.nodes:
+            if node in {t.node_location for t in self.targets}:
+                continue
+            collected = collect_tests(self.pytest_args, in_file=node.file).fuzz_targets
+            targets = [t for t in collected if t.nodeid == node.nodeid]
+            assert len(targets) == 1
+            target = targets[0]
 
-    def fuzz(self) -> None:
-        # Loop forever: at each timestep, we choose a target using an epsilon-greedy
-        # strategy for simplicity (TODO: improve this later) and run it once.
-        # TODO: make this aware of test runtime, so it adapts for behaviors-per-second
-        #       rather than behaviors-per-input.
+            self.event_dispatch[target.database_key].append(target)
+            self.targets.append(target)
 
+    @property
+    def valid_targets(self) -> list[FuzzTarget]:
+        # the targets we actually want to run/fuzz
+        return [t for t in self.targets if not t.has_found_failure]
+
+    def start(self) -> None:
+        settings().database.add_listener(self.on_event)
         while True:
-            for target in self.targets:
-                if target.has_found_failure:
-                    print(f"found failing example for {target.nodeid}")
-                    self.targets.remove(target)
+            self._maybe_startup_targets()
 
-            if not self.targets:
+            if not self.valid_targets:
                 break
 
             # choose the next target to fuzz with probability equal to the softmax
-            # of its estimator.
-            estimators = [behaviors_per_second(target) for target in self.targets]
+            # of its estimator. aka boltzmann exploration
+            estimators = [behaviors_per_second(target) for target in self.valid_targets]
             estimators = softmax(estimators)
             # softmax might return 0.0 probability for some targets if there is
             # a substantial gap in estimator values (e.g. behaviors_per_second=1_000
@@ -307,23 +332,27 @@ class FuzzProcess:
             # Mix in a uniform probability of 1%, so we will eventually get out of
             # such a hole.
             if self.random.random() < 0.01:
-                target = self.random.choice(self.targets)
+                target = self.random.choice(self.valid_targets)
             else:
-                target = self.random.choices(self.targets, weights=estimators, k=1)[0]
+                target = self.random.choices(
+                    self.valid_targets, weights=estimators, k=1
+                )[0]
 
-            # TODO we should scale this up we our estimator expects that it will
+            # TODO we should scale this n up if our estimator expects that it will
             # take a long time to discover a new behavior, to reduce the overhead
             # of switching.
             for _ in range(100):
+                print("runone")
                 target.run_one()
+                if target.has_found_failure:
+                    break
 
 
-def _fuzz(pytest_args: tuple[str, ...], nodeids: list[str]) -> None:
+def _fuzz(nodes: Sequence[NodeLocation], pytest_args: Sequence[str]) -> None:
     """Collect and fuzz tests.
 
     Designed to be used inside a multiprocessing.Process started with the spawn()
     method - requires picklable arguments but works on Windows too.
     """
-    tests = [t for t in collect_tests(pytest_args).fuzz_targets if t.nodeid in nodeids]
-    process = FuzzProcess(tests)
-    process.fuzz()
+    process = FuzzProcess(nodes, pytest_args=pytest_args)
+    process.start()

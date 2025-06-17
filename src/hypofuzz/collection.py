@@ -7,7 +7,8 @@ from collections.abc import Iterable
 from contextlib import redirect_stdout
 from dataclasses import dataclass
 from inspect import signature
-from typing import TYPE_CHECKING, Any, Optional, get_type_hints
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, Optional, Union, get_type_hints
 
 import pytest
 from _pytest.nodes import Item, Node
@@ -210,7 +211,12 @@ class _ItemsCollector:
                 self.fuzz_targets.append(fuzz)
 
 
-def collect_tests(args: Iterable[str], *, debug: bool = False) -> CollectionResult:
+def collect_tests(
+    args: Iterable[str],
+    *,
+    in_file: Optional[Union[str, Path]] = None,
+    debug: bool = False,
+) -> CollectionResult:
     """Find the hypothesis-only test functions run by pytest.
 
     This basically uses `pytest --collect-only -m hypothesis $args`.
@@ -218,6 +224,13 @@ def collect_tests(args: Iterable[str], *, debug: bool = False) -> CollectionResu
     args = list(args)
     if debug:
         args.append("-s")
+    if in_file is not None:
+        # TODO pytest unions all specified files together to determine what to
+        # collect. If the user specified files on the command line, then we'll
+        # still have to pay the collection cost of those, even when in_file is
+        # passed. Removing arguments specified by user is dangerous unless done
+        # carefully though, since it might change semantics...
+        args.insert(0, str(in_file))
     collector = _ItemsCollector()
     out = io.StringIO()
     with redirect_stdout(out):

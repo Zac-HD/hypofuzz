@@ -10,6 +10,8 @@ import hypothesis.extra.cli
 import psutil
 from hypothesis.internal.conjecture.providers import AVAILABLE_PROVIDERS
 
+from hypofuzz.hypofuzz import NodeLocation
+
 AVAILABLE_PROVIDERS["hypofuzz"] = "hypofuzz.provider.HypofuzzProvider"
 
 
@@ -156,20 +158,20 @@ def _fuzz_impl(n_processes: int, pytest_args: tuple[str, ...]) -> None:
     )
 
     if n_processes <= 1:
-        _fuzz(pytest_args=pytest_args, nodeids=[t.nodeid for t in tests])
+        _fuzz(pytest_args=pytest_args, nodes=[t.node_location for t in tests])
     else:
         processes: list[Process] = []
         for i in range(n_processes):
             # Round-robin for large test suites; all-on-all for tiny, etc.
-            nodeids: set[str] = set()
+            nodes: set[NodeLocation] = set()
             for ix in range(n_processes):
-                nodeids.update(t.nodeid for t in tests[i + ix :: n_processes])
-                if len(nodeids) >= 10:  # enough to prioritize between
+                nodes.update(t.node_location for t in tests[i + ix :: n_processes])
+                if len(nodes) >= 10:  # enough to prioritize between
                     break
 
             p = Process(
                 target=_fuzz,
-                kwargs={"pytest_args": pytest_args, "nodeids": nodeids},
+                kwargs={"pytest_args": pytest_args, "nodes": nodes},
             )
             p.start()
             processes.append(p)
