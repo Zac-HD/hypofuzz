@@ -108,7 +108,7 @@ export function TestTable({ tests, onFilterChange }: Props) {
     {
       content: iconSinceNewBranch,
       align: "right",
-      sortKey: (test: Test) => test.since_new_branch ?? 0,
+      sortKey: (test: Test) => test.since_new_behavior ?? 0,
     },
     {
       content: iconTimeSpent,
