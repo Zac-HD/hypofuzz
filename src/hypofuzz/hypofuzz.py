@@ -266,38 +266,33 @@ class FuzzProcess:
         self.random = Random()
         self.targets = targets
 
-        dispatch: dict[bytes, list[FuzzTarget]] = defaultdict(list)
+        self.event_dispatch: dict[bytes, list[FuzzTarget]] = defaultdict(list)
         for target in targets:
-            dispatch[target.database_key].append(target)
+            self.event_dispatch[target.database_key].append(target)
 
-        def on_event(listener_event: ListenerEventT) -> None:
-            event = DatabaseEvent.from_event(listener_event)
-            if event is None or event.database_key not in dispatch:
-                return
+    def on_event(self, listener_event: ListenerEventT) -> None:
+        event = DatabaseEvent.from_event(listener_event)
+        if event is None or event.database_key not in self.event_dispatch:
+            return
 
-            for target in dispatch[event.database_key]:
-                target.provider.on_event(event)
+        for target in self.event_dispatch[event.database_key]:
+            target.provider.on_event(event)
 
-        settings().database.add_listener(on_event)
+    @property
+    def valid_targets(self) -> list[FuzzTarget]:
+        # the targets we actually want to run/fuzz
+        return [t for t in self.targets if not t.has_found_failure]
 
-    def fuzz(self) -> None:
-        # Loop forever: at each timestep, we choose a target using an epsilon-greedy
-        # strategy for simplicity (TODO: improve this later) and run it once.
-        # TODO: make this aware of test runtime, so it adapts for behaviors-per-second
-        #       rather than behaviors-per-input.
+    def start(self) -> None:
+        settings().database.add_listener(self.on_event)
 
         while True:
-            for target in self.targets:
-                if target.has_found_failure:
-                    print(f"found failing example for {target.nodeid}")
-                    self.targets.remove(target)
-
-            if not self.targets:
+            if not self.valid_targets:
                 break
 
             # choose the next target to fuzz with probability equal to the softmax
-            # of its estimator.
-            estimators = [behaviors_per_second(target) for target in self.targets]
+            # of its estimator. aka boltzmann exploration
+            estimators = [behaviors_per_second(target) for target in self.valid_targets]
             estimators = softmax(estimators)
             # softmax might return 0.0 probability for some targets if there is
             # a substantial gap in estimator values (e.g. behaviors_per_second=1_000
@@ -307,11 +302,13 @@ class FuzzProcess:
             # Mix in a uniform probability of 1%, so we will eventually get out of
             # such a hole.
             if self.random.random() < 0.01:
-                target = self.random.choice(self.targets)
+                target = self.random.choice(self.valid_targets)
             else:
-                target = self.random.choices(self.targets, weights=estimators, k=1)[0]
+                target = self.random.choices(
+                    self.valid_targets, weights=estimators, k=1
+                )[0]
 
-            # TODO we should scale this up we our estimator expects that it will
+            # TODO we should scale this n up if our estimator expects that it will
             # take a long time to discover a new behavior, to reduce the overhead
             # of switching.
             for _ in range(100):
@@ -326,4 +323,4 @@ def _fuzz(pytest_args: tuple[str, ...], nodeids: list[str]) -> None:
     """
     tests = [t for t in collect_tests(pytest_args).fuzz_targets if t.nodeid in nodeids]
     process = FuzzProcess(tests)
-    process.fuzz()
+    process.start()
