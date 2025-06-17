@@ -1,6 +1,6 @@
 import subprocess
 
-from common import BASIC_TEST_CODE, fuzz, setup_test_code, wait_for
+from common import BASIC_TEST_CODE, fuzz, setup_test_code, wait_for, wait_for_test_key
 from hypothesis import given, strategies as st
 from hypothesis.database import (
     DirectoryBasedExampleDatabase,
@@ -158,3 +158,28 @@ def test_database_keys_incorporate_parametrization(tmp_path):
     assert hypofuzz_keys == set(
         db_hypothesis.fetch(DirectoryBasedExampleDatabase._metakeys_name)
     )
+
+
+def test_all_corpus_choices_have_observations(tmp_path):
+    test_dir, db_dir = setup_test_code(tmp_path, BASIC_TEST_CODE)
+    db = HypofuzzDatabase(DirectoryBasedExampleDatabase(db_dir))
+
+    with fuzz(test_path=test_dir):
+        key = wait_for_test_key(db)
+        wait_for(
+            # 3 is arbitrary here
+            lambda: len(list(db.fetch_corpus(key))) > 3,
+            timeout=10,
+            interval=0.05,
+        )
+
+        # avoid any shutdown race conditions by putting a wait_for inside the
+        # `fuzz` context manager.
+        def all_corpus_choices_have_observations():
+            for choices in db.fetch_corpus(key):
+                observations = list(db.fetch_corpus_observations(key, choices))
+                if len(observations) != 1:
+                    return False
+            return True
+
+        wait_for(all_corpus_choices_have_observations, timeout=10, interval=0.05)
