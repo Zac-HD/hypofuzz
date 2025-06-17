@@ -301,7 +301,7 @@ class FuzzProcess:
                 continue
             collected = collect_tests(self.pytest_args, in_file=node.file).fuzz_targets
             targets = [t for t in collected if t.nodeid == node.nodeid]
-            assert len(targets) == 1
+            assert len(targets) == 1, (node.nodeid, targets, collected)
             target = targets[0]
 
             self.event_dispatch[target.database_key].append(target)
@@ -342,7 +342,6 @@ class FuzzProcess:
             # take a long time to discover a new behavior, to reduce the overhead
             # of switching.
             for _ in range(100):
-                print("runone")
                 target.run_one()
                 if target.has_found_failure:
                     break

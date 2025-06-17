@@ -71,7 +71,14 @@ class _ItemsCollector:
             db = BackgroundWriteDatabase(db)
         hypofuzz_db = HypofuzzDatabase(db)
 
+        seen_nodeids = set()
         for item in session.items:
+            # weird uses of pytest can get you into this state, like duplicating
+            # filepaths like `pytest test_a.py test_a.py` (but only on pytest 7?)
+            if item.nodeid in seen_nodeids:
+                continue
+            seen_nodeids.add(item.nodeid)
+
             if not isinstance(item, pytest.Function):
                 self._skip_because("not_a_function", item.nodeid)
                 continue
