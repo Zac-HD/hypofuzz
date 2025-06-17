@@ -9,7 +9,7 @@ export interface TestStats {
   timeSpent: string
 }
 
-function formatTime(t: number): string {
+export function formatTime(t: number): string {
   const hours = Math.floor(t / 3600)
   const minutes = Math.floor((t % 3600) / 60)
   const seconds = Math.floor(t % 60)
@@ -47,7 +47,7 @@ export function getTestStats(test: Test): TestStats {
     behaviors: test.behaviors.toLocaleString(),
     fingerprints: test.fingerprints.toLocaleString(),
     executions: perSecond === null ? "—" : `${perSecond.toFixed(1).toLocaleString()}/s`,
-    inputsSinceBranch: test.since_new_branch?.toLocaleString() ?? "—",
+    inputsSinceBranch: test.since_new_behavior?.toLocaleString() ?? "—",
     timeSpent: formatTime(test.elapsed_time(null)),
   }
 }

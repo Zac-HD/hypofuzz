@@ -139,7 +139,8 @@ class HypofuzzProvider(PrimitiveProvider):
 
         self.random = Random()
         self.elapsed_time = 0.0
-        self.since_new_branch = 0
+        self.since_new_behavior = 0
+        self.since_new_fingerprint = 0
         self.phase: Optional[Phase] = None
         self.status_counts = StatusCounts()
 
@@ -299,10 +300,10 @@ class HypofuzzProvider(PrimitiveProvider):
             status_counts=StatusCounts(self.status_counts),
             behaviors=len(self.corpus.behavior_counts),
             fingerprints=len(self.corpus.fingerprints),
-            since_new_branch=(
+            since_new_behavior=(
                 None
                 if (self.ninputs == 0 or self.corpus.interesting_examples)
-                else self.since_new_branch
+                else self.since_new_behavior
             ),
             phase=self.phase,
         )
@@ -450,7 +451,8 @@ class HypofuzzProvider(PrimitiveProvider):
             }
         )
 
-        branches_before = len(self.corpus.behavior_counts)
+        behaviors_before = len(self.corpus.behavior_counts)
+        fingerprints_before = len(self.corpus.fingerprints)
         self.corpus.add(
             observation,
             behaviors=behaviors,
@@ -460,12 +462,18 @@ class HypofuzzProvider(PrimitiveProvider):
             save_observation=self.phase is not Phase.REPLAY,
         )
 
-        if branches_before != len(self.corpus.behavior_counts):
-            self.since_new_branch = 0
-        else:
-            self.since_new_branch += 1
+        self.since_new_behavior = (
+            0
+            if behaviors_before != len(self.corpus.behavior_counts)
+            else self.since_new_behavior + 1
+        )
+        self.since_new_fingerprint = (
+            0
+            if fingerprints_before != len(self.corpus.fingerprints)
+            else self.since_new_fingerprint + 1
+        )
 
-        if self.since_new_branch == 0:
+        if self.since_new_behavior == 0 or self.since_new_fingerprint == 0:
             self._save_report(self._report)
         elif _should_save_timed_report(self.elapsed_time, self._last_saved_report_at):
             report = self._report
