@@ -1,5 +1,4 @@
 import subprocess
-import time
 
 from common import BASIC_TEST_CODE, fuzz, setup_test_code, wait_for, wait_for_test_key
 from hypothesis import given, strategies as st
@@ -173,9 +172,14 @@ def test_all_corpus_choices_have_observations(tmp_path):
             timeout=10,
             interval=0.05,
         )
-        # give some time to clean up before shutting down?
-        time.sleep(0.1)
 
-    for choices in db.fetch_corpus(key):
-        observations = list(db.fetch_corpus_observations(key, choices))
-        assert len(observations) == 1
+        # avoid any shutdown race conditions by putting a wait_for inside the
+        # `fuzz` context manager.
+        def all_corpus_choices_have_observations():
+            for choices in db.fetch_corpus(key):
+                observations = list(db.fetch_corpus_observations(key, choices))
+                if len(observations) != 1:
+                    return False
+            return True
+
+        wait_for(all_corpus_choices_have_observations, timeout=10, interval=0.05)
