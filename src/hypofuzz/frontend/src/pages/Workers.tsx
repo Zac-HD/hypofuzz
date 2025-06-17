@@ -1,5 +1,5 @@
 import { OrderedSet } from "immutable"
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 
 import { RangeSlider } from "../components/RangeSlider"
@@ -144,33 +144,39 @@ export function WorkersPage() {
   const [visibleMin, visibleMax] = visibleRange
   const visibleDuration = visibleMax - visibleMin
 
-  const segmentStyle = (segment: Segment) => {
-    let left: number
-    let width: number
-    if (visibleDuration === 0) {
-      left = 0
-      width = 100
-    } else {
-      left = ((segment.start - visibleMin) / visibleDuration) * 100
-      width = ((segment.end - segment.start) / visibleDuration) * 100
-    }
+  const segmentStyle = useCallback(
+    (segment: Segment) => {
+      let left: number
+      let width: number
+      if (visibleDuration === 0) {
+        left = 0
+        width = 100
+      } else {
+        left = ((segment.start - visibleMin) / visibleDuration) * 100
+        width = ((segment.end - segment.start) / visibleDuration) * 100
+      }
 
-    return {
-      left: `${left}%`,
-      width: `${width}%`,
-      backgroundColor: nodeColor(segment.nodeid),
-    }
-  }
+      return {
+        left: `${left}%`,
+        width: `${width}%`,
+        backgroundColor: nodeColor(segment.nodeid),
+      }
+    },
+    [visibleDuration, visibleMin, visibleMax],
+  )
 
-  const visibleSegments = new Map<string, Segment[]>()
-  for (const [uuid, segments] of workerSegments.entries()) {
-    visibleSegments.set(
-      uuid,
-      segments.filter(
-        segment => segment.end >= visibleMin && segment.start <= visibleMax,
-      ),
-    )
-  }
+  const visibleSegments = useMemo(() => {
+    const segments = new Map<string, Segment[]>()
+    for (const [uuid, segmentList] of workerSegments.entries()) {
+      segments.set(
+        uuid,
+        segmentList.filter(
+          segment => segment.end >= visibleMin && segment.start <= visibleMax,
+        ),
+      )
+    }
+    return segments
+  }, [workerSegments, visibleMin, visibleMax])
 
   function onWorkerClick(uuid: string) {
     setExpandedWorkers(prev => {
@@ -204,14 +210,14 @@ export function WorkersPage() {
               className="workers__timeline__segment"
               style={segmentStyle(segment)}
               onClick={event => {
-                // prevent the worker click handler from firing (which would distractingly
-                // expand the worker details for this worker during navigation)
-                event.stopPropagation()
                 navigateOnClick(
                   event,
                   `/tests/${encodeURIComponent(segment.nodeid)}`,
                   navigate,
                 )
+                // prevent the worker click handler from firing (which would distractingly
+                // expand the worker details for this worker during navigation)
+                event.stopPropagation()
               }}
               onMouseEnter={event =>
                 showTooltip(
