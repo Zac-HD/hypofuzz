@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 
 def behaviors_per_input(target: "FuzzTarget") -> float:
     # an estimator for the number of behaviors the next input will discover.
-    since = target.provider.since_new_branch
+    since = target.provider.since_new_behavior
     return (1 / since) if since > 0 else 1
 
 
