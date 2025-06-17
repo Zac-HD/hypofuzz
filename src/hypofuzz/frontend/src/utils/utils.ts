@@ -122,7 +122,20 @@ export function navigateOnClick(
 ): void {
   // support cmd for onclick
   if (event.metaKey || event.ctrlKey) {
-    window.open(url, "_blank")
+    // ideally react router would have a utility to resolve a path to the
+    // url that the router would navgiate to for that path. useHref does the
+    // trick, but that's a hook, which restricts where it can be used.
+    //
+    // It's not worth spending more time trying to figure this out when hardcoding
+    // works well.
+    const usingHashRouter = import.meta.env.VITE_ROUTER_TYPE === "hash"
+    const location = window.location
+    const resolvedUrl = usingHashRouter
+      ? `${location.origin}${location.pathname}#${url}`
+      : `${location.origin}${url}`
+
+    console.log(location.origin, location.pathname, url, resolvedUrl)
+    window.open(resolvedUrl, "_blank")
   } else {
     navigate(url)
   }
