@@ -10,7 +10,7 @@ import hypothesis.extra.cli
 import psutil
 from hypothesis.internal.conjecture.providers import AVAILABLE_PROVIDERS
 
-from hypofuzz.bayes import distribute_nodes
+from hypofuzz.hypofuzz import FuzzWorkerHub
 
 AVAILABLE_PROVIDERS["hypofuzz"] = "hypofuzz.provider.HypofuzzProvider"
 
@@ -134,7 +134,7 @@ def _fuzz_impl(n_processes: int, pytest_args: tuple[str, ...]) -> None:
         )
 
     from hypofuzz.collection import collect_tests
-    from hypofuzz.hypofuzz import _fuzz
+    from hypofuzz.hypofuzz import _start_worker
 
     # With our arguments validated, it's time to actually do the work.
     collection = collect_tests(pytest_args)
@@ -158,23 +158,15 @@ def _fuzz_impl(n_processes: int, pytest_args: tuple[str, ...]) -> None:
     )
 
     nodeids = [t.nodeid for t in tests]
-    # TODO actually save/load estimator state
-    estimators = [1.0 for _ in tests]
     if n_processes <= 1:
-        _fuzz(pytest_args=pytest_args, nodeids=nodeids)
+        # if we only have one process, skip the FuzzWorkerHub abstraction (which
+        # would cost a process) and just start a FuzzWorker with constant node_ids
+        shared_state = {"hub_state": {"nodeids": nodeids}, "worker_state": {}}
+        _start_worker(pytest_args=pytest_args, shared_state=shared_state)
     else:
-        partitions = distribute_nodes(nodeids, estimators, n=n_processes)
-        processes = [
-            Process(
-                target=_fuzz,
-                kwargs={"pytest_args": pytest_args, "nodeids": nodeids},
-            )
-            for nodeids in partitions
-        ]
-        for p in processes:
-            p.start()
-
-        for p in processes:
-            p.join()
+        hub = FuzzWorkerHub(
+            nodeids=nodeids, pytest_args=pytest_args, n_processes=n_processes
+        )
+        hub.start()
 
     print("Found a failing input for every test!", file=sys.stderr)
