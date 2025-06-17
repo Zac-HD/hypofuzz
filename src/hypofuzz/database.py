@@ -293,7 +293,7 @@ class Report:
     status_counts: StatusCounts
     behaviors: int
     fingerprints: int
-    since_new_branch: Optional[int]
+    since_new_behavior: Optional[int]
     phase: Phase
 
     def __post_init__(self) -> None:
@@ -301,8 +301,8 @@ class Report:
         assert self.behaviors >= 0, f"{self.behaviors=}"
         assert self.fingerprints >= 0, f"{self.fingerprints=}"
         assert self.phase in Phase, f"{self.phase=}"
-        if self.since_new_branch is not None:
-            assert self.since_new_branch >= 0, f"{self.since_new_branch=}"
+        if self.since_new_behavior is not None:
+            assert self.since_new_behavior >= 0, f"{self.since_new_behavior=}"
 
     @staticmethod
     def from_json(encoded: bytes, /) -> Optional["Report"]:
@@ -312,6 +312,9 @@ class Report:
                 {Status(int(k)): v for k, v in data["status_counts"].items()}
             )
             data["phase"] = Phase(data["phase"])
+            # migration for old dbs
+            if "since_new_branch" in data:
+                data["since_new_behavior"] = data.pop("since_new_branch")
             return Report(**data)
         except Exception:
             return None
@@ -373,7 +376,7 @@ class ReportWithDiff(Report):
             status_counts=report.status_counts,
             behaviors=report.behaviors,
             fingerprints=report.fingerprints,
-            since_new_branch=report.since_new_branch,
+            since_new_behavior=report.since_new_behavior,
             phase=report.phase,
             status_counts_diff=status_counts_diff,
             elapsed_time_diff=elapsed_time_diff,

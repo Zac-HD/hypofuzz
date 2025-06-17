@@ -1,7 +1,6 @@
 """Adaptive fuzzing for property-based tests using Hypothesis."""
 
 import contextlib
-import itertools
 import math
 from collections import defaultdict
 from collections.abc import Callable
@@ -36,8 +35,8 @@ from hypothesis.internal.reflection import (
     get_pretty_function_description,
     get_signature,
 )
-from sortedcontainers import SortedKeyList
 
+from hypofuzz.bayes import behaviors_per_second, softmax
 from hypofuzz.collection import collect_tests
 from hypofuzz.corpus import (
     get_shrinker,
@@ -265,9 +264,7 @@ class FuzzProcess:
 
     def __init__(self, targets: list[FuzzTarget]) -> None:
         self.random = Random()
-        self.targets: SortedKeyList[FuzzTarget, int] = SortedKeyList(
-            targets, lambda p: p.provider.since_new_branch
-        )
+        self.targets = targets
 
         dispatch: dict[bytes, list[FuzzTarget]] = defaultdict(list)
         for target in targets:
@@ -289,32 +286,36 @@ class FuzzProcess:
         # TODO: make this aware of test runtime, so it adapts for behaviors-per-second
         #       rather than behaviors-per-input.
 
-        resort = False
-        for count in itertools.count():
-            if count % 20 == 0:
-                resort = True
-                i = self.random.randrange(len(self.targets))
-            else:
-                i = 0
-            target = self.targets[i]
-            target.run_one()
-            if target.has_found_failure:
-                print(f"found failing example for {target.nodeid}")
-                self.targets.pop(i)
-
-            if self.targets and (
-                resort
-                or (
-                    len(self.targets) > 1
-                    and self.targets.key(self.targets[0])
-                    > self.targets.key(self.targets[1])
-                )
-            ):
-                # pay our log-n cost to keep the list sorted
-                self.targets.add(self.targets.pop(0))
+        while True:
+            for target in self.targets:
+                if target.has_found_failure:
+                    print(f"found failing example for {target.nodeid}")
+                    self.targets.remove(target)
 
             if not self.targets:
-                return
+                break
+
+            # choose the next target to fuzz with probability equal to the softmax
+            # of its estimator.
+            estimators = [behaviors_per_second(target) for target in self.targets]
+            estimators = softmax(estimators)
+            # softmax might return 0.0 probability for some targets if there is
+            # a substantial gap in estimator values (e.g. behaviors_per_second=1_000
+            # vs behaviors_per_second=1.0). We don't expect this to happen normally,
+            # but it might when our estimator state is just getting started.
+            #
+            # Mix in a uniform probability of 1%, so we will eventually get out of
+            # such a hole.
+            if self.random.random() < 0.01:
+                target = self.random.choice(self.targets)
+            else:
+                target = self.random.choices(self.targets, weights=estimators, k=1)[0]
+
+            # TODO we should scale this up we our estimator expects that it will
+            # take a long time to discover a new behavior, to reduce the overhead
+            # of switching.
+            for _ in range(100):
+                target.run_one()
 
 
 def _fuzz(pytest_args: tuple[str, ...], nodeids: list[str]) -> None:

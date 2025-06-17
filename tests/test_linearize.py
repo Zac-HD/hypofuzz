@@ -47,7 +47,7 @@ def report_inline(
     status_counts=None,
     behaviors=0,
     fingerprints=0,
-    since_new_branch=0,
+    since_new_behavior=0,
     phase=Phase.GENERATE,
 ):
     return Report(
@@ -59,7 +59,7 @@ def report_inline(
         status_counts=StatusCounts() if status_counts is None else status_counts,
         behaviors=behaviors,
         fingerprints=fingerprints,
-        since_new_branch=since_new_branch,
+        since_new_behavior=since_new_behavior,
         phase=phase,
     )
 
@@ -125,7 +125,7 @@ def reports(
                     status_counts=st.just(status_counts),
                     behaviors=st.integers(min_value=0),
                     fingerprints=st.integers(min_value=0),
-                    since_new_branch=st.integers(min_value=0),
+                    since_new_behavior=st.integers(min_value=0),
                     phase=...,
                 )
             )
