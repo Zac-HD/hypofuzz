@@ -55,7 +55,7 @@ class DashboardReport(TypedDict):
     behaviors: int
     fingerprints: int
     timestamp: float
-    since_new_branch: Optional[int]
+    since_new_behavior: Optional[int]
     phase: Phase
 
 
@@ -66,7 +66,7 @@ def dashboard_report(report: Report) -> DashboardReport:
         "behaviors": report.behaviors,
         "fingerprints": report.fingerprints,
         "timestamp": report.timestamp,
-        "since_new_branch": report.since_new_branch,
+        "since_new_behavior": report.since_new_behavior,
         "phase": report.phase,
     }
 
