@@ -96,7 +96,7 @@ export class Report extends Dataclass<Report> {
     public status_counts: StatusCounts,
     public behaviors: number,
     public fingerprints: number,
-    public since_new_branch: number | null,
+    public since_new_behavior: number | null,
     public phase: Phase,
     public worker_uuid: string,
   ) {
@@ -117,7 +117,7 @@ export class Report extends Dataclass<Report> {
       StatusCounts.fromJson(data.status_counts),
       data.behaviors,
       data.fingerprints,
-      data.since_new_branch,
+      data.since_new_behavior,
       data.phase,
       worker_uuid,
     )
@@ -385,13 +385,13 @@ export class Test extends Dataclass<Test> {
     return this.linear_reports[this.linear_reports.length - 1].fingerprints
   }
 
-  get since_new_branch() {
+  get since_new_behavior() {
     // TODO take linearization into account properly here. I think we want "linearized
     // inputs since branch count last increased". Iterate backwards over linear_status_counts?
     if (this.linear_reports.length === 0) {
       return null
     }
-    return this.linear_reports[this.linear_reports.length - 1].since_new_branch
+    return this.linear_reports[this.linear_reports.length - 1].since_new_behavior
   }
 
   elapsed_time(since: number | null): number {
