@@ -103,7 +103,7 @@ def test_adds_failures_to_database():
         assert x != 10
 
     process = FuzzTarget.from_hypothesis_test(test_a, database=db)
-    for _ in range(50):
+    for _ in range(500):
         process.run_one()
 
     failures = list(db.fetch_failures(process.database_key, shrunk=True))

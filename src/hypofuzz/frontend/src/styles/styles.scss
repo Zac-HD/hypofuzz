@@ -423,6 +423,14 @@ $mobile-breakpoint: 768px;
         font-weight: 550;
     }
 
+    &__text {
+        margin-top: 1rem;
+
+        &__paragraph {
+            margin-bottom: 0.5rem;
+        }
+    }
+
     @media (max-width: $mobile-breakpoint) {
         padding: 15px 15px;
 
@@ -604,7 +612,7 @@ $mobile-breakpoint: 768px;
     // upwards could cause this.
     display: none;
 
-    @media (max-width: 768px) {
+    @media (max-width: $mobile-breakpoint) {
         display: block;
     }
 }
@@ -871,7 +879,7 @@ pre code.hljs {
             margin-left: 1.75rem;
             margin-bottom: 0.75rem;
 
-            @media (max-width: 768px) {
+            @media (max-width: $mobile-breakpoint) {
                 margin-left: 0;
             }
         }
@@ -1121,5 +1129,168 @@ pre code.hljs {
         font-size: 12px;
         color: #666;
         text-align: right;
+    }
+}
+
+.range-slider {
+    &__track {
+        position: relative;
+        height: 8px;
+        background: #e9ecef;
+        border-radius: 4px;
+        cursor: pointer;
+        user-select: none;
+    }
+
+    &__range {
+        position: absolute;
+        height: 100%;
+        background: $color-primary;
+        border-radius: 4px;
+        pointer-events: none;
+    }
+
+    &__thumb {
+        position: absolute;
+        top: 50%;
+        width: 20px;
+        height: 20px;
+        background: white;
+        border: 3px solid $color-primary;
+        border-radius: 50%;
+        cursor: pointer;
+        transform: translate(-50%, -50%);
+    }
+}
+
+.workers {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+
+    &__controls {
+        background: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+
+        padding-top: 15px;
+        padding-bottom: 15px;
+        padding-left: 20px;
+        padding-right: 20px;
+        margin-top: 20px;
+        margin-bottom: 15px;
+
+        &__header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            font-weight: 600;
+            color: #495057;
+        }
+    }
+
+    &__timeline-header {
+        display: flex;
+        justify-content: space-between;
+        color: #666;
+        border-bottom: 1px solid #e1e1e1;
+        margin-bottom: 5px;
+
+        &__label {
+            font-family: monospace;
+        }
+    }
+
+    &__worker {
+        $hover-color: #e8e8e8d7;
+
+        padding-top: 2px;
+        padding-bottom: 2px;
+        padding-left: 8px;
+        padding-right: 8px;
+
+        border-radius: 4px;
+
+        cursor: pointer;
+
+        &:hover:not(:has(.workers__timeline__segment:hover)) {
+            background: $hover-color;
+
+            .workers__worker__bar {
+                background: $hover-color;
+            }
+
+            .workers__worker__details {
+                background: $hover-color;
+            }
+        }
+
+        &:active {
+            transform: scale(0.995);
+        }
+
+        &--expanded {
+            background: rgba(44, 62, 80, 0.03);
+            border-radius: 4px 4px 0 0;
+        }
+
+        &__bar {
+            position: relative;
+            height: 12px;
+            background: #f8f9fa;
+            overflow: hidden;
+        }
+
+        &__details {
+            background: #f8f9fa;
+            border-radius: 0 0 4px 4px;
+            padding: 16px;
+
+            &__grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 12px;
+
+                @media (max-width: $mobile-breakpoint) {
+                    grid-template-columns: 1fr;
+                }
+            }
+
+            &__item {
+                display: flex;
+                flex-direction: column;
+                gap: 4px;
+            }
+
+            &__label {
+                font-size: 0.8rem;
+                color: #666;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+
+            &__value {
+                font-size: 0.9rem;
+                color: #2c3e50;
+                font-family: monospace;
+                word-break: break-all;
+            }
+        }
+    }
+
+    &__timeline {
+        &__segment {
+            position: absolute;
+            top: 0;
+            height: 100%;
+            cursor: pointer;
+            border-radius: 1px;
+
+            &:hover {
+                opacity: 0.8;
+            }
+        }
     }
 }
