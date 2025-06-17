@@ -166,6 +166,7 @@ def test_provider_deletes_old_timed_reports(monkeypatch):
     reports = sorted(reports, key=lambda r: r.elapsed_time)
 
     print("behaviors", [report.behaviors for report in reports])
+    print("fingerprints", [report.fingerprints for report in reports])
 
     # explicitly use `- 2` instead of `- 1` here. We do not want to compare
     # the second to last report to the last report, because the last report is
@@ -175,5 +176,9 @@ def test_provider_deletes_old_timed_reports(monkeypatch):
         report1 = reports[i]
         report2 = reports[i + 1]
         assert report1.elapsed_time < report2.elapsed_time
-        assert report1.behaviors < report2.behaviors
-        assert report1.fingerprints < report2.fingerprints
+        # non-timed reports might be saved either because they found a new behavior
+        # or a new fingerprint
+        assert (
+            report1.behaviors < report2.behaviors
+            or report1.fingerprints < report2.fingerprints
+        )
