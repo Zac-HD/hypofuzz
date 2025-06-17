@@ -1,61 +1,59 @@
-import "highlight.js/styles/github.css"
-
-import hljs from "highlight.js/lib/core"
-import diff from "highlight.js/lib/languages/diff"
+import { faArrowRight } from "@fortawesome/free-solid-svg-icons"
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
 import { useEffect, useState } from "react"
+import { Link } from "react-router-dom"
 
-import { fetchData } from "../utils/api"
-
-hljs.registerLanguage("diff", diff)
+import { Collapsible } from "../components/Collapsible"
+import { TestPatches } from "../components/TestPatches"
+import { fetchAvailablePatches } from "../utils/api"
 
 export function PatchesPage() {
-  const [patches, setPatches] = useState<Record<string, string>>({})
-  const [loading, setLoading] = useState(true)
+  const [nodeids, setNodeids] = useState<string[] | null>(null)
 
   useEffect(() => {
-    fetchData<Record<string, string>>("patches").then(data => {
-      if (data) {
-        setPatches(data)
-      }
-      setLoading(false)
+    fetchAvailablePatches().then(data => {
+      setNodeids(data)
     })
   }, [])
 
-  useEffect(() => {
-    hljs.highlightAll()
-  }, [patches])
-
-  if (loading) {
+  if (nodeids === null || nodeids.length === 0) {
     return (
       <div className="card">
         <div className="card__header">Patches</div>
-        <p>Loading patches...</p>
-      </div>
-    )
-  }
-
-  if (Object.values(patches).length == 0) {
-    return (
-      <div className="card">
-        <div className="card__header">Patches</div>
-        <p>No patches yet</p>
+        <p>No tests collected</p>
       </div>
     )
   }
 
   return (
     <div className="card">
-      <div className="card__header">Patches</div>
-      <div className="patches-list">
-        {Object.entries(patches).map(([name, content]) => (
-          <div key={name} className="patch">
-            <h3>{name}</h3>
-            <pre>
-              <code className="language-diff">{content}</code>
-            </pre>
-          </div>
-        ))}
+      <div className="card__header" style={{ marginBottom: "1rem" }}>
+        Patches
       </div>
+      {nodeids.map(nodeid => (
+        <Collapsible
+          title={
+            <div style={{ display: "flex", alignItems: "center" }}>
+              <span>{nodeid}</span>
+              <Link
+                to={`/tests/${encodeURIComponent(nodeid)}`}
+                style={{
+                  color: "var(--secondary-color, #888)",
+                  fontSize: "0.9em",
+                  textDecoration: "none",
+                  marginLeft: "12px",
+                }}
+              >
+                View test <FontAwesomeIcon icon={faArrowRight} />
+              </Link>
+            </div>
+          }
+          headerClass="patches__test"
+          defaultState="closed"
+        >
+          <TestPatches nodeid={nodeid} />
+        </Collapsible>
+      ))}
     </div>
   )
 }
