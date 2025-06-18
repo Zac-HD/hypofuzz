@@ -5,9 +5,9 @@ interface TooltipProps {
 
 export function Tooltip({ content, tooltip }: TooltipProps) {
   return (
-    <div className="tooltip">
+    <span className="tooltip">
       {content}
       <div className="tooltip__text">{tooltip}</div>
-    </div>
+    </span>
   )
 }

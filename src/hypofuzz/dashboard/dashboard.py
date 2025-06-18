@@ -35,7 +35,12 @@ from hypofuzz.dashboard.models import (
     dashboard_report,
     dashboard_test,
 )
-from hypofuzz.dashboard.patching import make_and_save_patches
+from hypofuzz.dashboard.patching import (
+    add_patch,
+    covering_patch,
+    failing_patch,
+    start_patching_thread,
+)
 from hypofuzz.dashboard.test import Test
 from hypofuzz.database import (
     DatabaseEvent,
@@ -380,22 +385,42 @@ async def api_test(request: Request) -> Response:
     return HypofuzzJSONResponse(dashboard_test(TESTS[nodeid]))
 
 
-def _patches() -> dict[str, str]:
+def _patches() -> dict[str, dict[str, Optional[str]]]:
     assert COLLECTION_RESULT is not None
-    patches = make_and_save_patches(COLLECTION_RESULT.fuzz_targets, TESTS)
-    return {name: str(patch_path.read_text()) for name, patch_path in patches.items()}
+    return {
+        target.nodeid: {
+            "failing": failing_patch(target.nodeid),
+            "covering": covering_patch(target.nodeid),
+        }
+        for target in COLLECTION_RESULT.fuzz_targets
+    }
 
 
 async def api_patches(request: Request) -> Response:
     return HypofuzzJSONResponse(_patches())
 
 
+async def api_available_patches(request: Request) -> Response:
+    # returns the nodeids with available patches
+    from hypofuzz.dashboard.patching import PATCHES
+
+    nodeids = [
+        nodeid
+        for nodeid, patches in PATCHES.items()
+        if patches["failing"] or patches["covering"]
+    ]
+    return HypofuzzJSONResponse(nodeids)
+
+
 async def api_patch(request: Request) -> Response:
-    patch_name = request.path_params["patch_name"]
-    patches = _patches()
-    if patch_name not in patches:
+    assert COLLECTION_RESULT is not None
+    nodeid = request.path_params["nodeid"]
+    if nodeid not in TESTS:
         return Response(status_code=404)
-    return Response(content=patches[patch_name], media_type="text/x-patch")
+
+    return HypofuzzJSONResponse(
+        {"failing": failing_patch(nodeid), "covering": covering_patch(nodeid)}
+    )
 
 
 def _collection_status() -> list[dict[str, Any]]:
@@ -440,8 +465,10 @@ async def api_backing_state_tests(request: Request) -> Response:
 async def api_backing_state_observations(request: Request) -> Response:
     observations = {
         nodeid: {
-            "rolling": test.rolling_observations,
-            "corpus": test.corpus_observations,
+            "rolling": [
+                dashboard_observation(obs) for obs in test.rolling_observations
+            ],
+            "corpus": [dashboard_observation(obs) for obs in test.corpus_observations],
         }
         for nodeid, test in TESTS.items()
     }
@@ -473,8 +500,8 @@ routes = [
     WebSocketRoute("/ws", websocket),
     Route("/api/tests/", api_tests),
     Route("/api/tests/{nodeid:path}", api_test),
-    Route("/api/patches/", api_patches),
-    Route("/api/patches/{patch_name}", api_patch),
+    Route("/api/patches/{nodeid:path}", api_patch),
+    Route("/api/available_patches/", api_available_patches),
     Route("/api/collected_tests/", api_collected_tests),
     Route("/api/backing_state/tests", api_backing_state_tests),
     Route("/api/backing_state/observations", api_backing_state_observations),
@@ -494,6 +521,24 @@ async def serve_app(app: Any, host: str, port: str) -> None:
     config = Config()
     config.bind = [f"{host}:{port}"]
     await serve(app, config)
+
+
+def _add_patch(
+    nodeid: str,
+    observation: Observation,
+    observation_type: Literal["covering", "failing"],
+) -> None:
+    assert COLLECTION_RESULT is not None
+    target = [
+        target for target in COLLECTION_RESULT.fuzz_targets if target.nodeid == nodeid
+    ]
+    assert len(target) == 1
+    add_patch(
+        test_function=target[0]._test_fn,
+        nodeid=nodeid,
+        observation=observation,
+        observation_type=observation_type,
+    )
 
 
 async def handle_event(receive_channel: MemoryReceiveChannel[ListenerEventT]) -> None:
@@ -527,7 +572,9 @@ async def handle_event(receive_channel: MemoryReceiveChannel[ListenerEventT]) ->
             elif event.key is DatabaseEventKey.FAILURE_OBSERVATION:
                 if event.value.property not in TESTS:
                     continue
-                TESTS[event.value.property].failure = event.value
+                nodeid = event.value.property
+                TESTS[nodeid].failure = event.value
+                _add_patch(nodeid, event.value, "failing")
             elif event.key is DatabaseEventKey.ROLLING_OBSERVATION:
                 if event.value.property not in TESTS:
                     continue
@@ -540,7 +587,9 @@ async def handle_event(receive_channel: MemoryReceiveChannel[ListenerEventT]) ->
             elif event.key is DatabaseEventKey.CORPUS_OBSERVATION:
                 if event.value.property not in TESTS:
                     continue
-                TESTS[event.value.property].corpus_observations.append(event.value)
+                nodeid = event.value.property
+                TESTS[nodeid].corpus_observations.append(event.value)
+                _add_patch(nodeid, event.value, "covering")
 
             await broadcast_event(event.type, event.key, event.value)
 
@@ -616,6 +665,12 @@ def _load_initial_state(fuzz_target: FuzzTarget) -> None:
         reports_by_worker[report.worker_uuid].append(report)
 
     failure_observations = get_failure_observations(key)
+
+    # backfill our patches for our worker thread to take care of computing
+    for observation in failure_observations.values():
+        _add_patch(fuzz_target.nodeid, observation, "failing")
+    for observation in corpus_observations:
+        _add_patch(fuzz_target.nodeid, observation, "covering")
 
     test = Test(
         database_key=fuzz_target.database_key_str,
@@ -698,6 +753,8 @@ def start_dashboard_process(
     # from any custom profiles, and as a ground truth for what tests to display.
     COLLECTION_RESULT = collect_tests(pytest_args)
     db = HypofuzzDatabase(settings().database)
+
+    start_patching_thread()
 
     print(f"\n\tNow serving dashboard at  http://{host}:{port}/\n")
     trio.run(run_dashboard, port, host)

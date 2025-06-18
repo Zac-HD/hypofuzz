@@ -27,6 +27,14 @@ def test_visual_tyche_almost_always_invalid(n):
     assume(n == 0)
 
 
+@given(st.lists(st.integers()))
+def test_visual_no_data(l):
+    if len(l) == 0:
+        pass
+    else:
+        pass
+
+
 # this is a clear no-op success, butfails when running `hypothesis fuzz` on
 # the hypofuzz test suite itself.
 # Something about the observability callback on nested test functions?

@@ -2,18 +2,7 @@ import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
 
 import { Table } from "../components/Table"
-import { fetchData } from "../utils/api"
-
-interface CollectionResult {
-  database_key: string
-  nodeid: string
-  status: string
-  status_reason?: string
-}
-
-interface CollectionResults {
-  collection_status: CollectionResult[]
-}
+import { CollectionResult, fetchCollectionStatus } from "../utils/api"
 
 const statusOrder = {
   not_collected: 0,
@@ -21,12 +10,12 @@ const statusOrder = {
 }
 
 export function CollectionStatusPage() {
-  const [collectionStatus, setCollectionStatus] = useState<CollectionResults | null>(
+  const [collectionStatus, setCollectionStatus] = useState<CollectionResult[] | null>(
     null,
   )
 
   useEffect(() => {
-    fetchData<CollectionResults>("collected_tests/").then(data => {
+    fetchCollectionStatus().then(data => {
       setCollectionStatus(data)
     })
   }, [])
@@ -35,7 +24,7 @@ export function CollectionStatusPage() {
     return null
   }
 
-  if (!collectionStatus.collection_status.length) {
+  if (!collectionStatus.length) {
     return (
       <div className="card">
         <div className="card__header">Test collection</div>
@@ -44,7 +33,7 @@ export function CollectionStatusPage() {
     )
   }
 
-  const sortedResults = [...collectionStatus.collection_status].sortKey(result => [
+  const sortedResults = [...collectionStatus].sortKey(result => [
     statusOrder[result.status as keyof typeof statusOrder],
     result.status_reason,
     result.nodeid,

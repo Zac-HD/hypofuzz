@@ -22,11 +22,7 @@ def test_database_stores_reports_and_metadata_correctly(tmp_path):
     assert not list(db.fetch(test_keys_key))
 
     with fuzz(test_path=test_dir):
-        keys = wait_for(lambda: list(db.fetch(test_keys_key)), interval=0.1)
-        # we're only working with a single test
-        assert len(keys) == 1
-        key = list(keys)[0]
-
+        key = wait_for_test_key(db)
         previous_size = 0
         for _ in range(5):
             # wait for new db entries to roll in
@@ -35,6 +31,7 @@ def test_database_stores_reports_and_metadata_correctly(tmp_path):
                 timeout=15,
                 interval=0.05,
             )
+            previous_size = len(list(db.fetch_reports(key)))
 
 
 def test_database_state():
@@ -103,7 +100,7 @@ def test_adds_failures_to_database():
         assert x != 10
 
     process = FuzzTarget.from_hypothesis_test(test_a, database=db)
-    for _ in range(50):
+    for _ in range(500):
         process.run_one()
 
     failures = list(db.fetch_failures(process.database_key, shrunk=True))

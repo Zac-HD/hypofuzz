@@ -1,75 +1,92 @@
-import shutil
+import threading
+from collections import defaultdict
 from functools import lru_cache
-from pathlib import Path
-from typing import TYPE_CHECKING
+from queue import Empty, Queue
+from typing import Any, Literal, Optional
 
-from hypothesis.configuration import storage_directory
-from hypothesis.extra._patching import FAIL_MSG, get_patch_for, make_patch, save_patch
+from hypothesis.extra._patching import (
+    get_patch_for as _get_patch_for,
+    make_patch as _make_patch,
+)
 
-from hypofuzz.database import Phase
-from hypofuzz.hypofuzz import FuzzTarget
+from hypofuzz import __version__
+from hypofuzz.database import Observation
 
-if TYPE_CHECKING:
-    from hypofuzz.dashboard.test import Test
+COVERING_VIA = "covering example"
+FAILING_VIA = "discovered failure"
+# nodeid: {
+#   "covering": [(fname, before, after), ...],
+#   "failing": [(fname, before, after), ...],
+# }
+# TODO this duplicates the test function contents in `before` and `after`,
+# we probably want a more memory-efficient representation eventually
+# (and a smaller win: map fname to a list of (before, after), instead of storing
+# each fname)
+PATCHES: dict[str, dict[str, list[tuple[str, str, str]]]] = defaultdict(
+    lambda: {"covering": [], "failing": []}
+)
+get_patch_for = lru_cache(maxsize=8192)(_get_patch_for)
 
-COV_MSG = "HypoFuzz covering example"
-get_patch_for_cached = lru_cache(maxsize=8192)(get_patch_for)
-make_patch_cached = lru_cache(maxsize=1024)(make_patch)
+_queue: Queue = Queue()
+_thread: Optional[threading.Thread] = None
 
 
-def make_and_save_patches(
-    fuzz_targets: list[FuzzTarget],
-    tests: dict[str, "Test"],
+def add_patch(
     *,
-    canonical: bool = True,
-) -> dict[str, Path]:
-    triples_all: list = []
-    triples_cov: list = []
-    triples_fail: list = []
+    test_function: Any,
+    nodeid: str,
+    observation: Observation,
+    observation_type: Literal["covering", "failing"],
+) -> None:
+    _queue.put((test_function, nodeid, observation, observation_type))
 
-    test_functions = {t.nodeid: t._test_fn for t in fuzz_targets}
-    for nodeid, test in tests.items():
-        # for each func
-        #   - only strip_via if replay is complete
-        #   - only add failing if not currently shrinking
-        #   - tag covering examples with covering-via
-        assert nodeid in test_functions
-        test_fn = test_functions[nodeid]
 
-        failing_examples = []
-        covering_examples = []
+@lru_cache(maxsize=1024)
+def make_patch(triples: tuple[tuple[str, str, str]], *, msg: str) -> str:
+    return _make_patch(
+        triples,
+        msg=msg,
+        author=f"HypoFuzz {__version__} <no-reply@hypofuzz.com>",
+    )
 
-        if test.failure:
-            failing_examples.append((test.failure.metadata.traceback, FAIL_MSG))
 
-        if test.phase is not Phase.REPLAY:
-            covering_examples = [
-                (observation.representation, COV_MSG)
-                for observation in test.corpus_observations
-            ]
+def failing_patch(nodeid: str) -> Optional[str]:
+    failing = PATCHES[nodeid]["failing"]
+    return make_patch(tuple(failing), msg="add failing examples") if failing else None
 
-        for out, examples, strip_via in [
-            (triples_fail, failing_examples, ()),
-            (triples_cov, covering_examples, (COV_MSG,)),
-            (triples_all, failing_examples + covering_examples, (COV_MSG,)),
-        ]:
-            if examples:
-                xs = get_patch_for_cached(test_fn, tuple(examples), strip_via=strip_via)  # type: ignore
-                if xs:
-                    out.append(xs)
 
-    result = {}
-    for key, triples in [
-        ("all", triples_all),
-        ("cov", triples_cov),
-        ("fail", triples_fail),
-    ]:
-        if triples:
-            patch = make_patch_cached(tuple(sorted(triples)))
-            result[key] = save_patch(patch, slug="hypofuzz-")
-            # Note that these canonical-latest locations *must* remain stable,
-            # making it practical to upload them as artifacts from CI systems.
-            if canonical:
-                latest = storage_directory("patches", f"latest_hypofuzz_{key}.patch")
-                shutil.copy(result[key], latest)
-    return result
+def covering_patch(nodeid: str) -> Optional[str]:
+    covering = PATCHES[nodeid]["covering"]
+    return (
+        make_patch(tuple(covering), msg="add covering examples") if covering else None
+    )
+
+
+def _worker() -> None:
+    while True:
+        try:
+            item = _queue.get(timeout=1.0)
+        except Empty:
+            continue
+
+        test_function, nodeid, observation, observation_type = item
+
+        via = COVERING_VIA if observation_type == "covering" else FAILING_VIA
+        # If this thread ends up using significant resources, we might optimize
+        # this by checking each function ahead of time for known reasons why a
+        # patch would fail, for instance using st.data in the signature, and then
+        # simply discarding those here entirely.
+        patch = get_patch_for(
+            test_function, ((observation.representation, via),), strip_via=via
+        )
+        if patch is not None:
+            PATCHES[nodeid][observation_type].append(patch)
+        _queue.task_done()
+
+
+def start_patching_thread() -> None:
+    global _thread
+    assert _thread is None
+
+    _thread = threading.Thread(target=_worker, daemon=True)
+    _thread.start()
