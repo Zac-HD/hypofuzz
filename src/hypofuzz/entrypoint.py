@@ -161,7 +161,10 @@ def _fuzz_impl(n_processes: int, pytest_args: tuple[str, ...]) -> None:
     if n_processes <= 1:
         # if we only have one process, skip the FuzzWorkerHub abstraction (which
         # would cost a process) and just start a FuzzWorker with constant node_ids
-        shared_state = {"hub_state": {"nodeids": nodeids}, "worker_state": {}}
+        shared_state = {
+            "hub_state": {"nodeids": nodeids},
+            "worker_state": {"nodeids": {}},
+        }
         _start_worker(pytest_args=pytest_args, shared_state=shared_state)
     else:
         hub = FuzzWorkerHub(

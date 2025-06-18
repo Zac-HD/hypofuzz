@@ -38,7 +38,15 @@ from hypothesis.internal.reflection import (
     get_signature,
 )
 
-from hypofuzz.bayes import behaviors_per_second, distribute_nodes, softmax
+from hypofuzz.bayes import (
+    BehaviorRates,
+    CurrentWorker,
+    DistributeNodesTarget,
+    bandit_weights,
+    distribute_nodes,
+    e_target_rates,
+    e_worker_lifetime,
+)
 from hypofuzz.collection import collect_tests
 from hypofuzz.corpus import (
     get_shrinker,
@@ -290,15 +298,35 @@ class FuzzWorker:
         # This is the subset of `nodeids` which this worker has chosen to start
         # up.
         self.targets: list[FuzzTarget] = []
+        # targets which we have previously started fuzzing, but have since been
+        # told to drop by the hub. We keep the fuzz target in memory because we
+        # might be told by the hub to pick this target up again in the future.
+        #
+        # When starting, dropping, and starting a target again, we cannot violate
+        # the linear reports invariant that we do not write reports from the same
+        # worker, on the same target, at two different fuzz campaigns for that
+        # target. Once a worker starts fuzzing a target, it cannot restart fuzzing
+        # that target from scratch without changing its uuid or wiping the previous
+        # campaign, neither of which are feasible.
+        self.dropped_targets: list[FuzzTarget] = []
         self.event_dispatch: dict[bytes, list[FuzzTarget]] = defaultdict(list)
 
     def add_target(self, nodeid: str) -> None:
+        # if this target was previously dropped, move it from `dropped_targets`
+        # to `targets`, without creating a new FuzzTarget.
+        dropped_targets = [t for t in self.dropped_targets if t.nodeid == nodeid]
+        if dropped_targets:
+            target = dropped_targets[0]
+            self.targets.append(target)
+            self.dropped_targets.remove(target)
+            return
+
         targets = [t for t in self.collected_fuzz_targets if t.nodeid == nodeid]
         assert len(targets) == 1
         target = targets[0]
 
         # create a new FuzzTarget to put into self.targets, to avoid modifying
-        # self.collected_fuzz_targets at all
+        # collected_fuzz_targets at all
         target = FuzzTarget(
             test_fn=target._test_fn,
             stuff=target._stuff,
@@ -343,11 +371,16 @@ class FuzzWorker:
         for target in self.targets.copy():
             if target.nodeid not in nodeids:
                 self.targets.remove(target)
-                self.event_dispatch[target.database_key].remove(target)
+                self.dropped_targets.append(target)
+                # we intentionally do not remove our event_dispatch listener
+                # here, because if we are ever told to pick up this dropped target
+                # again in the future, we still want its corpus and failure replay
+                # to be up to date from other workers.
 
         self.nodeids = nodeids
 
     def start(self) -> None:
+        self.worker_start = time.perf_counter()
         self.collected_fuzz_targets = collect_tests(self.pytest_args).fuzz_targets
         settings().database.add_listener(self.on_event)
 
@@ -358,10 +391,6 @@ class FuzzWorker:
             if not self.valid_targets:
                 break
 
-            # choose the next target to fuzz with probability equal to the softmax
-            # of its estimator. aka boltzmann exploration
-            estimators = [behaviors_per_second(target) for target in self.valid_targets]
-            estimators = softmax(estimators)
             # softmax might return 0.0 probability for some targets if there is
             # a substantial gap in estimator values (e.g. behaviors_per_second=1_000
             # vs behaviors_per_second=1.0). We don't expect this to happen normally,
@@ -372,19 +401,27 @@ class FuzzWorker:
             if self.random.random() < 0.01:
                 target = self.random.choice(self.valid_targets)
             else:
-                target = self.random.choices(
-                    self.valid_targets, weights=estimators, k=1
-                )[0]
+                behaviors_rates = [
+                    e_target_rates(target) for target in self.valid_targets
+                ]
+                weights = bandit_weights(behaviors_rates)
+                target = self.random.choices(self.valid_targets, weights=weights, k=1)[
+                    0
+                ]
 
             # TODO we should scale this n up if our estimator expects that it will
             # take a long time to discover a new behavior, to reduce the overhead
-            # of switching.
+            # of switching targets.
             for _ in range(100):
                 target.run_one()
 
-            # give the hub with up-to-date estimator state
-            self.shared_state["worker_state"][target.nodeid] = {
-                "behaviors_per_second": behaviors_per_second(target),
+            # give the hub an up-to-date estimator state
+            current_lifetime = time.perf_counter() - self.worker_start
+            worker_state = self.shared_state["worker_state"]
+            worker_state["current_lifetime"] = current_lifetime
+            worker_state["expected_lifetime"] = e_worker_lifetime(current_lifetime)
+            worker_state["nodeids"][target.nodeid] = {
+                "behavior_rates": e_target_rates(target),
             }
 
 
@@ -410,6 +447,9 @@ class FuzzWorkerHub:
                 shared_state = manager.dict()
                 shared_state["hub_state"] = manager.dict()
                 shared_state["worker_state"] = manager.dict()
+                shared_state["worker_state"]["nodeids"] = manager.dict()
+                shared_state["worker_state"]["current_lifetime"] = 0.0
+                shared_state["worker_state"]["expected_lifetime"] = 0.0
 
                 process = Process(
                     target=_start_worker,
@@ -444,21 +484,51 @@ class FuzzWorkerHub:
         # rebalance the assignment of nodeids to workers, according to the
         # up-to-date estimators from our workers.
 
-        # TODO actually read/use new estimator state
-        # # nodeid: estimator
-        # estimators = {}
+        assert len(self.shared_states) == self.n_processes
+        current_workers = [
+            CurrentWorker(
+                nodeids=state["worker_state"]["nodeids"].keys(),
+                e_lifetime=state["worker_state"]["expected_lifetime"],
+            )
+            for state in self.shared_states
+        ]
 
-        # for shared_state in self.shared_states:
-        #     # if multiple workers have the same node, we'll use the estimator
-        #     # from whichever has been running longer.
-        #     pass
+        # fill with default estimators, for the first-time startup
+        # nodeid: (worker_lifetime, rates)
+        targets = {
+            nodeid: (0.0, BehaviorRates(per_second=1.0, per_input=1.0))
+            for nodeid in self.nodeids
+        }
+        for state in self.shared_states:
+            worker_state = state["worker_state"]
+            worker_lifetime = worker_state["current_lifetime"]
+            for nodeid, rates in worker_state["nodeids"].items():
+                if nodeid not in targets:
+                    targets[nodeid] = (worker_lifetime, rates)
 
-        # TODO actually save/load estimator state
-        estimators = [1.0 for _ in self.nodeids]
-        partitions = distribute_nodes(self.nodeids, estimators, n=self.n_processes)
+                # if the nodeid already exists, but we have a better estimator
+                # for it, replace it
+                if worker_lifetime > targets[nodeid][0]:
+                    targets[nodeid] = (worker_lifetime, rates)
 
-        for shared_state, nodeids in zip(self.shared_states, partitions):
-            shared_state["hub_state"]["nodeids"] = nodeids
+        # TODO estimate startup time of this target
+        # ("number of corpus elements" * "average input runtime" probably?)
+        targets = [
+            DistributeNodesTarget(nodeid=nodeid, rates=rates, e_startup_time=0)
+            for nodeid, (_lifetime, rates) in targets.items()
+        ]
+        partitions = distribute_nodes(
+            targets,
+            n=self.n_processes,
+            current_workers=current_workers,
+        )
+
+        # communicate the worker's new nodeids back to the worker.
+        #
+        # the iteration order of the partitions returned by distribute_nodes is
+        # the same as the iteration order of current_workers
+        for state, nodeids in zip(self.shared_states, partitions):
+            state["hub_state"]["nodeids"] = nodeids
 
 
 def _start_worker(
