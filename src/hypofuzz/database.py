@@ -332,7 +332,9 @@ class ReportWithDiff(Report):
     timestamp_monotonic: float
 
     def __post_init__(self) -> None:
-        assert all(count >= 0 for count in self.status_counts_diff.values())
+        assert all(
+            count >= 0 for count in self.status_counts_diff.values()
+        ), self.status_counts_diff
         assert self.elapsed_time_diff >= 0.0
         assert self.timestamp_monotonic >= 0.0
 

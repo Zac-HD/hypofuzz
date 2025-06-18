@@ -186,9 +186,6 @@ class CoverageCollector:
         # if anything is None, skip this branch. This can happen for various reasons.
         # Most notably with -X no_debug_ranges, in which case we will get *zero*
         # position information.
-        # TODO detect when python is running with no_debug_ranges and warn or error?
-        #
-        # see https://docs.python.org/3/reference/datamodel.html#codeobject.co_positions.
         if (
             s_start_line is None
             or d_start_line is None

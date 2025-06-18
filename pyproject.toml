@@ -30,7 +30,7 @@ dependencies = [
     "hypothesis[cli,watchdog]>=6.135.9",
     "libcst>=1.0.0", # for hypothesis.extra._patching
     "psutil>=3.0.0",
-    "pytest>=6.0.1",
+    "pytest>=7.0.0",
     "starlette",
     "trio",
     "hypercorn",
