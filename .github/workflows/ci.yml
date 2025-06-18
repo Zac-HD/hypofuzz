@@ -135,7 +135,7 @@ jobs:
     strategy:
       matrix:
         python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
-        toxenv: ["test", "pytest7"]
+        toxenv: ["test", "pytest6", "pytest7"]
       fail-fast: false
     steps:
     - uses: actions/checkout@v4
