@@ -16,7 +16,7 @@ def test_patches(tmp_path):
     test_dir, db_dir = setup_test_code(tmp_path, BASIC_TEST_CODE)
     db = HypofuzzDatabase(DirectoryBasedExampleDatabase(db_dir))
 
-    with fuzz(test_path=test_dir):
+    with fuzz(test_dir):
         key = wait_for_test_key(db)
 
         def has_corpus_with_observation():
