@@ -534,7 +534,7 @@ def _add_patch(
     ]
     assert len(target) == 1
     add_patch(
-        test_function=target[0]._test_fn,
+        test_function=target[0].test_fn,
         nodeid=nodeid,
         observation=observation,
         observation_type=observation_type,

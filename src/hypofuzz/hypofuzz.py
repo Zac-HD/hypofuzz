@@ -10,10 +10,11 @@ from random import Random
 from typing import Any, Literal, Optional, Union
 
 import pytest
+from _pytest.fixtures import FixtureRequest, FuncFixtureInfo
+from _pytest.nodes import Item
 from hypothesis import HealthCheck, Verbosity, settings
 from hypothesis.core import (
     StateForActualGivenExecution,
-    Stuff,
     process_arguments_to_given,
 )
 from hypothesis.database import ListenerEventT
@@ -78,20 +79,12 @@ class FuzzTarget:
         wrapped_test: Any,
         *,
         database: HypofuzzDatabase,
-        extra_kw: Optional[dict[str, object]] = None,
-        pytest_item: Optional[pytest.Item] = None,
+        extra_kwargs: Optional[dict[str, object]] = None,
+        pytest_item: Optional[pytest.Function] = None,
     ) -> "FuzzTarget":
-        _, _, stuff = process_arguments_to_given(
-            wrapped_test,
-            arguments=(),
-            kwargs=extra_kw or {},
-            given_kwargs=wrapped_test.hypothesis._given_kwargs,
-            params=get_signature(wrapped_test).parameters,  # type: ignore
-        )
-        assert settings.default is not None
         return cls(
             test_fn=wrapped_test.hypothesis.inner_test,
-            stuff=stuff,
+            extra_kwargs=extra_kwargs or {},
             database=database,
             database_key=function_digest(wrapped_test.hypothesis.inner_test),
             wrapped_test=wrapped_test,
@@ -100,26 +93,51 @@ class FuzzTarget:
 
     def __init__(
         self,
-        test_fn: Callable,
-        stuff: Stuff,
         *,
+        test_fn: Callable,
+        extra_kwargs: dict[str, Any],
         database: HypofuzzDatabase,
         database_key: bytes,
         wrapped_test: Callable,
-        pytest_item: Optional[pytest.Item] = None,
+        pytest_item: Optional[pytest.Function] = None,
     ) -> None:
-        self.random = Random()
-        self._test_fn = test_fn
-        self._stuff = stuff
+        self.test_fn = test_fn
+        self.extra_kwargs = extra_kwargs
+        self.database = database
+        self.database_key = database_key
+        self.wrapped_test = wrapped_test
+        self.pytest_item = pytest_item
+
         self.nodeid = getattr(
             pytest_item, "nodeid", None
         ) or get_pretty_function_description(test_fn)
-        self.database_key = database_key
         self.database_key_str = convert_db_key(self.database_key, to="str")
-        self.database = database
-        self.state = HypofuzzStateForActualGivenExecution(  # type: ignore
+        self.fixtureinfo: Optional[FuncFixtureInfo] = None
+        if pytest_item is not None:
+            manager = pytest_item._request._fixturemanager
+            self.fixtureinfo = manager.getfixtureinfo(
+                node=pytest_item, func=pytest_item.function, cls=None
+            )
+
+        self.random = Random()
+        self.state: Optional[HypofuzzStateForActualGivenExecution] = None
+        self.provider = HypofuzzProvider(None)
+        self.stop_shrinking_at = math.inf
+        self._fixturedefs: list[pytest.FixtureDef] = []
+
+    def _new_state(
+        self, *, extra_kwargs: Optional[dict[str, Any]] = None
+    ) -> HypofuzzStateForActualGivenExecution:
+        _, _, stuff = process_arguments_to_given(
+            self.wrapped_test,
+            arguments=(),
+            kwargs=(self.extra_kwargs or {}) | (extra_kwargs or {}),
+            given_kwargs=self.wrapped_test.hypothesis._given_kwargs,  # type: ignore
+            params=get_signature(self.wrapped_test).parameters,  # type: ignore
+        )
+        return HypofuzzStateForActualGivenExecution(  # type: ignore
             stuff,
-            self._test_fn,
+            self.test_fn,
             settings(
                 database=self.database._db,
                 deadline=None,
@@ -127,13 +145,59 @@ class FuzzTarget:
                 verbosity=Verbosity.quiet,
             ),
             self.random,
-            wrapped_test,
+            self.wrapped_test,
         )
-        self.wrapped_test = wrapped_test
-        self.pytest_item = pytest_item
 
-        self.provider = HypofuzzProvider(None)
-        self.stop_shrinking_at = math.inf
+    def _enter_fixtures(self) -> None:
+        if self.pytest_item is None:
+            self.state = self._new_state()
+            return
+
+        assert self.pytest_item is not None
+        assert self.fixtureinfo is not None
+        # iter_parents is from function -> session, and listchain is from
+        # session -> function. We want the latter here, as expected by
+        # pytest.Session. (also, iter_parents only exists from pytest 8.1.1.)
+        for parent in self.pytest_item.listchain():
+            # TODO can parent ever not be an Item? .setup expects an Item, but
+            # listchain returns Node. pytest seems to use the pytest_runtest_setup
+            # hook to actually call SetupState.setup(item), so I'm not sure what
+            # guarantees are made by listchain in this context.
+            if not isinstance(parent, Item):
+                continue
+            self.pytest_item.session._setupstate.setup(parent)
+
+        request: FixtureRequest = self.pytest_item._request
+        extra_kwargs = {}
+        for (
+            name,
+            fixturedefs,
+        ) in self.fixtureinfo.name2fixturedefs.items():
+            # If there are multiple fixtures with this name, pick the last one,
+            # which is the closest one to us in scope.
+            #
+            # I'm not sure this is correct. More tightly scoped fixtures
+            # override less tightly scoped fixtures in pytest, but I don't know
+            # if this correctly handles interactions like dependent fixtures
+            # higher up the scope stack being overridden.
+            fixturedef = fixturedefs[-1]
+            assert name == fixturedef.argname
+            fixturedef = request._get_active_fixturedef(name)
+            if name in self.fixtureinfo.argnames:
+                # note: FixtureRequest caches FixtureDef executions, so this
+                # simply returns the cached value from _get_active_fixturedef.
+                # It does not compute it twice.
+                extra_kwargs[name] = request.getfixturevalue(name)
+
+        self.state = self._new_state(extra_kwargs=extra_kwargs)
+
+    def _exit_fixtures(self) -> None:
+        if self.pytest_item is None:
+            return
+
+        # we're only working with a single item, so we can just teardown everything
+        # in order by passing None.
+        self.pytest_item.session._setupstate.teardown_exact(None)
 
     def new_conjecture_data(
         self, *, choices: Optional[ChoicesT] = None
@@ -223,6 +287,7 @@ class FuzzTarget:
             None,
         ] = "provider",
     ) -> None:
+        assert self.state is not None
         # setting current_pytest_item lets us access it in HypofuzzProvider,
         # and lets observability's "property" attribute be the proper nodeid,
         # instead of just the function name
@@ -266,6 +331,7 @@ class FuzzProcess:
         self.random = Random()
         self.targets = targets
 
+        self._current_target: Optional[FuzzTarget] = None
         self.event_dispatch: dict[bytes, list[FuzzTarget]] = defaultdict(list)
         for target in targets:
             self.event_dispatch[target.database_key].append(target)
@@ -282,6 +348,20 @@ class FuzzProcess:
     def valid_targets(self) -> list[FuzzTarget]:
         # the targets we actually want to run/fuzz
         return [t for t in self.targets if not t.has_found_failure]
+
+    def _switch_to_target(self, target: FuzzTarget) -> None:
+        # if we're sticking with our current target, then we don't need to
+        # do anything expensive like cleaning up fixtures.
+        if target == self._current_target:
+            return
+
+        if self._current_target is not None:
+            # first, clean up any fixtures from the old target.
+            self._current_target._exit_fixtures()
+
+        # then, set up any fixtures for the new target.
+        target._enter_fixtures()
+        self._current_target = target
 
     def start(self) -> None:
         settings().database.add_listener(self.on_event)
@@ -308,6 +388,7 @@ class FuzzProcess:
                     self.valid_targets, weights=estimators, k=1
                 )[0]
 
+            self._switch_to_target(target)
             # TODO we should scale this n up if our estimator expects that it will
             # take a long time to discover a new behavior, to reduce the overhead
             # of switching.

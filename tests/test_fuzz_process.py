@@ -1,9 +1,8 @@
 import textwrap
-from types import SimpleNamespace
 
-import pytest
+from common import fuzz, setup_test_code, wait_for, wait_for_test_key
 from hypothesis import given, strategies as st
-from hypothesis.database import InMemoryExampleDatabase
+from hypothesis.database import DirectoryBasedExampleDatabase, InMemoryExampleDatabase
 from hypothesis.internal.conjecture.data import Status
 
 from hypofuzz.database import HypofuzzDatabase
@@ -19,6 +18,7 @@ def test_fuzz_one_process():
     fp = FuzzTarget.from_hypothesis_test(
         test_a, database=HypofuzzDatabase(InMemoryExampleDatabase())
     )
+    fp._enter_fixtures()
     for _ in range(100):
         fp.run_one()
 
@@ -39,6 +39,7 @@ def test_fuzz_one_process_explain_mode():
             raise CustomError(f"x={x}")
 
     fp = FuzzTarget.from_hypothesis_test(test_fails, database=db)
+    fp._enter_fixtures()
     while not fp.has_found_failure:
         fp.run_one()
 
@@ -58,27 +59,19 @@ def test_fuzz_one_process_explain_mode():
     assert observation.representation == expected
 
 
-@pytest.mark.parametrize(
-    "pytest_item, expected_property",
-    # I can't figure out how to construct an Item (or Function) directly, pytest
-    # requires .from_parent.
-    [(None, "test_a"), (SimpleNamespace(nodeid="unique_nodeid"), "unique_nodeid")],
-)
-def test_observations_use_pytest_nodeid(pytest_item, expected_property):
-    # we save observations using the pytest item's nodeid if available, or
-    # get_pretty_function_description(f) otherwise.
+def test_observations_use_pytest_nodeid(tmp_path):
+    code = f"""
     @given(st.integers())
-    def test_a(n):
+    def test_abcd(n):
         pass
+    """
+    test_path, db_path = setup_test_code(tmp_path, code)
+    db = HypofuzzDatabase(DirectoryBasedExampleDatabase(db_path))
 
-    db = HypofuzzDatabase(InMemoryExampleDatabase())
-    fp = FuzzTarget.from_hypothesis_test(test_a, database=db, pytest_item=pytest_item)
-    assert fp.nodeid == expected_property
-
-    fp.run_one()
-    fp.provider.db._db._join()
-
-    assert all(
-        observation.property == expected_property
-        for observation in db.fetch_observations(fp.database_key)
-    )
+    with fuzz(test_path):
+        key = wait_for_test_key(db)
+        wait_for(lambda: len(list(db.fetch_observations(key))) > 0, interval=0.1)
+        assert all(
+            observation.property == "test_a.py::test_abcd"
+            for observation in db.fetch_observations(key)
+        ), [obs.property for obs in db.fetch_observations(key)]
