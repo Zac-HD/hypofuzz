@@ -60,7 +60,7 @@ def test_fuzz_one_process_explain_mode():
 
 
 def test_observations_use_pytest_nodeid(tmp_path):
-    code = f"""
+    code = """
     @given(st.integers())
     def test_abcd(n):
         pass
