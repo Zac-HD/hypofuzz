@@ -10,6 +10,8 @@ import hypothesis.extra.cli
 import psutil
 from hypothesis.internal.conjecture.providers import AVAILABLE_PROVIDERS
 
+from hypofuzz.hypofuzz import FuzzWorkerHub
+
 AVAILABLE_PROVIDERS["hypofuzz"] = "hypofuzz.provider.HypofuzzProvider"
 
 
@@ -132,7 +134,7 @@ def _fuzz_impl(n_processes: int, pytest_args: tuple[str, ...]) -> None:
         )
 
     from hypofuzz.collection import collect_tests
-    from hypofuzz.hypofuzz import _fuzz
+    from hypofuzz.hypofuzz import _start_worker
 
     # With our arguments validated, it's time to actually do the work.
     collection = collect_tests(pytest_args)
@@ -155,25 +157,19 @@ def _fuzz_impl(n_processes: int, pytest_args: tuple[str, ...]) -> None:
         f"test{tests_s}{skipped_msg}"
     )
 
+    nodeids = [t.nodeid for t in tests]
     if n_processes <= 1:
-        _fuzz(pytest_args=pytest_args, nodeids=[t.nodeid for t in tests])
+        # if we only have one process, skip the FuzzWorkerHub abstraction (which
+        # would cost a process) and just start a FuzzWorker with constant node_ids
+        shared_state = {
+            "hub_state": {"nodeids": nodeids},
+            "worker_state": {"nodeids": {}},
+        }
+        _start_worker(pytest_args=pytest_args, shared_state=shared_state)
     else:
-        processes: list[Process] = []
-        for i in range(n_processes):
-            # Round-robin for large test suites; all-on-all for tiny, etc.
-            nodeids: set[str] = set()
-            for ix in range(n_processes):
-                nodeids.update(t.nodeid for t in tests[i + ix :: n_processes])
-                if len(nodeids) >= 10:  # enough to prioritize between
-                    break
-
-            p = Process(
-                target=_fuzz,
-                kwargs={"pytest_args": pytest_args, "nodeids": nodeids},
-            )
-            p.start()
-            processes.append(p)
-        for p in processes:
-            p.join()
+        hub = FuzzWorkerHub(
+            nodeids=nodeids, pytest_args=pytest_args, n_processes=n_processes
+        )
+        hub.start()
 
     print("Found a failing input for every test!", file=sys.stderr)

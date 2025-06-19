@@ -2,10 +2,12 @@
 
 import contextlib
 import math
+import time
 from collections import defaultdict
-from collections.abc import Callable
+from collections.abc import Callable, Mapping, Sequence
 from contextlib import nullcontext
 from functools import partial
+from multiprocessing import Manager, Process
 from random import Random
 from typing import Any, Literal, Optional, Union
 
@@ -256,19 +258,77 @@ class FuzzTarget:
         return corpus is not None and bool(corpus.interesting_examples)
 
 
-class FuzzProcess:
+class FuzzWorker:
     """
-    Manages switching between several FuzzTargets, and managing their associated
-    higher-level state, like setting up and tearing down pytest fixtures.
+    Manages switching between several FuzzTargets, and also manages their
+    associated higher-level state, like setting up and tearing down pytest
+    fixtures.
     """
 
-    def __init__(self, targets: list[FuzzTarget]) -> None:
+    def __init__(
+        self,
+        *,
+        pytest_args: Sequence[str],
+        shared_state: Mapping,
+    ) -> None:
+        self.pytest_args = pytest_args
+        self.shared_state = shared_state
+
         self.random = Random()
-        self.targets = targets
-
+        # the current pool of node ids this process has available to fuzz. This
+        # might be adjusted by FuzzWorkerHub via `shared_state` as estimators
+        # update and nodeids are rebalanced across workers.
+        self.nodeids: Sequence[str] = []
+        # The list of all collected fuzz targets. We collect this at the beginning
+        # by running a pytest collection step.
+        #
+        # This is never modified or copied from after the initial collection.
+        # When we need an actual target to fuzz, we create a new FuzzTarget
+        # instance to put into self.targets.
+        self.collected_fuzz_targets: list[FuzzTarget] = []
+        # the current pool of active targets this worker can fuzz immediately.
+        # This is the subset of `nodeids` which this worker has chosen to start
+        # up.
+        self.targets: list[FuzzTarget] = []
+        # targets which we have previously started fuzzing, but have since been
+        # told to drop by the hub. We keep the fuzz target in memory because we
+        # might be told by the hub to pick this target up again in the future.
+        #
+        # When starting, dropping, and starting a target again, we cannot violate
+        # the linear reports invariant that we do not write reports from the same
+        # worker, on the same target, at two different fuzz campaigns for that
+        # target. Once a worker starts fuzzing a target, it cannot restart fuzzing
+        # that target from scratch without changing its uuid or wiping the previous
+        # campaign, neither of which are feasible.
+        self.dropped_targets: list[FuzzTarget] = []
         self.event_dispatch: dict[bytes, list[FuzzTarget]] = defaultdict(list)
-        for target in targets:
-            self.event_dispatch[target.database_key].append(target)
+
+    def add_target(self, nodeid: str) -> None:
+        # if this target was previously dropped, move it from `dropped_targets`
+        # to `targets`, without creating a new FuzzTarget.
+        dropped_targets = [t for t in self.dropped_targets if t.nodeid == nodeid]
+        if dropped_targets:
+            target = dropped_targets[0]
+            self.targets.append(target)
+            self.dropped_targets.remove(target)
+            return
+
+        targets = [t for t in self.collected_fuzz_targets if t.nodeid == nodeid]
+        assert len(targets) == 1
+        target = targets[0]
+
+        # create a new FuzzTarget to put into self.targets, to avoid modifying
+        # collected_fuzz_targets at all
+        target = FuzzTarget(
+            test_fn=target._test_fn,
+            stuff=target._stuff,
+            database=target.database,
+            database_key=target.database_key,
+            wrapped_test=target.wrapped_test,
+            pytest_item=target.pytest_item,
+        )
+        self.targets.append(target)
+        self.event_dispatch[target.database_key].append(target)
 
     def on_event(self, listener_event: ListenerEventT) -> None:
         event = DatabaseEvent.from_event(listener_event)
@@ -283,10 +343,43 @@ class FuzzProcess:
         # the targets we actually want to run/fuzz
         return [t for t in self.targets if not t.has_found_failure]
 
+    def _maybe_add_targets(self) -> None:
+        # consider whether it's worthwhile to add more targets
+        active_nodeids = {target.nodeid for target in self.targets}
+        candidates = [nodeid for nodeid in self.nodeids if nodeid not in active_nodeids]
+        # TODO actually defer starting up targets here, based on worker lifetime
+        # and startup cost estimators here
+        for nodeid in candidates:
+            self.add_target(nodeid)
+
+    def _update_targets(self, nodeids: Sequence[str]) -> None:
+        # Update our nodeids and targets with new directives from the hub.
+        # * Nodes in both nodeids and self.targets are kept as-is
+        # * Nodes in nodeids but not self.targets are added to our available
+        #   nodeids, to potentially be added as targets later (by _maybe_add_targets)
+        # * Nodes in self.targets but not nodeids are evicted from our targets.
+        #   These are nodes that the hub has decided are better to hand off to
+        #   another process.
+        for target in self.targets.copy():
+            if target.nodeid not in nodeids:
+                self.targets.remove(target)
+                self.dropped_targets.append(target)
+                # we intentionally do not remove our event_dispatch listener
+                # here, because if we are ever told to pick up this dropped target
+                # again in the future, we still want its corpus and failure replay
+                # to be up to date from other workers.
+
+        self.nodeids = nodeids
+
     def start(self) -> None:
+        self.worker_start = time.perf_counter()
+        self.collected_fuzz_targets = collect_tests(self.pytest_args).fuzz_targets
         settings().database.add_listener(self.on_event)
 
         while True:
+            self._update_targets(self.shared_state["hub_state"]["nodeids"])
+            self._maybe_add_targets()
+
             if not self.valid_targets:
                 break
 
@@ -310,17 +403,104 @@ class FuzzProcess:
 
             # TODO we should scale this n up if our estimator expects that it will
             # take a long time to discover a new behavior, to reduce the overhead
-            # of switching.
+            # of switching targets.
             for _ in range(100):
                 target.run_one()
 
+            # give the hub an up-to-date estimator state
+            current_lifetime = time.perf_counter() - self.worker_start
+            worker_state = self.shared_state["worker_state"]
+            worker_state["current_lifetime"] = current_lifetime
+            worker_state["expected_lifetime"] = None
+            worker_state["nodeids"][target.nodeid] = {
+                "behavior_rates": None,
+            }
 
-def _fuzz(pytest_args: tuple[str, ...], nodeids: list[str]) -> None:
+
+class FuzzWorkerHub:
+    def __init__(
+        self,
+        *,
+        nodeids: Sequence[str],
+        pytest_args: Sequence[str],
+        n_processes: int,
+    ) -> None:
+        self.nodeids = nodeids
+        self.pytest_args = pytest_args
+        self.n_processes = n_processes
+
+        self.shared_states: list[Mapping] = []
+
+    def start(self) -> None:
+        processes: list[Process] = []
+
+        with Manager() as manager:
+            for _ in range(self.n_processes):
+                shared_state = manager.dict()
+                shared_state["hub_state"] = manager.dict()
+                shared_state["worker_state"] = manager.dict()
+                shared_state["worker_state"]["nodeids"] = manager.dict()
+                shared_state["worker_state"]["current_lifetime"] = 0.0
+                shared_state["worker_state"]["expected_lifetime"] = 0.0
+
+                process = Process(
+                    target=_start_worker,
+                    kwargs={
+                        "pytest_args": self.pytest_args,
+                        "shared_state": shared_state,
+                    },
+                )
+                processes.append(process)
+                self.shared_states.append(shared_state)
+
+            # rebalance once at the start to put the initial node assignments
+            # in the shared state
+            self._rebalance()
+            for process in processes:
+                process.start()
+
+            while True:
+                # rebalance automatically on an interval.
+                # We may want to check some condition more frequently than this,
+                # like "a process has no more nodes" (due to e.g. finding a
+                # failure). So we rebalance either once every n seconds, or whenever
+                # some worker needs a rebalancing.
+                time.sleep(60)
+                # if all our workers have exited, we should exit as well
+                if all(not process.is_alive() for process in processes):
+                    break
+
+                self._rebalance()
+
+    def _rebalance(self) -> None:
+        # rebalance the assignment of nodeids to workers, according to the
+        # up-to-date estimators from our workers.
+
+        assert len(self.shared_states) == self.n_processes
+        partitions = []
+        for i in range(self.n_processes):
+            # Round-robin for large test suites; all-on-all for tiny, etc.
+            nodeids: set[str] = set()
+            for ix in range(self.n_processes):
+                nodeids.update(
+                    nodeid for nodeid in self.nodeids[i + ix :: self.n_processes]
+                )
+                if len(nodeids) >= 10:  # enough to prioritize between
+                    break
+            partitions.append(nodeids)
+
+        for state, nodeids in zip(self.shared_states, partitions):
+            state["hub_state"]["nodeids"] = nodeids
+
+
+def _start_worker(
+    pytest_args: Sequence[str],
+    shared_state: Mapping,
+) -> None:
     """Collect and fuzz tests.
 
     Designed to be used inside a multiprocessing.Process started with the spawn()
     method - requires picklable arguments but works on Windows too.
     """
-    tests = [t for t in collect_tests(pytest_args).fuzz_targets if t.nodeid in nodeids]
-    process = FuzzProcess(tests)
+    process = FuzzWorker(pytest_args=pytest_args, shared_state=shared_state)
     process.start()
