@@ -53,8 +53,10 @@ def wait_for(condition, *, timeout=10, interval):
     )
 
 
-def wait_for_test_key(db):
-    keys = wait_for(lambda: list(db.fetch(test_keys_key)), interval=0.1)
+def wait_for_test_key(db, *, timeout=10):
+    keys = wait_for(
+        lambda: list(db.fetch(test_keys_key)), interval=0.1, timeout=timeout
+    )
     # assume we're only working with a single test
     assert len(keys) == 1
     return list(keys)[0]
@@ -184,17 +186,20 @@ def dashboard(
 
 
 @contextmanager
-def fuzz(*, n=1, dashboard=False, test_path=None, pytest_args=()):
-    args = [
-        "hypothesis",
-        "fuzz",
-        "-n",
-        str(n),
-        "--dashboard" if dashboard else "--no-dashboard",
-    ]
-    if test_path is not None:
-        args += ["--", str(test_path), *pytest_args]
-    process = subprocess.Popen(args, start_new_session=True)
+def fuzz(test_path, *, n=1, dashboard=False, pytest_args=()):
+    process = subprocess.Popen(
+        [
+            "hypothesis",
+            "fuzz",
+            "-n",
+            str(n),
+            "--dashboard" if dashboard else "--no-dashboard",
+            "--",
+            str(test_path),
+            *pytest_args,
+        ],
+        start_new_session=True,
+    )
 
     try:
         yield

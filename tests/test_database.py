@@ -21,7 +21,7 @@ def test_database_stores_reports_and_metadata_correctly(tmp_path):
     db = HypofuzzDatabase(DirectoryBasedExampleDatabase(db_dir))
     assert not list(db.fetch(test_keys_key))
 
-    with fuzz(test_path=test_dir):
+    with fuzz(test_dir):
         key = wait_for_test_key(db)
         previous_size = 0
         for _ in range(5):
@@ -127,13 +127,13 @@ def test_database_keys_incorporate_parametrization(tmp_path):
 
     # we split this to explicitly one-test-per-core to not rely on details of
     # node allocation across cores.
-    with fuzz(test_path=test_dir, pytest_args=["-k", "test_ints[1]"]):
+    with fuzz(test_dir, pytest_args=["-k", "test_ints[1]"]):
         wait_for(
             lambda: len(set(db_hypofuzz.fetch(test_keys_key))) == 1,
             interval=0.1,
         )
 
-    with fuzz(test_path=test_dir, pytest_args=["-k", "test_ints[2]"]):
+    with fuzz(test_dir, pytest_args=["-k", "test_ints[2]"]):
         # this will time out if the test keys are the same across parametrizations
         wait_for(
             lambda: len(set(db_hypofuzz.fetch(test_keys_key))) == 2,
@@ -161,7 +161,7 @@ def test_all_corpus_choices_have_observations(tmp_path):
     test_dir, db_dir = setup_test_code(tmp_path, BASIC_TEST_CODE)
     db = HypofuzzDatabase(DirectoryBasedExampleDatabase(db_dir))
 
-    with fuzz(test_path=test_dir):
+    with fuzz(test_dir):
         key = wait_for_test_key(db)
         wait_for(
             # 3 is arbitrary here
