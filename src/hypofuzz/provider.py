@@ -53,6 +53,7 @@ from hypofuzz.database import (
     ChoicesT,
     DatabaseEvent,
     DatabaseEventKey,
+    FailureState,
     HypofuzzDatabase,
     Observation,
     Phase,
@@ -102,7 +103,8 @@ def _should_save_timed_report(elapsed_time: float, last_saved_at: float) -> bool
 class ReplayPriority(IntEnum):
     FAILURE_SHRUNK = 0
     FAILURE_UNSHRUNK = 1
-    COVERING = 2
+    FAILURE_FIXED = 2
+    COVERING = 3
 
 
 @dataclass
@@ -191,15 +193,15 @@ class HypofuzzProvider(PrimitiveProvider):
 
         # restore our saved minimal covering corpus, as well as any failures to
         # replay.
-        for shrunk in [True, False]:
-            priority = (
-                ReplayPriority.FAILURE_SHRUNK
-                if shrunk
-                else ReplayPriority.FAILURE_UNSHRUNK
-            )
-            for choices in self.db.fetch_failures(self.database_key, shrunk=shrunk):
+        for state in [FailureState.SHRUNK, FailureState.UNSHRUNK, FailureState.FIXED]:
+            priority = {
+                FailureState.SHRUNK: ReplayPriority.FAILURE_SHRUNK,
+                FailureState.UNSHRUNK: ReplayPriority.FAILURE_UNSHRUNK,
+                FailureState.FIXED: ReplayPriority.FAILURE_FIXED,
+            }[state]
+            for choices in self.db.fetch_failures(self.database_key, state=state):
                 observation = self.db.fetch_failure_observation(
-                    self.database_key, choices
+                    self.database_key, choices, state=state
                 )
                 if observation is None:
                     continue
@@ -382,6 +384,54 @@ class HypofuzzProvider(PrimitiveProvider):
         assert observation.property == self.nodeid
         self.after_test_case(observation)
 
+    def downgrade_failure(
+        self, choices: ChoicesT, observation: Observation, *, state: FailureState
+    ) -> None:
+        """
+        Called when this worker did not reproduce a failure. We move SHRUNK
+        and UNSHRUNK failures to FIXED, and delete FIXED failures if it's been
+        more than 8 days.
+        """
+        assert self.db is not None
+        assert self.database_key is not None
+
+        # this failure didn't reproduce. It's either been fixed, is flaky,
+        # or is specific to the worker's environment (e.g. only fails on
+        # python 3.11, while this worker is on python 3.12).
+        # In any case, remove it from the db.
+
+        if state in [FailureState.SHRUNK, FailureState.UNSHRUNK]:
+            # We know whether this failure was shrunk or not as of when we
+            # took it out of the db (via replay_priority). But I'm not confident that
+            # it's not possible for another worker to move the same choice
+            # sequence from unshrunk to shrunk - and failures are rare +
+            # deletions cheap. Just try deleting from both.
+            for state in [FailureState.SHRUNK, FailureState.UNSHRUNK]:
+                self.db.delete_failure(
+                    self.database_key,
+                    choices,
+                    state=state,
+                )
+
+            # move it to the FIXED key so we still try it in the future
+            self.db.save_failure(
+                self.database_key, choices, observation, state=FailureState.FIXED
+            )
+
+        if (
+            state is FailureState.FIXED
+            and date.fromtimestamp(observation.run_start) + timedelta(days=8)
+            < date.today()
+        ):
+            # failures are hard to find, and shrunk ones even more so. If a failure
+            # does not reproduce, only delete it if it's been more than 8 days,
+            # so we don't accidentally delete a useful failure.
+            self.db.delete_failure(
+                self.database_key,
+                choices,
+                state=FailureState.SHRUNK,
+            )
+
     def after_test_case(self, observation: TestCaseObservation) -> None:
         assert self._state is not None
         assert self._state.branches is not None
@@ -407,34 +457,19 @@ class HypofuzzProvider(PrimitiveProvider):
         if status is not Status.INTERESTING and self._state.replay_priority in [
             ReplayPriority.FAILURE_SHRUNK,
             ReplayPriority.FAILURE_UNSHRUNK,
+            ReplayPriority.FAILURE_FIXED,
         ]:
-            # this failure didn't reproduce. It's either been fixed, is flaky,
-            # or is specific to the worker's environment (e.g. only fails on
-            # python 3.11, while this worker is on python 3.12).
-            # In any case, remove it from the db.
-            #
-            # We know whether this failure was shrunk or not as of when we
-            # took it out of the db (via replay_priority). But I'm not confident that
-            # it's not possible for another worker to move the same choice
-            # sequence from unshrunk to shrunk - and failures are rare +
-            # deletions cheap. Just try deleting from both.
             failure_observation = self._state.extra_queue_data
             assert failure_observation is not None
             assert isinstance(failure_observation, Observation)
-            # failures are hard to find, and shrunk ones even more so. If a failure
-            # does not reproduce, only delete it if it's been more than 8 days,
-            # so we don't accidentally delete a useful failure.
-            if (
-                date.fromtimestamp(failure_observation.run_start) + timedelta(days=8)
-                < date.today()
-            ):
-                for shrunk in [True, False]:
-                    self.db.delete_failure(
-                        self.database_key,
-                        self._state.choices,
-                        failure_observation,
-                        shrunk=shrunk,
-                    )
+            state = {
+                ReplayPriority.FAILURE_SHRUNK: FailureState.SHRUNK,
+                ReplayPriority.FAILURE_UNSHRUNK: FailureState.UNSHRUNK,
+                ReplayPriority.FAILURE_FIXED: FailureState.FIXED,
+            }[self._state.replay_priority]
+            self.downgrade_failure(
+                self._state.choices, failure_observation, state=state
+            )
 
         # TODO this is a real type error, we need to unify the Branch namedtuple
         # with the real usages of `behaviors` here

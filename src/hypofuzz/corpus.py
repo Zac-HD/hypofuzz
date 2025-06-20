@@ -21,7 +21,7 @@ from hypothesis.internal.conjecture.shrinker import Shrinker, sort_key as _sort_
 from hypothesis.internal.escalation import InterestingOrigin
 from hypothesis.internal.observability import TestCaseObservation
 
-from hypofuzz.database import ChoicesT, HypofuzzDatabase, Observation
+from hypofuzz.database import ChoicesT, FailureState, HypofuzzDatabase, Observation
 
 if TYPE_CHECKING:
     from typing import TypeAlias
@@ -240,7 +240,7 @@ class Corpus:
                     self.database_key,
                     choices,
                     Observation.from_hypothesis(observation),
-                    shrunk=False,
+                    state=FailureState.UNSHRUNK,
                 )
 
                 if previous is not None:
@@ -252,8 +252,7 @@ class Corpus:
                     self._db.delete_failure(
                         self.database_key,
                         previous_choices,
-                        Observation.from_hypothesis(previous),
-                        shrunk=False,
+                        state=FailureState.UNSHRUNK,
                     )
                 return True
 

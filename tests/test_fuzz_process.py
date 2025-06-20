@@ -6,7 +6,7 @@ from hypothesis import given, strategies as st
 from hypothesis.database import InMemoryExampleDatabase
 from hypothesis.internal.conjecture.data import Status
 
-from hypofuzz.database import HypofuzzDatabase
+from hypofuzz.database import FailureState, HypofuzzDatabase
 from hypofuzz.hypofuzz import FuzzTarget
 
 
@@ -43,9 +43,11 @@ def test_fuzz_one_process_explain_mode():
         fp.run_one()
 
     assert fp.provider.status_counts[Status.INTERESTING] == 1
-    failures = list(db.fetch_failures(fp.database_key, shrunk=True))
+    failures = list(db.fetch_failures(fp.database_key, state=FailureState.SHRUNK))
     assert len(failures) == 1
-    observation = db.fetch_failure_observation(fp.database_key, failures[0])
+    observation = db.fetch_failure_observation(
+        fp.database_key, failures[0], state=FailureState.SHRUNK
+    )
     assert "CustomError" in observation.metadata.traceback
     expected = textwrap.dedent(
         """
