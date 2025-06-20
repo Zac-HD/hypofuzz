@@ -44,6 +44,7 @@ from hypofuzz.corpus import (
 from hypofuzz.database import (
     ChoicesT,
     DatabaseEvent,
+    FailureState,
     HypofuzzDatabase,
     Observation,
     Phase,
@@ -198,13 +199,15 @@ class FuzzTarget:
             # move this failure from the unshrunk to the shrunk key.
             assert observation is not None
             self.database.delete_failure(
-                self.database_key, shrinker.choices, observation=None, shrunk=False
+                self.database_key,
+                shrinker.choices,
+                state=FailureState.UNSHRUNK,
             )
             self.database.save_failure(
                 self.database_key,
                 shrinker.choices,
                 Observation.from_hypothesis(observation),
-                shrunk=True,
+                state=FailureState.SHRUNK,
             )
 
         # NOTE: this distillation logic works fine, it's just discovering new coverage

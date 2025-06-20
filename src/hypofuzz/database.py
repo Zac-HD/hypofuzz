@@ -10,6 +10,7 @@ from functools import lru_cache
 from typing import (
     TYPE_CHECKING,
     Any,
+    Callable,
     Literal,
     Optional,
     Protocol,
@@ -177,11 +178,16 @@ class Phase(Enum):
 
 class DatabaseEventKey(Enum):
     REPORT = "report"
-    FAILURE_OBSERVATION = "failure_observation"
+    CORPUS = "corpus"
+    FAILURE_SHRUNK = "failure_shrunk"
+    FAILURE_UNSHRUNK = "failure_unshrunk"
+    FAILURE_FIXED = "failure_fixed"
+
     ROLLING_OBSERVATION = "rolling_observation"
     CORPUS_OBSERVATION = "corpus_observation"
-    CORPUS = "corpus"
-    FAILURE = "failure"
+    FAILURE_SHRUNK_OBSERVATION = "failure_shrunk_observation"
+    FAILURE_UNSHRUNK_OBSERVATION = "failure_unshrunk_observation"
+    FAILURE_FIXED_OBSERVATION = "failure_fixed_observation"
 
 
 @dataclass(frozen=True)
@@ -198,35 +204,82 @@ class DatabaseEvent:
     @classmethod
     def from_event(cls, event: ListenerEventT, /) -> Optional["DatabaseEvent"]:
         # placate mypy
-        key: Any
+        full_key: Any
         value: Any
         parse: Any
-        (event_type, (key, value)) = event
-        if b"." not in key or len(key) <= cls.DATABASE_KEY_LENGTH:
+        (event_type, (full_key, value)) = event
+        if b"." not in full_key or len(full_key) <= cls.DATABASE_KEY_LENGTH:
             return None
 
         # indexing into bytes converts to int
-        assert key[cls.DATABASE_KEY_LENGTH] == ord("."), key
-        database_key = key[: cls.DATABASE_KEY_LENGTH]
-        if key.endswith(reports_key):
-            key = DatabaseEventKey.REPORT
-            parse = Report.from_json
-        elif key.endswith(corpus_key):
-            key = DatabaseEventKey.CORPUS
-            parse = choices_from_bytes
-        elif key.endswith(failures_key):
-            key = DatabaseEventKey.FAILURE
-            parse = choices_from_bytes
-        elif key.endswith(observations_key):
-            parse = Observation.from_json
-            key = DatabaseEventKey.ROLLING_OBSERVATION
-        elif is_failure_observation_key(key):
-            key = DatabaseEventKey.FAILURE_OBSERVATION
-            parse = Observation.from_json
-        elif is_corpus_observation_key(key):
-            key = DatabaseEventKey.CORPUS_OBSERVATION
-            parse = Observation.from_json
-        else:
+        assert full_key[cls.DATABASE_KEY_LENGTH] == ord("."), full_key
+        database_key = full_key[: cls.DATABASE_KEY_LENGTH]
+
+        event_matchers: list[tuple[Callable, DatabaseEventKey, Callable]] = [
+            (
+                lambda: full_key.endswith(reports_key),
+                DatabaseEventKey.REPORT,
+                Report.from_json,
+            ),
+            (
+                lambda: full_key.endswith(corpus_key),
+                DatabaseEventKey.CORPUS,
+                choices_from_bytes,
+            ),
+            (
+                lambda: full_key
+                == failure_key(database_key, state=FailureState.SHRUNK),
+                DatabaseEventKey.FAILURE_SHRUNK,
+                choices_from_bytes,
+            ),
+            (
+                lambda: full_key
+                == failure_key(database_key, state=FailureState.UNSHRUNK),
+                DatabaseEventKey.FAILURE_UNSHRUNK,
+                choices_from_bytes,
+            ),
+            (
+                lambda: full_key == failure_key(database_key, state=FailureState.FIXED),
+                DatabaseEventKey.FAILURE_FIXED,
+                choices_from_bytes,
+            ),
+            (
+                lambda: is_corpus_observation_key(full_key),
+                DatabaseEventKey.ROLLING_OBSERVATION,
+                Observation.from_json,
+            ),
+            (
+                lambda: full_key.endswith(rolling_observations_key),
+                DatabaseEventKey.ROLLING_OBSERVATION,
+                Observation.from_json,
+            ),
+            (
+                lambda: is_failure_observation_key(full_key, state=FailureState.SHRUNK),
+                DatabaseEventKey.FAILURE_SHRUNK_OBSERVATION,
+                Observation.from_json,
+            ),
+            (
+                lambda: is_failure_observation_key(
+                    full_key, state=FailureState.UNSHRUNK
+                ),
+                DatabaseEventKey.FAILURE_UNSHRUNK_OBSERVATION,
+                Observation.from_json,
+            ),
+            (
+                lambda: is_failure_observation_key(full_key, state=FailureState.FIXED),
+                DatabaseEventKey.FAILURE_FIXED_OBSERVATION,
+                Observation.from_json,
+            ),
+        ]
+
+        matched_key = None
+        for key_matches, event_key, parse_func in event_matchers:
+            if key_matches():
+                matched_key = event_key
+                parse = parse_func
+                break
+
+        if matched_key is None:
             return None
 
         if event_type == "save":
@@ -242,7 +295,7 @@ class DatabaseEvent:
         return DatabaseEvent(
             type=event_type,
             database_key=database_key,
-            key=key,
+            key=matched_key,
             value=value,
         )
 
@@ -388,7 +441,7 @@ class ReportWithDiff(Report):
 
 test_keys_key = b"hypofuzz.test_keys"
 reports_key = b".hypofuzz.reports"
-observations_key = b".hypofuzz.observations"
+rolling_observations_key = b".hypofuzz.observations"
 corpus_key = b".hypofuzz.corpus"
 worker_identity_key = b".hypofuzz.worker_identity"
 failures_key = b".hypofuzz.failures"
@@ -398,10 +451,11 @@ def get_worker_identity_key(key: bytes, uuid: str) -> bytes:
     return key + worker_identity_key + b"." + uuid.encode("ascii")
 
 
-# `choices` required to be hashable for @lru_cache
 @lru_cache(maxsize=512)
 def corpus_observation_key(
-    key: bytes, choices: Union[HashableIterable[ChoiceT], bytes]
+    key: bytes,
+    # `choices` required to be hashable for @lru_cache
+    choices: Union[HashableIterable[ChoiceT], bytes],
 ) -> bytes:
     choices_bytes = choices if isinstance(choices, bytes) else choices_to_bytes(choices)
     return (
@@ -409,30 +463,60 @@ def corpus_observation_key(
     )
 
 
-def failure_key(key: bytes, *, shrunk: bool) -> bytes:
-    return key + (b"" if shrunk else b".secondary")
+class FailureState(Enum):
+    SHRUNK = "shrunk"
+    UNSHRUNK = "unshrunk"
+    FIXED = "fixed"
+
+
+def _failure_postfix(*, state: FailureState) -> bytes:
+    # note that the postfixes here are different from failure_observation_key,
+    # because the failure choice sequence keys have to line up with hypothesis.
+    return {
+        FailureState.SHRUNK: b"",
+        FailureState.UNSHRUNK: b".secondary",
+        FailureState.FIXED: b".fixed",
+    }[state]
+
+
+def failure_key(key: bytes, *, state: FailureState) -> bytes:
+    return key + _failure_postfix(state=state)
+
+
+def _failure_observation_postfix(*, state: FailureState) -> bytes:
+    return (
+        b"."
+        + {
+            FailureState.SHRUNK: b"shrunk",
+            FailureState.UNSHRUNK: b"unshrunk",
+            FailureState.FIXED: b"fixed",
+        }[state]
+    )
 
 
 @lru_cache(maxsize=512)
 def failure_observation_key(
-    key: bytes, choices: Union[HashableIterable[ChoiceT], bytes]
+    key: bytes, choices: Union[HashableIterable[ChoiceT], bytes], state: FailureState
 ) -> bytes:
     choices_bytes = choices if isinstance(choices, bytes) else choices_to_bytes(choices)
     return (
         key
         + failures_key
+        + _failure_observation_postfix(state=state)
         + b"."
         + hashlib.sha1(choices_bytes).digest()
         + b".observation"
     )
 
 
-def is_failure_observation_key(key: bytes) -> bool:
-    return key.endswith(b".observation") and failures_key in key
+def is_failure_observation_key(key: bytes, *, state: FailureState) -> bool:
+    return (
+        failures_key + _failure_observation_postfix(state=state)
+    ) in key and key.endswith(b".observation")
 
 
 def is_corpus_observation_key(key: bytes) -> bool:
-    return key.endswith(b".observation") and corpus_key in key
+    return corpus_key in key and key.endswith(b".observation")
 
 
 class HypofuzzDatabase:
@@ -489,17 +573,17 @@ class HypofuzzDatabase:
             )
 
         obs_buffer.append(observation)
-        self.save(key + observations_key, self._encode(observation))
+        self.save(key + rolling_observations_key, self._encode(observation))
 
         # If we have more elements in the buffer than we need, clear them out.
         while len(obs_buffer) > discard_over:
             self.delete_observation(key, obs_buffer.popleft())
 
     def delete_observation(self, key: bytes, observation: Observation) -> None:
-        self.delete(key + observations_key, self._encode(observation))
+        self.delete(key + rolling_observations_key, self._encode(observation))
 
     def fetch_observations(self, key: bytes) -> Iterable[Observation]:
-        for value in self.fetch(key + observations_key):
+        for value in self.fetch(key + rolling_observations_key):
             if observation := Observation.from_json(value):
                 yield observation
 
@@ -590,52 +674,62 @@ class HypofuzzDatabase:
         choices: ChoicesT,
         observation: Optional[Observation],
         *,
-        shrunk: bool,
+        state: FailureState,
     ) -> None:
-        self.save(failure_key(key, shrunk=shrunk), choices_to_bytes(choices))
+        self.save(failure_key(key, state=state), choices_to_bytes(choices))
 
         if observation is not None:
             self._check_observation(observation)
-            existing_observations = list(self.fetch_failure_observations(key, choices))
-            self.save(failure_observation_key(key, choices), self._encode(observation))
+            existing_observations = list(
+                self.fetch_failure_observations(key, choices, state=state)
+            )
+            self.save(
+                failure_observation_key(key, choices, state=state),
+                self._encode(observation),
+            )
             for observation in existing_observations:
                 self._check_observation(observation)
                 self.delete(
-                    failure_observation_key(key, choices), self._encode(observation)
+                    failure_observation_key(key, choices, state=state),
+                    self._encode(observation),
                 )
 
     def delete_failure(
         self,
         key: bytes,
         choices: ChoicesT,
-        observation: Optional[Observation],
         *,
-        shrunk: bool,
+        state: FailureState,
     ) -> None:
-        self.delete(failure_key(key, shrunk=shrunk), choices_to_bytes(choices))
-        if observation is not None:
+        self.delete(failure_key(key, state=state), choices_to_bytes(choices))
+        for observation in list(
+            self.fetch_failure_observations(key, choices, state=state)
+        ):
             self._check_observation(observation)
             self.delete(
-                failure_observation_key(key, choices), self._encode(observation)
+                failure_observation_key(key, choices, state=state),
+                self._encode(observation),
             )
 
-    def fetch_failures(self, key: bytes, *, shrunk: bool) -> Iterable[ChoicesT]:
-        for value in self.fetch(failure_key(key, shrunk=shrunk)):
+    def fetch_failures(self, key: bytes, *, state: FailureState) -> Iterable[ChoicesT]:
+        for value in self.fetch(failure_key(key, state=state)):
             if (choices := choices_from_bytes(value)) is not None:
                 yield choices
 
     def fetch_failure_observation(
-        self, key: bytes, choices: ChoicesT
+        self, key: bytes, choices: ChoicesT, *, state: FailureState
     ) -> Optional[Observation]:
         try:
-            return next(iter(self.fetch_failure_observations(key, choices)))
+            return next(
+                iter(self.fetch_failure_observations(key, choices, state=state))
+            )
         except StopIteration:
             return None
 
     def fetch_failure_observations(
-        self, key: bytes, choices: ChoicesT
+        self, key: bytes, choices: ChoicesT, *, state: FailureState
     ) -> Iterable[Observation]:
-        for value in self.fetch(failure_observation_key(key, choices)):
+        for value in self.fetch(failure_observation_key(key, choices, state=state)):
             if observation := Observation.from_json(value):
                 yield observation
 

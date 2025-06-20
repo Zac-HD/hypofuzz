@@ -8,7 +8,7 @@ from hypothesis.database import (
     choices_from_bytes,
 )
 
-from hypofuzz.database import HypofuzzDatabase, Phase, test_keys_key
+from hypofuzz.database import FailureState, HypofuzzDatabase, Phase, test_keys_key
 from hypofuzz.hypofuzz import FuzzTarget
 
 
@@ -103,7 +103,7 @@ def test_adds_failures_to_database():
     for _ in range(500):
         process.run_one()
 
-    failures = list(db.fetch_failures(process.database_key, shrunk=True))
+    failures = list(db.fetch_failures(process.database_key, state=FailureState.SHRUNK))
     failures_hypothesis = list(db._db.fetch(process.database_key))
     assert len(failures) == 1
     assert len(failures_hypothesis) == 1
@@ -111,7 +111,9 @@ def test_adds_failures_to_database():
     assert choices_from_bytes(failures_hypothesis[0]) == (10,)
 
     # we should have fully shrunk the failure
-    assert not list(db.fetch_failures(process.database_key, shrunk=False))
+    assert not list(
+        db.fetch_failures(process.database_key, state=FailureState.UNSHRUNK)
+    )
 
 
 def test_database_keys_incorporate_parametrization(tmp_path):

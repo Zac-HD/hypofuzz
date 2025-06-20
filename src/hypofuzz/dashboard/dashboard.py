@@ -45,6 +45,7 @@ from hypofuzz.dashboard.test import Test
 from hypofuzz.database import (
     DatabaseEvent,
     DatabaseEventKey,
+    FailureState,
     HypofuzzDatabase,
     HypofuzzEncoder,
     Observation,
@@ -198,7 +199,10 @@ class OverviewWebsocket(HypofuzzWebsocket):
                     "reports": [dashboard_report(value)],
                 }
                 await self.send_event(event)
-            if key is DatabaseEventKey.FAILURE:
+            if key in [
+                DatabaseEventKey.FAILURE_SHRUNK_OBSERVATION,
+                DatabaseEventKey.FAILURE_UNSHRUNK_OBSERVATION,
+            ]:
                 assert isinstance(value, Observation)
                 event = {
                     "type": DashboardEventType.SET_FAILURE,
@@ -211,7 +215,11 @@ class OverviewWebsocket(HypofuzzWebsocket):
             # TODO when we support multiple failures, we'll need to send the
             # specific observation that was deleted here, either via a
             # DELETE_OBSERVATION or a SET_FAILURES (note the plural)
-            if key is DatabaseEventKey.FAILURE_OBSERVATION:
+            if key in [
+                DatabaseEventKey.FAILURE_SHRUNK_OBSERVATION,
+                DatabaseEventKey.FAILURE_UNSHRUNK_OBSERVATION,
+                DatabaseEventKey.FAILURE_FIXED_OBSERVATION,
+            ]:
                 event = {
                     "type": DashboardEventType.SET_FAILURE,
                     "nodeid": value.property,
@@ -283,7 +291,10 @@ class TestWebsocket(HypofuzzWebsocket):
                     "worker_uuid": value.worker_uuid,
                     "reports": [dashboard_report(value)],
                 }
-            elif key is DatabaseEventKey.FAILURE_OBSERVATION:
+            elif key in [
+                DatabaseEventKey.FAILURE_SHRUNK_OBSERVATION,
+                DatabaseEventKey.FAILURE_UNSHRUNK_OBSERVATION,
+            ]:
                 assert isinstance(value, Observation)
                 nodeid = value.property
                 event = {
@@ -308,15 +319,13 @@ class TestWebsocket(HypofuzzWebsocket):
                     "observations": [dashboard_observation(value)],
                 }
             else:
-                # assert so I don't forget a case
-                assert key in [
-                    DatabaseEventKey.FAILURE_OBSERVATION,
-                    DatabaseEventKey.CORPUS,
-                ], key
                 return
 
         if event_type == "delete":
-            if key is DatabaseEventKey.FAILURE_OBSERVATION:
+            if key in [
+                DatabaseEventKey.FAILURE_SHRUNK_OBSERVATION,
+                DatabaseEventKey.FAILURE_UNSHRUNK_OBSERVATION,
+            ]:
                 nodeid = value.property
                 event = {
                     "type": DashboardEventType.SET_FAILURE,
@@ -569,7 +578,10 @@ async def handle_event(receive_channel: MemoryReceiveChannel[ListenerEventT]) ->
                 if event.value.nodeid not in TESTS:
                     continue
                 TESTS[event.value.nodeid].add_report(event.value)
-            elif event.key is DatabaseEventKey.FAILURE_OBSERVATION:
+            elif event.key in [
+                DatabaseEventKey.FAILURE_SHRUNK_OBSERVATION,
+                DatabaseEventKey.FAILURE_UNSHRUNK_OBSERVATION,
+            ]:
                 if event.value.property not in TESTS:
                     continue
                 nodeid = event.value.property
@@ -598,7 +610,10 @@ async def handle_event(receive_channel: MemoryReceiveChannel[ListenerEventT]) ->
         # we send to the websocket .on_event method is computed here and is specific
         # to each event type.
         if event.type == "delete":
-            if event.key is DatabaseEventKey.FAILURE_OBSERVATION:
+            if event.key in [
+                DatabaseEventKey.FAILURE_SHRUNK_OBSERVATION,
+                DatabaseEventKey.FAILURE_UNSHRUNK_OBSERVATION,
+            ]:
                 if event.database_key not in TESTS_BY_KEY:
                     continue
                 # we know a failure was just deleted from this test, but not which
@@ -612,7 +627,11 @@ async def handle_event(receive_channel: MemoryReceiveChannel[ListenerEventT]) ->
                     test.failure = None
                     await broadcast_event(
                         "delete",
-                        DatabaseEventKey.FAILURE_OBSERVATION,
+                        # this event type isn't quite right (we don't know it's
+                        # shrunk vs unshrunk), but the dashboard doesn't know
+                        # the different for now. TODO refactor properly when we
+                        # display shrinking state / multiple failures
+                        DatabaseEventKey.FAILURE_SHRUNK_OBSERVATION,
                         previous_failure,
                     )
 
@@ -620,22 +639,27 @@ async def handle_event(receive_channel: MemoryReceiveChannel[ListenerEventT]) ->
 def get_failure_observations(database_key: bytes) -> dict[str, Observation]:
     assert db is not None
 
-    failure_observations = {}
-    for maybe_observed_choices in (
-        *sorted(db.fetch_failures(database_key, shrunk=True), key=len),
-        *sorted(db.fetch_failures(database_key, shrunk=False), key=len),
-    ):
-        if observation := db.fetch_failure_observation(
-            database_key, maybe_observed_choices
+    def _failure_observations(state: FailureState) -> dict[str, Observation]:
+        failure_observations: dict[str, Observation] = {}
+        for maybe_observed_choices in sorted(
+            db.fetch_failures(database_key, state=state), key=len
         ):
-            if observation.status is not ObservationStatus.FAILED:
-                # This should never happen, but database corruption *can*.
-                continue  # pragma: no cover
-            # For failures, Hypothesis records the interesting_origin string
-            # as the status_reason, which is how we dedupe errors upstream.
-            if observation.status_reason not in failure_observations:
-                failure_observations[observation.status_reason] = observation
-    return failure_observations
+            if observation := db.fetch_failure_observation(
+                database_key, maybe_observed_choices, state=state
+            ):
+                if observation.status is not ObservationStatus.FAILED:
+                    # This should never happen, but database corruption *can*.
+                    continue  # pragma: no cover
+                # For failures, Hypothesis records the interesting_origin string
+                # as the status_reason, which is how we dedupe errors upstream.
+                if observation.status_reason not in failure_observations:
+                    failure_observations[observation.status_reason] = observation
+
+        return failure_observations
+
+    return _failure_observations(FailureState.SHRUNK) | _failure_observations(
+        FailureState.UNSHRUNK
+    )
 
 
 def _load_initial_state(fuzz_target: FuzzTarget) -> None:

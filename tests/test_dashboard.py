@@ -86,6 +86,6 @@ def test_dashboard_failure(tmp_path):
         # but if we run the worker again, the failure disappears
         with fuzz(test_dir):
             wait_for(
-                lambda: (dash.state()["test_a.py::test_maybe_fail"]["failure"] is None),
+                lambda: dash.state()["test_a.py::test_maybe_fail"]["failure"] is None,
                 interval=0.25,
             )
