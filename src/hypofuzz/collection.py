@@ -6,11 +6,10 @@ import traceback
 from collections.abc import Iterable
 from contextlib import redirect_stdout
 from dataclasses import dataclass
-from inspect import signature
-from typing import TYPE_CHECKING, Any, Optional, get_type_hints
+from typing import TYPE_CHECKING, Any, Optional
 
 import pytest
-from _pytest.nodes import Item, Node
+from _pytest.nodes import Item
 from _pytest.skipping import evaluate_condition
 from hypothesis import settings
 from hypothesis.database import BackgroundWriteDatabase
@@ -100,58 +99,9 @@ class _ItemsCollector:
                 self._skip_because("xfail", item.nodeid)
                 continue
 
-            # If the test takes a fixture, we skip it - the fuzzer doesn't have
-            # pytest scopes, so we just can't support them.  TODO: note skips.
-            manager = item._request._fixturemanager
-            fixtureinfo = manager.getfixtureinfo(
-                node=item, func=item.function, cls=None
-            )
-
-            # from pytest 8.3 or thereabouts
-            pytest83 = get_type_hints(manager._getautousenames).get("node") == Node
-            autouse_names = set(
-                manager._getautousenames(item if pytest83 else item.nodeid)  # type: ignore
-            )
-
-            # However, autouse fixtures are ubiquitous enough that we'll skip them;
-            # until we get full pytest compatibility it's an expedient approximation.
-            # The relevant internals changed in Pytest 8.0, so handle both cases...
-            if "fixturenames" not in signature(manager.getfixtureclosure).parameters:
-                # pytest ~8
-                all_autouse_, _ = manager.getfixtureclosure(
-                    item, autouse_names, ignore_args=set()  # type: ignore
-                )
-            else:
-                # pytest ~6-7
-                _, all_autouse_, _ = manager.getfixtureclosure(autouse_names, item)  # type: ignore
-
-            all_autouse = set(all_autouse_)
             # from @pytest.mark.parametrize. Pytest gives us the params and their
             # values directly, so we can pass them as extra kwargs to FuzzTarget.
-            params = item.callspec.params if hasattr(item, "callspec") else {}
-            param_names = set(params)
-            extra_kw = params
-
-            # Skip any test which:
-            # - directly requests a non autouse fixture, or
-            # - requests any fixture (in its transitive closure) that isn't autouse
-            #
-            # We check both to handle the case where a function directly requests
-            # a non autouse fixture, *and* that same fixture is requested by an
-            # autouse fixture. This function should not be collected.
-            #
-            # We also ignore any arguments from @pytest.mark.parametrize, which we know how to handle.
-            if (
-                names := set(fixtureinfo.initialnames).difference(
-                    autouse_names | param_names
-                )
-            ) or (
-                names := set(fixtureinfo.name2fixturedefs).difference(
-                    all_autouse | param_names
-                )
-            ):
-                self._skip_because("fixture", item.nodeid, {"fixtures": names})
-                continue
+            extra_kwargs = item.callspec.params if hasattr(item, "callspec") else {}
 
             if (
                 test_database := getattr(
@@ -172,7 +122,7 @@ class _ItemsCollector:
             try:
                 if hasattr(item.obj, "_hypothesis_state_machine_class"):
                     assert (
-                        extra_kw == {}
+                        extra_kwargs == {}
                     ), "Not possible for RuleBasedStateMachine.TestCase to be parametrized"
                     runTest = item.obj
                     StateMachineClass = runTest._hypothesis_state_machine_class
@@ -189,7 +139,6 @@ class _ItemsCollector:
                         # settings are ignored by hypofuzz).
                         settings=runTest.__self__.settings if pytest8 else None,
                     )
-                    extra_kw = {"factory": StateMachineClass}
                 else:
                     # our pytest plugin would normally add this. Necessary to
                     # distinguish pytest.mark.parametrize.
@@ -198,7 +147,10 @@ class _ItemsCollector:
                     )
                     target = item.obj
                 fuzz = FuzzTarget.from_hypothesis_test(
-                    target, database=hypofuzz_db, extra_kw=extra_kw, pytest_item=item
+                    target,
+                    database=hypofuzz_db,
+                    extra_kwargs=extra_kwargs,
+                    pytest_item=item,
                 )
             except Exception as e:
                 self._skip_because(
