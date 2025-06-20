@@ -23,11 +23,36 @@ import { TestPatches } from "../components/TestPatches"
 import { Tooltip } from "../components/Tooltip"
 import { useData } from "../context/DataProvider"
 import { Tyche } from "../tyche/Tyche"
+import { Failure } from "../types/dashboard"
 import { fetchAvailablePatches } from "../utils/api"
 import { getTestStats } from "../utils/testStats"
 import { reHighlight } from "../utils/utils"
 
 hljs.registerLanguage("python", python)
+
+function FailureRow({ failure }: { failure: Failure }) {
+  return (
+    <div className="test-failure">
+      <h2>Failure</h2>
+      <div className="test-failure__item">
+        <h3>Call</h3>
+        <pre>
+          <code className="language-python">
+            {failure.observation.metadata.get("reproduction_decorator") +
+              "\n" +
+              failure.observation.representation}
+          </code>
+        </pre>
+        <h3>Traceback</h3>
+        <pre>
+          <code className="language-python">
+            {failure.observation.metadata.get("traceback")}
+          </code>
+        </pre>
+      </div>
+    </div>
+  )
+}
 
 export function TestPage() {
   const { nodeid } = useParams<{ nodeid: string }>()
@@ -47,7 +72,7 @@ export function TestPage() {
     if (test) {
       reHighlight(containerRef)
     }
-  }, [test?.failure])
+  }, [test?.failures])
 
   if (!nodeid || !test) {
     return <div>Test not found</div>
@@ -174,27 +199,9 @@ export function TestPage() {
         </div>
       </div>
       <CoverageGraph tests={new Map([[nodeid, test]])} />
-      {test.failure && (
-        <div className="test-failure">
-          <h2>Failure</h2>
-          <div className="test-failure__item">
-            <h3>Call</h3>
-            <pre>
-              <code className="language-python">
-                {test.failure.metadata.get("reproduction_decorator") +
-                  "\n" +
-                  test.failure.representation}
-              </code>
-            </pre>
-            <h3>Traceback</h3>
-            <pre>
-              <code className="language-python">
-                {test.failure.metadata.get("traceback")}
-              </code>
-            </pre>
-          </div>
-        </div>
-      )}
+      {Array.from(test.failures.values()).map(failure => (
+        <FailureRow failure={failure} />
+      ))}
       <Tyche test={test} />
       {nodeidsWithPatches?.includes(nodeid) && (
         <div className="card">

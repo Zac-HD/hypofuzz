@@ -10,7 +10,7 @@ import React, {
 
 import { ProgressBar } from "../components/ProgressBar"
 import { NOT_PRESENT_STRING, PRESENT_STRING } from "../tyche/Tyche"
-import { Observation, Report, Test } from "../types/dashboard"
+import { Failure, FailureState, Observation, Report, Test } from "../types/dashboard"
 import { useNotification } from "./NotificationProvider"
 
 interface DataContextType {
@@ -30,7 +30,8 @@ enum DashboardEventType {
   ADD_TESTS = 2,
   ADD_REPORTS = 3,
   ADD_OBSERVATIONS = 4,
-  SET_FAILURE = 5,
+  ADD_FAILURES = 5,
+  SET_FAILURES = 6,
 }
 
 type TestsAction =
@@ -44,7 +45,7 @@ type TestsAction =
       tests: {
         database_key: string
         nodeid: string
-        failure: Observation | null
+        failures: Map<string, Failure>
       }[]
     }
   | {
@@ -54,9 +55,9 @@ type TestsAction =
       reports: Report[]
     }
   | {
-      type: DashboardEventType.SET_FAILURE
+      type: DashboardEventType.ADD_FAILURES
       nodeid: string
-      failure: Observation | null
+      failures: Map<string, Failure>
     }
   | {
       type: DashboardEventType.ADD_OBSERVATIONS
@@ -116,7 +117,7 @@ function testsReducer(
     if (newState.has(nodeid)) {
       return newState.get(nodeid)!
     } else {
-      const test = new Test(null, nodeid, [], [], null, new Map())
+      const test = new Test(null, nodeid, [], [], new Map(), new Map())
       newState.set(test.nodeid, test)
       return test
     }
@@ -129,10 +130,12 @@ function testsReducer(
 
     case DashboardEventType.ADD_TESTS: {
       const { tests } = action
-      for (const { database_key, nodeid, failure } of tests) {
+      for (const { database_key, nodeid, failures } of tests) {
         const test = getOrCreateTest(nodeid)
         test.database_key = database_key
-        test.failure = failure ? Observation.fromJson(failure) : null
+        failures.forEach((failure, interesting_origin) => {
+          test.failures.set(interesting_origin, failure)
+        })
       }
       return newState
     }
@@ -146,10 +149,12 @@ function testsReducer(
       return newState
     }
 
-    case DashboardEventType.SET_FAILURE: {
-      const { nodeid, failure } = action
+    case DashboardEventType.ADD_FAILURES: {
+      const { nodeid, failures } = action
       const test = getOrCreateTest(nodeid)
-      test.failure = failure
+      failures.forEach((failure, interesting_origin) => {
+        test.failures.set(interesting_origin, failure)
+      })
       return newState
     }
 
@@ -224,7 +229,7 @@ export function DataProvider({ children }: DataProviderProps) {
                 {
                   database_key: testData.database_key,
                   nodeid: nodeid,
-                  failure: testData.failure,
+                  failures: testData.failures,
                 },
               ],
             })
@@ -334,7 +339,12 @@ export function DataProvider({ children }: DataProviderProps) {
             tests: data.tests.map((test: any) => ({
               database_key: test.database_key,
               nodeid: test.nodeid,
-              failure: test.failure,
+              failures: new Map(
+                Object.entries(test.failures).map(([key, value]) => [
+                  key,
+                  Failure.fromJson(value),
+                ]),
+              ),
             })),
           })
           break
@@ -362,11 +372,16 @@ export function DataProvider({ children }: DataProviderProps) {
           break
         }
 
-        case DashboardEventType.SET_FAILURE: {
+        case DashboardEventType.ADD_FAILURES: {
           dispatch({
-            type: DashboardEventType.SET_FAILURE,
+            type: DashboardEventType.ADD_FAILURES,
             nodeid: data.nodeid,
-            failure: data.failure ? Observation.fromJson(data.failure) : null,
+            failures: new Map(
+              Object.entries(data.failures).map(([key, value]) => [
+                key,
+                Failure.fromJson(value),
+              ]),
+            ),
           })
           break
         }

@@ -6,6 +6,25 @@ abstract class Dataclass<T> {
   }
 }
 
+export enum FailureState {
+  SHRUNK = "shrunk",
+  UNSHRUNK = "unshrunk",
+  FIXED = "fixed",
+}
+
+export class Failure extends Dataclass<Failure> {
+  constructor(
+    public state: FailureState,
+    public observation: Observation,
+  ) {
+    super()
+  }
+
+  static fromJson(data: any): Failure {
+    return new Failure(data.state, Observation.fromJson(data.observation))
+  }
+}
+
 export class StatusCounts extends Dataclass<StatusCounts> {
   constructor(
     public counts: Map<Status, number> = new Map([
@@ -216,7 +235,7 @@ export class Test extends Dataclass<Test> {
     public nodeid: string,
     public rolling_observations: Observation[],
     public corpus_observations: Observation[],
-    public failure: Observation | null,
+    public failures: Map<string, Failure>,
     public reports_by_worker: Map<string, Report[]>,
   ) {
     super()
@@ -248,7 +267,12 @@ export class Test extends Dataclass<Test> {
       // observations will be updated later by another websocket event
       [],
       [],
-      data.failure ? Observation.fromJson(data.failure) : null,
+      new Map(
+        Object.entries(data.failures).map(([key, value]) => [
+          key,
+          Failure.fromJson(value),
+        ]),
+      ),
       new Map(
         Object.entries(data.reports_by_worker).map(([key, value]) => [
           key,
@@ -350,7 +374,7 @@ export class Test extends Dataclass<Test> {
   }
 
   get status() {
-    if (this.failure) {
+    if (this.failures.size > 0) {
       return TestStatus.FAILED
     }
     if (this.linear_reports.length === 0) {

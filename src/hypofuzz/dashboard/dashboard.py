@@ -21,6 +21,15 @@ from trio import MemoryReceiveChannel
 
 from hypofuzz.collection import CollectionResult
 from hypofuzz.dashboard.api import api_routes
+from hypofuzz.dashboard.models import (
+    AddFailuresEvent,
+    AddObservationsEvent,
+    AddReportsEvent,
+    DashboardEventT,
+    Failure,
+    dashboard_observation,
+    dashboard_report,
+)
 from hypofuzz.dashboard.patching import (
     add_patch,
     start_patching_thread,
@@ -34,6 +43,7 @@ from hypofuzz.database import (
     HypofuzzDatabase,
     Observation,
     ObservationStatus,
+    Report,
 )
 from hypofuzz.hypofuzz import FuzzTarget
 
@@ -84,11 +94,102 @@ def _add_patch(
     )
 
 
+def _dashboard_event(db_event: DatabaseEvent) -> Optional[DashboardEventT]:
+    event: Optional[DashboardEventT] = None
+    if db_event.type == "save":
+        value = db_event.value
+        assert value is not None
+
+        if db_event.key is DatabaseEventKey.REPORT:
+            assert isinstance(value, Report)
+            if value.nodeid not in TESTS:
+                return None
+            TESTS[value.nodeid].add_report(value)
+            event = AddReportsEvent(
+                nodeid=value.nodeid,
+                worker_uuid=value.worker_uuid,
+                reports=[dashboard_report(value)],
+            )
+        elif db_event.key in [
+            DatabaseEventKey.FAILURE_SHRUNK_OBSERVATION,
+            DatabaseEventKey.FAILURE_UNSHRUNK_OBSERVATION,
+        ]:
+            assert isinstance(value, Observation)
+            if value.property not in TESTS:
+                return None
+            nodeid = value.property
+            state = (
+                FailureState.UNSHRUNK
+                if db_event.key is DatabaseEventKey.FAILURE_UNSHRUNK_OBSERVATION
+                else FailureState.SHRUNK
+            )
+            event = AddFailuresEvent(
+                nodeid=nodeid,
+                failures={
+                    value.status_reason: Failure(
+                        state=state, observation=dashboard_observation(value)
+                    )
+                },
+            )
+            TESTS[nodeid].failures[value.status_reason] = (state, value)
+            _add_patch(nodeid, value, "failing")
+        elif db_event.key is DatabaseEventKey.ROLLING_OBSERVATION:
+            assert isinstance(value, Observation)
+            if value.property not in TESTS:
+                return None
+            observations = TESTS[value.property].rolling_observations
+            # TODO store rolling_observationas as a proper logn sortedlist,
+            # probably requires refactoring Test to be a proper class (not a
+            # dataclass)
+            observations.append(value)
+            observations.sort(key=lambda o: -o.run_start)
+            TESTS[value.property].rolling_observations = observations[:300]
+            event = AddObservationsEvent(
+                nodeid=value.property,
+                observation_type="rolling",
+                observations=[dashboard_observation(value)],
+            )
+        elif db_event.key is DatabaseEventKey.CORPUS_OBSERVATION:
+            assert isinstance(value, Observation)
+            if value.property not in TESTS:
+                return None
+            nodeid = value.property
+            TESTS[nodeid].corpus_observations.append(value)
+            _add_patch(nodeid, value, "covering")
+            event = AddObservationsEvent(
+                nodeid=nodeid,
+                observation_type="corpus",
+                observations=[dashboard_observation(value)],
+            )
+        else:
+            return None
+    elif db_event.type == "delete":
+        if db_event.key in [
+            DatabaseEventKey.FAILURE_SHRUNK_OBSERVATION,
+            DatabaseEventKey.FAILURE_UNSHRUNK_OBSERVATION,
+        ]:
+            if db_event.database_key not in TESTS_BY_KEY:
+                return None
+            # we know a failure was just deleted from this test, but not which
+            # one (unless the database supports value deletion). Re-scan its
+            # failures.
+            test = TESTS_BY_KEY[db_event.database_key]
+            assert test.database_key_bytes == db_event.database_key
+            failure_observations = get_failures(db_event.database_key)
+            test.failures = failure_observations
+        else:
+            return None
+    else:
+        raise ValueError(f"Unknown database event type: {db_event.type}")
+
+    return event
+
+
 async def handle_event(receive_channel: MemoryReceiveChannel[ListenerEventT]) -> None:
     global LOADING_STATE
 
     async for listener_event in receive_channel:
-        event = DatabaseEvent.from_event(listener_event)
+        db_event = DatabaseEvent.from_event(listener_event)
         # In the single-command ``hypothesis fuzz`` case, this is a
         # transmission from a worker launched by that command to the
         # dashboard launched by that command. The schemas should never
@@ -97,84 +198,30 @@ async def handle_event(receive_channel: MemoryReceiveChannel[ListenerEventT]) ->
         # However, in the distributed case, a worker might be running an old
         # hypofuzz version while the dashboard runs a newer version. Here,
         # a None report from a parse error could occur.
-        if event is None:
+        if db_event is None:
             continue
 
-        if not LOADING_STATE.get(event.database_key, False):
+        if not LOADING_STATE.get(db_event.database_key, False):
             # we haven't loaded initial state from this test yet in
             # load_initial_state.
             continue
 
-        if event.type == "save":
-            assert event.value is not None
+        event = _dashboard_event(db_event)
+        if event is None:
+            continue
 
-            if event.key is DatabaseEventKey.REPORT:
-                if event.value.nodeid not in TESTS:
-                    continue
-                TESTS[event.value.nodeid].add_report(event.value)
-            elif event.key in [
-                DatabaseEventKey.FAILURE_SHRUNK_OBSERVATION,
-                DatabaseEventKey.FAILURE_UNSHRUNK_OBSERVATION,
-            ]:
-                if event.value.property not in TESTS:
-                    continue
-                nodeid = event.value.property
-                TESTS[nodeid].failure = event.value
-                _add_patch(nodeid, event.value, "failing")
-            elif event.key is DatabaseEventKey.ROLLING_OBSERVATION:
-                if event.value.property not in TESTS:
-                    continue
-                observations = TESTS[event.value.property].rolling_observations
-                # TODO store rolling_observationas as a proper logn sortedlist,
-                # probably requires refactoring Test to be a proper class
-                observations.append(event.value)
-                observations.sort(key=lambda o: -o.run_start)
-                TESTS[event.value.property].rolling_observations = observations[:300]
-            elif event.key is DatabaseEventKey.CORPUS_OBSERVATION:
-                if event.value.property not in TESTS:
-                    continue
-                nodeid = event.value.property
-                TESTS[nodeid].corpus_observations.append(event.value)
-                _add_patch(nodeid, event.value, "covering")
-
-            await broadcast_event(event.type, event.key, event.value)
-
-        # we're handling deletion events in a customish way, since event.value is
-        # always None for databases which don't support value deletion. The value
-        # we send to the websocket .on_event method is computed here and is specific
-        # to each event type.
-        if event.type == "delete":
-            if event.key in [
-                DatabaseEventKey.FAILURE_SHRUNK_OBSERVATION,
-                DatabaseEventKey.FAILURE_UNSHRUNK_OBSERVATION,
-            ]:
-                if event.database_key not in TESTS_BY_KEY:
-                    continue
-                # we know a failure was just deleted from this test, but not which
-                # one (unless the database supports value deletion). Re-scan its
-                # failures.
-                test = TESTS_BY_KEY[event.database_key]
-                assert test.database_key_bytes == event.database_key
-                failure_observations = get_failure_observations(event.database_key)
-                if not failure_observations.values():
-                    previous_failure = test.failure
-                    test.failure = None
-                    await broadcast_event(
-                        "delete",
-                        # this event type isn't quite right (we don't know it's
-                        # shrunk vs unshrunk), but the dashboard doesn't know
-                        # the different for now. TODO refactor properly when we
-                        # display shrinking state / multiple failures
-                        DatabaseEventKey.FAILURE_SHRUNK_OBSERVATION,
-                        previous_failure,
-                    )
+        await broadcast_event(event)
 
 
-def get_failure_observations(database_key: bytes) -> dict[str, Observation]:
+def get_failures(
+    database_key: bytes,
+) -> dict[str, tuple[FailureState, Observation]]:
     assert db is not None
 
-    def _failure_observations(state: FailureState) -> dict[str, Observation]:
-        failure_observations: dict[str, Observation] = {}
+    def _failure_observations(
+        state: FailureState,
+    ) -> dict[str, tuple[FailureState, Observation]]:
+        failure_observations: dict[str, tuple[FailureState, Observation]] = {}
         for maybe_observed_choices in sorted(
             db.fetch_failures(database_key, state=state), key=len
         ):
@@ -187,13 +234,19 @@ def get_failure_observations(database_key: bytes) -> dict[str, Observation]:
                 # For failures, Hypothesis records the interesting_origin string
                 # as the status_reason, which is how we dedupe errors upstream.
                 if observation.status_reason not in failure_observations:
-                    failure_observations[observation.status_reason] = observation
+                    failure_observations[observation.status_reason] = (
+                        state,
+                        observation,
+                    )
 
         return failure_observations
 
-    return _failure_observations(FailureState.SHRUNK) | _failure_observations(
-        FailureState.UNSHRUNK
-    )
+    # note: we fetch unshrunk failures first, so that a race condition can only
+    # result in missing new unshrunk failures, and not a shrunk failure in a
+    # transition from unshrunk to shrunk.
+    unshrunk = _failure_observations(FailureState.UNSHRUNK)
+    shrunk = _failure_observations(FailureState.SHRUNK)
+    return unshrunk | shrunk
 
 
 def _load_initial_state(fuzz_target: FuzzTarget) -> None:
@@ -222,10 +275,10 @@ def _load_initial_state(fuzz_target: FuzzTarget) -> None:
     for report in sorted(db.fetch_reports(key), key=lambda r: r.elapsed_time):
         reports_by_worker[report.worker_uuid].append(report)
 
-    failure_observations = get_failure_observations(key)
+    failures = get_failures(key)
 
     # backfill our patches for our worker thread to take care of computing
-    for observation in failure_observations.values():
+    for _state, observation in failures.values():
         _add_patch(fuzz_target.nodeid, observation, "failing")
     for observation in corpus_observations:
         _add_patch(fuzz_target.nodeid, observation, "covering")
@@ -235,13 +288,12 @@ def _load_initial_state(fuzz_target: FuzzTarget) -> None:
         nodeid=fuzz_target.nodeid,
         rolling_observations=rolling_observations,
         corpus_observations=corpus_observations,
-        # we're abusing this argument, post-init the reports have type
+        # we're abusing this argument rn. post-init the reports have type
         # ReportWithDiff, but at pre-init they have type Report. We should
         # split this into two attributes, one for Report which we pass at init
         # and one for ReportWithDiff which is set/stored post-init.
         reports_by_worker=reports_by_worker,  # type: ignore
-        # TODO: refactor Test, and our frontend, to support multiple failures.
-        failure=next(iter(failure_observations.values()), None),
+        failures=failures,
     )
     TESTS[fuzz_target.nodeid] = test
     TESTS_BY_KEY[fuzz_target.database_key] = test
