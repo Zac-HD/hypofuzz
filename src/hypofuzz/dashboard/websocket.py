@@ -2,6 +2,7 @@ import abc
 import json
 from typing import Any, Literal
 
+from starlette.routing import WebSocketRoute
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
 from hypofuzz.dashboard.models import (
@@ -323,3 +324,6 @@ async def websocket_route(websocket: WebSocket) -> None:
             await websocket.receive_json()
     except WebSocketDisconnect:
         websockets.remove(websocket)
+
+
+websocket_routes = [WebSocketRoute("/ws", websocket_route)]
