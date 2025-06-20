@@ -7,6 +7,7 @@ from starlette.responses import JSONResponse, Response
 from starlette.routing import Route
 
 from hypofuzz.dashboard.models import (
+    dashboard_failures,
     dashboard_observation,
     dashboard_report,
     dashboard_test,
@@ -126,7 +127,7 @@ async def api_backing_state_tests(request: Request) -> Response:
         nodeid: {
             "database_key": test.database_key,
             "nodeid": test.nodeid,
-            "failure": test.failure,
+            "failures": dashboard_failures(test.failures),
             "reports_by_worker": {
                 worker_uuid: [dashboard_report(report) for report in reports]
                 for worker_uuid, reports in test.reports_by_worker.items()

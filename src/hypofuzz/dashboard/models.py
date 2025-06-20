@@ -1,8 +1,10 @@
+from dataclasses import dataclass
 from enum import IntEnum
-from typing import Any, Literal, Optional, TypedDict, Union
+from typing import Any, ClassVar, Literal, Optional, TypedDict, Union
 
 from hypofuzz.dashboard.test import Test
 from hypofuzz.database import (
+    FailureState,
     Observation,
     ObservationStatus,
     Phase,
@@ -30,6 +32,112 @@ class DashboardObservation(TypedDict):
     run_start: float
 
 
+class Failure(TypedDict):
+    state: FailureState
+    observation: DashboardObservation
+
+
+class DashboardReport(TypedDict):
+    elapsed_time: float
+    status_counts: StatusCounts
+    behaviors: int
+    fingerprints: int
+    timestamp: float
+    since_new_behavior: Optional[int]
+    phase: Phase
+
+
+# We only return this in api routes. It's not actually used by or sent to
+# DataProvider.tsx.
+class DashboardTest(TypedDict):
+    database_key: str
+    nodeid: str
+    rolling_observations: list[DashboardObservation]
+    corpus_observations: list[DashboardObservation]
+    failures: dict[str, Failure]
+    reports_by_worker: dict[str, list[DashboardReport]]
+
+
+# keep in sync with DashboardEventType in DataProvider.tsx
+class DashboardEventType(IntEnum):
+    # minimize header frame overhead with a shared IntEnum definition between
+    # python and ts.
+    SET_STATUS = 1
+    ADD_TESTS = 2
+    ADD_REPORTS = 3
+    ADD_OBSERVATIONS = 4
+    ADD_FAILURES = 5
+    SET_FAILURES = 6
+
+
+ObservationType = Literal["rolling", "corpus"]
+
+
+@dataclass
+class DashboardEvent:
+    type: ClassVar[DashboardEventType]
+
+
+# keep in sync with TestsAction in DataProvider.tsx
+class AddTestsTest(TypedDict):
+    database_key: str
+    nodeid: str
+    failures: dict[str, Failure]
+
+
+@dataclass
+class AddTestsEvent(DashboardEvent):
+    type = DashboardEventType.ADD_TESTS
+    tests: list[AddTestsTest]
+
+
+@dataclass
+class AddReportsEvent(DashboardEvent):
+    type = DashboardEventType.ADD_REPORTS
+    nodeid: str
+    worker_uuid: str
+    reports: list[DashboardReport]
+
+
+@dataclass
+class AddObservationsEvent(DashboardEvent):
+    type = DashboardEventType.ADD_OBSERVATIONS
+    nodeid: str
+    observation_type: ObservationType
+    observations: list[DashboardObservation]
+
+
+@dataclass
+class AddFailuresEvent(DashboardEvent):
+    type = DashboardEventType.ADD_FAILURES
+    nodeid: str
+    failures: dict[str, Failure]
+
+
+@dataclass
+class SetFailuresEvent(DashboardEvent):
+    type = DashboardEventType.SET_FAILURES
+    nodeid: str
+    failures: dict[str, Failure]
+
+
+@dataclass
+class SetStatusEvent(DashboardEvent):
+    type = DashboardEventType.SET_STATUS
+    count_tests: int
+    count_tests_loaded: int
+
+
+DashboardEventT = Union[
+    AddTestsEvent,
+    AddReportsEvent,
+    AddObservationsEvent,
+    AddFailuresEvent,
+    SetFailuresEvent,
+    SetStatusEvent,
+]
+
+
 def dashboard_observation(observation: Observation) -> DashboardObservation:
     return {
         "type": observation.type,
@@ -49,16 +157,6 @@ def dashboard_observation(observation: Observation) -> DashboardObservation:
     }
 
 
-class DashboardReport(TypedDict):
-    elapsed_time: float
-    status_counts: StatusCounts
-    behaviors: int
-    fingerprints: int
-    timestamp: float
-    since_new_behavior: Optional[int]
-    phase: Phase
-
-
 def dashboard_report(report: Report) -> DashboardReport:
     return {
         "elapsed_time": report.elapsed_time,
@@ -71,17 +169,6 @@ def dashboard_report(report: Report) -> DashboardReport:
     }
 
 
-# We only return this in api routes. It's not actually used by or sent to
-# DataProvider.tsx.
-class DashboardTest(TypedDict):
-    database_key: str
-    nodeid: str
-    rolling_observations: list[DashboardObservation]
-    corpus_observations: list[DashboardObservation]
-    failure: Optional[DashboardObservation]
-    reports_by_worker: dict[str, list[DashboardReport]]
-
-
 def dashboard_test(test: Test) -> DashboardTest:
     return {
         "database_key": test.database_key,
@@ -92,7 +179,7 @@ def dashboard_test(test: Test) -> DashboardTest:
         "corpus_observations": [
             dashboard_observation(obs) for obs in test.corpus_observations
         ],
-        "failure": dashboard_observation(test.failure) if test.failure else None,
+        "failures": dashboard_failures(test.failures),
         "reports_by_worker": {
             worker_uuid: [dashboard_report(report) for report in reports]
             for worker_uuid, reports in test.reports_by_worker.items()
@@ -100,62 +187,12 @@ def dashboard_test(test: Test) -> DashboardTest:
     }
 
 
-# keep in sync with DashboardEventType in DataProvider.tsx
-class DashboardEventType(IntEnum):
-    # minimize header frame overhead with a shared IntEnum definition between
-    # python and ts.
-    SET_STATUS = 1
-    ADD_TESTS = 2
-    ADD_REPORTS = 3
-    ADD_OBSERVATIONS = 4
-    SET_FAILURE = 5
-
-
-ObservationType = Literal["rolling", "corpus"]
-
-
-# keep in sync with TestsAction in DataProvider.tsx
-class AddTestsTest(TypedDict):
-    database_key: str
-    nodeid: str
-    failure: Optional[Observation]
-
-
-class AddTestsEvent(TypedDict):
-    type: Literal[DashboardEventType.ADD_TESTS]
-    tests: list[AddTestsTest]
-
-
-class AddReportsEvent(TypedDict):
-    type: Literal[DashboardEventType.ADD_REPORTS]
-    nodeid: str
-    worker_uuid: str
-    reports: list[DashboardReport]
-
-
-class AddObservationsEvent(TypedDict):
-    type: Literal[DashboardEventType.ADD_OBSERVATIONS]
-    nodeid: str
-    observation_type: ObservationType
-    observations: list[DashboardObservation]
-
-
-class SetFailureEvent(TypedDict):
-    type: Literal[DashboardEventType.SET_FAILURE]
-    nodeid: str
-    failure: Optional[DashboardObservation]
-
-
-class SetStatusEvent(TypedDict):
-    type: Literal[DashboardEventType.SET_STATUS]
-    count_tests: int
-    count_tests_loaded: int
-
-
-DashboardEventT = Union[
-    AddTestsEvent,
-    AddReportsEvent,
-    AddObservationsEvent,
-    SetFailureEvent,
-    SetStatusEvent,
-]
+def dashboard_failures(
+    failures: dict[str, tuple[FailureState, Observation]],
+) -> dict[str, Failure]:
+    return {
+        interesting_origin: Failure(
+            state=state, observation=dashboard_observation(failure)
+        )
+        for interesting_origin, (state, failure) in failures.items()
+    }

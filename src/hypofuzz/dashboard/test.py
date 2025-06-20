@@ -6,6 +6,7 @@ from hypothesis.internal.cache import LRUCache
 
 from hypofuzz.compat import bisect_right
 from hypofuzz.database import (
+    FailureState,
     Observation,
     Phase,
     Report,
@@ -24,7 +25,7 @@ class Test:
     nodeid: str
     rolling_observations: list[Observation]
     corpus_observations: list[Observation]
-    failure: Optional[Observation]
+    failures: dict[str, tuple[FailureState, Observation]]
     reports_by_worker: dict[str, list[ReportWithDiff]]
 
     linear_reports: list[ReportWithDiff] = field(init=False)
