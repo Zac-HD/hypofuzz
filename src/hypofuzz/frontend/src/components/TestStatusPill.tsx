@@ -1,6 +1,6 @@
 import { TestStatus } from "../types/dashboard"
 
-export function StatusPill({ status }: { status: TestStatus }) {
+export function TestStatusPill({ status }: { status: TestStatus }) {
   return (
     <span style={{ textAlign: "center" }}>
       {status === TestStatus.FAILED ? (

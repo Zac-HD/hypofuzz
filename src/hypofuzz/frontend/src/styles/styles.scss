@@ -593,24 +593,20 @@ $mobile-breakpoint: 768px;
     }
 }
 
-.test-failure {
-    margin: 20px 0;
-    padding: 20px;
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-
-    h2 {
-        margin-bottom: 20px;
+.failure {
+    &__title {
+        font-size: 1.5rem;
+        font-weight: bold;
         color: #e74c3c;
     }
 
     &__item {
         margin-bottom: 30px;
 
-        h3 {
-            margin: 15px 0 10px;
+        &__subtitle {
+            font-weight: bold;
             font-size: 1.1em;
+            margin: 15px 0 10px;
             color: #2c3e50;
         }
 
