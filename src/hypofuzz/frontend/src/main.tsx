@@ -1,4 +1,5 @@
 import "./styles/styles.scss"
+import "./styles/theme.scss"
 // ensure our array prototype definitions get loaded
 import "./utils/prototypes"
 
