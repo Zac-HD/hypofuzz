@@ -2,6 +2,11 @@
 HypoFuzz uses [calendar-based versioning](https://calver.org/), with a
 `YY-MM-patch` format.
 
+## 25.06.02
+
+* Add a dashboard notification while the dashboard process is still loading reports from the database
+* Improve the display of covering and failing patches on the dashboard
+
 ## 25.06.01
 
 Substantial improvements to the dashboard UI and coverage tracking. Most notably:
