@@ -17,9 +17,9 @@ import { Link, useParams } from "react-router-dom"
 
 import { Collapsible } from "../components/Collapsible"
 import { CoverageGraph } from "../components/CoverageGraph"
-import { TestStatusPill } from "../components/TestStatusPill"
 import { Table } from "../components/Table"
 import { TestPatches } from "../components/TestPatches"
+import { TestStatusPill } from "../components/TestStatusPill"
 import { Tooltip } from "../components/Tooltip"
 import { useData } from "../context/DataProvider"
 import { Tyche } from "../tyche/Tyche"
@@ -48,7 +48,14 @@ function FailureStatusPill({ failure }: { failure: Failure }) {
 function FailureCard({ failure }: { failure: Failure }) {
   return (
     <div className="card">
-      <div style={{ display: "flex", alignItems: "center", gap: "0.7rem", marginBottom: "1rem" }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "0.7rem",
+          marginBottom: "1rem",
+        }}
+      >
         <div className="failure__title">Failure</div>
         <FailureStatusPill failure={failure} />
       </div>

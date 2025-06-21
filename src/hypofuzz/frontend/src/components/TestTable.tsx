@@ -12,8 +12,8 @@ import { Link } from "react-router-dom"
 
 import { Status, Test } from "../types/dashboard"
 import { getTestStats, inputsPerSecond } from "../utils/testStats"
-import { TestStatusPill } from "./TestStatusPill"
 import { Table } from "./Table"
+import { TestStatusPill } from "./TestStatusPill"
 import { Tooltip } from "./Tooltip"
 
 function Icon({ icon, tooltip }: { icon: IconDefinition; tooltip: string }) {
