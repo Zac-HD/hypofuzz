@@ -12,7 +12,7 @@ import { Link } from "react-router-dom"
 
 import { Status, Test } from "../types/dashboard"
 import { getTestStats, inputsPerSecond } from "../utils/testStats"
-import { StatusPill } from "./StatusPill"
+import { TestStatusPill } from "./TestStatusPill"
 import { Table } from "./Table"
 import { Tooltip } from "./Tooltip"
 
@@ -129,7 +129,7 @@ export function TestTable({ tests, onFilterChange }: Props) {
         {test.nodeid}
       </Link>,
       <div style={{ textAlign: "center" }}>
-        <StatusPill status={test.status} />
+        <TestStatusPill status={test.status} />
       </div>,
       <div style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
         {stats.inputs}
@@ -165,7 +165,7 @@ export function TestTable({ tests, onFilterChange }: Props) {
           >
             {test.nodeid}
           </Link>
-          <StatusPill status={test.status} />
+          <TestStatusPill status={test.status} />
         </div>
         <div className="table__mobile-row__statistics">
           <InlineStatistic icon={iconInputs} value={stats.inputs} />

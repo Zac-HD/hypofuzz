@@ -17,7 +17,7 @@ import { Link, useParams } from "react-router-dom"
 
 import { Collapsible } from "../components/Collapsible"
 import { CoverageGraph } from "../components/CoverageGraph"
-import { StatusPill } from "../components/StatusPill"
+import { TestStatusPill } from "../components/TestStatusPill"
 import { Table } from "../components/Table"
 import { TestPatches } from "../components/TestPatches"
 import { Tooltip } from "../components/Tooltip"
@@ -30,12 +30,30 @@ import { reHighlight } from "../utils/utils"
 
 hljs.registerLanguage("python", python)
 
-function FailureRow({ failure }: { failure: Failure }) {
+function FailureStatusPill({ failure }: { failure: Failure }) {
   return (
-    <div className="test-failure">
-      <h2>Failure</h2>
-      <div className="test-failure__item">
-        <h3>Call</h3>
+    <span style={{ textAlign: "center" }}>
+      {failure.state === "shrunk" ? (
+        <span className="pill pill__neutral">Fully shrunk</span>
+      ) : failure.state === "unshrunk" ? (
+        <span className="pill pill__neutral">Still shrinking...</span>
+      ) : (
+        // this case shouldn't happen
+        <></>
+      )}
+    </span>
+  )
+}
+
+function FailureCard({ failure }: { failure: Failure }) {
+  return (
+    <div className="card">
+      <div style={{ display: "flex", alignItems: "center", gap: "0.7rem", marginBottom: "1rem" }}>
+        <div className="failure__title">Failure</div>
+        <FailureStatusPill failure={failure} />
+      </div>
+      <div className="failure__item">
+        <div className="failure__item__subtitle">Call</div>
         <pre>
           <code className="language-python">
             {failure.observation.metadata.get("reproduction_decorator") +
@@ -43,7 +61,7 @@ function FailureRow({ failure }: { failure: Failure }) {
               failure.observation.representation}
           </code>
         </pre>
-        <h3>Traceback</h3>
+        <div className="failure__item__subtitle">Traceback</div>
         <pre>
           <code className="language-python">
             {failure.observation.metadata.get("traceback")}
@@ -171,7 +189,7 @@ export function TestPage() {
           >
             {nodeid}
           </span>
-          <StatusPill status={test.status} />
+          <TestStatusPill status={test.status} />
         </div>
         <div style={{ paddingTop: "1rem", paddingBottom: "1rem" }}>
           <Table
@@ -200,7 +218,7 @@ export function TestPage() {
       </div>
       <CoverageGraph tests={new Map([[nodeid, test]])} />
       {Array.from(test.failures.values()).map(failure => (
-        <FailureRow failure={failure} />
+        <FailureCard failure={failure} />
       ))}
       <Tyche test={test} />
       {nodeidsWithPatches?.includes(nodeid) && (
