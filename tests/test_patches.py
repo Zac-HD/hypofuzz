@@ -31,8 +31,17 @@ def test_patches(tmp_path):
 
         wait_for(has_corpus_with_observation, interval=0.1)
 
-    for choices in db.fetch_corpus(key):
-        observation = db.fetch_corpus_observation(key, choices)
+    # due to race conditions, we might stop the worker process after it has
+    # written a corpus entry but before it has written its observation. Ignore
+    # these.
+    observations = [
+        observation
+        for choices in db.fetch_corpus(key)
+        if (observation := db.fetch_corpus_observation(key, choices)) is not None
+    ]
+    assert observations
+    for observation in observations:
+        assert observation is not None
 
         namespace = {}
         code = (test_dir / "test_a.py").read_text()
