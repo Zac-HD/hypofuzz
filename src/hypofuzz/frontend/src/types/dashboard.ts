@@ -229,6 +229,9 @@ export class Test extends Dataclass<Test> {
   public linear_reports: Report[]
   private _status_counts_cumsum: Map<number, [number, StatusCounts[]]>
   private _elapsed_time_cumsum: Map<number, [number, number[]]>
+  // when we finished receiving all data for this worker from the websocket. null if
+  // we have not finished receiving data.
+  public load_finished_at: number | null = null
 
   constructor(
     public database_key: string | null,
@@ -244,6 +247,7 @@ export class Test extends Dataclass<Test> {
     // https://github.com/isaacs/node-lru-cache looks like a good option
     this._status_counts_cumsum = new Map()
     this._elapsed_time_cumsum = new Map()
+    this.load_finished_at = null
 
     const reports_by_worker_ = this.reports_by_worker
     this.reports_by_worker = new Map()

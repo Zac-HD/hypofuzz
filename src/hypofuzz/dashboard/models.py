@@ -68,6 +68,7 @@ class DashboardEventType(IntEnum):
     ADD_OBSERVATIONS = 4
     ADD_FAILURES = 5
     SET_FAILURES = 6
+    TEST_LOAD_FINISHED = 7
 
 
 ObservationType = Literal["rolling", "corpus"]
@@ -128,6 +129,12 @@ class SetStatusEvent(DashboardEvent):
     count_tests_loaded: int
 
 
+@dataclass
+class TestLoadFinishedEvent(DashboardEvent):
+    type = DashboardEventType.TEST_LOAD_FINISHED
+    nodeid: str
+
+
 DashboardEventT = Union[
     AddTestsEvent,
     AddReportsEvent,
@@ -135,6 +142,7 @@ DashboardEventT = Union[
     AddFailuresEvent,
     SetFailuresEvent,
     SetStatusEvent,
+    TestLoadFinishedEvent,
 ]
 
 

@@ -81,7 +81,7 @@ function FailureCard({ failure }: { failure: Failure }) {
 
 export function TestPage() {
   const { nodeid } = useParams<{ nodeid: string }>()
-  const { tests } = useData(nodeid)
+  const { tests, testsLoaded } = useData(nodeid)
   const containerRef = useRef<HTMLDivElement>(null)
   const [nodeidsWithPatches, setNodeidsWithPatches] = useState<string[] | null>(null)
 
@@ -223,7 +223,7 @@ export function TestPage() {
           />
         </div>
       </div>
-      <CoverageGraph tests={new Map([[nodeid, test]])} />
+      <CoverageGraph tests={new Map([[nodeid, test]])} testsLoaded={testsLoaded} />
       {Array.from(test.failures.values()).map(failure => (
         <FailureCard failure={failure} />
       ))}
