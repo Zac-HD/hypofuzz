@@ -82,12 +82,12 @@ def test_misaligned_type(node, ir_type_kwargs, random):
     # misaligning in type gives us random values
     ir_type, kwargs = ir_type_kwargs
     assume(ir_type != node.type)
-    cdata = hypofuzz_data(
+    data = hypofuzz_data(
         random=random, queue=[(ReplayPriority.COVERING, (node.value,))]
     )
 
-    with cdata.provider.per_test_case_context_manager():
-        choice = getattr(cdata, f"draw_{ir_type}")(**kwargs)
+    with data.provider.per_test_case_context_manager():
+        choice = getattr(data, f"draw_{ir_type}")(**kwargs)
 
     assert choice_permitted(choice, kwargs)
 
@@ -150,7 +150,7 @@ def test_provider_deletes_old_timed_reports(monkeypatch):
     )
 
     @given(st.integers())
-    @settings(backend="hypofuzz", database=db, max_examples=100)
+    @settings(backend="hypofuzz", database=db)
     def f(n):
         if n == 0:
             pass

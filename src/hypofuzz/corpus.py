@@ -209,13 +209,12 @@ class Corpus:
         *,
         behaviors: Set[Behavior],
         save_observation: bool,
-    ) -> bool:
-        """Update the corpus with the result of running a test.
-
-        Returns whether this changed the corpus.
+    ) -> None:
+        """
+        Update the corpus with the result of running a test.
         """
         if observation.metadata.data_status < Status.VALID:
-            return False
+            return
 
         assert observation.metadata.choice_nodes is not None
 
@@ -232,10 +231,6 @@ class Corpus:
                 # We save interesting examples to the unshrunk/secondary database
                 # so they can appear immediately without waiting for shrinking to
                 # finish. (also in case of a fatal hypofuzz error etc).
-                #
-                # Note that `observation`` might be none even for failures if we
-                # are replaying a failure in Phase.REPLAY, since we know observations
-                # already exist when replaying.
                 self._db.save_failure(
                     self.database_key,
                     choices,
@@ -254,14 +249,12 @@ class Corpus:
                         previous_choices,
                         state=FailureState.UNSHRUNK,
                     )
-                return True
 
         self.behavior_counts.update(behaviors)
         if behaviors not in self.fingerprints:
             self._add_fingerprint(
                 behaviors, observation, save_observation=save_observation
             )
-            return True
 
         if sort_key(observation.metadata.choice_nodes) < sort_key(
             self.fingerprints[behaviors]
@@ -276,9 +269,6 @@ class Corpus:
             )
             if self._count_fingerprints[existing_choices] == 0:
                 self._evict_choices(existing_choices)
-            return True
-
-        return False
 
     def distill(self, fn: Callable[[ConjectureData], None], random: Random) -> None:
         """Shrink to a corpus of *minimal* covering examples.
