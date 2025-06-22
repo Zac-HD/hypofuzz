@@ -63,6 +63,7 @@ if (typeof window !== "undefined") {
 interface Props {
   tests: Map<string, Test>
   filterString?: string
+  testsLoaded: () => boolean
 }
 
 interface GraphReport {
@@ -482,7 +483,7 @@ class Graph {
   }
 }
 
-export function CoverageGraph({ tests, filterString = "" }: Props) {
+export function CoverageGraph({ tests, filterString = "", testsLoaded }: Props) {
   const svgRef = useRef<SVGSVGElement>(null)
   const [scaleSetting, setScaleSetting] = useSetting<"log" | "linear">(
     "graph_scale",
@@ -564,7 +565,12 @@ export function CoverageGraph({ tests, filterString = "" }: Props) {
     // Though, we should really replace all of this with updating directly
     // from websocket events, so the graph never gets redrawn. Not sure
     // yet how that would work in react.
-    if (!forceUpdate && currentlyHovered) {
+
+    // also,
+    // if any test is still loading from the websocket, we still want to update the graph,
+    // so a user loading the page with their cursor on the graph does not see an empty
+    // graph.
+    if (!forceUpdate && currentlyHovered && testsLoaded()) {
       return
     }
 
@@ -604,7 +610,7 @@ export function CoverageGraph({ tests, filterString = "" }: Props) {
       graph.cleanup()
     }
   }, [
-    filteredReports,
+    tests,
     scaleSetting,
     axisSettingX,
     axisSettingY,
