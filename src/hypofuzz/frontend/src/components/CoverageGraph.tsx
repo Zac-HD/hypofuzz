@@ -73,8 +73,6 @@ interface GraphReport {
   linear_elapsed_time: number
   behaviors: number
   fingerprints: number
-  ninputs: number
-  elapsed_time: number
 }
 
 // in pixels
@@ -288,7 +286,7 @@ class Graph {
             .style("top", `${event.pageY - 10}px`).html(`
               <strong>${readableNodeid(closestReport.nodeid)}</strong><br/>
               ${closestReport.behaviors.toLocaleString()} behaviors / ${closestReport.fingerprints.toLocaleString()} fingerprints<br/>
-              ${closestReport.ninputs.toLocaleString()} inputs / ${closestReport.elapsed_time.toFixed(1)} seconds
+              ${closestReport.linear_status_counts.sum().toLocaleString()} inputs / ${closestReport.linear_elapsed_time.toFixed(1)} seconds
             `)
         } else {
           this.tooltip.style("display", "none")
@@ -532,8 +530,6 @@ export function CoverageGraph({ tests, filterString = "", testsLoaded }: Props) 
               linear_elapsed_time: linearElapsedTime[i],
               behaviors: report.behaviors,
               fingerprints: report.fingerprints,
-              ninputs: report.ninputs,
-              elapsed_time: report.elapsed_time,
             })
           }
           return [nodeid, reports]
