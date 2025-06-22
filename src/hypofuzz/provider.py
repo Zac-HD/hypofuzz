@@ -173,9 +173,9 @@ class HypofuzzProvider(PrimitiveProvider):
 
         self.db = HypofuzzDatabase(BackgroundWriteDatabase(settings().database))
         assert not self._started
-        context = current_build_context()
+        wrapped_test = current_build_context().wrapped_test
 
-        self.database_key = function_digest(context.wrapped_test.hypothesis.inner_test)  # type: ignore
+        self.database_key = function_digest(wrapped_test.hypothesis.inner_test)  # type: ignore
         # TODO this means our nodeid might be different in the
         # @settings(backend="hypofuzz") case (which uses __func__.__name__)
         # and the hypofuzz worker case (which sets the current pytest item and
@@ -184,10 +184,10 @@ class HypofuzzProvider(PrimitiveProvider):
         # take the latest for display?
         self.nodeid = getattr(
             current_pytest_item.value, "nodeid", None
-        ) or get_pretty_function_description(context.wrapped_test)
+        ) or get_pretty_function_description(wrapped_test)
 
         self.worker_identity = worker_identity(
-            in_directory=Path(inspect.getfile(context.wrapped_test)).parent
+            in_directory=Path(inspect.getfile(wrapped_test)).parent
         )
         self.corpus = Corpus(self.db, self.database_key)
 
