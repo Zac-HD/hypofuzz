@@ -10,7 +10,8 @@ import {
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
 import { Link } from "react-router-dom"
 
-import { Status, Test } from "../types/dashboard"
+import { Status } from "../types/dashboard"
+import { Test } from "../types/test"
 import { getTestStats, inputsPerSecond } from "../utils/testStats"
 import { Table } from "./Table"
 import { TestStatusPill } from "./TestStatusPill"

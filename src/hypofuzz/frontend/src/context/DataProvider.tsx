@@ -10,7 +10,8 @@ import React, {
 
 import { ProgressBar } from "../components/ProgressBar"
 import { NOT_PRESENT_STRING, PRESENT_STRING } from "../tyche/Tyche"
-import { Failure, FailureState, Observation, Report, Test } from "../types/dashboard"
+import { Failure, Observation, Report } from "../types/dashboard"
+import { Test } from "../types/test"
 import { useNotification } from "./NotificationProvider"
 
 interface DataContextType {
