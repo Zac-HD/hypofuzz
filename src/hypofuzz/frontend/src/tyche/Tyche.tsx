@@ -1,7 +1,7 @@
 import { useMemo } from "react"
 
 import { Toggle } from "../components/Toggle"
-import { Test } from "../types/dashboard"
+import { Test } from "../types/test"
 import { Features } from "./Features"
 import { FilterProvider, useFilters } from "./FilterContext"
 import { Filters } from "./Filters"
