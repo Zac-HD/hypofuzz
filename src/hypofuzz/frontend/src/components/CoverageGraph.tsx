@@ -1,10 +1,13 @@
 import "d3-transition"
 
 import {
+  faCircleDot,
   faClock,
   faCodeBranch,
   faFingerprint,
   faHashtag,
+  faUser,
+  faUsers,
 } from "@fortawesome/free-solid-svg-icons"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
 import { axisBottom as d3_axisBottom, axisLeft as d3_axisLeft } from "d3-axis"
@@ -16,7 +19,10 @@ import {
   scaleSymlog as d3_scaleSymlog,
 } from "d3-scale"
 import { ScaleContinuousNumeric, ScaleOrdinal } from "d3-scale"
-import { schemeCategory10 as d3_schemeCategory10 } from "d3-scale-chromatic"
+import {
+  interpolateViridis as d3_interpolateViridis,
+  schemeCategory10 as d3_schemeCategory10,
+} from "d3-scale-chromatic"
 import { pointer as d3_pointer, select as d3_select, Selection } from "d3-selection"
 import { line as d3_line } from "d3-shape"
 import {
@@ -29,13 +35,16 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
 
+// import BoxSelect from "../assets/box-select.svg?react"
+import LinearScaleIcon from "../assets/linear-scale.svg?react"
+import LogScaleIcon from "../assets/log-scale.svg?react"
 import { useIsMobile } from "../hooks/useIsMobile"
 import { useSetting } from "../hooks/useSetting"
 import { StatusCounts } from "../types/dashboard"
+import { Report } from "../types/dashboard"
 import { Test } from "../types/test"
-import { max, navigateOnClick, readableNodeid } from "../utils/utils"
+import { max, min, navigateOnClick, readableNodeid } from "../utils/utils"
 import { Toggle } from "./Toggle"
-// import BoxSelect from "../assets/box-select.svg?react"
 
 const d3 = {
   scaleSymlog: d3_scaleSymlog,
@@ -50,71 +59,59 @@ const d3 = {
   brush: d3_brush,
   scaleOrdinal: d3_scaleOrdinal,
   schemeCategory10: d3_schemeCategory10,
+  interpolateViridis: d3_interpolateViridis,
   quadtree: d3_quadtree,
 }
 
-const mousePosition = { x: 0, y: 0 }
-if (typeof window !== "undefined") {
-  window.addEventListener("mousemove", e => {
-    mousePosition.x = e.clientX
-    mousePosition.y = e.clientY
-  })
+export enum WorkerView {
+  TOGETHER = "linearized",
+  SEPARATE = "individual",
+  LATEST = "latest",
 }
 
 interface Props {
   tests: Map<string, Test>
   filterString?: string
   testsLoaded: () => boolean
+  workers_after?: number | null
+  workerViews?: WorkerView[]
+  workerViewSetting: string
 }
 
-interface GraphReport {
-  nodeid: string
-  linear_status_counts: StatusCounts
-  linear_elapsed_time: number
-  behaviors: number
-  fingerprints: number
+class GraphReport {
+  constructor(
+    public nodeid: string,
+    public linear_status_counts: StatusCounts,
+    public linear_elapsed_time: number,
+    public behaviors: number,
+    public fingerprints: number,
+  ) {}
+
+  static fromReport(nodeid: string, report: Report): GraphReport {
+    return new GraphReport(
+      nodeid,
+      report.status_counts,
+      report.elapsed_time,
+      report.behaviors,
+      report.fingerprints,
+    )
+  }
+}
+
+interface GraphLine {
+  url: string | null
+  reports: GraphReport[]
+  color: string
 }
 
 // in pixels
 const distanceThreshold = 10
-
-function prependIcon(
-  textElement: Selection<SVGTextElement, unknown, null, undefined>,
-  icon: any,
-  direction: "vertical" | "horizontal" = "horizontal",
-  iconSize: number = 12,
-  iconPadding: number = 6,
-) {
-  const textBBox = (textElement.node() as SVGTextElement).getBBox()
-  const parentGroup = d3.select(
-    (textElement.node() as SVGTextElement).parentNode as SVGGElement,
-  )
-
-  let iconX: number
-  let iconY: number
-
-  if (direction === "vertical") {
-    iconX = textBBox.x - iconSize - iconPadding
-    iconY = textBBox.y + (textBBox.height - iconSize) / 2
-  } else {
-    iconX = textBBox.x - iconSize - iconPadding
-    iconY = textBBox.y + (textBBox.height - iconSize) / 2
-  }
-
-  parentGroup
-    .append("svg")
-    .attr("x", iconX)
-    .attr("y", iconY)
-    .attr("width", iconSize)
-    .attr("height", iconSize)
-    .attr("viewBox", `0 0 ${icon.icon[0]} ${icon.icon[1]}`)
-    .append("path")
-    .attr("d", icon.icon[4] as string)
-}
+const graphHeight = 270
 
 class Graph {
-  reports: Map<string, GraphReport[]>
+  lines: GraphLine[]
   scaleSetting: string
+  scaleSettingY: string
   axisSettingX: string
   axisSettingY: string
   xValue: (d: GraphReport) => number
@@ -141,16 +138,18 @@ class Graph {
 
   constructor(
     svg: SVGSVGElement,
-    reports: Map<string, GraphReport[]>,
+    lines: GraphLine[],
     reportsColor: ScaleOrdinal<string, string>,
     scaleSetting: string,
+    scaleSettingY: string,
     axisSettingX: string,
     axisSettingY: string,
     navigate: (path: string) => void,
     isMobile: boolean,
   ) {
-    this.reports = reports
+    this.lines = lines
     this.scaleSetting = scaleSetting
+    this.scaleSettingY = scaleSettingY
     this.axisSettingX = axisSettingX
     this.axisSettingY = axisSettingY
     this.navigate = navigate
@@ -164,24 +163,23 @@ class Graph {
     this.margin = {
       top: 5,
       right: 5,
-      bottom: 10,
+      bottom: 25,
       left: 40,
     }
     this.width = svg.clientWidth - this.margin.left - this.margin.right
-    this.height = 270 - this.margin.top - this.margin.bottom
+    this.height = graphHeight - this.margin.top - this.margin.bottom
 
     this.reportsColor = reportsColor
-    const allReports = Array.from(reports.values()).flat()
+    const allReports = lines.map(line => line.reports).flat()
 
     // symlog is like log but defined linearly in the range [0, 1].
     // https://d3js.org/d3-scale/symlog
     this.x = (scaleSetting === "log" ? d3.scaleSymlog() : d3.scaleLinear())
-      .domain([0, max(allReports, d => this.xValue(d)) || 1])
+      .domain([0, max(allReports.map(r => this.xValue(r))) || 1])
       .range([0, this.width])
 
-    this.y = d3
-      .scaleLinear()
-      .domain([0, max(allReports, d => this.yValue(d)) || 0])
+    this.y = (scaleSettingY === "log" ? d3.scaleSymlog() : d3.scaleLinear())
+      .domain([0, max(allReports.map(r => this.yValue(r))) || 0])
       .range([this.height, 0])
 
     // this.x and this.y are the full axes which encompass all of the points.
@@ -268,33 +266,33 @@ class Graph {
     this.updateQuadtree()
   }
 
+  private logAxis(axis: any, maxValue: number) {
+    const tickValues = [0]
+    let power = 1
+    while (power <= maxValue) {
+      tickValues.push(power)
+      power *= 10
+    }
+
+    return axis.tickValues(tickValues).tickFormat((d: any) => {
+      const num = d.valueOf()
+      console.assert(num >= 0)
+      if (num >= 1_000_000) {
+        return `${Math.floor(num / 1_000_000)}M`
+      } else if (num >= 1000) {
+        return `${Math.floor(num / 1000)}k`
+      } else if (num > 0) {
+        return num.toLocaleString()
+      } else {
+        return "0"
+      }
+    })
+  }
+
   private createXAxis(scale: ScaleContinuousNumeric<number, number>) {
     if (this.scaleSetting === "log") {
       const maxValue = scale.domain()[1]
-      const tickValues = [0]
-
-      let power = 1
-      while (power <= maxValue) {
-        tickValues.push(power)
-        power *= 10
-      }
-
-      return d3
-        .axisBottom(scale)
-        .tickValues(tickValues)
-        .tickFormat(d => {
-          const num = d.valueOf()
-          console.assert(num >= 0)
-          if (num >= 1_000_000) {
-            return `${Math.floor(num / 1_000_000)}M`
-          } else if (num >= 1000) {
-            return `${Math.floor(num / 1000)}k`
-          } else if (num > 0) {
-            return num.toLocaleString()
-          } else {
-            return "0"
-          }
-        })
+      return this.logAxis(d3.axisBottom(scale), maxValue)
     } else {
       return d3
         .axisBottom(scale)
@@ -304,11 +302,16 @@ class Graph {
   }
 
   private createYAxis(scale: ScaleContinuousNumeric<number, number>) {
-    return d3.axisLeft(scale).ticks(5)
+    if (this.scaleSettingY === "log") {
+      const maxValue = scale.domain()[1]
+      return this.logAxis(d3.axisLeft(scale), maxValue)
+    } else {
+      return d3.axisLeft(scale).ticks(5)
+    }
   }
 
   private updateQuadtree() {
-    const allReports = Array.from(this.reports.values()).flat()
+    const allReports = this.lines.map(line => line.reports).flat()
     this.quadtree = d3
       .quadtree<GraphReport>()
       .x(d => this.viewportX(this.xValue(d)))
@@ -341,18 +344,18 @@ class Graph {
   }
 
   drawLines() {
-    const line = d3
+    const d3Line = d3
       .line<GraphReport>()
       .x(d => this.x(this.xValue(d)))
       .y(d => this.y(this.yValue(d)))
 
-    Array.from(this.reports.entries()).forEach(([nodeid, reports]) => {
+    this.lines.forEach(line => {
       this.chartArea
         .append("path")
-        .datum(reports)
+        .datum(line.reports)
         .attr("fill", "none")
-        .attr("stroke", this.reportsColor(nodeid))
-        .attr("d", line)
+        .attr("stroke", line.color)
+        .attr("d", d3Line)
         .attr("class", "coverage-line")
         .style("cursor", "pointer")
         .on("mouseover", function () {
@@ -362,7 +365,9 @@ class Graph {
           d3.select(this).classed("coverage-line__selected", false)
         })
         .on("click", event => {
-          navigateOnClick(event, `/tests/${encodeURIComponent(nodeid)}`, this.navigate)
+          if (line.url) {
+            navigateOnClick(event, line.url, this.navigate)
+          }
         })
     })
   }
@@ -450,11 +455,171 @@ class Graph {
   }
 }
 
-export function CoverageGraph({ tests, filterString = "", testsLoaded }: Props) {
+function graphReports(test: Test, workers_after: number | null): GraphReport[] {
+  // zip up linear_status_counts, linear_elapsed_time, and linear_reports.
+  const linearStatusCounts = test.linear_status_counts(workers_after)
+  const linearElapsedTime = test.linear_elapsed_time(workers_after)
+  const reports: GraphReport[] = []
+  for (let i = 0; i < linearStatusCounts.length; i++) {
+    const report = test.linear_reports[i]
+    reports.push({
+      nodeid: test.nodeid,
+      linear_status_counts: linearStatusCounts[i],
+      linear_elapsed_time: linearElapsedTime[i],
+      behaviors: report.behaviors,
+      fingerprints: report.fingerprints,
+    })
+  }
+  return reports
+}
+
+function LogLinearToggle({
+  value,
+  onChange,
+}: {
+  value: "log" | "linear"
+  onChange: (value: "log" | "linear") => void
+}) {
+  return (
+    <Toggle
+      value={value}
+      onChange={onChange}
+      options={[
+        { value: "log", content: "Log" },
+        { value: "linear", content: "Linear" },
+      ]}
+    />
+  )
+}
+
+function LabelX() {
+  const [scale, setScale] = useSetting<"log" | "linear">("graph_scale_x", "log")
+  const [axis, setAxis] = useSetting<"time" | "inputs">("graph_axis_x", "time")
+  return (
+    <div
+      className="coverage-graph__label coverage-graph__label--x"
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: "0.5rem",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+        <FontAwesomeIcon
+          icon={axis === "inputs" ? faHashtag : faClock}
+          style={{ fontSize: "0.9rem" }}
+        />
+        {axis === "inputs" ? "Inputs" : "Time"}
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+        <LogLinearToggle value={scale} onChange={setScale} />
+        <Toggle
+          value={axis}
+          onChange={setAxis}
+          options={[
+            {
+              value: "inputs",
+              content: <FontAwesomeIcon icon={faHashtag} />,
+            },
+            {
+              value: "time",
+              content: <FontAwesomeIcon icon={faClock} />,
+            },
+          ]}
+        />
+      </div>
+    </div>
+  )
+}
+
+function LabelY() {
+  const [scale, setScale] = useSetting<"log" | "linear">("graph_scale_y", "linear")
+  const [axis, setAxis] = useSetting<"behaviors" | "fingerprints">(
+    "graph_axis_y",
+    "behaviors",
+  )
+  return (
+    <div
+      className="coverage-graph__label coverage-graph__label--y"
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: "0.5rem",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+        <LogLinearToggle value={scale} onChange={setScale} />
+        <Toggle
+          value={axis}
+          onChange={setAxis}
+          options={[
+            {
+              value: "behaviors",
+              content: <FontAwesomeIcon icon={faCodeBranch} />,
+            },
+            {
+              value: "fingerprints",
+              content: <FontAwesomeIcon icon={faFingerprint} />,
+            },
+          ]}
+        />
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+        <FontAwesomeIcon
+          icon={axis === "behaviors" ? faCodeBranch : faFingerprint}
+          style={{ fontSize: "0.9rem" }}
+        />
+        {axis === "behaviors" ? "Behaviors" : "Fingerprints"}
+      </div>
+    </div>
+  )
+}
+
+const workerToggleContent = {
+  [WorkerView.TOGETHER]: {
+    content: (
+      <>
+        <FontAwesomeIcon icon={faUser} /> Together
+      </>
+    ),
+    mobileContent: <FontAwesomeIcon icon={faUser} />,
+  },
+  [WorkerView.SEPARATE]: {
+    content: (
+      <>
+        <FontAwesomeIcon icon={faUsers} /> Separate
+      </>
+    ),
+    mobileContent: <FontAwesomeIcon icon={faUsers} />,
+  },
+  [WorkerView.LATEST]: {
+    content: (
+      <>
+        <FontAwesomeIcon icon={faCircleDot} /> Latest
+      </>
+    ),
+    mobileContent: <FontAwesomeIcon icon={faCircleDot} />,
+  },
+}
+
+export function CoverageGraph({
+  tests,
+  filterString = "",
+  testsLoaded,
+  workers_after = null,
+  workerViews = [WorkerView.TOGETHER, WorkerView.SEPARATE, WorkerView.LATEST],
+  workerViewSetting,
+}: Props) {
   const svgRef = useRef<SVGSVGElement>(null)
-  const [scaleSetting, setScaleSetting] = useSetting<"log" | "linear">(
-    "graph_scale",
+  const [scaleSettingX, setScaleSettingX] = useSetting<"log" | "linear">(
+    "graph_scale_x",
     "log",
+  )
+  const [scaleSettingY, setScaleSettingY] = useSetting<"log" | "linear">(
+    "graph_scale_y",
+    "linear",
   )
   const [axisSettingX, setAxisSettingX] = useSetting<"time" | "inputs">(
     "graph_axis_x",
@@ -463,6 +628,10 @@ export function CoverageGraph({ tests, filterString = "", testsLoaded }: Props) 
   const [axisSettingY, setAxisSettingY] = useSetting<"behaviors" | "fingerprints">(
     "graph_axis_y",
     "behaviors",
+  )
+  const [viewSetting, setWorkerView] = useSetting<WorkerView>(
+    workerViewSetting,
+    WorkerView.TOGETHER,
   )
   const [forceUpdate, setForceUpdate] = useState(true)
   const [zoomTransform, setZoomTransform] = useState<{
@@ -474,48 +643,89 @@ export function CoverageGraph({ tests, filterString = "", testsLoaded }: Props) 
   const isMobile = useIsMobile()
   const [currentlyHovered, setCurrentlyHovered] = useState(false)
 
-  const reports = useMemo(() => {
-    return new Map(
-      Array.from(tests.entries())
-        // deterministic line color ordering, regardless of insertion order (which might vary
-        // based on websocket arrival order)
-        //
-        // we may also want a deterministic mapping of hash(nodeid) -> color, so the color is stable
-        // even across pages (overview vs individual test) or after a new test is added? But maybe we
-        // *don't* want this. I'm not sure which is better ux. A graph with only one line and having
-        // a non-blue color is weird.
+  // use the unfiltered reports as the domain so colors are stable across filtering.
+  const reportsColor = d3
+    .scaleOrdinal(d3.schemeCategory10)
+    .domain(Array.from(tests.keys()))
+
+  const lines = useMemo(() => {
+    let lines: GraphLine[] = []
+    if (viewSetting === WorkerView.TOGETHER) {
+      lines = Array.from(tests.entries())
         .sortKey(([nodeid, test]) => nodeid)
-        .map(([nodeid, test]) => {
-          // zip up linear_status_counts, linear_elapsed_time, and linear_reports.
-          const linearStatusCounts = test.linear_status_counts(null)
-          const linearElapsedTime = test.linear_elapsed_time(null)
-          const reports: GraphReport[] = []
-          for (let i = 0; i < linearStatusCounts.length; i++) {
-            const report = test.linear_reports[i]
-            reports.push({
-              nodeid: nodeid,
-              linear_status_counts: linearStatusCounts[i],
-              linear_elapsed_time: linearElapsedTime[i],
-              behaviors: report.behaviors,
-              fingerprints: report.fingerprints,
+        .map(([nodeid, test]) => ({
+          url: `/tests/${encodeURIComponent(nodeid)}`,
+          reports: graphReports(test, workers_after),
+          // deterministic line color ordering, regardless of insertion order (which might vary
+          // based on websocket arrival order)
+          //
+          // we may also want a deterministic mapping of hash(nodeid) -> color, so the color is stable
+          // even across pages (overview vs individual test) or after a new test is added? But maybe we
+          // *don't* want this. I'm not sure which is better ux. A graph with only one line and having
+          // a non-blue color is weird.
+          color: reportsColor(nodeid),
+        }))
+    } else if (viewSetting === WorkerView.SEPARATE) {
+      const timestamps: number[] = []
+      for (const test of tests.values()) {
+        for (const workerReports of test.reports_by_worker.values()) {
+          if (workerReports.length > 0) {
+            timestamps.push(workerReports[0].timestamp)
+          }
+        }
+      }
+
+      const minTimestamp = min(timestamps) ?? 0
+      const maxTimestamp = max(timestamps) ?? 0
+      function viridisColor(timestamp: number) {
+        if (timestamps.length <= 1) {
+          return d3.interpolateViridis(0.5) // Use middle color if only one worker
+        }
+        const normalized = (timestamp - minTimestamp) / (maxTimestamp - minTimestamp)
+        return d3.interpolateViridis(normalized)
+      }
+
+      for (const [nodeid, test] of tests.entries()) {
+        for (const workerReports of test.reports_by_worker.values()) {
+          if (workerReports.length > 0) {
+            lines.push({
+              url: null,
+              reports: workerReports.map(report =>
+                GraphReport.fromReport(nodeid, report),
+              ),
+              color: viridisColor(workerReports[0].timestamp),
             })
           }
-          return [nodeid, reports]
-        }),
-    )
-  }, [tests])
+        }
+      }
+    } else if (viewSetting === WorkerView.LATEST) {
+      for (const [nodeid, test] of tests.entries()) {
+        const recentReports = max(
+          Array.from(test.reports_by_worker.values()),
+          reports => reports[0].elapsed_time,
+        )
 
-  const filteredReports = useMemo(() => {
-    if (!filterString) return reports
-    return new Map(
-      Array.from(reports.entries()).filter(([nodeid]) =>
-        nodeid.toLowerCase().includes(filterString.toLowerCase()),
-      ),
-    )
-  }, [reports, filterString])
+        if (recentReports) {
+          lines.push({
+            url: null,
+            reports: recentReports.map(report =>
+              GraphReport.fromReport(nodeid, report),
+            ),
+            // use the same color as the linearized view
+            color: reportsColor(nodeid),
+          })
+        }
+      }
+    }
+    return lines
+  }, [tests, workers_after, viewSetting])
 
-  // use the unfiltered reports as the domain so colors are stable across filtering.
-  const reportsColor = d3.scaleOrdinal(d3.schemeCategory10).domain(reports.keys())
+  const filteredLines = useMemo(() => {
+    if (!filterString) return lines
+    return lines.filter(line =>
+      line.url?.toLowerCase().includes(filterString.toLowerCase()),
+    )
+  }, [lines, filterString])
 
   useEffect(() => {
     if (!svgRef.current) {
@@ -546,9 +756,10 @@ export function CoverageGraph({ tests, filterString = "", testsLoaded }: Props) 
     d3.select(svgRef.current).selectAll("*").remove()
     const graph = new Graph(
       svgRef.current,
-      filteredReports,
+      filteredLines,
       reportsColor,
-      scaleSetting,
+      scaleSettingX,
+      scaleSettingY,
       axisSettingX,
       axisSettingY,
       navigate,
@@ -576,9 +787,11 @@ export function CoverageGraph({ tests, filterString = "", testsLoaded }: Props) 
     }
   }, [
     tests,
-    scaleSetting,
+    scaleSettingX,
+    scaleSettingY,
     axisSettingX,
     axisSettingY,
+    viewSetting,
     forceUpdate,
     boxSelectEnabled,
     navigate,
@@ -591,105 +804,45 @@ export function CoverageGraph({ tests, filterString = "", testsLoaded }: Props) 
 
   return (
     <div className="card">
-      <div className="card__header">Coverage</div>
-      <div className="coverage-graph__controls" style={{ marginBottom: "15px" }}>
-        {/* box selection has issues with zoom viewport, temporarily disabling
-        <div
-          className={`coverage-graph__icon ${boxSelectEnabled ? "coverage-graph__icon--active" : ""}`}
-          onClick={toggleBoxSelect}
-        >
-          <BoxSelect width="16" height="16" />
-        </div> */}
-        <Toggle
-          value={axisSettingY}
-          onChange={setAxisSettingY}
-          options={[
-            {
-              value: "behaviors",
-              content: (
-                <>
-                  <FontAwesomeIcon icon={faCodeBranch} /> Behaviors
-                </>
-              ),
-              mobileContent: <FontAwesomeIcon icon={faCodeBranch} />,
-            },
-            {
-              value: "fingerprints",
-              content: (
-                <>
-                  <FontAwesomeIcon icon={faFingerprint} /> Fingerprints
-                </>
-              ),
-              mobileContent: <FontAwesomeIcon icon={faFingerprint} />,
-            },
-          ]}
-        />
-        <Toggle
-          value={axisSettingX}
-          onChange={setAxisSettingX}
-          options={[
-            {
-              value: "inputs",
-              content: (
-                <>
-                  <FontAwesomeIcon icon={faHashtag} /> Inputs
-                </>
-              ),
-              mobileContent: <FontAwesomeIcon icon={faHashtag} />,
-            },
-            {
-              value: "time",
-              content: (
-                <>
-                  <FontAwesomeIcon icon={faClock} /> Time
-                </>
-              ),
-              mobileContent: <FontAwesomeIcon icon={faClock} />,
-            },
-          ]}
-        />
-        <Toggle
-          value={scaleSetting}
-          onChange={setScaleSetting}
-          options={[
-            { value: "linear", content: "Linear" },
-            { value: "log", content: "Log" },
-          ]}
-        />
+      <div className="card__header" style={{ marginBottom: "1rem" }}>
+        Coverage
       </div>
       <div className="coverage-graph__tooltip" />
-      <div className="coverage-graph__grid" style={{ marginRight: "15px" }}>
-        {/* top left */}
-        <div className="coverage-graph__label coverage-graph__label--y">
-          <FontAwesomeIcon
-            icon={axisSettingY === "behaviors" ? faCodeBranch : faFingerprint}
-            className="coverage-graph__label__icon"
-          />
-          {axisSettingY === "behaviors" ? "Behaviors" : "Fingerprints"}
-        </div>
-
-        {/* top right */}
-        <svg
-          className="coverage-graph__svg"
-          ref={svgRef}
-          style={{ width: "100%", height: "100%" }}
-          onMouseEnter={() => setCurrentlyHovered(true)}
-          onMouseLeave={() => {
-            setCurrentlyHovered(false)
-            setForceUpdate(true)
-          }}
+      <div
+        style={{ display: "flex", justifyContent: "flex-end", marginBottom: "1rem" }}
+      >
+        <Toggle
+          value={viewSetting}
+          onChange={setWorkerView}
+          options={workerViews.map(view => ({
+            value: view,
+            content: workerToggleContent[view].content,
+            mobileContent: workerToggleContent[view].mobileContent,
+          }))}
         />
-
-        {/* bottom left */}
-        <div></div>
-
-        {/* bottom right */}
-        <div className="coverage-graph__label coverage-graph__label--x">
-          <FontAwesomeIcon
-            icon={axisSettingX === "time" ? faClock : faHashtag}
-            className="coverage-graph__label__icon"
+      </div>
+      <div className="coverage-graph__container">
+        <div
+          className="coverage-graph__grid"
+          style={{ marginRight: "15px", flex: 1, height: "auto" }}
+        >
+          {/* top left */}
+          <LabelY />
+          {/* top right */}
+          <svg
+            className="coverage-graph__svg"
+            ref={svgRef}
+            style={{ width: "100%", height: `${graphHeight}px` }}
+            onMouseEnter={() => setCurrentlyHovered(true)}
+            onMouseLeave={() => {
+              setCurrentlyHovered(false)
+              setForceUpdate(true)
+            }}
           />
-          {axisSettingX === "time" ? "Time (s)" : "Inputs"}
+          {/* bottom left */}
+          <div></div>
+          {/* bottom right */}
+          <LabelX />
         </div>
       </div>
     </div>

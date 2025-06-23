@@ -223,7 +223,11 @@ export function TestPage() {
           />
         </div>
       </div>
-      <CoverageGraph tests={new Map([[nodeid, test]])} testsLoaded={testsLoaded} />
+      <CoverageGraph
+        tests={new Map([[nodeid, test]])}
+        testsLoaded={testsLoaded}
+        workerViewSetting="graph_worker_view_test"
+      />
       {Array.from(test.failures.values()).map(failure => (
         <FailureCard failure={failure} />
       ))}
