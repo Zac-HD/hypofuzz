@@ -162,13 +162,13 @@ class Graph {
       axisSettingY == "behaviors" ? report.behaviors : report.fingerprints
 
     this.margin = {
-      top: 20,
-      right: 20,
-      bottom: isMobile ? 40 : 45,
-      left: isMobile ? 50 : 60,
+      top: 5,
+      right: 5,
+      bottom: 10,
+      left: 40,
     }
     this.width = svg.clientWidth - this.margin.left - this.margin.right
-    this.height = 300 - this.margin.top - this.margin.bottom
+    this.height = 270 - this.margin.top - this.margin.bottom
 
     this.reportsColor = reportsColor
     const allReports = Array.from(reports.values()).flat()
@@ -241,38 +241,6 @@ class Graph {
       .call(this.createXAxis(this.x))
 
     this.yAxis = this.g.append("g").call(this.createYAxis(this.y))
-
-    const yAxisGroup = this.g
-      .append("g")
-      .attr(
-        "transform",
-        `translate(${-this.margin.left}, ${this.height / 2}) rotate(-90)`,
-      )
-
-    const yIcon = this.axisSettingY == "behaviors" ? faCodeBranch : faFingerprint
-    const yLabelText = this.axisSettingY == "behaviors" ? "Behaviors" : "Fingerprints"
-    const yTextElement = yAxisGroup
-      .append("text")
-      .attr("x", 0)
-      .attr("y", 0)
-      .attr("dy", "1em")
-      .style("text-anchor", "middle")
-      .text(yLabelText)
-
-    prependIcon(yTextElement, yIcon, "vertical")
-
-    const xIcon = this.axisSettingX == "time" ? faClock : faHashtag
-    const xLabelText = this.axisSettingX == "time" ? "Time (s)" : "Inputs"
-    const xTextElement = this.g
-      .append("text")
-      .attr("x", this.width / 2)
-      // - 5 is an unashamed hack to prevent clipping on characters that go
-      // below the font baseline
-      .attr("y", this.height + this.margin.bottom - 5)
-      .style("text-anchor", "middle")
-      .text(xLabelText)
-
-    prependIcon(xTextElement, xIcon, "horizontal")
 
     this.chartArea
       .on("mousemove", event => {
@@ -624,7 +592,7 @@ export function CoverageGraph({ tests, filterString = "", testsLoaded }: Props) 
   return (
     <div className="card">
       <div className="card__header">Coverage</div>
-      <div className="coverage-graph__controls">
+      <div className="coverage-graph__controls" style={{ marginBottom: "15px" }}>
         {/* box selection has issues with zoom viewport, temporarily disabling
         <div
           className={`coverage-graph__icon ${boxSelectEnabled ? "coverage-graph__icon--active" : ""}`}
@@ -690,16 +658,40 @@ export function CoverageGraph({ tests, filterString = "", testsLoaded }: Props) 
         />
       </div>
       <div className="coverage-graph__tooltip" />
-      <svg
-        className="coverage-graph__svg"
-        ref={svgRef}
-        style={{ width: "100%", height: "300px" }}
-        onMouseEnter={() => setCurrentlyHovered(true)}
-        onMouseLeave={() => {
-          setCurrentlyHovered(false)
-          setForceUpdate(true)
-        }}
-      />
+      <div className="coverage-graph__grid" style={{ marginRight: "15px" }}>
+        {/* top left */}
+        <div className="coverage-graph__label coverage-graph__label--y">
+          <FontAwesomeIcon
+            icon={axisSettingY === "behaviors" ? faCodeBranch : faFingerprint}
+            className="coverage-graph__label__icon"
+          />
+          {axisSettingY === "behaviors" ? "Behaviors" : "Fingerprints"}
+        </div>
+
+        {/* top right */}
+        <svg
+          className="coverage-graph__svg"
+          ref={svgRef}
+          style={{ width: "100%", height: "100%" }}
+          onMouseEnter={() => setCurrentlyHovered(true)}
+          onMouseLeave={() => {
+            setCurrentlyHovered(false)
+            setForceUpdate(true)
+          }}
+        />
+
+        {/* bottom left */}
+        <div></div>
+
+        {/* bottom right */}
+        <div className="coverage-graph__label coverage-graph__label--x">
+          <FontAwesomeIcon
+            icon={axisSettingX === "time" ? faClock : faHashtag}
+            className="coverage-graph__label__icon"
+          />
+          {axisSettingX === "time" ? "Time (s)" : "Inputs"}
+        </div>
+      </div>
     </div>
   )
 }
