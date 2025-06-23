@@ -526,6 +526,44 @@ $mobile-breakpoint: 768px;
         }
     }
 
+    &__label {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        white-space: nowrap;
+
+        &--y {
+            // translateZ(0) might help with blur:
+            // https://github.com/tradingview/lightweight-charts/issues/1477#issuecomment-1860787102
+            transform: rotate(-90deg) translateZ(0);
+            justify-content: center;
+            max-width: 20px;
+            // rotated text is blurry unless setting these options
+            // (I have tested the -webkit setting, but not the -moz setting).
+            // https://stackoverflow.com/questions/20326220/blurry-text-on-transformrotate-in-chrome
+            //
+            // Unfortunately the icon is still blurry even with these...
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        &--x {
+            justify-content: center;
+        }
+
+        &__icon {
+            width: 14px;
+            height: 14px;
+        }
+    }
+
+    &__grid {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        grid-template-rows: 1fr auto;
+        height: 300px;
+    }
+
     &__tooltip {
         position: absolute;
         padding: 8px;
