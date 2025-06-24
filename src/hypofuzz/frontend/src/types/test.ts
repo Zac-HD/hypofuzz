@@ -148,7 +148,11 @@ export class Test extends Dataclass<Test> {
     }
     this.reports_by_worker.get(worker_uuid)!.splice(reports_index, 0, linear_report)
 
-    if (linear_report.phase !== Phase.REPLAY) {
+    if (
+      linear_report.phase !== Phase.REPLAY ||
+      linear_report.behaviors >= this.behaviors ||
+      linear_report.fingerprints >= this.fingerprints
+    ) {
       const index = bisectRight(
         this.linear_reports,
         linear_report.timestamp_monotonic!,

@@ -537,7 +537,7 @@ $mobile-breakpoint: 768px;
             // https://github.com/tradingview/lightweight-charts/issues/1477#issuecomment-1860787102
             transform: rotate(-90deg) translateZ(0);
             justify-content: center;
-            max-width: 20px;
+            max-width: 45px;
             // rotated text is blurry unless setting these options
             // (I have tested the -webkit setting, but not the -moz setting).
             // https://stackoverflow.com/questions/20326220/blurry-text-on-transformrotate-in-chrome
@@ -574,6 +574,32 @@ $mobile-breakpoint: 768px;
         pointer-events: none;
         z-index: 100;
         display: none;
+    }
+
+    &__container {
+        display: flex;
+        align-items: flex-start;
+    }
+
+    &__controls {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+
+        &__section {
+            &__header {
+                font-size: 14px;
+                text-align: center;
+                font-weight: 600;
+                margin-bottom: 8px;
+            }
+
+            &__controls {
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+            }
+        }
     }
 
     &__svg {

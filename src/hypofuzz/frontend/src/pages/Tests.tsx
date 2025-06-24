@@ -1,6 +1,6 @@
 import { useState } from "react"
 
-import { CoverageGraph } from "../components/CoverageGraph"
+import { CoverageGraph, WorkerView } from "../components/CoverageGraph"
 import { TestTable } from "../components/TestTable"
 import { useData } from "../context/DataProvider"
 
@@ -14,6 +14,8 @@ export function TestsPage() {
         tests={tests}
         filterString={filterString}
         testsLoaded={testsLoaded}
+        workerViews={[WorkerView.TOGETHER, WorkerView.LATEST]}
+        workerViewSetting="graph_worker_view_tests"
       />
       <TestTable tests={tests} onFilterChange={setFilterString} />
     </div>
