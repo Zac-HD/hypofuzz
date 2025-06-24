@@ -1,4 +1,4 @@
-import { TestStatus } from "../types/dashboard"
+import { TestStatus } from "src/types/dashboard"
 
 export function TestStatusPill({ status }: { status: TestStatus }) {
   return (

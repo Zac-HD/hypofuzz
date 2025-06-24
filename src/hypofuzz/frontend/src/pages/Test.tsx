@@ -14,19 +14,18 @@ import hljs from "highlight.js/lib/core"
 import python from "highlight.js/lib/languages/python"
 import { useEffect, useRef, useState } from "react"
 import { Link, useParams } from "react-router-dom"
-
-import { Collapsible } from "../components/Collapsible"
-import { CoverageGraph } from "../components/CoverageGraph"
-import { Table } from "../components/Table"
-import { TestPatches } from "../components/TestPatches"
-import { TestStatusPill } from "../components/TestStatusPill"
-import { Tooltip } from "../components/Tooltip"
-import { useData } from "../context/DataProvider"
-import { Tyche } from "../tyche/Tyche"
-import { Failure } from "../types/dashboard"
-import { fetchAvailablePatches } from "../utils/api"
-import { getTestStats } from "../utils/testStats"
-import { reHighlight } from "../utils/utils"
+import { Collapsible } from "src/components/Collapsible"
+import { CoverageGraph } from "src/components/graph/CoverageGraph"
+import { Table } from "src/components/Table"
+import { TestPatches } from "src/components/TestPatches"
+import { TestStatusPill } from "src/components/TestStatusPill"
+import { Tooltip } from "src/components/Tooltip"
+import { useData } from "src/context/DataProvider"
+import { Tyche } from "src/tyche/Tyche"
+import { Failure } from "src/types/dashboard"
+import { fetchAvailablePatches } from "src/utils/api"
+import { getTestStats } from "src/utils/testStats"
+import { reHighlight } from "src/utils/utils"
 
 hljs.registerLanguage("python", python)
 
@@ -81,7 +80,7 @@ function FailureCard({ failure }: { failure: Failure }) {
 
 export function TestPage() {
   const { nodeid } = useParams<{ nodeid: string }>()
-  const { tests } = useData(nodeid)
+  const { tests, testsLoaded } = useData(nodeid)
   const containerRef = useRef<HTMLDivElement>(null)
   const [nodeidsWithPatches, setNodeidsWithPatches] = useState<string[] | null>(null)
 
@@ -223,7 +222,11 @@ export function TestPage() {
           />
         </div>
       </div>
-      <CoverageGraph tests={new Map([[nodeid, test]])} />
+      <CoverageGraph
+        tests={new Map([[nodeid, test]])}
+        testsLoaded={testsLoaded}
+        workerViewSetting="graph_worker_view_test"
+      />
       {Array.from(test.failures.values()).map(failure => (
         <FailureCard failure={failure} />
       ))}

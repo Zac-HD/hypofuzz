@@ -13,6 +13,7 @@ from hypofuzz.dashboard.models import (
     DashboardEventT,
     DashboardEventType,
     SetStatusEvent,
+    TestLoadFinishedEvent,
     dashboard_failures,
     dashboard_observation,
     dashboard_report,
@@ -133,6 +134,8 @@ class OverviewWebsocket(HypofuzzWebsocket):
                 )
                 await self.send_event(report_event)
 
+            await broadcast_event(TestLoadFinishedEvent(nodeid=test.nodeid))
+
     async def on_event(self, event: DashboardEventT) -> None:
         # skip observations to the websocket page
         if event.type in [DashboardEventType.ADD_OBSERVATIONS]:
@@ -184,6 +187,8 @@ class TestWebsocket(HypofuzzWebsocket):
                 )
             )
 
+        await broadcast_event(TestLoadFinishedEvent(nodeid=self.nodeid))
+
     async def on_event(self, event: DashboardEventT) -> None:
         # we only send these events for test websockets
         if event.type not in [
@@ -191,6 +196,7 @@ class TestWebsocket(HypofuzzWebsocket):
             DashboardEventType.ADD_OBSERVATIONS,
             DashboardEventType.ADD_FAILURES,
             DashboardEventType.SET_FAILURES,
+            DashboardEventType.TEST_LOAD_FINISHED,
         ]:
             return
 

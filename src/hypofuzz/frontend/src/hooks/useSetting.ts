@@ -1,15 +1,31 @@
 import { useEffect, useState } from "react"
 
+const settingCallbacks = new Map<string, Set<(value: any) => void>>()
+
 export function useSetting<T>(key: string, defaultValue: T): [T, (value: T) => void] {
-  const [value, setValue] = useState<T>(() => {
+  const [value, _setValue] = useState<T>(() => {
     const saved = sessionStorage.getItem(key)
     if (saved === null) return defaultValue
     return JSON.parse(saved)
   })
 
   useEffect(() => {
-    sessionStorage.setItem(key, JSON.stringify(value))
-  }, [value, key])
+    if (!settingCallbacks.has(key)) {
+      settingCallbacks.set(key, new Set())
+    }
+    settingCallbacks.get(key)!.add(_setValue)
+
+    return () => {
+      settingCallbacks.get(key)!.delete(_setValue)
+    }
+  }, [key])
+
+  function setValue(newValue: T) {
+    sessionStorage.setItem(key, JSON.stringify(newValue))
+    // broadcast settings changes to other listeners. This way if there are two
+    // useSetting call for the same setting key, changes in one get reflected in the other.
+    settingCallbacks.get(key)!.forEach(callback => callback(newValue))
+  }
 
   return [value, setValue]
 }

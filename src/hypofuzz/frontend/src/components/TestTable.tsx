@@ -9,12 +9,12 @@ import {
 } from "@fortawesome/free-solid-svg-icons"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
 import { Link } from "react-router-dom"
-
-import { Status, Test } from "../types/dashboard"
-import { getTestStats, inputsPerSecond } from "../utils/testStats"
-import { Table } from "./Table"
-import { TestStatusPill } from "./TestStatusPill"
-import { Tooltip } from "./Tooltip"
+import { Table } from "src/components/Table"
+import { TestStatusPill } from "src/components/TestStatusPill"
+import { Tooltip } from "src/components/Tooltip"
+import { Status } from "src/types/dashboard"
+import { Test } from "src/types/test"
+import { getTestStats, inputsPerSecond } from "src/utils/testStats"
 
 function Icon({ icon, tooltip }: { icon: IconDefinition; tooltip: string }) {
   return (

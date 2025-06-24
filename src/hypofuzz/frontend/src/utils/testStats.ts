@@ -1,4 +1,4 @@
-import { Test } from "../types/dashboard"
+import { Test } from "src/types/test"
 
 export interface TestStats {
   inputs: string

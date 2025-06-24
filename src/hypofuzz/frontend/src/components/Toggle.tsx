@@ -1,4 +1,5 @@
-import { useIsMobile } from "../hooks/useIsMobile"
+import { Set } from "immutable"
+import { useIsMobile } from "src/hooks/useIsMobile"
 
 interface Option<T> {
   value: T
@@ -14,6 +15,8 @@ interface Props<T> {
 
 export function Toggle<T>({ value, onChange, options }: Props<T>) {
   const isMobile = useIsMobile()
+  // option values must be unique
+  console.assert(Set(options.map(o => o.value)).size === options.length)
 
   return (
     <div className="scale-toggle">

@@ -7,13 +7,12 @@ import {
 import { select as d3_select } from "d3-selection"
 import { Set } from "immutable"
 import { useEffect, useMemo, useRef } from "react"
-
-import { Observation } from "../types/dashboard"
-import { useTooltip } from "../utils/tooltip"
-import { max, sum } from "../utils/utils"
-import { Filter, useFilters } from "./FilterContext"
-import { TYCHE_COLOR } from "./Tyche"
-import { NOT_PRESENT_STRING, PRESENT_STRING } from "./Tyche"
+import { Filter, useFilters } from "src/tyche/FilterContext"
+import { TYCHE_COLOR } from "src/tyche/Tyche"
+import { NOT_PRESENT_STRING, PRESENT_STRING } from "src/tyche/Tyche"
+import { Observation } from "src/types/dashboard"
+import { useTooltip } from "src/utils/tooltip"
+import { max, sum } from "src/utils/utils"
 
 const d3 = {
   select: d3_select,
