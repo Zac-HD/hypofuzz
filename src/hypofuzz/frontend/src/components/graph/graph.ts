@@ -21,9 +21,8 @@ import {
   zoomIdentity as d3_zoomIdentity,
   ZoomTransform,
 } from "d3-zoom"
-
-import { Report, StatusCounts } from "../../types/dashboard"
-import { max, navigateOnClick, readableNodeid } from "../../utils/utils"
+import { Report, StatusCounts } from "src/types/dashboard"
+import { max, navigateOnClick, readableNodeid } from "src/utils/utils"
 
 const d3 = {
   scaleSymlog: d3_scaleSymlog,

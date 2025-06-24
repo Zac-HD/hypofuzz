@@ -1,7 +1,7 @@
-import { Observation } from "../types/dashboard"
-import { MosaicChart } from "./MosaicChart"
-import { TYCHE_COLOR } from "./Tyche"
-import { TycheSection } from "./TycheSection"
+import { MosaicChart } from "src/tyche/MosaicChart"
+import { TYCHE_COLOR } from "src/tyche/Tyche"
+import { TycheSection } from "src/tyche/TycheSection"
+import { Observation } from "src/types/dashboard"
 
 export function Samples({
   observations,

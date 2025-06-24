@@ -24,14 +24,13 @@ import {
 } from "d3-zoom"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
-
-// import BoxSelect from "../assets/box-select.svg?react"
-import { useIsMobile } from "../../hooks/useIsMobile"
-import { useSetting } from "../../hooks/useSetting"
-import { Test } from "../../types/test"
-import { max, min } from "../../utils/utils"
-import { Toggle } from "../Toggle"
-import { Graph, GRAPH_HEIGHT, GraphLine, GraphReport } from "./graph"
+import { Graph, GRAPH_HEIGHT, GraphLine, GraphReport } from "src/components/graph/graph"
+import { Toggle } from "src/components/Toggle"
+// import BoxSelect from "src/assets/box-select.svg?react"
+import { useIsMobile } from "src/hooks/useIsMobile"
+import { useSetting } from "src/hooks/useSetting"
+import { Test } from "src/types/test"
+import { max, min } from "src/utils/utils"
 
 const d3 = {
   zoom: d3_zoom,

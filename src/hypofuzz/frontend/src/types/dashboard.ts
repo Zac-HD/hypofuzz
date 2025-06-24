@@ -1,4 +1,4 @@
-import { bisectRight, sum } from "../utils/utils"
+import { bisectRight, sum } from "src/utils/utils"
 
 export abstract class Dataclass<T> {
   withProperties(props: Partial<T>): T {

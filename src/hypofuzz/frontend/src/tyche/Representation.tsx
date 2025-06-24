@@ -3,10 +3,9 @@ import "highlight.js/styles/github.css"
 import hljs from "highlight.js/lib/core"
 import python from "highlight.js/lib/languages/python"
 import { useEffect, useRef, useState } from "react"
-
-import { Pagination } from "../components/Pagination"
-import { Observation } from "../types/dashboard"
-import { TycheSection } from "./TycheSection"
+import { Pagination } from "src/components/Pagination"
+import { TycheSection } from "src/tyche/TycheSection"
+import { Observation } from "src/types/dashboard"
 
 hljs.registerLanguage("python", python)
 

@@ -1,12 +1,11 @@
 import { OrderedSet } from "immutable"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
-
-import { RangeSlider } from "../components/RangeSlider"
-import { useData } from "../context/DataProvider"
-import { formatTime } from "../utils/testStats"
-import { useTooltip } from "../utils/tooltip"
-import { navigateOnClick, readableNodeid } from "../utils/utils"
+import { RangeSlider } from "src/components/RangeSlider"
+import { useData } from "src/context/DataProvider"
+import { formatTime } from "src/utils/testStats"
+import { useTooltip } from "src/utils/tooltip"
+import { navigateOnClick, readableNodeid } from "src/utils/utils"
 
 interface Segment {
   nodeid: string

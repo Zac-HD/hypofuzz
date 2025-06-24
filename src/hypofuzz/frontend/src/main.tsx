@@ -1,11 +1,10 @@
-import "./styles/styles.scss"
+import "src/styles/styles.scss"
 // ensure our array prototype definitions get loaded
-import "./utils/prototypes"
+import "src/utils/prototypes"
 
 import React from "react"
 import ReactDOM from "react-dom/client"
-
-import { App } from "./App"
+import { App } from "src/App"
 
 ReactDOM.createRoot(document.getElementById("app")!).render(
   <React.StrictMode>
