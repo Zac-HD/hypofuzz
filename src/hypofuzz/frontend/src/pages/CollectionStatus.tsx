@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
-
-import { Table } from "../components/Table"
-import { CollectionResult, fetchCollectionStatus } from "../utils/api"
+import { Table } from "src/components/Table"
+import { CollectionResult, fetchCollectionStatus } from "src/utils/api"
 
 const statusOrder = {
   not_collected: 0,

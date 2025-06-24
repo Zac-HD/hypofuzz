@@ -6,8 +6,7 @@ import React, {
   useRef,
   useState,
 } from "react"
-
-import { Notification } from "../components/Notification"
+import { Notification } from "src/components/Notification"
 
 interface NotificationData {
   id: number

@@ -1,4 +1,3 @@
-import { bisectRight } from "../utils/utils"
 import {
   Dataclass,
   Failure,
@@ -7,7 +6,8 @@ import {
   Report,
   StatusCounts,
   TestStatus,
-} from "./dashboard"
+} from "src/types/dashboard"
+import { bisectRight } from "src/utils/utils"
 
 function report_with_diff(report: Report, last_worker_report: Report | null): Report {
   const last_status_counts = last_worker_report

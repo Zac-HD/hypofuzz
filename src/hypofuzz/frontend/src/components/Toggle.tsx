@@ -1,6 +1,5 @@
 import { Set } from "immutable"
-
-import { useIsMobile } from "../hooks/useIsMobile"
+import { useIsMobile } from "src/hooks/useIsMobile"
 
 interface Option<T> {
   value: T

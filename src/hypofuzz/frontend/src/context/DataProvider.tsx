@@ -7,12 +7,11 @@ import React, {
   useRef,
   useState,
 } from "react"
-
-import { ProgressBar } from "../components/ProgressBar"
-import { NOT_PRESENT_STRING, PRESENT_STRING } from "../tyche/Tyche"
-import { Failure, Observation, Report } from "../types/dashboard"
-import { Test } from "../types/test"
-import { useNotification } from "./NotificationProvider"
+import { ProgressBar } from "src/components/ProgressBar"
+import { useNotification } from "src/context/NotificationProvider"
+import { NOT_PRESENT_STRING, PRESENT_STRING } from "src/tyche/Tyche"
+import { Failure, Observation, Report } from "src/types/dashboard"
+import { Test } from "src/types/test"
 
 interface DataContextType {
   tests: Map<string, Test>

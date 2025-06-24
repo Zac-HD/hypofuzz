@@ -1,7 +1,6 @@
 import { faXmark } from "@fortawesome/free-solid-svg-icons"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
-
-import { useFilters } from "./FilterContext"
+import { useFilters } from "src/tyche/FilterContext"
 
 export function Filters() {
   const { filters, removeFilter } = useFilters()
