@@ -16,7 +16,7 @@ import { useEffect, useRef, useState } from "react"
 import { Link, useParams } from "react-router-dom"
 
 import { Collapsible } from "../components/Collapsible"
-import { CoverageGraph } from "../components/CoverageGraph"
+import { CoverageGraph } from "../components/graph/CoverageGraph"
 import { Table } from "../components/Table"
 import { TestPatches } from "../components/TestPatches"
 import { TestStatusPill } from "../components/TestStatusPill"

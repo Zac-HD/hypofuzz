@@ -1,6 +1,6 @@
 import { useState } from "react"
 
-import { CoverageGraph, WorkerView } from "../components/CoverageGraph"
+import { CoverageGraph, WorkerView } from "../components/graph/CoverageGraph"
 import { TestTable } from "../components/TestTable"
 import { useData } from "../context/DataProvider"
 
