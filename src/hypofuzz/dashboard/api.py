@@ -115,8 +115,8 @@ def _collection_status() -> list[dict[str, Any]]:
     return collection_status
 
 
-async def api_collected_tests(request: Request) -> Response:
-    return HypofuzzJSONResponse({"collection_status": _collection_status()})
+async def api_collection_status(request: Request) -> Response:
+    return HypofuzzJSONResponse(_collection_status())
 
 
 # get the backing state of the dashboard, suitable for use by dashboard_state/*.json.
@@ -156,7 +156,7 @@ async def api_backing_state_observations(request: Request) -> Response:
 async def api_backing_state_api(request: Request) -> Response:
     return HypofuzzJSONResponse(
         {
-            "collected_tests": {"collection_status": _collection_status()},
+            "collection_status": _collection_status(),
             "patches": _patches(),
         }
     )
@@ -167,7 +167,7 @@ api_routes = [
     Route("/api/tests/{nodeid:path}", api_test),
     Route("/api/patches/{nodeid:path}", api_patch),
     Route("/api/available_patches/", api_available_patches),
-    Route("/api/collected_tests/", api_collected_tests),
+    Route("/api/collection_status/", api_collection_status),
     Route("/api/backing_state/tests", api_backing_state_tests),
     Route("/api/backing_state/observations", api_backing_state_observations),
     Route("/api/backing_state/api", api_backing_state_api),

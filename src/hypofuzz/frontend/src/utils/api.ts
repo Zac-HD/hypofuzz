@@ -41,7 +41,7 @@ export async function fetchAvailablePatches(): Promise<string[] | null> {
 export async function fetchCollectionStatus(): Promise<CollectionResult[] | null> {
   const data = await fetchData<CollectionResult[]>(`collection_status/`)
   if (import.meta.env.VITE_USE_DASHBOARD_STATE === "1") {
-    return (data as any)?.collected_tests.collection_status
+    return (data as any)?.collection_status
   }
   return data
 }
