@@ -70,6 +70,7 @@ export interface GraphLine {
 // in pixels
 const distanceThreshold = 10
 export const GRAPH_HEIGHT = 270
+const XAXIS_CLIP_MARGIN = 5
 
 export class Graph {
   lines: GraphLine[]
@@ -153,10 +154,11 @@ export class Graph {
       .append("g")
       .attr("transform", `translate(${this.margin.left},${this.margin.top})`)
 
-    this.g
-      .append("defs")
+    const defs = this.g.append("defs")
+
+    defs
       .append("clipPath")
-      .attr("id", "clip")
+      .attr("id", "clip-content")
       .append("rect")
       .attr("width", this.width)
       .attr("height", this.height + 5)
@@ -166,10 +168,21 @@ export class Graph {
       // (and if you do track this down, remove the corresponding + 5 above)
       .attr("y", -5)
 
+    // clip for the x axis is slightly larger than for the graph content, to avoid left/rightmost
+    // axis ticks being clipped in the identity zoom
+    defs
+      .append("clipPath")
+      .attr("id", "clip-x-axis")
+      .append("rect")
+      .attr("width", this.width + XAXIS_CLIP_MARGIN * 2)
+      .attr("height", this.height)
+      .attr("x", -XAXIS_CLIP_MARGIN)
+      .attr("y")
+
     this.chartArea = this.g
       .append("g")
       .attr("class", "chart-area")
-      .attr("clip-path", "url(#clip)")
+      .attr("clip-path", "url(#clip-content)")
 
     this.chartArea
       .append("rect")
@@ -196,6 +209,7 @@ export class Graph {
     this.xAxis = this.g
       .append("g")
       .attr("transform", `translate(0,${this.height})`)
+      .attr("clip-path", "url(#clip-x-axis)")
       .call(this.createXAxis(this.x))
 
     this.yAxis = this.g.append("g").call(this.createYAxis(this.y))
