@@ -239,3 +239,29 @@ def test_stability_only_adds_behaviors_on_replay():
 
     process._execute_once(process.new_conjecture_data(choices=[10]))
     assert list(process.provider.corpus.behavior_counts.values()) == [2]
+
+
+def test_invalid_data_does_not_add_coverage():
+    @given(st.integers())
+    def test_a(x):
+        if x > 0:
+            pass
+        else:
+            pass
+        assume(False)
+
+    process = FuzzTarget.from_hypothesis_test(
+        test_a, database=HypofuzzDatabase(InMemoryExampleDatabase())
+    )
+    process._execute_once(process.new_conjecture_data(choices=[1]))
+    assert not process.provider.corpus.behavior_counts
+    assert not process.provider.corpus.fingerprints
+
+    process._execute_once(process.new_conjecture_data(choices=[-1]))
+    assert not process.provider.corpus.behavior_counts
+    assert not process.provider.corpus.fingerprints
+
+    for _ in range(5):
+        process._execute_once(process.new_conjecture_data())
+        assert not process.provider.corpus.behavior_counts
+        assert not process.provider.corpus.fingerprints

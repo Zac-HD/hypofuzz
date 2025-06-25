@@ -570,7 +570,10 @@ class HypofuzzProvider(PrimitiveProvider):
         consider_corpus_coverage = False
         if self._state.queue_priority is QueuePriority.STABILITY:
             assert self._state.extra_queue_data is not None
-            if behaviors == self._state.extra_queue_data["behaviors"]:
+            if (
+                behaviors == self._state.extra_queue_data["behaviors"]
+                and observation.metadata.data_status is Status.VALID
+            ):
                 # make sure to save the observation from the original execution,
                 # not the re-execution. The re-execution is just to make sure the
                 # coverage is not flaky. Everything else should use the original
@@ -628,8 +631,11 @@ class HypofuzzProvider(PrimitiveProvider):
             self.status_counts_mutated[status] += 1
             # we only consider corpus coverage in ReplayPriority.STABILITY
             assert not consider_corpus_coverage
-            if not self.corpus.would_change_coverage(
-                behaviors, observation=observation
+            if (
+                not self.corpus.would_change_coverage(
+                    behaviors, observation=observation
+                )
+                and observation.metadata.data_status >= Status.VALID
             ):
                 # * If an input had new or improved coverage, then it was already
                 #   considered for coverage, which already update behavior counts.

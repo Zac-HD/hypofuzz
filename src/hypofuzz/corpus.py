@@ -206,6 +206,9 @@ class Corpus:
     def would_change_coverage(
         self, behaviors: Set[Behavior], *, observation: TestCaseObservation
     ) -> bool:
+        if observation.metadata.data_status < Status.VALID:
+            return False
+
         assert observation.metadata.choice_nodes is not None
 
         new_behavior = any(
@@ -242,6 +245,9 @@ class Corpus:
         observation: TestCaseObservation,
         save_observation: bool,
     ) -> None:
+        if observation.metadata.data_status < Status.VALID:
+            return
+
         assert observation.metadata.choice_nodes is not None
 
         self.behavior_counts.update(behaviors)
