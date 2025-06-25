@@ -69,16 +69,47 @@ def observations(
         )
     )
 )
-def test_corpus_coverage_tracking(args):
+def test_corpus_consider_coverage(args):
     corpus = Corpus(
         database=HypofuzzDatabase(InMemoryExampleDatabase()), database_key=b""
     )
     total_coverage = set()
     for observation, behaviors, save_observation in args:
-        corpus.add(observation, behaviors=behaviors, save_observation=save_observation)
+        would_change_coverage = corpus.would_change_coverage(
+            behaviors, observation=observation
+        )
+        behaviors_before = len(corpus.behavior_counts)
+        fingerprints_before = len(corpus.fingerprints)
+        size_before = (
+            sort_key(corpus.fingerprints[behaviors])
+            if behaviors in corpus.fingerprints
+            else None
+        )
+
+        corpus.consider_coverage(
+            behaviors, observation=observation, save_observation=save_observation
+        )
         note(repr(corpus))
         corpus._check_invariants()
         total_coverage.update(behaviors)
+
+        if would_change_coverage:
+            assert (
+                len(corpus.behavior_counts) > behaviors_before
+                or len(corpus.fingerprints) > fingerprints_before
+                or (
+                    size_before is not None
+                    and sort_key(corpus.fingerprints[behaviors]) < size_before
+                )
+            )
+        else:
+            assert len(corpus.behavior_counts) == behaviors_before
+            assert len(corpus.fingerprints) == fingerprints_before
+            assert (
+                size_before is None
+                or sort_key(corpus.fingerprints[behaviors]) == size_before
+            )
+
     assert total_coverage == set(corpus.behavior_counts)
 
 
@@ -99,7 +130,9 @@ def test_corpus_covering_nodes(args):
     fingerprints: dict[Fingerprint, NodesT] = {}
 
     for observation, behaviors, save_observation in args:
-        corpus.add(observation, behaviors=behaviors, save_observation=save_observation)
+        corpus.consider_coverage(
+            behaviors, observation=observation, save_observation=save_observation
+        )
         note(repr(corpus))
         corpus._check_invariants()
 
@@ -125,14 +158,25 @@ def test_corpus_resets_branch_counts_on_new_coverage():
         test_a, database=HypofuzzDatabase(InMemoryExampleDatabase())
     )
     provider = process.provider
-    for count in range(1, 10):
+    process._execute_once(process.new_conjecture_data(choices=[1]))
+    # execute again to re-execute the stability queue
+    process._execute_once(process.new_conjecture_data())
+
+    for count in range(2, 10):
         process._execute_once(process.new_conjecture_data(choices=[1]))
         # we keep incrementing arc counts if we don't find new coverage
         assert len(provider.corpus.behavior_counts) == 1
         assert list(provider.corpus.behavior_counts.values()) == [count]
 
+    assert not provider._replay_queue
+    assert not provider._choices_queue
     process._execute_once(process.new_conjecture_data(choices=[2]))
-    # our arc counts should get reset whenever we discover a new branch
+    assert len(provider._choices_queue) == 1
+    # execute again for stability
+    process._execute_once(process.new_conjecture_data())
+    assert not provider._choices_queue
+
+    # our behavior counts should get reset whenever we discover a new behavior (branch)
     assert len(provider.corpus.behavior_counts) == 2
     assert list(provider.corpus.behavior_counts.values()) == [1, 1]
 
