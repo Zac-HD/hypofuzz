@@ -2,6 +2,14 @@
 HypoFuzz uses [calendar-based versioning](https://calver.org/), with a
 `YY-MM-patch` format.
 
+## 25.06.03
+
+* Add new display options for the test coverage graph: `Together`, `Separate`, and `Latest`.
+  * `Together` shows a linearized view of all workers for this test, even when they were concurrent in practice.
+  * `Separate` shows each worker run for this test individually.
+  * `Latest` shows only the latest worker for this test.
+* Improve coverage calculation, to make reporting unstable coverage (due to e.g. caching) less likely. In the future, we will report coverage stability on the dashboard as a per-test percentage.
+
 ## 25.06.02
 
 * Add a dashboard notification while the dashboard process is still loading reports from the database
