@@ -147,7 +147,9 @@ def test_corpus_covering_nodes(args):
     assert fingerprints == corpus.fingerprints
 
 
-@pytest.mark.skipif(sys.version_info < (3, 12), reason="different branches pre-312")
+@pytest.mark.skipif(
+    sys.version_info < (3, 12), reason="different branches without sys.monitoring"
+)
 def test_corpus_resets_branch_counts_on_new_coverage():
     @given(st.integers())
     def test_a(x):

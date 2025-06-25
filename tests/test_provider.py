@@ -1,6 +1,8 @@
+import sys
 from collections.abc import Iterable
 from random import Random
 
+import pytest
 from hypothesis import assume, given, settings, strategies as st
 from hypothesis.database import InMemoryExampleDatabase
 from hypothesis.internal.conjecture.choice import choice_equal, choice_permitted
@@ -216,6 +218,9 @@ def test_stability_replays_exact_choices():
     assert calls == [10, 10]
 
 
+@pytest.mark.skipif(
+    sys.version_info < (3, 12), reason="different branches without sys.monitoring"
+)
 def test_stability_only_adds_behaviors_on_replay():
     @given(st.integers())
     def test_a(x):

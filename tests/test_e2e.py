@@ -6,7 +6,7 @@ import sys
 
 import pytest
 import requests
-from common import dashboard
+from common import BASIC_TEST_CODE, dashboard, setup_test_code
 
 TEST_CODE = """
 from hypothesis import given, settings, strategies as st
@@ -42,8 +42,7 @@ def test_end_to_end(numprocesses, tmp_path):
 
 @pytest.mark.skipif(sys.version_info < (3, 12), reason="we only check on 3.12+")
 def test_raises_without_debug_ranges(tmp_path):
-    test_fname = tmp_path / "test_debug_ranges.py"
-    test_fname.write_text(TEST_CODE, encoding="utf-8")
+    test_dir, _db_dir = setup_test_code(tmp_path, BASIC_TEST_CODE)
 
     process = subprocess.run(
         [
@@ -53,7 +52,7 @@ def test_raises_without_debug_ranges(tmp_path):
             "1",
             "--no-dashboard",
             "--",
-            str(test_fname),
+            test_dir,
         ],
         env=os.environ | {"PYTHONNODEBUGRANGES": "1"},
         capture_output=True,
