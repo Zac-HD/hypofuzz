@@ -50,6 +50,8 @@ bibtex_bibfiles = ["literature.bib"]
 # -- Options for HTML output -------------------------------------------------
 html_title = "HypoFuzz docs"
 html_theme = "furo"
+html_static_path = ["_static"]
+html_css_files = ["no-scroll.css"]
 # https://sphinx-rtd-theme.readthedocs.io/en/stable/configuring.html#confval-analytics_id
 # > Deprecated since version 3.0.0: The analytics_id option is deprecated, use
 # > the sphinxcontrib-googleanalytics extension instead.
