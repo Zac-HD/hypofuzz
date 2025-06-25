@@ -173,4 +173,4 @@ jobs:
         HYPOFUZZ_GITHUB_REPOSITORY: ${{ github.repository }}
       run: |
         pip install requests
-        python scripts/create_github_release.py
+        python scripts/make_release.py
