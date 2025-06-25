@@ -42,7 +42,7 @@ def test_fuzz_one_process_explain_mode():
     while not fp.has_found_failure:
         fp.run_one()
 
-    assert fp.provider.status_counts[Status.INTERESTING] == 1
+    assert fp.provider.status_counts_mutated[Status.INTERESTING] == 1
     failures = list(db.fetch_failures(fp.database_key, state=FailureState.SHRUNK))
     assert len(failures) == 1
     observation = db.fetch_failure_observation(
