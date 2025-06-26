@@ -43,6 +43,7 @@ def test_database_state():
             pass
 
     process = FuzzTarget.from_hypothesis_test(test_a, database=db)
+    process._enter_fixtures()
     process._execute_once(process.new_conjecture_data(choices=[2]))
     # for coverage stability
     process._execute_once(process.new_conjecture_data())
@@ -104,6 +105,7 @@ def test_adds_failures_to_database():
         assert x != 10
 
     process = FuzzTarget.from_hypothesis_test(test_a, database=db)
+    process._enter_fixtures()
     for _ in range(500):
         process.run_one()
 
