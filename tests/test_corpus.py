@@ -159,6 +159,7 @@ def test_corpus_resets_branch_counts_on_new_coverage():
     process = FuzzTarget.from_hypothesis_test(
         test_a, database=HypofuzzDatabase(InMemoryExampleDatabase())
     )
+    process._enter_fixtures()
     provider = process.provider
     process._execute_once(process.new_conjecture_data(choices=[1]))
     # execute again to re-execute the stability queue
