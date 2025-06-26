@@ -181,6 +181,10 @@ class FuzzTarget:
             # override less tightly scoped fixtures in pytest, but I don't know
             # if this correctly handles interactions like dependent fixtures
             # higher up the scope stack being overridden.
+            #
+            # It *seems* like getfixturevalue handles this overriding behavior
+            # for us correctly? `test_fixture_override` still passes even if
+            # we change this to fixturedefs[0].
             fixturedef = fixturedefs[-1]
             assert name == fixturedef.argname
             fixturedef = request._get_active_fixturedef(name)

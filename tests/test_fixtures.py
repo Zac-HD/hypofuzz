@@ -1,3 +1,4 @@
+import inspect
 import subprocess
 
 from common import collect_names, fuzz, setup_test_code, wait_for, wait_for_test_key
@@ -12,9 +13,7 @@ def assert_no_failures(db, key):
     assert not list(db.fetch_failures(key, state=FailureState.FIXED))
 
 
-def assert_fixtures(tmp_path, code, *, test_name):
-    assert collect_names(code) == {test_name}
-    test_dir, db_dir = setup_test_code(tmp_path, code)
+def _assert_fixtures(test_dir, db_dir):
     db = HypofuzzDatabase(DirectoryBasedExampleDatabase(db_dir))
     with fuzz(test_dir):
         key = wait_for_test_key(db, timeout=2)
@@ -24,6 +23,12 @@ def assert_fixtures(tmp_path, code, *, test_name):
     # we also check the test passes under normal pytest, to ensure we stay in sync
     # with any upstream changes.
     subprocess.run(["pytest", test_dir], check=True)
+
+
+def assert_fixtures(tmp_path, code, *, test_name):
+    assert collect_names(code) == {test_name}
+    test_dir, db_dir = setup_test_code(tmp_path, code)
+    _assert_fixtures(test_dir, db_dir)
 
 
 def test_basic_fixture(tmp_path):
@@ -164,3 +169,39 @@ def test_uses_autouse_fixture(tmp_path):
         assert autouse_value == "global_autouse_value"
     """
     assert_fixtures(tmp_path, code, test_name="test_a")
+
+
+def test_fixture_override(tmp_path):
+    test_code = """
+    @pytest.fixture
+    def base():
+        return "overriden"
+
+    @given(st.just(None))
+    @settings(suppress_health_check=[HealthCheck.function_scoped_fixture])
+    def test_fixture_override(base, dependent, _none):
+        assert _none is None
+        assert base == "overriden"
+        assert dependent == "overriden"
+    """
+
+    test_dir, db_dir = setup_test_code(tmp_path, test_code)
+
+    conftest_path = test_dir / "conftest.py"
+    conftest_path.write_text(
+        inspect.cleandoc(
+            """
+        import pytest
+
+        @pytest.fixture(scope="module")
+        def base():
+            return "root"
+
+        @pytest.fixture
+        def dependent(base):
+            return base
+    """
+        )
+    )
+
+    _assert_fixtures(test_dir, db_dir)
