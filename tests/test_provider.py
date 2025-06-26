@@ -1,6 +1,8 @@
+import sys
 from collections.abc import Iterable
 from random import Random
 
+import pytest
 from hypothesis import assume, given, settings, strategies as st
 from hypothesis.database import InMemoryExampleDatabase
 from hypothesis.internal.conjecture.choice import choice_equal, choice_permitted
@@ -10,8 +12,9 @@ from strategies import choice_type_and_constraints, constraints_strategy, nodes
 
 from hypofuzz import provider
 from hypofuzz.coverage import CoverageCollector
-from hypofuzz.database import HypofuzzDatabase
-from hypofuzz.provider import HypofuzzProvider, ReplayPriority, ReplayQueueElement
+from hypofuzz.database import ChoicesT, HypofuzzDatabase
+from hypofuzz.hypofuzz import FuzzTarget
+from hypofuzz.provider import HypofuzzProvider, QueuePriority
 
 
 class EmptyCoverageCollector(CoverageCollector):
@@ -23,7 +26,7 @@ class EmptyCoverageCollector(CoverageCollector):
 
 
 def hypofuzz_data(
-    random: Random, *, queue: Iterable[ReplayQueueElement] = ()
+    random: Random, *, queue: Iterable[tuple[QueuePriority, ChoicesT]] = ()
 ) -> ConjectureData:
     data = ConjectureData(
         random=random,
@@ -44,7 +47,7 @@ def hypofuzz_data(
     # remove the initial ChoiceTemplate(type="simplest") queue
     data.provider._replay_queue.clear()
     for priority, choices in queue:
-        data.provider._enqueue(priority, choices)
+        data.provider._enqueue(priority, choices, queue="choices")
 
     return data
 
@@ -54,7 +57,7 @@ def hypofuzz_data(
 def test_drawing_prefix_exactly(nodes):
     # drawing exactly a prefix gives that prefix
     data = hypofuzz_data(
-        random=None, queue=[(ReplayPriority.COVERING, tuple(n.value for n in nodes))]
+        random=None, queue=[(QueuePriority.COVERING, tuple(n.value for n in nodes))]
     )
 
     with data.provider.per_test_case_context_manager():
@@ -68,7 +71,7 @@ def test_drawing_prefix_exactly(nodes):
 def test_draw_past_prefix(choice_type_and_constraints, random):
     # drawing past the prefix gives random (permitted) values
     choice_type, constraints = choice_type_and_constraints
-    data = hypofuzz_data(random=random, queue=[(ReplayPriority.COVERING, ())])
+    data = hypofuzz_data(random=random, queue=[(QueuePriority.COVERING, ())])
 
     with data.provider.per_test_case_context_manager():
         choice = getattr(data, f"draw_{choice_type}")(**constraints)
@@ -82,12 +85,10 @@ def test_misaligned_type(node, ir_type_kwargs, random):
     # misaligning in type gives us random values
     ir_type, kwargs = ir_type_kwargs
     assume(ir_type != node.type)
-    cdata = hypofuzz_data(
-        random=random, queue=[(ReplayPriority.COVERING, (node.value,))]
-    )
+    data = hypofuzz_data(random=random, queue=[(QueuePriority.COVERING, (node.value,))])
 
-    with cdata.provider.per_test_case_context_manager():
-        choice = getattr(cdata, f"draw_{ir_type}")(**kwargs)
+    with data.provider.per_test_case_context_manager():
+        choice = getattr(data, f"draw_{ir_type}")(**kwargs)
 
     assert choice_permitted(choice, kwargs)
 
@@ -100,7 +101,7 @@ def test_misaligned_kwargs(data):
     kwargs = data.draw(constraints_strategy(node.type))
     assume(not choice_permitted(node.value, kwargs))
     data = hypofuzz_data(
-        random=data.draw(st.randoms()), queue=[(ReplayPriority.COVERING, (node.value,))]
+        random=data.draw(st.randoms()), queue=[(QueuePriority.COVERING, (node.value,))]
     )
 
     with data.provider.per_test_case_context_manager():
@@ -117,7 +118,7 @@ def test_changed_kwargs_pops_if_still_permitted(data):
     kwargs = data.draw(constraints_strategy(node.type))
     assume(choice_permitted(node.value, kwargs))
     data = hypofuzz_data(
-        random=data.draw(st.randoms()), queue=[(ReplayPriority.COVERING, (node.value,))]
+        random=data.draw(st.randoms()), queue=[(QueuePriority.COVERING, (node.value,))]
     )
 
     with data.provider.per_test_case_context_manager():
@@ -150,7 +151,7 @@ def test_provider_deletes_old_timed_reports(monkeypatch):
     )
 
     @given(st.integers())
-    @settings(backend="hypofuzz", database=db, max_examples=100)
+    @settings(backend="hypofuzz", database=db)
     def f(n):
         if n == 0:
             pass
@@ -182,3 +183,88 @@ def test_provider_deletes_old_timed_reports(monkeypatch):
             report1.behaviors < report2.behaviors
             or report1.fingerprints < report2.fingerprints
         )
+
+
+@given(st.randoms())
+def test_reuse_provider(random):
+    data = hypofuzz_data(
+        random=random,
+        queue=[(QueuePriority.COVERING, (1,)), (QueuePriority.COVERING, (2,))],
+    )
+
+    with data.provider.per_test_case_context_manager():
+        assert data.draw_integer() == 1
+
+    with data.provider.per_test_case_context_manager():
+        assert data.draw_integer() == 2
+
+
+def test_stability_replays_exact_choices():
+    calls = []
+
+    @given(st.integers())
+    def test_a(x):
+        if x == 10:
+            pass
+        calls.append(x)
+
+    process = FuzzTarget.from_hypothesis_test(
+        test_a, database=HypofuzzDatabase(InMemoryExampleDatabase())
+    )
+    process._enter_fixtures()
+    process._execute_once(process.new_conjecture_data(choices=[10]))
+    # executing again should execute the stability queue
+    process._execute_once(process.new_conjecture_data())
+
+    assert calls == [10, 10]
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 12), reason="different branches without sys.monitoring"
+)
+def test_stability_only_adds_behaviors_on_replay():
+    @given(st.integers())
+    def test_a(x):
+        if x == 10:
+            pass
+
+    process = FuzzTarget.from_hypothesis_test(
+        test_a, database=HypofuzzDatabase(InMemoryExampleDatabase())
+    )
+    process._enter_fixtures()
+
+    process._execute_once(process.new_conjecture_data(choices=[10]))
+    assert list(process.provider.corpus.behavior_counts.values()) == []
+
+    process._execute_once(process.new_conjecture_data())
+    assert list(process.provider.corpus.behavior_counts.values()) == [1]
+
+    process._execute_once(process.new_conjecture_data(choices=[10]))
+    assert list(process.provider.corpus.behavior_counts.values()) == [2]
+
+
+def test_invalid_data_does_not_add_coverage():
+    @given(st.integers())
+    def test_a(x):
+        if x > 0:
+            pass
+        else:
+            pass
+        assume(False)
+
+    process = FuzzTarget.from_hypothesis_test(
+        test_a, database=HypofuzzDatabase(InMemoryExampleDatabase())
+    )
+    process._enter_fixtures()
+    process._execute_once(process.new_conjecture_data(choices=[1]))
+    assert not process.provider.corpus.behavior_counts
+    assert not process.provider.corpus.fingerprints
+
+    process._execute_once(process.new_conjecture_data(choices=[-1]))
+    assert not process.provider.corpus.behavior_counts
+    assert not process.provider.corpus.fingerprints
+
+    for _ in range(5):
+        process._execute_once(process.new_conjecture_data())
+        assert not process.provider.corpus.behavior_counts
+        assert not process.provider.corpus.fingerprints

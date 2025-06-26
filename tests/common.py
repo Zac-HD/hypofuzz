@@ -4,6 +4,7 @@ import queue
 import re
 import signal
 import subprocess
+import tempfile
 import threading
 import time
 from collections.abc import Generator
@@ -17,6 +18,7 @@ import requests
 from hypothesis.internal.escalation import InterestingOrigin
 from hypothesis.internal.reflection import get_pretty_function_description
 
+from hypofuzz.collection import CollectionResult, collect_tests
 from hypofuzz.database import test_keys_key
 
 
@@ -222,7 +224,7 @@ lists = st.lists(jsons)
 objects = st.dictionaries(st.text(), jsons)
 
 def to_jsonable(obj):
-    time.sleep(0.05)
+    time.sleep(0.01)
     if isinstance(obj, int):
         # create a bunch of artificial branches
         if abs(obj) <= 100:
@@ -281,7 +283,7 @@ def write_test_code(path: Path, db_dir, code: str) -> None:
     code = (
         inspect.cleandoc(
             f"""
-            from hypothesis import given, settings, strategies as st
+            from hypothesis import given, settings, strategies as st, HealthCheck
             from hypothesis.database import DirectoryBasedExampleDatabase
             import pytest
 
@@ -319,3 +321,27 @@ def interesting_origin(n: Optional[int] = None) -> InterestingOrigin:
     except Exception as e:
         origin = InterestingOrigin.from_exception(e)
         return origin._replace(lineno=n if n is not None else origin.lineno)
+
+
+def collect(code: str) -> CollectionResult:
+    code = (
+        inspect.cleandoc(
+            """
+            import pytest
+            from hypothesis import given, strategies as st, settings, HealthCheck
+            from hypothesis.stateful import RuleBasedStateMachine, Bundle, initialize, rule
+            from hypothesis.database import InMemoryExampleDatabase
+            """
+        )
+        + "\n"
+        + inspect.cleandoc(code)
+    )
+    p = Path(tempfile.mkstemp(prefix="test_", suffix=".py")[1])
+    p.write_text(code)
+    result = collect_tests([str(p)])
+    p.unlink()
+    return result
+
+
+def collect_names(code: str) -> set[str]:
+    return {fp.test_fn.__name__ for fp in collect(code).fuzz_targets}

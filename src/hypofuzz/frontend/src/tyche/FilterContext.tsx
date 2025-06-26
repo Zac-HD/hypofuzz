@@ -1,6 +1,5 @@
 import { createContext, ReactNode, useContext, useState } from "react"
-
-import { Observation } from "../types/dashboard"
+import { Observation } from "src/types/dashboard"
 
 export type ObservationCategory = "covering" | "rolling"
 

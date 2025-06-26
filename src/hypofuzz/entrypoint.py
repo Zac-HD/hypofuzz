@@ -115,7 +115,7 @@ def _debug_ranges_disabled() -> bool:
 
 
 def _fuzz_impl(n_processes: int, pytest_args: tuple[str, ...]) -> None:
-    if sys.version_info >= (3, 12) and _debug_ranges_disabled():
+    if sys.version_info[:2] >= (3, 12) and _debug_ranges_disabled():
         raise Exception(
             "The current python interpreter lacks position information for its "
             "code, which Hypothesis relies on to track branch coverage.\n\nThis can "

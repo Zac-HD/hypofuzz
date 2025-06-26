@@ -7,16 +7,17 @@ import React, {
   useRef,
   useState,
 } from "react"
-
-import { ProgressBar } from "../components/ProgressBar"
-import { NOT_PRESENT_STRING, PRESENT_STRING } from "../tyche/Tyche"
-import { Observation, Report, Test } from "../types/dashboard"
-import { useNotification } from "./NotificationProvider"
+import { ProgressBar } from "src/components/ProgressBar"
+import { useNotification } from "src/context/NotificationProvider"
+import { NOT_PRESENT_STRING, PRESENT_STRING } from "src/tyche/Tyche"
+import { Failure, Observation, Report } from "src/types/dashboard"
+import { Test } from "src/types/test"
 
 interface DataContextType {
   tests: Map<string, Test>
   socket: WebSocket | null
   doLoadData: (nodeid: string | null) => void
+  testsLoaded: () => boolean
 }
 
 const DataContext = createContext<DataContextType | null>(null)
@@ -25,26 +26,34 @@ interface DataProviderProps {
   children: React.ReactNode
 }
 
+interface LoadingStatus {
+  // the number of tests collected by the dashboard.
+  count_tests: number | null
+  // the number of tests the dashboard has fully loaded from the database so far.
+  count_tests_loaded: number | null
+}
+
 enum DashboardEventType {
   SET_STATUS = 1,
   ADD_TESTS = 2,
   ADD_REPORTS = 3,
   ADD_OBSERVATIONS = 4,
-  SET_FAILURE = 5,
+  ADD_FAILURES = 5,
+  SET_FAILURES = 6,
+  TEST_LOAD_FINISHED = 7,
 }
 
 type TestsAction =
   | {
       type: DashboardEventType.SET_STATUS
-      count_tests: number
-      count_tests_loaded: number
+      loading_status: LoadingStatus
     }
   | {
       type: DashboardEventType.ADD_TESTS
       tests: {
         database_key: string
         nodeid: string
-        failure: Observation | null
+        failures: Map<string, Failure>
       }[]
     }
   | {
@@ -54,15 +63,19 @@ type TestsAction =
       reports: Report[]
     }
   | {
-      type: DashboardEventType.SET_FAILURE
+      type: DashboardEventType.ADD_FAILURES
       nodeid: string
-      failure: Observation | null
+      failures: Map<string, Failure>
     }
   | {
       type: DashboardEventType.ADD_OBSERVATIONS
       nodeid: string
       observation_type: "rolling" | "corpus"
       observations: Observation[]
+    }
+  | {
+      type: DashboardEventType.TEST_LOAD_FINISHED
+      nodeid: string
     }
 
 function prepareObservations(observations: Observation[]) {
@@ -116,7 +129,7 @@ function testsReducer(
     if (newState.has(nodeid)) {
       return newState.get(nodeid)!
     } else {
-      const test = new Test(null, nodeid, [], [], null, new Map())
+      const test = new Test(null, nodeid, [], [], new Map(), new Map())
       newState.set(test.nodeid, test)
       return test
     }
@@ -129,10 +142,12 @@ function testsReducer(
 
     case DashboardEventType.ADD_TESTS: {
       const { tests } = action
-      for (const { database_key, nodeid, failure } of tests) {
+      for (const { database_key, nodeid, failures } of tests) {
         const test = getOrCreateTest(nodeid)
         test.database_key = database_key
-        test.failure = failure ? Observation.fromJson(failure) : null
+        failures.forEach((failure, interesting_origin) => {
+          test.failures.set(interesting_origin, failure)
+        })
       }
       return newState
     }
@@ -146,10 +161,12 @@ function testsReducer(
       return newState
     }
 
-    case DashboardEventType.SET_FAILURE: {
-      const { nodeid, failure } = action
+    case DashboardEventType.ADD_FAILURES: {
+      const { nodeid, failures } = action
       const test = getOrCreateTest(nodeid)
-      test.failure = failure
+      failures.forEach((failure, interesting_origin) => {
+        test.failures.set(interesting_origin, failure)
+      })
       return newState
     }
 
@@ -173,6 +190,13 @@ function testsReducer(
       return newState
     }
 
+    case DashboardEventType.TEST_LOAD_FINISHED: {
+      const { nodeid } = action
+      const test = getOrCreateTest(nodeid)
+      test.load_finished_at = Date.now()
+      return newState
+    }
+
     default:
       throw new Error("non-exhaustive switch in testsReducer")
   }
@@ -183,6 +207,10 @@ export function DataProvider({ children }: DataProviderProps) {
   const [tests, dispatch] = useReducer(testsReducer, new Map<string, Test>())
   const [loadData, setLoadData] = useState(false)
   const [nodeid, setNodeid] = useState<string | null>(null)
+  const [loadingStatus, setLoadingStatus] = useState<LoadingStatus>({
+    count_tests: null,
+    count_tests_loaded: null,
+  })
   const { addNotification, updateNotification, dismissNotification } = useNotification()
   const statusNotification = useRef<number | null>(null)
 
@@ -190,6 +218,21 @@ export function DataProvider({ children }: DataProviderProps) {
     setLoadData(true)
     setNodeid(nodeid)
   }, [])
+
+  const testsLoaded = useCallback(() => {
+    const now = Date.now()
+    return (
+      loadingStatus.count_tests_loaded !== null &&
+      loadingStatus.count_tests !== null &&
+      loadingStatus.count_tests_loaded === loadingStatus.count_tests &&
+      Array.from(tests.values()).every(test => {
+        if (test.load_finished_at === null) {
+          return false
+        }
+        return now - test.load_finished_at > 200
+      })
+    )
+  }, [loadingStatus, tests])
 
   useEffect(() => {
     if (!loadData) {
@@ -209,6 +252,10 @@ export function DataProvider({ children }: DataProviderProps) {
     // where the backend re-sent the entire reports list under the assumption this was a fresh
     // page load, but the frontend simply appends them and duplicates the data.
     tests.clear()
+    setLoadingStatus({
+      count_tests: null,
+      count_tests_loaded: null,
+    })
 
     // load data from local dashboard state json files iff the appropriate env var was set
     // during building.
@@ -224,7 +271,7 @@ export function DataProvider({ children }: DataProviderProps) {
                 {
                   database_key: testData.database_key,
                   nodeid: nodeid,
-                  failure: testData.failure,
+                  failures: testData.failures,
                 },
               ],
             })
@@ -241,6 +288,11 @@ export function DataProvider({ children }: DataProviderProps) {
                 ),
               })
             }
+
+            dispatch({
+              type: DashboardEventType.TEST_LOAD_FINISHED,
+              nodeid: nodeid,
+            })
           })
         })
 
@@ -299,10 +351,15 @@ export function DataProvider({ children }: DataProviderProps) {
 
       switch (type) {
         case DashboardEventType.SET_STATUS: {
-          dispatch({
-            type: DashboardEventType.SET_STATUS,
+          const loading_status = {
             count_tests: count_tests,
             count_tests_loaded: count_tests_loaded,
+          }
+          setLoadingStatus(loading_status)
+
+          dispatch({
+            type: DashboardEventType.SET_STATUS,
+            loading_status: loading_status,
           })
 
           if (count_tests_loaded === count_tests) {
@@ -334,7 +391,12 @@ export function DataProvider({ children }: DataProviderProps) {
             tests: data.tests.map((test: any) => ({
               database_key: test.database_key,
               nodeid: test.nodeid,
-              failure: test.failure,
+              failures: new Map(
+                Object.entries(test.failures).map(([key, value]) => [
+                  key,
+                  Failure.fromJson(value),
+                ]),
+              ),
             })),
           })
           break
@@ -362,11 +424,24 @@ export function DataProvider({ children }: DataProviderProps) {
           break
         }
 
-        case DashboardEventType.SET_FAILURE: {
+        case DashboardEventType.ADD_FAILURES: {
           dispatch({
-            type: DashboardEventType.SET_FAILURE,
+            type: DashboardEventType.ADD_FAILURES,
             nodeid: data.nodeid,
-            failure: data.failure ? Observation.fromJson(data.failure) : null,
+            failures: new Map(
+              Object.entries(data.failures).map(([key, value]) => [
+                key,
+                Failure.fromJson(value),
+              ]),
+            ),
+          })
+          break
+        }
+
+        case DashboardEventType.TEST_LOAD_FINISHED: {
+          dispatch({
+            type: DashboardEventType.TEST_LOAD_FINISHED,
+            nodeid: data.nodeid,
           })
           break
         }
@@ -388,7 +463,7 @@ export function DataProvider({ children }: DataProviderProps) {
   }, [nodeid, loadData])
 
   return (
-    <DataContext.Provider value={{ tests, socket, doLoadData }}>
+    <DataContext.Provider value={{ tests, socket, doLoadData, testsLoaded }}>
       {children}
     </DataContext.Provider>
   )

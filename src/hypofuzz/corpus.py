@@ -21,7 +21,7 @@ from hypothesis.internal.conjecture.shrinker import Shrinker, sort_key as _sort_
 from hypothesis.internal.escalation import InterestingOrigin
 from hypothesis.internal.observability import TestCaseObservation
 
-from hypofuzz.database import ChoicesT, HypofuzzDatabase, Observation
+from hypofuzz.database import ChoicesT, FailureState, HypofuzzDatabase, Observation
 
 if TYPE_CHECKING:
     from typing import TypeAlias
@@ -203,66 +203,58 @@ class Corpus:
         ):
             self._db.delete_corpus_observation(self.database_key, choices, observation)
 
-    def add(
-        self,
-        observation: TestCaseObservation,
-        *,
-        behaviors: Set[Behavior],
-        save_observation: bool,
+    def would_change_coverage(
+        self, behaviors: Set[Behavior], *, observation: TestCaseObservation
     ) -> bool:
-        """Update the corpus with the result of running a test.
-
-        Returns whether this changed the corpus.
-        """
         if observation.metadata.data_status < Status.VALID:
             return False
 
         assert observation.metadata.choice_nodes is not None
 
-        if observation.metadata.data_status is Status.INTERESTING:
-            origin = observation.metadata.interesting_origin
-            assert origin is not None
-            if origin not in self.interesting_examples or (
-                sort_key(observation.metadata.choice_nodes)
-                < sort_key(self.interesting_examples[origin].metadata.choice_nodes)  # type: ignore
-            ):
-                previous = self.interesting_examples.get(origin)
-                choices = tuple(n.value for n in observation.metadata.choice_nodes)
-                self.interesting_examples[origin] = observation
-                # We save interesting examples to the unshrunk/secondary database
-                # so they can appear immediately without waiting for shrinking to
-                # finish. (also in case of a fatal hypofuzz error etc).
-                #
-                # Note that `observation`` might be none even for failures if we
-                # are replaying a failure in Phase.REPLAY, since we know observations
-                # already exist when replaying.
-                self._db.save_failure(
-                    self.database_key,
-                    choices,
-                    Observation.from_hypothesis(observation),
-                    shrunk=False,
-                )
+        new_behavior = any(
+            behavior not in self.behavior_counts for behavior in behaviors
+        )
+        new_fingerprint = behaviors not in self.fingerprints
+        new_coverage = new_behavior or new_fingerprint
 
-                if previous is not None:
-                    assert previous.metadata.choice_nodes is not None
-                    previous_choices = tuple(
-                        n.value for n in previous.metadata.choice_nodes
-                    )
-                    # remove the now-redundant failure we had previously saved.
-                    self._db.delete_failure(
-                        self.database_key,
-                        previous_choices,
-                        Observation.from_hypothesis(previous),
-                        shrunk=False,
-                    )
-                return True
+        smaller_choices = behaviors in self.fingerprints and sort_key(
+            observation.metadata.choice_nodes
+        ) < sort_key(self.fingerprints[behaviors])
+        return new_coverage or smaller_choices
+
+    def would_change_failure(self, observation: TestCaseObservation) -> bool:
+        if observation.metadata.data_status is not Status.INTERESTING:
+            return False
+
+        origin = observation.metadata.interesting_origin
+        assert origin is not None
+        assert observation.metadata.choice_nodes is not None
+
+        new_failure = origin not in self.interesting_examples
+        smaller_choices = origin in self.interesting_examples and sort_key(
+            observation.metadata.choice_nodes
+        ) < sort_key(
+            self.interesting_examples[origin].metadata.choice_nodes  # type: ignore
+        )
+        return new_failure or smaller_choices
+
+    def consider_coverage(
+        self,
+        behaviors: Set[Behavior],
+        *,
+        observation: TestCaseObservation,
+        save_observation: bool,
+    ) -> None:
+        if observation.metadata.data_status < Status.VALID:
+            return
+
+        assert observation.metadata.choice_nodes is not None
 
         self.behavior_counts.update(behaviors)
         if behaviors not in self.fingerprints:
             self._add_fingerprint(
                 behaviors, observation, save_observation=save_observation
             )
-            return True
 
         if sort_key(observation.metadata.choice_nodes) < sort_key(
             self.fingerprints[behaviors]
@@ -277,9 +269,40 @@ class Corpus:
             )
             if self._count_fingerprints[existing_choices] == 0:
                 self._evict_choices(existing_choices)
-            return True
 
-        return False
+    def consider_failure(
+        self,
+        observation: TestCaseObservation,
+    ) -> None:
+        if not self.would_change_failure(observation):
+            return
+
+        origin = observation.metadata.interesting_origin
+        assert observation.metadata.choice_nodes is not None
+        assert origin is not None
+
+        previous = self.interesting_examples.get(origin)
+        choices = tuple(n.value for n in observation.metadata.choice_nodes)
+        self.interesting_examples[origin] = observation
+        # We save interesting examples to the unshrunk/secondary database
+        # so they can appear immediately without waiting for shrinking to
+        # finish. (also in case of a fatal hypofuzz error etc).
+        self._db.save_failure(
+            self.database_key,
+            choices,
+            Observation.from_hypothesis(observation),
+            state=FailureState.UNSHRUNK,
+        )
+
+        if previous is not None:
+            assert previous.metadata.choice_nodes is not None
+            previous_choices = tuple(n.value for n in previous.metadata.choice_nodes)
+            # remove the now-redundant failure we had previously saved.
+            self._db.delete_failure(
+                self.database_key,
+                previous_choices,
+                state=FailureState.UNSHRUNK,
+            )
 
     def distill(self, fn: Callable[[ConjectureData], None], random: Random) -> None:
         """Shrink to a corpus of *minimal* covering examples.

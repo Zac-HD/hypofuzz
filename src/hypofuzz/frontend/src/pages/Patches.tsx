@@ -2,10 +2,9 @@ import { faArrowRight } from "@fortawesome/free-solid-svg-icons"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
 import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
-
-import { Collapsible } from "../components/Collapsible"
-import { TestPatches } from "../components/TestPatches"
-import { fetchAvailablePatches } from "../utils/api"
+import { Collapsible } from "src/components/Collapsible"
+import { TestPatches } from "src/components/TestPatches"
+import { fetchAvailablePatches } from "src/utils/api"
 
 export function PatchesPage() {
   const [nodeids, setNodeids] = useState<string[] | null>(null)

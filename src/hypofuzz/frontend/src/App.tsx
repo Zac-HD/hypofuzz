@@ -1,15 +1,14 @@
 import { BrowserRouter, HashRouter, Route, Routes } from "react-router-dom"
-
-import { DataProvider } from "./context/DataProvider"
-import { NotificationProvider } from "./context/NotificationProvider"
-import { Layout } from "./Layout"
-import { CollectionStatusPage } from "./pages/CollectionStatus"
-import { NotFoundPage } from "./pages/NotFound"
-import { PatchesPage } from "./pages/Patches"
-import { TestPage } from "./pages/Test"
-import { TestsPage } from "./pages/Tests"
-import { WorkersPage } from "./pages/Workers"
-import { TooltipProvider } from "./utils/tooltip"
+import { DataProvider } from "src/context/DataProvider"
+import { NotificationProvider } from "src/context/NotificationProvider"
+import { Layout } from "src/Layout"
+import { CollectionStatusPage } from "src/pages/CollectionStatus"
+import { NotFoundPage } from "src/pages/NotFound"
+import { PatchesPage } from "src/pages/Patches"
+import { TestPage } from "src/pages/Test"
+import { TestsPage } from "src/pages/Tests"
+import { WorkersPage } from "src/pages/Workers"
+import { TooltipProvider } from "src/utils/tooltip"
 
 export function App() {
   const Router =

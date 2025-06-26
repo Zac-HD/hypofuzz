@@ -14,24 +14,73 @@ import hljs from "highlight.js/lib/core"
 import python from "highlight.js/lib/languages/python"
 import { useEffect, useRef, useState } from "react"
 import { Link, useParams } from "react-router-dom"
-
-import { Collapsible } from "../components/Collapsible"
-import { CoverageGraph } from "../components/CoverageGraph"
-import { StatusPill } from "../components/StatusPill"
-import { Table } from "../components/Table"
-import { TestPatches } from "../components/TestPatches"
-import { Tooltip } from "../components/Tooltip"
-import { useData } from "../context/DataProvider"
-import { Tyche } from "../tyche/Tyche"
-import { fetchAvailablePatches } from "../utils/api"
-import { getTestStats } from "../utils/testStats"
-import { reHighlight } from "../utils/utils"
+import { Collapsible } from "src/components/Collapsible"
+import { CoverageGraph } from "src/components/graph/CoverageGraph"
+import { Table } from "src/components/Table"
+import { TestPatches } from "src/components/TestPatches"
+import { TestStatusPill } from "src/components/TestStatusPill"
+import { Tooltip } from "src/components/Tooltip"
+import { useData } from "src/context/DataProvider"
+import { Tyche } from "src/tyche/Tyche"
+import { Failure } from "src/types/dashboard"
+import { fetchAvailablePatches } from "src/utils/api"
+import { getTestStats } from "src/utils/testStats"
+import { reHighlight } from "src/utils/utils"
 
 hljs.registerLanguage("python", python)
 
+function FailureStatusPill({ failure }: { failure: Failure }) {
+  return (
+    <span style={{ textAlign: "center" }}>
+      {failure.state === "shrunk" ? (
+        <span className="pill pill__neutral">Fully shrunk</span>
+      ) : failure.state === "unshrunk" ? (
+        <span className="pill pill__neutral">Still shrinking...</span>
+      ) : (
+        // this case shouldn't happen
+        <></>
+      )}
+    </span>
+  )
+}
+
+function FailureCard({ failure }: { failure: Failure }) {
+  return (
+    <div className="card">
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "0.7rem",
+          marginBottom: "1rem",
+        }}
+      >
+        <div className="failure__title">Failure</div>
+        <FailureStatusPill failure={failure} />
+      </div>
+      <div className="failure__item">
+        <div className="failure__item__subtitle">Call</div>
+        <pre>
+          <code className="language-python">
+            {failure.observation.metadata.get("reproduction_decorator") +
+              "\n" +
+              failure.observation.representation}
+          </code>
+        </pre>
+        <div className="failure__item__subtitle">Traceback</div>
+        <pre>
+          <code className="language-python">
+            {failure.observation.metadata.get("traceback")}
+          </code>
+        </pre>
+      </div>
+    </div>
+  )
+}
+
 export function TestPage() {
   const { nodeid } = useParams<{ nodeid: string }>()
-  const { tests } = useData(nodeid)
+  const { tests, testsLoaded } = useData(nodeid)
   const containerRef = useRef<HTMLDivElement>(null)
   const [nodeidsWithPatches, setNodeidsWithPatches] = useState<string[] | null>(null)
 
@@ -47,7 +96,7 @@ export function TestPage() {
     if (test) {
       reHighlight(containerRef)
     }
-  }, [test?.failure])
+  }, [test?.failures])
 
   if (!nodeid || !test) {
     return <div>Test not found</div>
@@ -146,7 +195,7 @@ export function TestPage() {
           >
             {nodeid}
           </span>
-          <StatusPill status={test.status} />
+          <TestStatusPill status={test.status} />
         </div>
         <div style={{ paddingTop: "1rem", paddingBottom: "1rem" }}>
           <Table
@@ -173,28 +222,14 @@ export function TestPage() {
           />
         </div>
       </div>
-      <CoverageGraph tests={new Map([[nodeid, test]])} />
-      {test.failure && (
-        <div className="test-failure">
-          <h2>Failure</h2>
-          <div className="test-failure__item">
-            <h3>Call</h3>
-            <pre>
-              <code className="language-python">
-                {test.failure.metadata.get("reproduction_decorator") +
-                  "\n" +
-                  test.failure.representation}
-              </code>
-            </pre>
-            <h3>Traceback</h3>
-            <pre>
-              <code className="language-python">
-                {test.failure.metadata.get("traceback")}
-              </code>
-            </pre>
-          </div>
-        </div>
-      )}
+      <CoverageGraph
+        tests={new Map([[nodeid, test]])}
+        testsLoaded={testsLoaded}
+        workerViewSetting="graph_worker_view_test"
+      />
+      {Array.from(test.failures.values()).map(failure => (
+        <FailureCard failure={failure} />
+      ))}
       <Tyche test={test} />
       {nodeidsWithPatches?.includes(nodeid) && (
         <div className="card">

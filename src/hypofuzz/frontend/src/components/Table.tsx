@@ -1,8 +1,7 @@
 import { faArrowDown, faArrowUp, faTimes } from "@fortawesome/free-solid-svg-icons"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
 import React, { ReactNode, useMemo, useState } from "react"
-
-import { useIsMobile } from "../hooks/useIsMobile"
+import { useIsMobile } from "src/hooks/useIsMobile"
 
 interface TableHeader<T> {
   content: ReactNode
