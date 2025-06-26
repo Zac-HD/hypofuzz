@@ -126,7 +126,6 @@ class FuzzTarget:
         self.state: Optional[HypofuzzStateForActualGivenExecution] = None
         self.provider = HypofuzzProvider(None)
         self.stop_shrinking_at = math.inf
-        self._fixturedefs: list[pytest.FixtureDef] = []
 
     def _new_state(
         self, *, extra_kwargs: Optional[dict[str, Any]] = None
@@ -393,8 +392,8 @@ class FuzzWorker:
         # create a new FuzzTarget to put into self.targets, to avoid modifying
         # collected_fuzz_targets at all
         target = FuzzTarget(
-            test_fn=target._test_fn,
-            stuff=target._stuff,
+            test_fn=target.test_fn,
+            extra_kwargs=target.extra_kwargs,
             database=target.database,
             database_key=target.database_key,
             wrapped_test=target.wrapped_test,
