@@ -379,6 +379,7 @@ routes = [
     # StaticFiles only matches /docs/, not /docs, for some reason
     Route("/docs", lambda request: RedirectResponse(url="/docs/")),
     Mount("/docs", DocsStaticFiles(directory=dist / "docs")),
+    Mount("/favicon", StaticFiles(directory=dist / "favicon")),
     # catchall fallback. react will handle the routing of dynamic urls here,
     # such as to a node id. This also includes the 404 page.
     Route("/{path:path}", FileResponse(dist / "index.html")),
