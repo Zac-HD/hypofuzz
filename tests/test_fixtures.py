@@ -1,12 +1,15 @@
+import subprocess
+
 from common import collect_names, fuzz, setup_test_code, wait_for, wait_for_test_key
 from hypothesis.database import DirectoryBasedExampleDatabase
 
-from hypofuzz.database import HypofuzzDatabase, test_keys_key
+from hypofuzz.database import FailureState, HypofuzzDatabase, test_keys_key
 
 
 def assert_no_failures(db, key):
-    assert not list(db.fetch_failures(key, shrunk=True))
-    assert not list(db.fetch_failures(key, shrunk=False))
+    assert not list(db.fetch_failures(key, state=FailureState.SHRUNK))
+    assert not list(db.fetch_failures(key, state=FailureState.UNSHRUNK))
+    assert not list(db.fetch_failures(key, state=FailureState.FIXED))
 
 
 def assert_fixtures(tmp_path, code, *, test_name):
@@ -18,6 +21,10 @@ def assert_fixtures(tmp_path, code, *, test_name):
         wait_for(lambda: len(db.fetch_reports(key)) > 0, interval=0.1)
         assert_no_failures(db, key)
 
+    # we also check the test passes under normal pytest, to ensure we stay in sync
+    # with any upstream changes.
+    subprocess.run(["pytest", test_dir], check=True)
+
 
 def test_basic_fixture(tmp_path):
     code = """
@@ -26,6 +33,7 @@ def test_basic_fixture(tmp_path):
         return "a"
 
     @given(st.just(None))
+    @settings(suppress_health_check=[HealthCheck.function_scoped_fixture])
     def test_a(a, _none):
         assert _none is None
         assert a == "a"
@@ -54,6 +62,7 @@ def test_fixture_order(tmp_path):
     def g(f, c, order): order.append("g")
 
     @given(st.just(None))
+    @settings(suppress_health_check=[HealthCheck.function_scoped_fixture])
     def test_order(g, order, _none):
         assert _none is None
         assert order == ["a", "b", "c", "d", "e", "f", "g"], order
@@ -85,11 +94,13 @@ def test_fixture_teardown(tmp_path):
         b_active = False
 
     @given(st.just(None))
+    @settings(suppress_health_check=[HealthCheck.function_scoped_fixture])
     def test_a(a, _none):
         assert _none is None
         assert a == "a"
 
     @given(st.just(None))
+    @settings(suppress_health_check=[HealthCheck.function_scoped_fixture])
     def test_b(b, _none):
         assert _none is None
         assert b == "b"
