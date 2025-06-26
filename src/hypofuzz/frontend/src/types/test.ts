@@ -150,8 +150,8 @@ export class Test extends Dataclass<Test> {
 
     if (
       linear_report.phase !== Phase.REPLAY ||
-      linear_report.behaviors >= this.behaviors ||
-      linear_report.fingerprints >= this.fingerprints
+      (linear_report.behaviors >= this.behaviors &&
+        linear_report.fingerprints >= this.fingerprints)
     ) {
       const index = bisectRight(
         this.linear_reports,
