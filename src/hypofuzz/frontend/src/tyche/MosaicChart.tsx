@@ -1,10 +1,9 @@
 import { List, Set } from "immutable"
 import React, { useMemo } from "react"
-
-import { Observation } from "../types/dashboard"
-import { useTooltip } from "../utils/tooltip"
-import { measureText } from "../utils/utils"
-import { Filter, useFilters } from "./FilterContext"
+import { Filter, useFilters } from "src/tyche/FilterContext"
+import { Observation } from "src/types/dashboard"
+import { useTooltip } from "src/utils/tooltip"
+import { measureText } from "src/utils/utils"
 
 const MAX_MOSAIC_WIDTH = 640
 

@@ -224,7 +224,7 @@ lists = st.lists(jsons)
 objects = st.dictionaries(st.text(), jsons)
 
 def to_jsonable(obj):
-    time.sleep(0.05)
+    time.sleep(0.01)
     if isinstance(obj, int):
         # create a bunch of artificial branches
         if abs(obj) <= 100:
