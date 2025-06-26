@@ -154,10 +154,9 @@ class Test:
         # to convey the time spent searching for bugs. But we should be careful
         # when measuring cost to compute a separate "overhead" statistic which
         # takes every input and elapsed_time into account regardless of phase.
-        if (
-            linear_report.phase is not Phase.REPLAY
-            or linear_report.behaviors >= self.behaviors
-            or linear_report.fingerprints >= self.fingerprints
+        if linear_report.phase is not Phase.REPLAY or (
+            linear_report.behaviors >= self.behaviors
+            and linear_report.fingerprints >= self.fingerprints
         ):
             # insert in-order, maintaining the sorted invariant
             index = fast_bisect_right(
