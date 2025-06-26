@@ -204,6 +204,14 @@ body {
     color: var(--text-a9);
 }
 
+.features__feature__list {
+    padding-left: 2rem;
+}
+
+.features__feature__list li + li {
+    margin-top: 0.25rem;
+}
+
 .muted-link {
     color: hsl(var(--primary-h), 100%, 35%);
     text-decoration: none;
