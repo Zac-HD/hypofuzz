@@ -175,14 +175,14 @@ def test_fixture_override(tmp_path):
     test_code = """
     @pytest.fixture
     def base():
-        return "overriden"
+        return "overridden"
 
     @given(st.just(None))
     @settings(suppress_health_check=[HealthCheck.function_scoped_fixture])
     def test_fixture_override(base, dependent, _none):
         assert _none is None
-        assert base == "overriden"
-        assert dependent == "overriden"
+        assert base == "overridden"
+        assert dependent == "overridden"
     """
 
     test_dir, db_dir = setup_test_code(tmp_path, test_code)
