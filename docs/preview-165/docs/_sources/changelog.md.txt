@@ -2,6 +2,11 @@
 HypoFuzz uses [calendar-based versioning](https://calver.org/), with a
 `YY-MM-patch` format.
 
+(v25-06-04)=
+## 25.06.04
+
+Add support for pytest fixtures. This includes support for all fixture scopes, including `scope="session"`. Fixtures are set up when starting to fuzz a test, and torn down when switching to fuzz another test.
+
 (v25-06-03)=
 ## 25.06.03
 
