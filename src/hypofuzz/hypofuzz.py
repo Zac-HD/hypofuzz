@@ -434,10 +434,10 @@ class FuzzWorker:
 
         # we get passed unique nodeids
         assert len(set(nodeids)) == len(nodeids)
-        new_nodeids = set(nodeids) - set(self.targets.keys())
+        added_nodeids = set(nodeids) - set(self.targets.keys())
         removed_nodeids = set(self.targets.keys()) - set(nodeids)
 
-        for nodeid in new_nodeids:
+        for nodeid in added_nodeids:
             self._add_target(nodeid)
 
         for nodeid in removed_nodeids:
