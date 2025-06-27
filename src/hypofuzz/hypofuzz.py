@@ -346,21 +346,16 @@ class FuzzWorker:
         self.shared_state = shared_state
 
         self.random = Random()
-        # the current pool of node ids this process has available to fuzz. This
-        # might be adjusted by FuzzWorkerHub via `shared_state` as estimators
-        # update and nodeids are rebalanced across workers.
-        self.nodeids: Sequence[str] = []
         # The list of all collected fuzz targets. We collect this at the beginning
         # by running a pytest collection step.
         #
         # This is never modified or copied from after the initial collection.
         # When we need an actual target to fuzz, we create a new FuzzTarget
         # instance to put into self.targets.
-        self.collected_fuzz_targets: list[FuzzTarget] = []
-        # the current pool of active targets this worker can fuzz immediately.
-        # This is the subset of `nodeids` which this worker has chosen to start
-        # up.
-        self.targets: list[FuzzTarget] = []
+        self.collected_targets: dict[str, FuzzTarget] = {}
+        # the current pool of targets this worker can fuzz. This might change
+        # based on directives from the hub.
+        self.targets: dict[str, FuzzTarget] = {}
         # targets which we have previously started fuzzing, but have since been
         # told to drop by the hub. We keep the fuzz target in memory because we
         # might be told by the hub to pick this target up again in the future.
@@ -371,24 +366,21 @@ class FuzzWorker:
         # target. Once a worker starts fuzzing a target, it cannot restart fuzzing
         # that target from scratch without changing its uuid or wiping the previous
         # campaign, neither of which are feasible.
-        self.dropped_targets: list[FuzzTarget] = []
+        self.dropped_targets: dict[str, FuzzTarget] = {}
+
         self._current_target: Optional[FuzzTarget] = None
         self.event_dispatch: dict[bytes, list[FuzzTarget]] = defaultdict(list)
 
-    def add_target(self, nodeid: str) -> None:
+    def _add_target(self, nodeid: str) -> None:
         # if this target was previously dropped, move it from `dropped_targets`
         # to `targets`, without creating a new FuzzTarget.
-        dropped_targets = [t for t in self.dropped_targets if t.nodeid == nodeid]
-        if dropped_targets:
-            target = dropped_targets[0]
-            self.targets.append(target)
-            self.dropped_targets.remove(target)
+        if nodeid in self.dropped_targets:
+            target = self.dropped_targets[nodeid]
+            self.targets[nodeid] = target
+            del self.dropped_targets[nodeid]
             return
 
-        targets = [t for t in self.collected_fuzz_targets if t.nodeid == nodeid]
-        assert len(targets) == 1
-        target = targets[0]
-
+        target = self.collected_targets[nodeid]
         # create a new FuzzTarget to put into self.targets, to avoid modifying
         # collected_fuzz_targets at all
         target = FuzzTarget(
@@ -399,8 +391,24 @@ class FuzzWorker:
             wrapped_test=target.wrapped_test,
             pytest_item=target.pytest_item,
         )
-        self.targets.append(target)
+        assert nodeid not in self.targets
+        self.targets[nodeid] = target
         self.event_dispatch[target.database_key].append(target)
+
+    def _remove_target(self, nodeid: str) -> None:
+        target = self.targets[nodeid]
+        del self.targets[nodeid]
+
+        assert nodeid not in self.dropped_targets
+        self.dropped_targets[nodeid] = target
+        # we intentionally do not remove our event_dispatch listener
+        # here, because if we are ever told to pick up this dropped target
+        # again in the future, we still want its corpus and failure replay
+        # to be up to date from other workers.
+        #
+        # This is a tradeoff between memory usage and rescan time. It's
+        # not clear what the optimal tradeoff strategy is. (purge dropped
+        # targets after n large seconds?)
 
     def on_event(self, listener_event: ListenerEventT) -> None:
         event = DatabaseEvent.from_event(listener_event)
@@ -413,35 +421,29 @@ class FuzzWorker:
     @property
     def valid_targets(self) -> list[FuzzTarget]:
         # the targets we actually want to run/fuzz
-        return [t for t in self.targets if not t.has_found_failure]
-
-    def _maybe_add_targets(self) -> None:
-        # consider whether it's worthwhile to add more targets
-        active_nodeids = {target.nodeid for target in self.targets}
-        candidates = [nodeid for nodeid in self.nodeids if nodeid not in active_nodeids]
-        # TODO actually defer starting up targets here, based on worker lifetime
-        # and startup cost estimators here
-        for nodeid in candidates:
-            self.add_target(nodeid)
+        return [t for t in self.targets.values() if not t.has_found_failure]
 
     def _update_targets(self, nodeids: Sequence[str]) -> None:
         # Update our nodeids and targets with new directives from the hub.
         # * Nodes in both nodeids and self.targets are kept as-is
         # * Nodes in nodeids but not self.targets are added to our available
-        #   nodeids, to potentially be added as targets later (by _maybe_add_targets)
+        #   targets
         # * Nodes in self.targets but not nodeids are evicted from our targets.
         #   These are nodes that the hub has decided are better to hand off to
         #   another process.
-        for target in self.targets.copy():
-            if target.nodeid not in nodeids:
-                self.targets.remove(target)
-                self.dropped_targets.append(target)
-                # we intentionally do not remove our event_dispatch listener
-                # here, because if we are ever told to pick up this dropped target
-                # again in the future, we still want its corpus and failure replay
-                # to be up to date from other workers.
 
-        self.nodeids = nodeids
+        # we get passed unique nodeids
+        assert len(set(nodeids)) == len(nodeids)
+        new_nodeids = set(nodeids) - set(self.targets.keys())
+        removed_nodeids = set(self.targets.keys()) - set(nodeids)
+
+        for nodeid in new_nodeids:
+            self._add_target(nodeid)
+
+        for nodeid in removed_nodeids:
+            self._remove_target(nodeid)
+
+        assert set(self.targets.keys()) == set(nodeids)
 
     def _switch_to_target(self, target: FuzzTarget) -> None:
         # if we're sticking with our current target, then we don't need to
@@ -459,12 +461,16 @@ class FuzzWorker:
 
     def start(self) -> None:
         self.worker_start = time.perf_counter()
-        self.collected_fuzz_targets = collect_tests(self.pytest_args).fuzz_targets
+
+        collected = collect_tests(self.pytest_args)
+        self.collected_targets = {
+            target.nodeid: target for target in collected.fuzz_targets
+        }
+
         settings().database.add_listener(self.on_event)
 
         while True:
             self._update_targets(self.shared_state["hub_state"]["nodeids"])
-            self._maybe_add_targets()
 
             if not self.valid_targets:
                 break
@@ -562,6 +568,9 @@ class FuzzWorkerHub:
     def _rebalance(self) -> None:
         # rebalance the assignment of nodeids to workers, according to the
         # up-to-date estimators from our workers.
+        # TODO actually defer starting up targets here, based on worker lifetime
+        # and startup cost estimators. We should limit what we assign initially,
+        # and only assign more as the estimator says it's worthwhile.
 
         assert len(self.shared_states) == self.n_processes
         partitions = []
