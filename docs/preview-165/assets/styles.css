@@ -40,7 +40,7 @@
     --text-a9: hsla(var(--text-h), var(--text-s), var(--text-l), 0.9);
 }
 
-/* css reset */
+/* start css reset */
 
 *,
 *::before,
@@ -52,11 +52,6 @@
     margin: 0;
 }
 
-body {
-    font-family: var(--font-family);
-    background-color: var(--background-color);
-}
-
 input,
 button,
 textarea,
@@ -64,8 +59,11 @@ select {
     font: inherit;
 }
 
+/* end css reset */
+
 body {
     font-family: var(--font-family);
+    background-color: var(--background-color);
 }
 
 .navbar {
