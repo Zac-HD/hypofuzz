@@ -49,20 +49,21 @@ def test_dashboard_failure(tmp_path):
     )
 
     with dashboard(test_path=test_dir) as dash:
-        assert dash.state()["test_a.py::test_maybe_fail"]["failure"] is None
+        assert dash.state()["test_a.py::test_maybe_fail"]["failures"] == {}
         with fuzz(test_dir):
             wait_for(
-                lambda: (
-                    dash.state()["test_a.py::test_maybe_fail"]["failure"] is not None
-                ),
+                lambda: dash.state()["test_a.py::test_maybe_fail"]["failures"],
                 interval=0.25,
             )
 
     # if we restart the dasbhoard, the failure is still shown
     with dashboard(test_path=test_dir) as dash:
-        failure = dash.state()["test_a.py::test_maybe_fail"]["failure"]
-        assert failure is not None
-        assert failure["property"] == "test_a.py::test_maybe_fail"
+        failures = dash.state()["test_a.py::test_maybe_fail"]["failures"]
+        assert len(failures) == 1
+        failure = list(failures.values())[0]
+        assert failure["observation"]["property"] == "test_a.py::test_maybe_fail"
+        # TODO wait for shrinking to finish? or put that into a separate test?
+        assert failure["state"] in ["unshrunk", "shrunk"]
 
     # and also if we change the code to pass, but don't run the worker again, the
     # failure is still shown
@@ -79,13 +80,15 @@ def test_dashboard_failure(tmp_path):
         """,
     )
     with dashboard(test_path=test_dir) as dash:
-        failure = dash.state()["test_a.py::test_maybe_fail"]["failure"]
-        assert failure is not None
-        assert failure["property"] == "test_a.py::test_maybe_fail"
+        failures = dash.state()["test_a.py::test_maybe_fail"]["failures"]
+        assert len(failures) == 1
+        failure = list(failures.values())[0]
+        assert failure["observation"]["property"] == "test_a.py::test_maybe_fail"
+        assert failure["state"] in ["unshrunk", "shrunk"]
 
         # but if we run the worker again, the failure disappears
         with fuzz(test_dir):
             wait_for(
-                lambda: (dash.state()["test_a.py::test_maybe_fail"]["failure"] is None),
+                lambda: dash.state()["test_a.py::test_maybe_fail"]["failures"] == {},
                 interval=0.25,
             )

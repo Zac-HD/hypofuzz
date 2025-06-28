@@ -5,10 +5,9 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
 import hljs from "highlight.js/lib/core"
 import diff from "highlight.js/lib/languages/diff"
 import { useEffect, useRef, useState } from "react"
-
-import { fetchPatches } from "../utils/api"
-import { reHighlight } from "../utils/utils"
-import { Toggle } from "./Toggle"
+import { Toggle } from "src/components/Toggle"
+import { fetchPatches } from "src/utils/api"
+import { reHighlight } from "src/utils/utils"
 
 hljs.registerLanguage("diff", diff)
 

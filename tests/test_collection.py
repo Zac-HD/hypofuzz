@@ -1,37 +1,7 @@
 """Tests for the hypofuzz library."""
 
-import inspect
-import tempfile
-from pathlib import Path
-
 import pytest
-
-from hypofuzz.collection import collect_tests
-from hypofuzz.hypofuzz import FuzzTarget
-
-
-def collect(code: str) -> list[FuzzTarget]:
-    code = (
-        inspect.cleandoc(
-            """
-            import pytest
-            from hypothesis import given, strategies as st, settings
-            from hypothesis.stateful import RuleBasedStateMachine, Bundle, initialize, rule
-            from hypothesis.database import InMemoryExampleDatabase
-            """
-        )
-        + "\n"
-        + inspect.cleandoc(code)
-    )
-    p = Path(tempfile.mkstemp(prefix="test_", suffix=".py")[1])
-    p.write_text(code)
-    fps = collect_tests([str(p)]).fuzz_targets
-    p.unlink()
-    return fps
-
-
-def collect_names(code: str) -> set[str]:
-    return {fp._test_fn.__name__ for fp in collect(code)}
+from common import collect, collect_names
 
 
 def test_collects_autouse_fixtures():
@@ -56,7 +26,7 @@ def test_collects_autouse_that_uses_fixture():
     assert collect_names(code) == {"test_autouse"}
 
 
-def test_does_not_collect_explicit_fixture_even_if_autouse():
+def test_collects_explicit_autouse_fixture():
     # if the autouse fixture *wasnt* here, this test would not be collected
     # because of the explicit fixture. Make sure this is still true in light
     # of our special logic for autouse fixtures.
@@ -71,7 +41,7 @@ def test_does_not_collect_explicit_fixture_even_if_autouse():
     def test_autouse(myfixture, x): ...
     """
 
-    assert not collect_names(code)
+    assert collect_names(code) == {"test_autouse"}
 
 
 def test_collects_parameterized_tests():
@@ -83,7 +53,8 @@ def test_collects_parameterized_tests():
     """
 
     names = {
-        (fp._test_fn.__name__, tuple(fp._stuff.kwargs.items())) for fp in collect(code)
+        (fp.test_fn.__name__, tuple(fp.extra_kwargs.items()))
+        for fp in collect(code).fuzz_targets
     }
     assert names == {
         ("test_parameterized", (("param", 1),)),
@@ -271,3 +242,15 @@ def test_evaluates_only_closest_skipif(tmp_path):
     assert collect_names(code) == set()
     assert file_1.exists()
     assert not file_2.exists()
+
+
+def test_collects_function_scope_fixtures():
+    code = """
+    @pytest.fixture()
+    def myfixture(): ...
+
+    @given(st.none())
+    def test_with_fixture(myfixture, v): ...
+    """
+
+    assert collect_names(code) == {"test_with_fixture"}

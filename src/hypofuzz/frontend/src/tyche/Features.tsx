@@ -1,6 +1,6 @@
-import { Observation } from "../types/dashboard"
-import { NominalChart } from "./NominalChart"
-import { TycheSection } from "./TycheSection"
+import { NominalChart } from "src/tyche/NominalChart"
+import { TycheSection } from "src/tyche/TycheSection"
+import { Observation } from "src/types/dashboard"
 
 export function Features({
   observations,

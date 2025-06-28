@@ -26,19 +26,76 @@ export function reHighlight(
     })
 }
 
-export function max<T>(array: T[], key?: (value: T) => number): number | null {
-  let maxValue: number | null = null
+export function max<T>(array: T[], key: (value: T) => number): T | null
+export function max(array: number[]): number | null
+export function max<T>(
+  array: T[] | number[],
+  key?: (value: T) => number,
+): T | number | null {
+  if (key) {
+    let maxElement: T | null = null
+    let maxValue: number | null = null
 
-  for (let i = 0; i < array.length; i++) {
-    const element = array[i]
-    const value = key ? key(element) : (element as number)
+    for (let i = 0; i < array.length; i++) {
+      const element = array[i] as T
+      const value = key(element)
 
-    if (value != null && (maxValue === null || value > maxValue)) {
-      maxValue = value
+      if (value != null && (maxValue === null || value > maxValue)) {
+        maxValue = value
+        maxElement = element
+      }
     }
-  }
 
-  return maxValue
+    return maxElement
+  } else {
+    let maxValue: number | null = null
+
+    for (let i = 0; i < array.length; i++) {
+      const value = array[i] as number
+
+      if (value != null && (maxValue === null || value > maxValue)) {
+        maxValue = value
+      }
+    }
+
+    return maxValue
+  }
+}
+
+export function min<T>(array: T[], key: (value: T) => number): T | null
+export function min(array: number[]): number | null
+export function min<T>(
+  array: T[] | number[],
+  key?: (value: T) => number,
+): T | number | null {
+  if (key) {
+    let minElement: T | null = null
+    let minValue: number | null = null
+
+    for (let i = 0; i < array.length; i++) {
+      const element = array[i] as T
+      const value = key(element)
+
+      if (value != null && (minValue === null || value < minValue)) {
+        minValue = value
+        minElement = element
+      }
+    }
+
+    return minElement
+  } else {
+    let minValue: number | null = null
+
+    for (let i = 0; i < array.length; i++) {
+      const value = array[i] as number
+
+      if (value != null && (minValue === null || value < minValue)) {
+        minValue = value
+      }
+    }
+
+    return minValue
+  }
 }
 
 export function mapsEqual(m1: Map<any, any>, m2: Map<any, any>): boolean {
