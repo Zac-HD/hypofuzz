@@ -10,8 +10,6 @@ import hypothesis.extra.cli
 import psutil
 from hypothesis.internal.conjecture.providers import AVAILABLE_PROVIDERS
 
-from hypofuzz.hypofuzz import FuzzWorkerHub
-
 AVAILABLE_PROVIDERS["hypofuzz"] = "hypofuzz.provider.HypofuzzProvider"
 
 
@@ -115,6 +113,8 @@ def _debug_ranges_disabled() -> bool:
 
 
 def _fuzz_impl(n_processes: int, pytest_args: tuple[str, ...]) -> None:
+    from hypofuzz.hypofuzz import FuzzWorkerHub
+
     if sys.version_info[:2] >= (3, 12) and _debug_ranges_disabled():
         raise Exception(
             "The current python interpreter lacks position information for its "

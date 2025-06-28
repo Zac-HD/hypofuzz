@@ -472,42 +472,53 @@ class FuzzWorker:
         while True:
             self._update_targets(self.shared_state["hub_state"]["nodeids"])
 
-            if not self.valid_targets:
-                break
+            # it's possible to go through an interim period where we have no nodeids,
+            # but the hub still has nodeids to assign. We don't want the worker to
+            # exit in this case, but rather keep waiting for nodeids. Even if n_workers
+            # exceeds n_tests, we still want to keep all workers alive, because the
+            # hub will assign the same test to multiple workers simultaneously.
+            if self.valid_targets:
+                # choose the next target to fuzz with probability equal to the softmax
+                # of its estimator. aka boltzmann exploration
+                estimators = [
+                    behaviors_per_second(target) for target in self.valid_targets
+                ]
+                estimators = softmax(estimators)
+                # softmax might return 0.0 probability for some targets if there is
+                # a substantial gap in estimator values (e.g. behaviors_per_second=1_000
+                # vs behaviors_per_second=1.0). We don't expect this to happen normally,
+                # but it might when our estimator state is just getting started.
+                #
+                # Mix in a uniform probability of 1%, so we will eventually get out of
+                # such a hole.
+                if self.random.random() < 0.01:
+                    target = self.random.choice(self.valid_targets)
+                else:
+                    target = self.random.choices(
+                        self.valid_targets, weights=estimators, k=1
+                    )[0]
 
-            # choose the next target to fuzz with probability equal to the softmax
-            # of its estimator. aka boltzmann exploration
-            estimators = [behaviors_per_second(target) for target in self.valid_targets]
-            estimators = softmax(estimators)
-            # softmax might return 0.0 probability for some targets if there is
-            # a substantial gap in estimator values (e.g. behaviors_per_second=1_000
-            # vs behaviors_per_second=1.0). We don't expect this to happen normally,
-            # but it might when our estimator state is just getting started.
-            #
-            # Mix in a uniform probability of 1%, so we will eventually get out of
-            # such a hole.
-            if self.random.random() < 0.01:
-                target = self.random.choice(self.valid_targets)
-            else:
-                target = self.random.choices(
-                    self.valid_targets, weights=estimators, k=1
-                )[0]
+                self._switch_to_target(target)
+                # TODO we should scale this n up if our estimator expects that it will
+                # take a long time to discover a new behavior, to reduce the overhead
+                # of switching targets.
+                for _ in range(100):
+                    target.run_one()
 
-            self._switch_to_target(target)
-            # TODO we should scale this n up if our estimator expects that it will
-            # take a long time to discover a new behavior, to reduce the overhead
-            # of switching targets.
-            for _ in range(100):
-                target.run_one()
+                worker_state = self.shared_state["worker_state"]
+                worker_state["nodeids"][target.nodeid] = {
+                    "behavior_rates": None,
+                }
 
-            # give the hub an up-to-date estimator state
+            # give the hub up-to-date estimator states
             current_lifetime = time.perf_counter() - self.worker_start
             worker_state = self.shared_state["worker_state"]
             worker_state["current_lifetime"] = current_lifetime
             worker_state["expected_lifetime"] = None
-            worker_state["nodeids"][target.nodeid] = {
-                "behavior_rates": None,
-            }
+
+            worker_state["valid_nodeids"] = [
+                target.nodeid for target in self.valid_targets
+            ]
 
 
 class FuzzWorkerHub:
@@ -535,6 +546,7 @@ class FuzzWorkerHub:
                 shared_state["worker_state"]["nodeids"] = manager.dict()
                 shared_state["worker_state"]["current_lifetime"] = 0.0
                 shared_state["worker_state"]["expected_lifetime"] = 0.0
+                shared_state["worker_state"]["valid_nodeids"] = manager.list()
 
                 process = Process(
                     target=_start_worker,
@@ -559,8 +571,11 @@ class FuzzWorkerHub:
                 # failure). So we rebalance either once every n seconds, or whenever
                 # some worker needs a rebalancing.
                 time.sleep(60)
-                # if all our workers have exited, we should exit as well
-                if all(not process.is_alive() for process in processes):
+                # if none of our workers have anything to do, we should exit as well
+                if all(
+                    not state["worker_state"]["valid_nodeids"]
+                    for state in self.shared_states
+                ):
                     break
 
                 self._rebalance()
@@ -598,5 +613,5 @@ def _start_worker(
     Designed to be used inside a multiprocessing.Process started with the spawn()
     method - requires picklable arguments but works on Windows too.
     """
-    process = FuzzWorker(pytest_args=pytest_args, shared_state=shared_state)
-    process.start()
+    worker = FuzzWorker(pytest_args=pytest_args, shared_state=shared_state)
+    worker.start()
