@@ -521,6 +521,9 @@ class FuzzWorker:
             worker_state = self.shared_state["worker_state"]
             worker_state["current_lifetime"] = current_lifetime
             worker_state["expected_lifetime"] = e_worker_lifetime(current_lifetime)
+            worker_state["valid_nodeids"] = [
+                target.nodeid for target in self.valid_targets
+            ]
 
 
 class FuzzWorkerHub:
