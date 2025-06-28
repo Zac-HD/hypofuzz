@@ -3,13 +3,10 @@
 import contextlib
 import math
 import time
-import time
 from collections import defaultdict
-from collections.abc import Callable, Mapping, Sequence
 from collections.abc import Callable, Mapping, Sequence
 from contextlib import nullcontext
 from functools import partial
-from multiprocessing import Manager, Process
 from multiprocessing import Manager, Process
 from random import Random
 from typing import Any, Literal, Optional, Union
@@ -341,24 +338,11 @@ class FuzzTarget:
 
 
 class FuzzWorker:
-class FuzzWorker:
     """
     Manages switching between several FuzzTargets, and also manages their
     associated higher-level state, like setting up and tearing down pytest
     fixtures.
-    Manages switching between several FuzzTargets, and also manages their
-    associated higher-level state, like setting up and tearing down pytest
-    fixtures.
     """
-
-    def __init__(
-        self,
-        *,
-        pytest_args: Sequence[str],
-        shared_state: Mapping,
-    ) -> None:
-        self.pytest_args = pytest_args
-        self.shared_state = shared_state
 
     def __init__(
         self,
@@ -370,21 +354,16 @@ class FuzzWorker:
         self.shared_state = shared_state
 
         self.random = Random()
-        # the current pool of node ids this process has available to fuzz. This
-        # might be adjusted by FuzzWorkerHub via `shared_state` as estimators
-        # update and nodeids are rebalanced across workers.
-        self.nodeids: Sequence[str] = []
         # The list of all collected fuzz targets. We collect this at the beginning
         # by running a pytest collection step.
         #
         # This is never modified or copied from after the initial collection.
         # When we need an actual target to fuzz, we create a new FuzzTarget
         # instance to put into self.targets.
-        self.collected_fuzz_targets: list[FuzzTarget] = []
-        # the current pool of active targets this worker can fuzz immediately.
-        # This is the subset of `nodeids` which this worker has chosen to start
-        # up.
-        self.targets: list[FuzzTarget] = []
+        self.collected_targets: dict[str, FuzzTarget] = {}
+        # the current pool of targets this worker can fuzz. This might change
+        # based on directives from the hub.
+        self.targets: dict[str, FuzzTarget] = {}
         # targets which we have previously started fuzzing, but have since been
         # told to drop by the hub. We keep the fuzz target in memory because we
         # might be told by the hub to pick this target up again in the future.
@@ -395,34 +374,33 @@ class FuzzWorker:
         # target. Once a worker starts fuzzing a target, it cannot restart fuzzing
         # that target from scratch without changing its uuid or wiping the previous
         # campaign, neither of which are feasible.
-        self.dropped_targets: list[FuzzTarget] = []
+        self.dropped_targets: dict[str, FuzzTarget] = {}
+
+        self._current_target: Optional[FuzzTarget] = None
         self.event_dispatch: dict[bytes, list[FuzzTarget]] = defaultdict(list)
 
-    def add_target(self, nodeid: str) -> None:
+    def _add_target(self, nodeid: str) -> None:
         # if this target was previously dropped, move it from `dropped_targets`
         # to `targets`, without creating a new FuzzTarget.
-        dropped_targets = [t for t in self.dropped_targets if t.nodeid == nodeid]
-        if dropped_targets:
-            target = dropped_targets[0]
-            self.targets.append(target)
-            self.dropped_targets.remove(target)
+        if nodeid in self.dropped_targets:
+            target = self.dropped_targets[nodeid]
+            self.targets[nodeid] = target
+            del self.dropped_targets[nodeid]
             return
 
-        targets = [t for t in self.collected_fuzz_targets if t.nodeid == nodeid]
-        assert len(targets) == 1
-        target = targets[0]
-
+        target = self.collected_targets[nodeid]
         # create a new FuzzTarget to put into self.targets, to avoid modifying
         # collected_fuzz_targets at all
         target = FuzzTarget(
-            test_fn=target._test_fn,
-            stuff=target._stuff,
+            test_fn=target.test_fn,
+            extra_kwargs=target.extra_kwargs,
             database=target.database,
             database_key=target.database_key,
             wrapped_test=target.wrapped_test,
             pytest_item=target.pytest_item,
         )
-        self.targets.append(target)
+        assert nodeid not in self.targets
+        self.targets[nodeid] = target
         self.event_dispatch[target.database_key].append(target)
 
     def _remove_target(self, nodeid: str) -> None:
@@ -451,80 +429,98 @@ class FuzzWorker:
     @property
     def valid_targets(self) -> list[FuzzTarget]:
         # the targets we actually want to run/fuzz
-        return [t for t in self.targets if not t.has_found_failure]
-
-    def _maybe_add_targets(self) -> None:
-        # consider whether it's worthwhile to add more targets
-        active_nodeids = {target.nodeid for target in self.targets}
-        candidates = [nodeid for nodeid in self.nodeids if nodeid not in active_nodeids]
-        # TODO actually defer starting up targets here, based on worker lifetime
-        # and startup cost estimators here
-        for nodeid in candidates:
-            self.add_target(nodeid)
+        return [t for t in self.targets.values() if not t.has_found_failure]
 
     def _update_targets(self, nodeids: Sequence[str]) -> None:
         # Update our nodeids and targets with new directives from the hub.
         # * Nodes in both nodeids and self.targets are kept as-is
         # * Nodes in nodeids but not self.targets are added to our available
-        #   nodeids, to potentially be added as targets later (by _maybe_add_targets)
+        #   targets
         # * Nodes in self.targets but not nodeids are evicted from our targets.
         #   These are nodes that the hub has decided are better to hand off to
         #   another process.
-        for target in self.targets.copy():
-            if target.nodeid not in nodeids:
-                self.targets.remove(target)
-                self.dropped_targets.append(target)
-                # we intentionally do not remove our event_dispatch listener
-                # here, because if we are ever told to pick up this dropped target
-                # again in the future, we still want its corpus and failure replay
-                # to be up to date from other workers.
 
-        self.nodeids = nodeids
+        # we get passed unique nodeids
+        assert len(set(nodeids)) == len(nodeids)
+        added_nodeids = set(nodeids) - set(self.targets.keys())
+        removed_nodeids = set(self.targets.keys()) - set(nodeids)
+
+        for nodeid in added_nodeids:
+            self._add_target(nodeid)
+
+        for nodeid in removed_nodeids:
+            self._remove_target(nodeid)
+
+        assert set(self.targets.keys()) == set(nodeids)
+
+    def _switch_to_target(self, target: FuzzTarget) -> None:
+        # if we're sticking with our current target, then we don't need to
+        # do anything expensive like cleaning up fixtures.
+        if target == self._current_target:
+            return
+
+        if self._current_target is not None:
+            # first, clean up any fixtures from the old target.
+            self._current_target._exit_fixtures()
+
+        # then, set up any fixtures for the new target.
+        target._enter_fixtures()
+        self._current_target = target
 
     def start(self) -> None:
         self.worker_start = time.perf_counter()
-        self.collected_fuzz_targets = collect_tests(self.pytest_args).fuzz_targets
+
+        collected = collect_tests(self.pytest_args)
+        self.collected_targets = {
+            target.nodeid: target for target in collected.fuzz_targets
+        }
+
         settings().database.add_listener(self.on_event)
 
         while True:
             self._update_targets(self.shared_state["hub_state"]["nodeids"])
-            self._maybe_add_targets()
 
-            if not self.valid_targets:
-                break
+            # it's possible to go through an interim period where we have no nodeids,
+            # but the hub still has nodeids to assign. We don't want the worker to
+            # exit in this case, but rather keep waiting for nodeids. Even if n_workers
+            # exceeds n_tests, we still want to keep all workers alive, because the
+            # hub will assign the same test to multiple workers simultaneously.
+            if self.valid_targets:
+                # softmax might return 0.0 probability for some targets if there is
+                # a substantial gap in estimator values (e.g. behaviors_per_second=1_000
+                # vs behaviors_per_second=1.0). We don't expect this to happen normally,
+                # but it might when our estimator state is just getting started.
+                #
+                # Mix in a uniform probability of 1%, so we will eventually get out of
+                # such a hole.
+                if self.random.random() < 0.01:
+                    target = self.random.choice(self.valid_targets)
+                else:
+                    behaviors_rates = [
+                        e_target_rates(target) for target in self.valid_targets
+                    ]
+                    weights = bandit_weights(behaviors_rates)
+                    target = self.random.choices(
+                        self.valid_targets, weights=weights, k=1
+                    )[0]
 
-            # softmax might return 0.0 probability for some targets if there is
-            # a substantial gap in estimator values (e.g. behaviors_per_second=1_000
-            # vs behaviors_per_second=1.0). We don't expect this to happen normally,
-            # but it might when our estimator state is just getting started.
-            #
-            # Mix in a uniform probability of 1%, so we will eventually get out of
-            # such a hole.
-            if self.random.random() < 0.01:
-                target = self.random.choice(self.valid_targets)
-            else:
-                behaviors_rates = [
-                    e_target_rates(target) for target in self.valid_targets
-                ]
-                weights = bandit_weights(behaviors_rates)
-                target = self.random.choices(self.valid_targets, weights=weights, k=1)[
-                    0
-                ]
+                self._switch_to_target(target)
+                # TODO we should scale this n up if our estimator expects that it will
+                # take a long time to discover a new behavior, to reduce the overhead
+                # of switching targets.
+                for _ in range(100):
+                    target.run_one()
 
-            # TODO we should scale this n up if our estimator expects that it will
-            # take a long time to discover a new behavior, to reduce the overhead
-            # of switching targets.
-            for _ in range(100):
-                target.run_one()
+                worker_state = self.shared_state["worker_state"]
+                worker_state["nodeids"][target.nodeid] = {
+                    "behavior_rates": e_target_rates(target),
+                }
 
-            # give the hub an up-to-date estimator state
+            # give the hub up-to-date estimator states
             current_lifetime = time.perf_counter() - self.worker_start
             worker_state = self.shared_state["worker_state"]
             worker_state["current_lifetime"] = current_lifetime
             worker_state["expected_lifetime"] = e_worker_lifetime(current_lifetime)
-            worker_state["nodeids"][target.nodeid] = {
-                "behavior_rates": e_target_rates(target),
-            }
 
 
 class FuzzWorkerHub:
@@ -552,6 +548,7 @@ class FuzzWorkerHub:
                 shared_state["worker_state"]["nodeids"] = manager.dict()
                 shared_state["worker_state"]["current_lifetime"] = 0.0
                 shared_state["worker_state"]["expected_lifetime"] = 0.0
+                shared_state["worker_state"]["valid_nodeids"] = manager.list()
 
                 process = Process(
                     target=_start_worker,
@@ -576,8 +573,11 @@ class FuzzWorkerHub:
                 # failure). So we rebalance either once every n seconds, or whenever
                 # some worker needs a rebalancing.
                 time.sleep(60)
-                # if all our workers have exited, we should exit as well
-                if all(not process.is_alive() for process in processes):
+                # if none of our workers have anything to do, we should exit as well
+                if all(
+                    not state["worker_state"]["valid_nodeids"]
+                    for state in self.shared_states
+                ):
                     break
 
                 self._rebalance()
@@ -585,6 +585,9 @@ class FuzzWorkerHub:
     def _rebalance(self) -> None:
         # rebalance the assignment of nodeids to workers, according to the
         # up-to-date estimators from our workers.
+        # TODO actually defer starting up targets here, based on worker lifetime
+        # and startup cost estimators. We should limit what we assign initially,
+        # and only assign more as the estimator says it's worthwhile.
 
         assert len(self.shared_states) == self.n_processes
         current_workers = [
@@ -642,5 +645,5 @@ def _start_worker(
     Designed to be used inside a multiprocessing.Process started with the spawn()
     method - requires picklable arguments but works on Windows too.
     """
-    process = FuzzWorker(pytest_args=pytest_args, shared_state=shared_state)
-    process.start()
+    worker = FuzzWorker(pytest_args=pytest_args, shared_state=shared_state)
+    worker.start()
