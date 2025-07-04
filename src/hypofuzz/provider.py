@@ -16,7 +16,7 @@ from enum import IntEnum
 from functools import cache
 from pathlib import Path
 from random import Random
-from typing import Any, ClassVar, Literal, Optional, TypeVar, Union, cast
+from typing import Any, ClassVar, Optional, TypeVar, Union, cast
 from uuid import uuid4
 
 import hypothesis
@@ -111,13 +111,16 @@ class QueuePriority(IntEnum):
     #
     # Failures still take priority over stability re-executions, however.
     STABILITY = 3
-    COVERING = 4
+    # COVERING_REPLAY is a corpus element from the initial database load. COVERING
+    # is a corpus element from another worker.
+    COVERING_REPLAY = 4
+    COVERING = 5
 
 
 @dataclass
 class State:
     choices: ChoicesT
-    queue_priority: Optional[QueuePriority]
+    priority: Optional[QueuePriority]
     start_time: float
     save_rolling_observation: bool
     choice_index: int = 0
@@ -172,26 +175,6 @@ class HypofuzzProvider(PrimitiveProvider):
         self.corpus: Optional[Corpus] = None
         self.db: Optional[HypofuzzDatabase] = None
 
-        # "replay queue" is the queue for the initial load from the database,
-        # and is not used afterwards.
-        #
-        # When we start pulling from this queue, we start Phase.REPLAY. When this
-        # queue is empty, we end Phase.REPLAY.
-        #
-        # We have two queues because we want to process the entire corpus queue
-        # before any other enqueued elements, even if they get enqueued at a
-        # nominally higher priority before the corpus queue finishes.
-        #
-        # Essentially we have `ReplayPriority x [0, 1]`, which we could model
-        # by having both ${priority} and ${priority}_corpus and for each priority
-        # such that the corpus priorities are all higher, or we could model as
-        # two separate queues. This is the latter approach.
-        self._replay_queue: SortedList[QueueElement] = SortedList(
-            key=lambda x: (x[0], _choices_size(x[1]))
-        )
-        # "choices queue" is the queue used for standard replay, including both
-        # in-process choice sequences (for e.g. stability), but also for choices
-        # from the database listener.
         self._choices_queue: SortedList[QueueElement] = SortedList(
             key=lambda x: (x[0], _choices_size(x[1]))
         )
@@ -255,7 +238,8 @@ class HypofuzzProvider(PrimitiveProvider):
                 )
                 if observation is None:
                     continue
-                self._enqueue(priority, choices, extra_data=observation, queue="replay")
+                self._enqueue(priority, choices, extra_data=observation)
+                self._loaded_for_replay.add(Choices(choices))
 
         # TODO: do we need/want this?
         # self._enqueue(
@@ -263,14 +247,15 @@ class HypofuzzProvider(PrimitiveProvider):
         #     (ChoiceTemplate(type="simplest", count=None),),
         # )
         for choices in self.db.fetch_corpus(self.database_key):
-            self._enqueue(QueuePriority.COVERING, choices, queue="replay")
+            self._enqueue(QueuePriority.COVERING_REPLAY, choices)
+            self._loaded_for_replay.add(Choices(choices))
 
         # Report that we've started this fuzz target
         self.db.save(test_keys_key, self.database_key)
         # save the worker identity once at startup
         self.db.save_worker_identity(self.database_key, self.worker_identity)
 
-        if not self._replay_queue:
+        if not self._loaded_for_replay:
             # if no worker has ever worked on this test before, save an initial
             # Phase.GENERATE report, so the graph displays a point at (0, 0).
             #
@@ -288,13 +273,8 @@ class HypofuzzProvider(PrimitiveProvider):
         choices: ChoicesT,
         *,
         extra_data: Optional[Any] = None,
-        queue: Literal["replay", "choices"],
     ) -> None:
-        if queue == "replay":
-            self._loaded_for_replay.add(Choices(choices))
-
-        queue = self._replay_queue if queue == "replay" else self._choices_queue
-        queue.add((priority, choices, extra_data))
+        self._choices_queue.add((priority, choices, extra_data))
 
     def on_event(self, event: DatabaseEvent) -> None:
         # Some worker has found a new covering corpus element. Replay it in
@@ -309,7 +289,7 @@ class HypofuzzProvider(PrimitiveProvider):
                     and Choices(event.value) in self.corpus.corpus
                 ):
                     return
-                self._enqueue(QueuePriority.COVERING, event.value, queue="choices")
+                self._enqueue(QueuePriority.COVERING, event.value)
             # (should we also replay failures found by other workers? we may not
             # want to stop early, since we could still find a different failure.
             # but I guess the same logic would apply to the worker which found the
@@ -384,21 +364,11 @@ class HypofuzzProvider(PrimitiveProvider):
         self,
     ) -> tuple[ChoicesT, Optional[QueuePriority], Optional[Any]]:
         # return the choices for this test case. The choices might come from
-        # _replay_queue, _choices_queue, or a mutator.
+        # either _choices_queue, or a mutator.
 
         assert self.corpus is not None
-        while self._replay_queue:
-            (queue_priority, choices, extra_queue_data) = self._replay_queue.pop(0)
-            if (
-                all(not isinstance(choice, ChoiceTemplate) for choice in choices)
-                and Choices(choices) in self.corpus.corpus
-            ):
-                continue
-            self._start_phase(Phase.REPLAY)
-            return (choices, queue_priority, extra_queue_data)
-
         while self._choices_queue:
-            (queue_priority, choices, extra_queue_data) = self._choices_queue.pop(0)
+            (priority, choices, extra_queue_data) = self._choices_queue.pop(0)
 
             # we checked if we had this choice sequence when we put it into the
             # replay_queue on on_event, but we check again here, since we might have
@@ -410,8 +380,12 @@ class HypofuzzProvider(PrimitiveProvider):
             ):
                 continue
 
-            self._start_phase(Phase.GENERATE)
-            return (choices, queue_priority, extra_queue_data)
+            self._start_phase(
+                Phase.REPLAY
+                if priority is QueuePriority.COVERING_REPLAY
+                else Phase.GENERATE
+            )
+            return (choices, priority, extra_queue_data)
 
         # if both the replay and choices queues were empty, we generate a new
         # choice sequence via mutation.
@@ -436,7 +410,7 @@ class HypofuzzProvider(PrimitiveProvider):
         if not self._started:
             self._startup()
 
-        (choices, queue_priority, extra_queue_data) = self._test_case_choices()
+        (choices, priority, extra_queue_data) = self._test_case_choices()
         # We're aiming for a rolling buffer of the last 300 observations, downsampling
         # to one per second if we're executing more than one test case per second.
         # Decide here, so that runtime doesn't bias our choice of what to observe.
@@ -445,7 +419,7 @@ class HypofuzzProvider(PrimitiveProvider):
 
         self._state = State(
             choices=choices,
-            queue_priority=queue_priority,
+            priority=priority,
             start_time=start,
             extra_queue_data=extra_queue_data,
             save_rolling_observation=save_rolling_observation,
@@ -476,7 +450,7 @@ class HypofuzzProvider(PrimitiveProvider):
 
         if state in [FailureState.SHRUNK, FailureState.UNSHRUNK]:
             # We know whether this failure was shrunk or not as of when we
-            # took it out of the db (via queue_priority). But I'm not confident that
+            # took it out of the db (via its priority). But I'm not confident that
             # it's not possible for another worker to move the same choice
             # sequence from unshrunk to shrunk - and failures are rare +
             # deletions cheap. Just try deleting from both.
@@ -542,7 +516,7 @@ class HypofuzzProvider(PrimitiveProvider):
         )
 
         status = observation.metadata.data_status
-        if status is not Status.INTERESTING and self._state.queue_priority in [
+        if status is not Status.INTERESTING and self._state.priority in [
             QueuePriority.FAILURE_SHRUNK,
             QueuePriority.FAILURE_UNSHRUNK,
             QueuePriority.FAILURE_FIXED,
@@ -554,7 +528,7 @@ class HypofuzzProvider(PrimitiveProvider):
                 QueuePriority.FAILURE_SHRUNK: FailureState.SHRUNK,
                 QueuePriority.FAILURE_UNSHRUNK: FailureState.UNSHRUNK,
                 QueuePriority.FAILURE_FIXED: FailureState.FIXED,
-            }[self._state.queue_priority]
+            }[self._state.priority]
             self.downgrade_failure(
                 self._state.choices, failure_observation, state=state
             )
@@ -568,7 +542,7 @@ class HypofuzzProvider(PrimitiveProvider):
         # we want to add just those, rather than discarding the entire
         # coverage set if anything doesn't match.
         consider_corpus_coverage = False
-        if self._state.queue_priority is QueuePriority.STABILITY:
+        if self._state.priority is QueuePriority.STABILITY:
             assert self._state.extra_queue_data is not None
             if (
                 behaviors == self._state.extra_queue_data["behaviors"]
@@ -589,11 +563,6 @@ class HypofuzzProvider(PrimitiveProvider):
                 QueuePriority.STABILITY,
                 choices=choices,
                 extra_data={"observation": observation, "behaviors": behaviors},
-                # if we retrieved this choice sequence from _replay_queue, we want
-                # to enqueue it back into _replay_queue, so that we immediately
-                # re-execute for new coverage without waiting to clear out
-                # _replay_queue.
-                queue="replay" if self.phase is Phase.REPLAY else "choices",
             )
             # don't add coverage to the corpus this time around. We'll do that when
             # re-executing for stability.
@@ -625,7 +594,7 @@ class HypofuzzProvider(PrimitiveProvider):
         )
         self.elapsed_time += elapsed_time
         self.status_counts[status] += 1
-        if self._state.queue_priority is None:
+        if self._state.priority is None:
             # this was a "useful" / mutated / not-replayed-from-a-queue input.
             self.elapsed_time_mutated += elapsed_time
             self.status_counts_mutated[status] += 1

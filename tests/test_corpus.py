@@ -171,7 +171,6 @@ def test_corpus_resets_branch_counts_on_new_coverage():
         assert len(provider.corpus.behavior_counts) == 1
         assert list(provider.corpus.behavior_counts.values()) == [count]
 
-    assert not provider._replay_queue
     assert not provider._choices_queue
     process._execute_once(process.new_conjecture_data(choices=[2]))
     assert len(provider._choices_queue) == 1
