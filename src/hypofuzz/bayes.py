@@ -68,7 +68,7 @@ def distribute_nodes(
     # the optimal solution with a greedy one, specifically a variant of
     # "longest processing time first scheduling": we first sort the nodes in
     # increasing order of their estimator. Then, for each mode, we check which
-    # worker has the lowest worker_behaiors, and assign the node to that worker.
+    # worker has the lowest worker_behaviors, and assign the node to that worker.
     # Since we are iterating in increasing order of estimator, we know that adding
     # a node to a worker will increase that worker's worker_behaviors (unless the
     # worker's scheduling algorithm for targets is literally adversarial, ie
@@ -83,7 +83,12 @@ def distribute_nodes(
     #
     # This penalty cost of switching a nodeid between workers is
     # worker_behaviors_per_second * node_startup_cost_seconds, ie the number of
-    # behaviors we expect to lose by spending time starting up this node.
+    # behaviors we expect to lose by spending time starting up this node. We
+    # only switch a nodeid between workers if the expected gain of doing so is
+    # greater than this penalty. Note that in practice the penalty is applied
+    # during assignment of nodes to workers in the greedy algorithm, so the penalty
+    # may not produce optimal results, since the greedy solution is only an
+    # approximation in general.
 
     random = Random()
     if current_workers is None:
@@ -114,7 +119,7 @@ def distribute_nodes(
         targets.append(targets[-target_idx])
         target_idx = (target_idx + 1) % len(targets)
 
-    # then, we assign each target to the worker with the worst worker_behaviors.
+    # then, we assign each target to the worker with the lowest worker_behaviors.
     # Since we're iterating over the targets in increasing order of behaviors
     # per-second, adding a target to a worker will always increase its
     # worker_behaviors.
@@ -143,16 +148,17 @@ def distribute_nodes(
             # want to increase the score of all other workers. So the offset here
             # should be positive.
             offset = worker_rates.per_second * target.e_startup_time
+            assert offset >= 0, offset
 
         # to avoid crazy rebalancing during the initial startup phase, don't
         # work with small lifetime estimators
         e_lifetime = max(e_lifetime, DEFAULT_EXPECTED_LIFETIME_ESTIMATOR)
-        return (worker_rates.per_second * e_lifetime) + offset
+        return e_worker_behaviors(rates=worker_rates, e_lifetime=e_lifetime) + offset
 
     for target in targets:
         # find all the workers with the minimum value score, and randomly assign
         # this target to one of them. Normally there won't be ties, and the target
-        # simply goes to the worst worker. But when fuzzing for the first time
+        # simply goes to the lowest worker. But when fuzzing for the first time
         # (or after a db wipe) where all targets have the same estimators, we
         # don't want to end in an assignment where one worker is given n - 1 nodes
         # and the other is given just 1.
@@ -208,13 +214,26 @@ def e_worker_lifetime(current_lifetime: float) -> float:
     return current_lifetime * 2
 
 
+def e_worker_behaviors(rates: BehaviorRates, e_lifetime: float) -> float:
+    """
+    An estimator for the total number of behaviors we expect a worker to discover
+    over its lifetime.
+
+    `lifetime` is the estimator for the worker's total lifetime, given by
+    e_worker_lifetime.
+    """
+    return rates.per_second * e_lifetime
+
+
 def e_worker_rates(*, target_rates: Sequence[BehaviorRates]) -> BehaviorRates:
-    weights = bandit_weights(target_rates)
     # the expected behavior rates of a worker is
     # sum(probability * expected_value) for each of its targets.
-    # Note that this is tightly dependent on the sampling algorithm used in
-    # practice by the workers. If that changes (to e.g. thompson sampling), our
-    # estimators will need to change to use the same sampling algorithm as well.
+    #
+    # Note that this estimator is tightly dependent on the sampling algorithm used
+    # in practice by the workers. If that changes (to e.g. thompson sampling), this
+    # estimator will need to change to use the same sampling algorithm as well.
+    # (ie, both places need to continue calling the same bandit_weights function).
+    weights = bandit_weights(target_rates)
     return BehaviorRates(
         per_input=sum(p * rates.per_input for p, rates in zip(weights, target_rates)),
         per_second=sum(p * rates.per_second for p, rates in zip(weights, target_rates)),

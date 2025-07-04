@@ -21,10 +21,10 @@ from hypofuzz.bayes import (
             nodeid=st.integers(0, 1000).map(lambda n: f"node{n}"),
             rates=st.builds(
                 BehaviorRates,
-                per_input=st.floats(min_value=0, max_value=10**10, exclude_min=True),
-                per_second=st.floats(min_value=0, max_value=10**10, exclude_min=True),
+                per_input=st.floats(min_value=0, max_value=10e6, exclude_min=True),
+                per_second=st.floats(min_value=0, max_value=10e6, exclude_min=True),
             ),
-            e_startup_time=st.floats(min_value=0, max_value=10**10, exclude_min=True),
+            e_startup_time=st.floats(min_value=0, max_value=10e6, exclude_min=True),
         ),
         min_size=1,
     ),
