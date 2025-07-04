@@ -45,9 +45,9 @@ def hypofuzz_data(
     # queue for tests
     data.provider._startup()
     # remove the initial ChoiceTemplate(type="simplest") queue
-    data.provider._replay_queue.clear()
+    data.provider._choices_queue.clear()
     for priority, choices in queue:
-        data.provider._enqueue(priority, choices, queue="choices")
+        data.provider._enqueue(priority, choices)
 
     return data
 
@@ -234,12 +234,15 @@ def test_stability_only_adds_behaviors_on_replay():
     process._enter_fixtures()
 
     process._execute_once(process.new_conjecture_data(choices=[10]))
+    # added to queue with QueuePriority.COVERING_REPLAY
     assert list(process.provider.corpus.behavior_counts.values()) == []
 
     process._execute_once(process.new_conjecture_data())
+    # replaying choices=[10] from the queue for stability
     assert list(process.provider.corpus.behavior_counts.values()) == [1]
 
     process._execute_once(process.new_conjecture_data(choices=[10]))
+    # no new behavior, so it increments behavior_counts
     assert list(process.provider.corpus.behavior_counts.values()) == [2]
 
 
@@ -256,15 +259,8 @@ def test_invalid_data_does_not_add_coverage():
         test_a, database=HypofuzzDatabase(InMemoryExampleDatabase())
     )
     process._enter_fixtures()
-    process._execute_once(process.new_conjecture_data(choices=[1]))
-    assert not process.provider.corpus.behavior_counts
-    assert not process.provider.corpus.fingerprints
 
-    process._execute_once(process.new_conjecture_data(choices=[-1]))
-    assert not process.provider.corpus.behavior_counts
-    assert not process.provider.corpus.fingerprints
-
-    for _ in range(5):
-        process._execute_once(process.new_conjecture_data())
+    for choices in [[1], [-1], *([None] * 5)]:
+        process._execute_once(process.new_conjecture_data(choices=choices))
         assert not process.provider.corpus.behavior_counts
         assert not process.provider.corpus.fingerprints
