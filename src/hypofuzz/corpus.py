@@ -204,23 +204,18 @@ class Corpus:
             self._db.delete_corpus_observation(self.database_key, choices, observation)
 
     def would_change_coverage(
-        self, behaviors: Set[Behavior], *, observation: TestCaseObservation
+        self, fingerprint: Fingerprint, *, observation: TestCaseObservation
     ) -> bool:
         if observation.metadata.data_status < Status.VALID:
             return False
 
         assert observation.metadata.choice_nodes is not None
 
-        new_behavior = any(
-            behavior not in self.behavior_counts for behavior in behaviors
-        )
-        new_fingerprint = behaviors not in self.fingerprints
-        new_coverage = new_behavior or new_fingerprint
-
-        smaller_choices = behaviors in self.fingerprints and sort_key(
+        # we don't need to check for new behaviors, since a new behavior implies
+        # a new fingerprint.
+        return fingerprint not in self.fingerprints or sort_key(
             observation.metadata.choice_nodes
-        ) < sort_key(self.fingerprints[behaviors])
-        return new_coverage or smaller_choices
+        ) < sort_key(self.fingerprints[fingerprint])
 
     def would_change_failure(self, observation: TestCaseObservation) -> bool:
         if observation.metadata.data_status is not Status.INTERESTING:
