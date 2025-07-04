@@ -2,6 +2,11 @@
 HypoFuzz uses [calendar-based versioning](https://calver.org/), with a
 `YY-MM-patch` format.
 
+(v25-07-01)=
+## 25.07.01
+
+Fix a bug where the `@reproduce_failure` decorator would not be displayed on the dashboard for failures.
+
 (v25-06-04)=
 ## 25.06.04
 
