@@ -19,6 +19,7 @@ to find bugs early in your development cycle.
 
     quickstart
     manual/index.rst
+    reference
     features
     changelog
 

@@ -180,7 +180,7 @@
           <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
         </button>
       </div>
-      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
         <div class="visually-hidden">Toggle table of contents sidebar</div>
         <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
       </label>
@@ -210,6 +210,7 @@
 <li class="toctree-l2"><a class="reference internal" href="behavior.html">Custom coverage events</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../reference.html">API Reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../features.html">Features</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../changelog.html">Changelog</a></li>
 </ul>
@@ -251,7 +252,7 @@
               <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
             </button>
           </div>
-          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
             <div class="visually-hidden">Toggle table of contents sidebar</div>
             <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
           </label>
@@ -263,6 +264,23 @@
 <p>This also means you can use the standard pytest <code class="docutils literal notranslate"><span class="pre">-k</span></code> selector to configure which tests to run, with <code class="docutils literal notranslate"><span class="pre">hypothesis</span> <span class="pre">fuzz</span> <span class="pre">--</span> <span class="pre">-k</span> <span class="pre">...</span></code>. See pytest’s docs on <a class="reference external" href="https://docs.pytest.org/en/stable/how-to/usage.html#select-tests" title="(in pytest v8.4.1)"><span>Specifying which tests to run</span></a> and <a class="reference external" href="https://docs.pytest.org/en/stable/explanation/goodpractices.html#test-discovery" title="(in pytest v8.4.1)"><span>Conventions for Python test discovery</span></a> for more details.</p>
 <p>Note that tests which use <a class="reference external" href="https://docs.pytest.org/en/stable/fixture.html">pytest fixtures</a> are not collected, as they may behave differently outside of the pytest runtime. We recommend using a context manager and the <code class="docutils literal notranslate"><span class="pre">with</span></code> statement instead. Support for pytest fixtures is on <a class="reference internal" href="../roadmap.html"><span class="doc">our roadmap</span></a>.</p>
 <p>Support for other test runners, such as <a class="reference external" href="https://docs.python.org/3/library/unittest.html#module-unittest" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">unittest</span></code></a>, is on our roadmap.</p>
+<section id="skipping-tests-under-hypofuzz">
+<h2>Skipping tests under HypoFuzz<a class="headerlink" href="#skipping-tests-under-hypofuzz" title="Link to this heading">¶</a></h2>
+<p>If you would like to skip a test under HypoFuzz while keeping it part of your normal test suite, you can use <a class="reference internal" href="../reference.html#hypofuzz.detection.in_hypofuzz_run" title="hypofuzz.detection.in_hypofuzz_run"><code class="xref py py-data docutils literal notranslate"><span class="pre">in_hypofuzz_run</span></code></a>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">pytest</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">hypothesis</span><span class="w"> </span><span class="kn">import</span> <span class="n">given</span><span class="p">,</span> <span class="n">strategies</span> <span class="k">as</span> <span class="n">st</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">hypofuzz.detection</span><span class="w"> </span><span class="kn">import</span> <span class="n">in_hypofuzz_run</span>
+
+
+<span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">skipif</span><span class="p">(</span><span class="n">in_hypofuzz_run</span><span class="p">)</span>
+<span class="nd">@given</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">integers</span><span class="p">())</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">test_will_not_be_fuzzed</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+    <span class="k">pass</span>
+</pre></div>
+</div>
+<p>You can also use <a class="reference internal" href="../reference.html#hypofuzz.detection.in_hypofuzz_run" title="hypofuzz.detection.in_hypofuzz_run"><code class="xref py py-data docutils literal notranslate"><span class="pre">in_hypofuzz_run</span></code></a> to run certain tests <em>only</em> under HypoFuzz.</p>
+</section>
 </section>
 
         </article>
@@ -307,8 +325,27 @@
         
       </footer>
     </div>
-    <aside class="toc-drawer no-toc">
+    <aside class="toc-drawer">
       
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Test collection</a><ul>
+<li><a class="reference internal" href="#skipping-tests-under-hypofuzz">Skipping tests under HypoFuzz</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
       
       
     </aside>
