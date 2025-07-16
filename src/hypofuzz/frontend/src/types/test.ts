@@ -53,6 +53,7 @@ export class Test extends Dataclass<Test> {
     public rolling_observations: Observation[],
     public corpus_observations: Observation[],
     public failures: Map<string, Failure>,
+    public fatal_failure: string | null,
     public reports_by_worker: Map<string, Report[]>,
   ) {
     super()
@@ -91,6 +92,7 @@ export class Test extends Dataclass<Test> {
           Failure.fromJson(value),
         ]),
       ),
+      data.fatal_failure,
       new Map(
         Object.entries(data.reports_by_worker).map(([key, value]) => [
           key,
@@ -196,6 +198,9 @@ export class Test extends Dataclass<Test> {
   }
 
   get status() {
+    if (this.fatal_failure) {
+      return TestStatus.FAILED_FATALLY
+    }
     if (this.failures.size > 0) {
       return TestStatus.FAILED
     }

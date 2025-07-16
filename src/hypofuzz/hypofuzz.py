@@ -3,13 +3,14 @@
 import contextlib
 import math
 import time
+import traceback
 from collections import defaultdict
 from collections.abc import Callable, Mapping, Sequence
 from contextlib import nullcontext
 from functools import partial
 from multiprocessing import Manager, Process
 from random import Random
-from typing import Any, Literal, Optional, Union
+from typing import Any, Literal, NoReturn, Optional, Union
 
 import pytest
 from _pytest.fixtures import FixtureRequest, FuncFixtureInfo
@@ -70,6 +71,14 @@ class HypofuzzStateForActualGivenExecution(StateForActualGivenExecution):
         return False
 
 
+class FailedFatally(Exception):
+    """
+    Control-flow exception for FuzzTarget.failed_fatally
+    """
+
+    pass
+
+
 class FuzzTarget:
     """
     FuzzTarget is a thin wrapper around HypofuzzProvider, which also handles
@@ -126,17 +135,31 @@ class FuzzTarget:
         self.state: Optional[HypofuzzStateForActualGivenExecution] = None
         self.provider = HypofuzzProvider(None)
         self.stop_shrinking_at = math.inf
+        self.failed_fatally = False
+
+    def _fail_fatally(self, exception: BaseException) -> NoReturn:
+        self.failed_fatally = True
+        tb = traceback.format_exception(
+            type(exception), exception, exception.__traceback__
+        )
+        tb = "".join(tb)
+        self.database.save_fatal_failure(self.database_key, tb)
+        raise FailedFatally
 
     def _new_state(
         self, *, extra_kwargs: Optional[dict[str, Any]] = None
     ) -> HypofuzzStateForActualGivenExecution:
-        _, _, stuff = process_arguments_to_given(
-            self.wrapped_test,
-            arguments=(),
-            kwargs=(self.extra_kwargs or {}) | (extra_kwargs or {}),
-            given_kwargs=self.wrapped_test.hypothesis._given_kwargs,  # type: ignore
-            params=get_signature(self.wrapped_test).parameters,  # type: ignore
-        )
+        try:
+            _, _, stuff = process_arguments_to_given(
+                self.wrapped_test,
+                arguments=(),
+                kwargs=(self.extra_kwargs or {}) | (extra_kwargs or {}),
+                given_kwargs=self.wrapped_test.hypothesis._given_kwargs,  # type: ignore
+                params=get_signature(self.wrapped_test).parameters,  # type: ignore
+            )
+        except Exception as e:
+            self._fail_fatally(e)
+
         return HypofuzzStateForActualGivenExecution(  # type: ignore
             stuff,
             self.test_fn,
@@ -167,7 +190,10 @@ class FuzzTarget:
             # guarantees are made by listchain in this context.
             if not isinstance(parent, Item):
                 continue
-            self.pytest_item.session._setupstate.setup(parent)
+            try:
+                self.pytest_item.session._setupstate.setup(parent)
+            except Exception as e:
+                self._fail_fatally(e)
 
         request: FixtureRequest = self.pytest_item._request
         extra_kwargs = {}
@@ -318,6 +344,11 @@ class FuzzTarget:
                 self.state._execute_once_for_engine(data)
             except StopTest:
                 pass
+            except Exception as e:
+                # In case of a fatal error inside Hypothesis, because e.g. the
+                # property defines too many parameters, or because HypoFuzz has
+                # a bug in the args/kwargs we pass to self.state
+                self._fail_fatally(e)
 
         if self.provider.elapsed_time > self.stop_shrinking_at:
             raise HitShrinkTimeoutError
@@ -421,7 +452,11 @@ class FuzzWorker:
     @property
     def valid_targets(self) -> list[FuzzTarget]:
         # the targets we actually want to run/fuzz
-        return [t for t in self.targets.values() if not t.has_found_failure]
+        return [
+            target
+            for target in self.targets.values()
+            if not (target.has_found_failure or target.failed_fatally)
+        ]
 
     def _update_targets(self, nodeids: Sequence[str]) -> None:
         # Update our nodeids and targets with new directives from the hub.
@@ -498,12 +533,15 @@ class FuzzWorker:
                         self.valid_targets, weights=estimators, k=1
                     )[0]
 
-                self._switch_to_target(target)
-                # TODO we should scale this n up if our estimator expects that it will
-                # take a long time to discover a new behavior, to reduce the overhead
-                # of switching targets.
-                for _ in range(100):
-                    target.run_one()
+                try:
+                    self._switch_to_target(target)
+                    # TODO we should scale this n up if our estimator expects that it will
+                    # take a long time to discover a new behavior, to reduce the overhead
+                    # of switching targets.
+                    for _ in range(100):
+                        target.run_one()
+                except FailedFatally:
+                    assert target.failed_fatally
 
                 worker_state = self.shared_state["worker_state"]
                 worker_state["nodeids"][target.nodeid] = {
