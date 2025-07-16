@@ -18,6 +18,19 @@ interface WorkerReport {
   nodeid: string
 }
 
+class Worker {
+  constructor(
+    public uuid: string,
+    public segments: Segment[],
+  ) {}
+
+  visibleSegments(range: [number, number]): Segment[] {
+    return this.segments.filter(
+      segment => segment.end >= range[0] && segment.start <= range[1],
+    )
+  }
+}
+
 function formatTimestamp(timestamp: number): string {
   const date = new Date(timestamp * 1000)
   return date.toLocaleString()
@@ -63,7 +76,7 @@ export function WorkersPage() {
   const { showTooltip, hideTooltip, moveTooltip } = useTooltip()
   const [expandedWorkers, setExpandedWorkers] = useState<Set<string>>(new Set())
 
-  const workers = OrderedSet(
+  const workerUuids = OrderedSet(
     Array.from(tests.values())
       .map(test => Array.from(test.reports_by_worker.keys()))
       .flat()
@@ -71,7 +84,7 @@ export function WorkersPage() {
   )
 
   const workerReports = new Map<string, WorkerReport[]>()
-  workers.forEach(uuid => {
+  workerUuids.forEach(uuid => {
     const allReports: WorkerReport[] = []
     workerReports.set(uuid, allReports)
     Array.from(tests.values()).forEach(test => {
@@ -94,8 +107,8 @@ export function WorkersPage() {
   let minTimestamp: number = Infinity
   let maxTimestamp: number = -Infinity
 
-  let workerSegments = new Map<string, Segment[]>()
-  workers.forEach(uuid => {
+  let workers: Worker[] = []
+  workerUuids.forEach(uuid => {
     const reports = workerReports.get(uuid)!
     const segments: Segment[] = []
     let currentSegment: Segment | null = null
@@ -125,12 +138,10 @@ export function WorkersPage() {
       }
     })
 
-    workerSegments.set(uuid, segments)
+    workers.push(new Worker(uuid, segments))
   })
 
-  workerSegments = new Map(
-    [...workerSegments.entries()].sortKey(([_, segments]) => segments[0].start),
-  )
+  workers.sortKey(worker => worker.segments[0].start)
 
   const [visibleRange, setVisibleRange] = useState<[number, number]>(
     niceDefaultRange(minTimestamp, maxTimestamp),
@@ -164,19 +175,6 @@ export function WorkersPage() {
     [visibleDuration, visibleMin, visibleMax],
   )
 
-  const visibleSegments = useMemo(() => {
-    const segments = new Map<string, Segment[]>()
-    for (const [uuid, segmentList] of workerSegments.entries()) {
-      segments.set(
-        uuid,
-        segmentList.filter(
-          segment => segment.end >= visibleMin && segment.start <= visibleMax,
-        ),
-      )
-    }
-    return segments
-  }, [workerSegments, visibleMin, visibleMax])
-
   function onWorkerClick(uuid: string) {
     setExpandedWorkers(prev => {
       const newSet = new Set(prev)
@@ -189,12 +187,12 @@ export function WorkersPage() {
     })
   }
 
-  function WorkerBar({ uuid, segments }: { uuid: string; segments: Segment[] }) {
+  function WorkerBar({ worker, range }: { worker: Worker; range: [number, number] }) {
     return (
       <div
-        key={uuid}
-        className={`workers__worker ${expandedWorkers.has(uuid) ? "workers__worker--expanded" : ""}`}
-        onClick={() => onWorkerClick(uuid)}
+        key={worker.uuid}
+        className={`workers__worker ${expandedWorkers.has(worker.uuid) ? "workers__worker--expanded" : ""}`}
+        onClick={() => onWorkerClick(worker.uuid)}
         // these extra onMouseLeave calls shouldn't be necessary, but I've had trouble
         // with the workers__timeline__segment mouse leave handler not firing consistently
         onMouseLeave={() => hideTooltip("workers")}
@@ -203,7 +201,7 @@ export function WorkersPage() {
           className="workers__worker__bar"
           onMouseLeave={() => hideTooltip("workers")}
         >
-          {segments.map((segment, index) => (
+          {worker.visibleSegments(range).map((segment, index) => (
             <div
               key={index}
               className="workers__timeline__segment"
@@ -233,24 +231,30 @@ export function WorkersPage() {
             />
           ))}
         </div>
-        {expandedWorkers.has(uuid) && <WorkerDetails uuid={uuid} segments={segments} />}
+        {expandedWorkers.has(worker.uuid) && <WorkerDetails worker={worker} />}
       </div>
     )
   }
 
-  function WorkerDetails({ uuid, segments }: { uuid: string; segments: Segment[] }) {
+  function WorkerDetails({ worker }: { worker: Worker }) {
     return (
       <div className="workers__worker__details">
         <div className="workers__worker__details__grid">
-          <DetailsItem label="Worker UUID" value={uuid} />
+          <DetailsItem label="Worker UUID" value={worker.uuid} />
           <DetailsItem
             label="Lifetime"
-            value={formatTime(segments[segments.length - 1].end - segments[0].start)}
+            value={formatTime(
+              worker.segments[worker.segments.length - 1].end -
+                worker.segments[0].start,
+            )}
           />
-          <DetailsItem label="Started" value={formatTimestamp(segments[0].start)} />
+          <DetailsItem
+            label="Started"
+            value={formatTimestamp(worker.segments[0].start)}
+          />
           <DetailsItem
             label="Last seen"
-            value={formatTimestamp(segments[segments.length - 1].end)}
+            value={formatTimestamp(worker.segments[worker.segments.length - 1].end)}
           />
         </div>
       </div>
@@ -288,9 +292,11 @@ export function WorkersPage() {
               {formatTimestamp(visibleMax)}
             </span>
           </div>
-          {Array.from(visibleSegments.entries()).map(
-            ([uuid, segments]) =>
-              segments.length > 0 && <WorkerBar uuid={uuid} segments={segments} />,
+          {workers.map(
+            worker =>
+              worker.visibleSegments(visibleRange).length > 0 && (
+                <WorkerBar worker={worker} range={visibleRange} />
+              ),
           )}
         </div>
       </div>
