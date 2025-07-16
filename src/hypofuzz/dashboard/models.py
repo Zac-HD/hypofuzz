@@ -55,6 +55,7 @@ class DashboardTest(TypedDict):
     rolling_observations: list[DashboardObservation]
     corpus_observations: list[DashboardObservation]
     failures: dict[str, Failure]
+    fatal_failure: Optional[str]
     reports_by_worker: dict[str, list[DashboardReport]]
 
 
@@ -84,6 +85,7 @@ class AddTestsTest(TypedDict):
     database_key: str
     nodeid: str
     failures: dict[str, Failure]
+    fatal_failure: Optional[str]
 
 
 @dataclass
@@ -188,6 +190,7 @@ def dashboard_test(test: Test) -> DashboardTest:
             dashboard_observation(obs) for obs in test.corpus_observations
         ],
         "failures": dashboard_failures(test.failures),
+        "fatal_failure": test.fatal_failure,
         "reports_by_worker": {
             worker_uuid: [dashboard_report(report) for report in reports]
             for worker_uuid, reports in test.reports_by_worker.items()

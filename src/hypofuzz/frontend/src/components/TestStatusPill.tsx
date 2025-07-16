@@ -3,7 +3,9 @@ import { TestStatus } from "src/types/dashboard"
 export function TestStatusPill({ status }: { status: TestStatus }) {
   return (
     <span style={{ textAlign: "center" }}>
-      {status === TestStatus.FAILED ? (
+      {status === TestStatus.FAILED_FATALLY ? (
+        <span className="pill pill__failure">Failed fatally</span>
+      ) : status === TestStatus.FAILED ? (
         <span className="pill pill__failure">Failed</span>
       ) : status === TestStatus.SHRINKING ? (
         <span className="pill pill__warning">Shrinking</span>

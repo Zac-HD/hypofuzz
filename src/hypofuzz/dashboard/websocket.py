@@ -116,6 +116,7 @@ class OverviewWebsocket(HypofuzzWebsocket):
                     "database_key": test.database_key,
                     "nodeid": test.nodeid,
                     "failures": dashboard_failures(test.failures),
+                    "fatal_failure": test.fatal_failure,
                 }
                 for test in tests.copy().values()
             ],
@@ -159,6 +160,7 @@ class TestWebsocket(HypofuzzWebsocket):
                     "database_key": test.database_key,
                     "nodeid": test.nodeid,
                     "failures": dashboard_failures(test.failures),
+                    "fatal_failure": test.fatal_failure,
                 }
             ],
         )

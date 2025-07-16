@@ -167,6 +167,7 @@ def _test_for_reports(reports, *, database_key: bytes = b"", nodeid: str = "") -
         corpus_observations=[],
         reports_by_worker=reports_by_worker,
         failures={},
+        fatal_failure=None,
     )
     test._check_invariants()
     return test

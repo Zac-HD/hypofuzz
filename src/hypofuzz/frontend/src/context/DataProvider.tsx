@@ -54,6 +54,7 @@ type TestsAction =
         database_key: string
         nodeid: string
         failures: Map<string, Failure>
+        fatal_failure: string | null
       }[]
     }
   | {
@@ -129,7 +130,7 @@ function testsReducer(
     if (newState.has(nodeid)) {
       return newState.get(nodeid)!
     } else {
-      const test = new Test(null, nodeid, [], [], new Map(), new Map())
+      const test = new Test(null, nodeid, [], [], new Map(), null, new Map())
       newState.set(test.nodeid, test)
       return test
     }
@@ -142,12 +143,13 @@ function testsReducer(
 
     case DashboardEventType.ADD_TESTS: {
       const { tests } = action
-      for (const { database_key, nodeid, failures } of tests) {
+      for (const { database_key, nodeid, failures, fatal_failure } of tests) {
         const test = getOrCreateTest(nodeid)
         test.database_key = database_key
         failures.forEach((failure, interesting_origin) => {
           test.failures.set(interesting_origin, failure)
         })
+        test.fatal_failure = fatal_failure
       }
       return newState
     }
@@ -272,6 +274,7 @@ export function DataProvider({ children }: DataProviderProps) {
                   database_key: testData.database_key,
                   nodeid: nodeid,
                   failures: testData.failures,
+                  fatal_failure: testData.fatal_failure,
                 },
               ],
             })
@@ -397,6 +400,7 @@ export function DataProvider({ children }: DataProviderProps) {
                   Failure.fromJson(value),
                 ]),
               ),
+              fatal_failure: test.fatal_failure,
             })),
           })
           break

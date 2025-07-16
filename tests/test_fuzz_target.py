@@ -1,12 +1,13 @@
 import textwrap
 
+import pytest
 from common import fuzz, setup_test_code, wait_for, wait_for_test_key
 from hypothesis import given, strategies as st
 from hypothesis.database import DirectoryBasedExampleDatabase, InMemoryExampleDatabase
 from hypothesis.internal.conjecture.data import Status
 
 from hypofuzz.database import FailureState, HypofuzzDatabase
-from hypofuzz.hypofuzz import FuzzTarget
+from hypofuzz.hypofuzz import FailedFatally, FuzzTarget
 
 
 def test_fuzz_one_process():
@@ -77,3 +78,16 @@ def test_observations_use_pytest_nodeid(tmp_path):
             observation.property == "test_a.py::test_abcd"
             for observation in db.fetch_observations(key)
         ), [obs.property for obs in db.fetch_observations(key)]
+
+
+def test_raises_failed_fatally_in_enter_fixtures():
+    @given(st.integers())
+    def test_a(this_param_is_not_filled, n):
+        pass
+
+    target = FuzzTarget.from_hypothesis_test(
+        test_a, database=HypofuzzDatabase(InMemoryExampleDatabase())
+    )
+    with pytest.raises(FailedFatally):
+        target._enter_fixtures()
+    assert target.failed_fatally

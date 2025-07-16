@@ -269,6 +269,9 @@ class HypofuzzProvider(PrimitiveProvider):
         self.db.save(test_keys_key, self.database_key)
         # save the worker identity once at startup
         self.db.save_worker_identity(self.database_key, self.worker_identity)
+        # clear out any fatal failures now that we've successfully started this
+        # test
+        self.db.delete_fatal_failures(self.database_key)
 
         if not self._replay_queue:
             # if no worker has ever worked on this test before, save an initial
