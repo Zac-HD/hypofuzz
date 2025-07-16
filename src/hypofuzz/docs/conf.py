@@ -45,7 +45,8 @@ extlinks = {
 }
 
 bibtex_bibfiles = ["literature.bib"]
-
+exclude_patterns = ["prolog.rst"]
+rst_prolog = (Path(__file__).parent / "prolog.rst").read_text()
 
 # -- Options for HTML output -------------------------------------------------
 html_title = "HypoFuzz docs"
