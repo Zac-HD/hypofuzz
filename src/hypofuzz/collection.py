@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Any, Optional
 import pytest
 from _pytest.nodes import Item
 from _pytest.skipping import evaluate_condition
-from hypothesis import settings
+from hypothesis import Phase, settings
 from hypothesis.database import BackgroundWriteDatabase
 from hypothesis.stateful import get_state_machine_test
 from packaging import version
@@ -103,11 +103,10 @@ class _ItemsCollector:
             # values directly, so we can pass them as extra kwargs to FuzzTarget.
             extra_kwargs = item.callspec.params if hasattr(item, "callspec") else {}
 
-            if (
-                test_database := getattr(
-                    item.obj, "_hypothesis_internal_use_settings", settings()
-                ).database
-            ) != settings().database:
+            test_settings = getattr(
+                item.obj, "_hypothesis_internal_use_settings", settings()
+            )
+            if (test_database := test_settings.database) != settings().database:
                 self._skip_because(
                     "differing_database",
                     item.nodeid,
@@ -115,6 +114,13 @@ class _ItemsCollector:
                         "default_database": settings().database,
                         "test_database": test_database,
                     },
+                )
+                continue
+
+            # if this test has been told not to generate inputs, don't fuzz it.
+            if Phase.generate not in test_settings.phases:
+                self._skip_because(
+                    "no_generate_phase", item.nodeid, {"phases": test_settings.phases}
                 )
                 continue
 

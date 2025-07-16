@@ -328,7 +328,7 @@ def collect(code: str) -> CollectionResult:
         inspect.cleandoc(
             """
             import pytest
-            from hypothesis import given, strategies as st, settings, HealthCheck
+            from hypothesis import given, strategies as st, settings, HealthCheck, Phase
             from hypothesis.stateful import RuleBasedStateMachine, Bundle, initialize, rule
             from hypothesis.database import InMemoryExampleDatabase
             """

@@ -254,3 +254,23 @@ def test_collects_function_scope_fixtures():
     """
 
     assert collect_names(code) == {"test_with_fixture"}
+
+
+def test_collects_test_with_just_generate_phase():
+    code = """
+    @settings(phases=[Phase.generate])
+    @given(st.none())
+    def test_a(n):
+        pass
+    """
+    assert collect_names(code) == {"test_a"}
+
+
+def test_skips_test_with_no_generate_phase():
+    code = """
+    @settings(phases=set(Phase) - {Phase.generate})
+    @given(st.none())
+    def test_a(n):
+        pass
+    """
+    assert not collect_names(code)
