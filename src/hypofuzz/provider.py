@@ -133,6 +133,28 @@ class State:
 QueueElement = tuple[QueuePriority, ChoicesT, Optional[Any]]
 
 
+def bucket_target_value(v: Any) -> Any:
+    # technically, someone could do event("target", not_an_int) and get us
+    # confused with a target() call. We could/should track this provenance more
+    # carefully in observation.features
+    if not isinstance(v, (int, float)):
+        return v
+
+    # bucket by (base 2) orders of magnitude.
+    return int(math.log2(v))
+
+
+def bucket_features(features: dict[str, Any]) -> set[str]:
+    bucketed = set()
+    for k, v in features.items():
+        if k.startswith(("invalid because", "Retried draw from ")):
+            continue
+        if k == "target":
+            v = bucket_target_value(v)
+        bucketed.add(f"event:{k if v == '' else f'{k}:{v}'}")
+    return bucketed
+
+
 class HypofuzzProvider(PrimitiveProvider):
     add_observability_callback: ClassVar[bool] = True
 
@@ -507,15 +529,7 @@ class HypofuzzProvider(PrimitiveProvider):
         # with the real usages of `behaviors` here
         behaviors: Set[Behavior] = self._state.branches | (  # type: ignore
             # include |event| and |target| as pseudo-branch behaviors.
-            # TODO this treats every distinct value of target and every event
-            # payload as a distinct behavior. We probably want to bucket `v` for
-            # target (but not event?)
-            {
-                # v is "" for e.g. an `event` call without a payload argument
-                f"event:{k if v == '' else f'{k}:{v}'}"
-                for k, v in observation.features.items()
-                if not k.startswith(("invalid because", "Retried draw from "))
-            }
+            bucket_features(observation.features)
         )
 
         status = observation.metadata.data_status
