@@ -164,6 +164,7 @@ class HypofuzzProvider(PrimitiveProvider):
         /,
         # allow test-time override of the coverage collector.
         collector: Optional[CoverageCollector] = None,
+        database_key: Optional[bytes] = None,
     ) -> None:
         super().__init__(conjecturedata)
         self.collector = collector
@@ -193,7 +194,16 @@ class HypofuzzProvider(PrimitiveProvider):
         self.random = Random()
         self.phase: Optional[Phase] = None
         self.worker_identity: Optional[WorkerIdentity] = None
-        self.database_key: Optional[bytes] = None
+        # there's a subtle bug here: we don't want to defer computation of
+        # database_key until _startup, because by then the _hypothesis_internal_add_digest
+        # added to the shared inner_test function may have been changed to a
+        # parametrization that isn't us. This is only a problem in Hypofuzz since
+        # there's no concurrency like this in Hypothesis (yet?).
+        #
+        # Passing the database key upfront avoids from FuzzTarget avoids this. If
+        # it's not passed, we're being used from Hypothesis, and it's fine to defer
+        # computation.
+        self.database_key: Optional[bytes] = database_key
         self.corpus: Optional[Corpus] = None
         self.db: Optional[HypofuzzDatabase] = None
 
@@ -230,7 +240,8 @@ class HypofuzzProvider(PrimitiveProvider):
         assert not self._started
         wrapped_test = current_build_context().wrapped_test
 
-        self.database_key = function_digest(wrapped_test.hypothesis.inner_test)  # type: ignore
+        if self.database_key is None:
+            self.database_key = function_digest(wrapped_test.hypothesis.inner_test)  # type: ignore
         # TODO this means our nodeid might be different in the
         # @settings(backend="hypofuzz") case (which uses __func__.__name__)
         # and the hypofuzz worker case (which sets the current pytest item and

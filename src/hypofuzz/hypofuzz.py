@@ -133,7 +133,7 @@ class FuzzTarget:
 
         self.random = Random()
         self.state: Optional[HypofuzzStateForActualGivenExecution] = None
-        self.provider = HypofuzzProvider(None)
+        self.provider = HypofuzzProvider(None, database_key=database_key)
         self.stop_shrinking_at = math.inf
         self.failed_fatally = False
 
@@ -272,7 +272,7 @@ class FuzzTarget:
                 shrinker.shrink()
 
             self.provider._start_phase(Phase.FAILED)
-            # re-execute the failing example under observability, for so we
+            # re-execute the failing example under observability, so we
             # can save the shrunk obervation.
             data = ConjectureData.for_choices(shrinker.shrink_target.choices)
             # make sure to carry over explain-phase comments
