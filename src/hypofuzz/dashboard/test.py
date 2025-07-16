@@ -26,6 +26,7 @@ class Test:
     rolling_observations: list[Observation]
     corpus_observations: list[Observation]
     failures: dict[str, tuple[FailureState, Observation]]
+    fatal_failure: Optional[str]
     reports_by_worker: dict[str, list[ReportWithDiff]]
 
     linear_reports: list[ReportWithDiff] = field(init=False)
@@ -97,7 +98,10 @@ class Test:
         )
 
         for worker_uuid, reports in self.reports_by_worker.items():
-            assert {r.nodeid for r in reports} == {self.nodeid}
+            assert {r.nodeid for r in reports} == {self.nodeid}, (
+                self.nodeid,
+                {r.nodeid for r in reports},
+            )
             assert {r.database_key for r in reports} == {self.database_key}
             assert {r.worker_uuid for r in reports} == {worker_uuid}
             self._assert_reports_ordered(self.linear_reports, ["timestamp_monotonic"])

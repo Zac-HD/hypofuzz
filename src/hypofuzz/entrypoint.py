@@ -113,6 +113,8 @@ def _debug_ranges_disabled() -> bool:
 
 
 def _fuzz_impl(n_processes: int, pytest_args: tuple[str, ...]) -> None:
+    from hypofuzz.hypofuzz import FuzzWorkerHub
+
     if sys.version_info[:2] >= (3, 12) and _debug_ranges_disabled():
         raise Exception(
             "The current python interpreter lacks position information for its "
@@ -132,7 +134,6 @@ def _fuzz_impl(n_processes: int, pytest_args: tuple[str, ...]) -> None:
         )
 
     from hypofuzz.collection import collect_tests
-    from hypofuzz.hypofuzz import _fuzz
 
     # With our arguments validated, it's time to actually do the work.
     collection = collect_tests(pytest_args)
@@ -155,25 +156,11 @@ def _fuzz_impl(n_processes: int, pytest_args: tuple[str, ...]) -> None:
         f"test{tests_s}{skipped_msg}"
     )
 
-    if n_processes <= 1:
-        _fuzz(pytest_args=pytest_args, nodeids=[t.nodeid for t in tests])
-    else:
-        processes: list[Process] = []
-        for i in range(n_processes):
-            # Round-robin for large test suites; all-on-all for tiny, etc.
-            nodeids: set[str] = set()
-            for ix in range(n_processes):
-                nodeids.update(t.nodeid for t in tests[i + ix :: n_processes])
-                if len(nodeids) >= 10:  # enough to prioritize between
-                    break
-
-            p = Process(
-                target=_fuzz,
-                kwargs={"pytest_args": pytest_args, "nodeids": nodeids},
-            )
-            p.start()
-            processes.append(p)
-        for p in processes:
-            p.join()
+    hub = FuzzWorkerHub(
+        nodeids=[t.nodeid for t in tests],
+        pytest_args=pytest_args,
+        n_processes=n_processes,
+    )
+    hub.start()
 
     print("Found a failing input for every test!", file=sys.stderr)

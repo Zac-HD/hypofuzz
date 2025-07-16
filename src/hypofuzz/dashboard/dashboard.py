@@ -244,9 +244,9 @@ def get_failures(
     # note: we fetch unshrunk failures first, so that a race condition can only
     # result in missing new unshrunk failures, and not a shrunk failure in a
     # transition from unshrunk to shrunk.
-    unshrunk = _failure_observations(FailureState.UNSHRUNK)
-    shrunk = _failure_observations(FailureState.SHRUNK)
-    return unshrunk | shrunk
+    return _failure_observations(FailureState.UNSHRUNK) | _failure_observations(
+        FailureState.SHRUNK
+    )
 
 
 def _load_initial_state(fuzz_target: FuzzTarget) -> None:
@@ -276,13 +276,13 @@ def _load_initial_state(fuzz_target: FuzzTarget) -> None:
         reports_by_worker[report.worker_uuid].append(report)
 
     failures = get_failures(key)
+    fatal_failure = db.fetch_fatal_failure(key)
 
     # backfill our patches for our worker thread to take care of computing
     for _state, observation in failures.values():
         _add_patch(fuzz_target.nodeid, observation, "failing")
     for observation in corpus_observations:
         _add_patch(fuzz_target.nodeid, observation, "covering")
-
     test = Test(
         database_key=fuzz_target.database_key_str,
         nodeid=fuzz_target.nodeid,
@@ -294,6 +294,7 @@ def _load_initial_state(fuzz_target: FuzzTarget) -> None:
         # and one for ReportWithDiff which is set/stored post-init.
         reports_by_worker=reports_by_worker,  # type: ignore
         failures=failures,
+        fatal_failure=fatal_failure,
     )
     TESTS[fuzz_target.nodeid] = test
     TESTS_BY_KEY[fuzz_target.database_key] = test

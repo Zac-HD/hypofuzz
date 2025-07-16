@@ -189,8 +189,9 @@ export class Observation extends Dataclass<Observation> {
 }
 
 export enum TestStatus {
-  FAILED = 0,
-  SHRINKING = 1,
-  RUNNING = 2,
-  WAITING = 3,
+  FAILED_FATALLY = 0,
+  FAILED = 1,
+  SHRINKING = 2,
+  RUNNING = 3,
+  WAITING = 4,
 }

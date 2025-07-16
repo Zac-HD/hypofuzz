@@ -78,6 +78,22 @@ function FailureCard({ failure }: { failure: Failure }) {
   )
 }
 
+function FatalFailureCard({ failure }: { failure: string }) {
+  return (
+    <div className="card">
+      <div className="failure__title">Fatal failure</div>
+      <div className="failure__item">
+        <div className="failure__item__subtitle">Traceback</div>
+        <pre>
+          <code className="language-python" style={{ whiteSpace: "pre-wrap" }}>
+            {failure}
+          </code>
+        </pre>
+      </div>
+    </div>
+  )
+}
+
 export function TestPage() {
   const { nodeid } = useParams<{ nodeid: string }>()
   const { tests, testsLoaded } = useData(nodeid)
@@ -230,6 +246,7 @@ export function TestPage() {
       {Array.from(test.failures.values()).map(failure => (
         <FailureCard failure={failure} />
       ))}
+      {test.fatal_failure && <FatalFailureCard failure={test.fatal_failure} />}
       <Tyche test={test} />
       {nodeidsWithPatches?.includes(nodeid) && (
         <div className="card">

@@ -182,6 +182,7 @@ class DatabaseEventKey(Enum):
     FAILURE_SHRUNK = "failure_shrunk"
     FAILURE_UNSHRUNK = "failure_unshrunk"
     FAILURE_FIXED = "failure_fixed"
+    FAILURE_FATAL = "failure_fatal"
 
     ROLLING_OBSERVATION = "rolling_observation"
     CORPUS_OBSERVATION = "corpus_observation"
@@ -242,6 +243,11 @@ class DatabaseEvent:
                 lambda: full_key == failure_key(database_key, state=FailureState.FIXED),
                 DatabaseEventKey.FAILURE_FIXED,
                 choices_from_bytes,
+            ),
+            (
+                lambda: full_key.endswith(fatal_failure_key),
+                DatabaseEventKey.FAILURE_FATAL,
+                json.loads,
             ),
             (
                 lambda: is_corpus_observation_key(full_key),
@@ -445,6 +451,7 @@ rolling_observations_key = b".hypofuzz.observations"
 corpus_key = b".hypofuzz.corpus"
 worker_identity_key = b".hypofuzz.worker_identity"
 failures_key = b".hypofuzz.failures"
+fatal_failure_key = b".hypofuzz.fatal_failure"
 
 
 def get_worker_identity_key(key: bytes, uuid: str) -> bytes:
@@ -732,6 +739,28 @@ class HypofuzzDatabase:
         for value in self.fetch(failure_observation_key(key, choices, state=state)):
             if observation := Observation.from_json(value):
                 yield observation
+
+    # fatal failures (fatal_failure_key)
+
+    def save_fatal_failure(self, key: bytes, traceback: str) -> None:
+        # we don't want to accumulate multiple fatal failures, so replace any
+        # existing ones with the new one.
+        self.delete_fatal_failures(key)
+        self.save(key + fatal_failure_key, self._encode(traceback))
+
+    def delete_fatal_failures(self, key: bytes) -> None:
+        for failure in self.fetch_fatal_failures(key):
+            self.delete(key + fatal_failure_key, self._encode(failure))
+
+    def fetch_fatal_failures(self, key: bytes) -> Iterable[str]:
+        for value in self.fetch(key + fatal_failure_key):
+            yield json.loads(value.decode("ascii"))
+
+    def fetch_fatal_failure(self, key: bytes) -> Optional[str]:
+        try:
+            return next(iter(self.fetch_fatal_failures(key)))
+        except StopIteration:
+            return None
 
     # worker identity (worker_identity_key)
 
