@@ -133,6 +133,28 @@ class State:
 QueueElement = tuple[QueuePriority, ChoicesT, Optional[Any]]
 
 
+def bucket_target_value(v: Any) -> Any:
+    # technically, someone could do event("target", not_an_int) and get us
+    # confused with a target() call. We could/should track this provenance more
+    # carefully in observation.features
+    if not isinstance(v, (int, float)):
+        return v
+
+    # bucket by (base 2) orders of magnitude.
+    return int(math.log2(v))
+
+
+def bucket_features(features: dict[str, Any]) -> set[str]:
+    bucketed = set()
+    for k, v in features.items():
+        if k.startswith(("invalid because", "Retried draw from ")):
+            continue
+        if k == "target":
+            v = bucket_target_value(v)
+        bucketed.add(f"event:{k if v == '' else f'{k}:{v}'}")
+    return bucketed
+
+
 class HypofuzzProvider(PrimitiveProvider):
     add_observability_callback: ClassVar[bool] = True
 
@@ -142,6 +164,7 @@ class HypofuzzProvider(PrimitiveProvider):
         /,
         # allow test-time override of the coverage collector.
         collector: Optional[CoverageCollector] = None,
+        database_key: Optional[bytes] = None,
     ) -> None:
         super().__init__(conjecturedata)
         self.collector = collector
@@ -171,7 +194,16 @@ class HypofuzzProvider(PrimitiveProvider):
         self.random = Random()
         self.phase: Optional[Phase] = None
         self.worker_identity: Optional[WorkerIdentity] = None
-        self.database_key: Optional[bytes] = None
+        # there's a subtle bug here: we don't want to defer computation of
+        # database_key until _startup, because by then the _hypothesis_internal_add_digest
+        # added to the shared inner_test function may have been changed to a
+        # parametrization that isn't us. This is only a problem in Hypofuzz since
+        # there's no concurrency like this in Hypothesis (yet?).
+        #
+        # Passing the database key upfront avoids from FuzzTarget avoids this. If
+        # it's not passed, we're being used from Hypothesis, and it's fine to defer
+        # computation.
+        self.database_key: Optional[bytes] = database_key
         self.corpus: Optional[Corpus] = None
         self.db: Optional[HypofuzzDatabase] = None
 
@@ -208,7 +240,8 @@ class HypofuzzProvider(PrimitiveProvider):
         assert not self._started
         wrapped_test = current_build_context().wrapped_test
 
-        self.database_key = function_digest(wrapped_test.hypothesis.inner_test)  # type: ignore
+        if self.database_key is None:
+            self.database_key = function_digest(wrapped_test.hypothesis.inner_test)  # type: ignore
         # TODO this means our nodeid might be different in the
         # @settings(backend="hypofuzz") case (which uses __func__.__name__)
         # and the hypofuzz worker case (which sets the current pytest item and
@@ -507,15 +540,7 @@ class HypofuzzProvider(PrimitiveProvider):
         # with the real usages of `behaviors` here
         behaviors: Set[Behavior] = self._state.branches | (  # type: ignore
             # include |event| and |target| as pseudo-branch behaviors.
-            # TODO this treats every distinct value of target and every event
-            # payload as a distinct behavior. We probably want to bucket `v` for
-            # target (but not event?)
-            {
-                # v is "" for e.g. an `event` call without a payload argument
-                f"event:{k if v == '' else f'{k}:{v}'}"
-                for k, v in observation.features.items()
-                if not k.startswith(("invalid because", "Retried draw from "))
-            }
+            bucket_features(observation.features)
         )
 
         status = observation.metadata.data_status

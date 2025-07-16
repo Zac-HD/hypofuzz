@@ -173,6 +173,10 @@ def collect_tests(args: Iterable[str], *, debug: bool = False) -> CollectionResu
 
     This basically uses `pytest --collect-only -m hypothesis $args`.
     """
+    from hypofuzz import detection
+
+    detection.in_hypofuzz_run = True
+
     args = list(args)
     if debug:
         args.append("-s")

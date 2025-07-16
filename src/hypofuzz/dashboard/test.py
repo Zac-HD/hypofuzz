@@ -102,7 +102,10 @@ class Test:
                 self.nodeid,
                 {r.nodeid for r in reports},
             )
-            assert {r.database_key for r in reports} == {self.database_key}
+            assert {r.database_key for r in reports} == {self.database_key}, (
+                self.database_key,
+                {r.database_key for r in reports},
+            )
             assert {r.worker_uuid for r in reports} == {worker_uuid}
             self._assert_reports_ordered(self.linear_reports, ["timestamp_monotonic"])
 
