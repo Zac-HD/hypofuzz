@@ -1,24 +1,36 @@
-import { faBars } from "@fortawesome/free-solid-svg-icons"
+import {
+  faBars,
+  faBook,
+  faBookOpen,
+  faBox,
+  faCode,
+  faCodeCompare,
+  faUser,
+} from "@fortawesome/free-solid-svg-icons"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
 import { useEffect, useRef, useState } from "react"
 import { Link, Outlet, useLocation } from "react-router-dom"
 
 function SidebarLink({
   to,
+  icon,
   children,
   isActive,
 }: {
   to: string
+  icon: React.ReactNode
   children: React.ReactNode
   isActive: (pathname: string) => boolean
 }) {
   const location = useLocation()
   return (
-    <Link
-      to={to}
-      className={`sidebar__link ${isActive(location.pathname) ? "sidebar__link--active" : ""}`}
-    >
-      {children}
+    <Link to={to} className={`sidebar__link__text`}>
+      <div
+        className={`sidebar__link ${isActive(location.pathname) ? "sidebar__link--active" : ""}`}
+      >
+        <span className="sidebar__link__icon">{icon}</span>
+        {children}
+      </div>
     </Link>
   )
 }
@@ -65,24 +77,43 @@ export function Layout() {
           <SidebarLink
             to="/"
             isActive={pathname => pathname === "/" || pathname.startsWith("/tests/")}
+            icon={<FontAwesomeIcon icon={faCode} />}
           >
             Tests
           </SidebarLink>
-          <SidebarLink to="/patches" isActive={pathname => pathname === "/patches"}>
+          <SidebarLink
+            icon={<FontAwesomeIcon icon={faCodeCompare} />}
+            to="/patches"
+            isActive={pathname => pathname === "/patches"}
+          >
             Patches
           </SidebarLink>
-          <SidebarLink to="/collected" isActive={pathname => pathname === "/collected"}>
+          <SidebarLink
+            icon={<FontAwesomeIcon icon={faBox} />}
+            to="/collected"
+            isActive={pathname => pathname === "/collected"}
+          >
             Collection
           </SidebarLink>
-          <SidebarLink to="/workers" isActive={pathname => pathname === "/workers"}>
+          <SidebarLink
+            icon={<FontAwesomeIcon icon={faUser} />}
+            to="/workers"
+            isActive={pathname => pathname === "/workers"}
+          >
             Workers
           </SidebarLink>
+
           <div className="sidebar__separator"></div>
           <a
             href={`${import.meta.env.BASE_URL.replace(/\/$/, "")}/docs/`}
-            className="sidebar__link"
+            className="sidebar__link__text"
           >
-            Docs
+            <div className={`sidebar__link`}>
+              <span className="sidebar__link__icon">
+                <FontAwesomeIcon icon={faBookOpen} />
+              </span>
+              Docs
+            </div>
           </a>
         </nav>
       </div>
