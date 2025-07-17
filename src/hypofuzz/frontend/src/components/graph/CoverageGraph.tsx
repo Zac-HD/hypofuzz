@@ -205,14 +205,19 @@ const workerToggleContent = {
   },
 }
 
-export function CoverageGraph({
+export function GraphComponent({
   tests,
   filterString = "",
   testsLoaded,
   workers_after = null,
-  workerViews = [WorkerView.TOGETHER, WorkerView.SEPARATE, WorkerView.LATEST],
-  workerViewSetting,
-}: Props) {
+  viewSetting,
+}: {
+  tests: Map<string, Test>
+  filterString?: string
+  testsLoaded: () => boolean
+  workers_after?: number | null
+  viewSetting: WorkerView
+}) {
   const svgRef = useRef<SVGSVGElement>(null)
   const [scaleSettingX, setScaleSettingX] = useSetting<"log" | "linear">(
     "graph_scale_x",
@@ -229,10 +234,6 @@ export function CoverageGraph({
   const [axisSettingY, setAxisSettingY] = useSetting<"behaviors" | "fingerprints">(
     "graph_axis_y",
     "behaviors",
-  )
-  const [viewSetting, setWorkerView] = useSetting<WorkerView>(
-    workerViewSetting,
-    WorkerView.TOGETHER,
   )
   const [forceUpdate, setForceUpdate] = useState(true)
   const [zoomTransform, setZoomTransform] = useState<{
@@ -328,86 +329,121 @@ export function CoverageGraph({
     )
   }, [lines, filterString])
 
-  useEffect(() => {
-    const toggleBoxSelect = () => {
-      setBoxSelectEnabled(!boxSelectEnabled)
-      setForceUpdate(true)
-    }
+  useEffect(
+    () => {
+      const toggleBoxSelect = () => {
+        setBoxSelectEnabled(!boxSelectEnabled)
+        setForceUpdate(true)
+      }
 
-    if (!svgRef.current) {
-      return
-    }
+      if (!svgRef.current) {
+        return
+      }
 
-    // to avoid flickering of e.g. tooltips, only update the graph when
-    // the cursor is not over it.
-    // This is maybe a bit more aggressive than we want. We could check
-    // wether a tooltip exists instead.
-    //
-    // Though, we should really replace all of this with updating directly
-    // from websocket events, so the graph never gets redrawn. Not sure
-    // yet how that would work in react.
+      // to avoid flickering of e.g. tooltips, only update the graph when
+      // the cursor is not over it.
+      // This is maybe a bit more aggressive than we want. We could check
+      // wether a tooltip exists instead.
+      //
+      // Though, we should really replace all of this with updating directly
+      // from websocket events, so the graph never gets redrawn. Not sure
+      // yet how that would work in react.
 
-    // also,
-    // if any test is still loading from the websocket, we still want to update the graph,
-    // so a user loading the page with their cursor on the graph does not see an empty
-    // graph.
-    if (!forceUpdate && currentlyHovered && testsLoaded()) {
-      return
-    }
+      // also,
+      // if any test is still loading from the websocket, we still want to update the graph,
+      // so a user loading the page with their cursor on the graph does not see an empty
+      // graph.
+      if (!forceUpdate && currentlyHovered && testsLoaded()) {
+        return
+      }
 
-    if (forceUpdate) {
-      setForceUpdate(false)
-    }
+      if (forceUpdate) {
+        setForceUpdate(false)
+      }
 
-    d3.select(svgRef.current).selectAll("*").remove()
-    const graph = new Graph(
-      svgRef.current,
-      filteredLines,
+      d3.select(svgRef.current).selectAll("*").remove()
+      const graph = new Graph(
+        svgRef.current,
+        filteredLines,
+        scaleSettingX,
+        scaleSettingY,
+        axisSettingX,
+        axisSettingY,
+        navigate,
+        isMobile,
+      )
+
+      if (zoomTransform.transform) {
+        graph.zoom.transform(graph.chartArea, zoomTransform.transform)
+      }
+
+      graph.zoomTo(zoomTransform.transform ?? d3.zoomIdentity, zoomTransform.zoomY)
+
+      graph.zoom.on(
+        "zoom.saveTransform",
+        (event: D3ZoomEvent<SVGGElement, unknown>) => {
+          setZoomTransform({ transform: event.transform, zoomY: false })
+        },
+      )
+
+      if (boxSelectEnabled) {
+        graph.enableBoxBrush()
+      }
+
+      graph.on("boxSelectEnd", toggleBoxSelect)
+
+      return () => {
+        graph.cleanup()
+      }
+    },
+    // TODO including zoomTransform or filteredLines makes click+drag reset badly,
+    // need to figure out why
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      tests,
       scaleSettingX,
       scaleSettingY,
       axisSettingX,
       axisSettingY,
+      viewSetting,
+      forceUpdate,
+      boxSelectEnabled,
       navigate,
       isMobile,
-    )
+      currentlyHovered,
+      testsLoaded,
+      filterString,
+      // zoomTransform,
+      // filteredLines,
+    ],
+  )
 
-    if (zoomTransform.transform) {
-      graph.zoom.transform(graph.chartArea, zoomTransform.transform)
-    }
+  return (
+    <svg
+      className="coverage-graph__svg"
+      ref={svgRef}
+      style={{ width: "100%", height: `${GRAPH_HEIGHT}px` }}
+      onMouseEnter={() => setCurrentlyHovered(true)}
+      onMouseLeave={() => {
+        setCurrentlyHovered(false)
+        setForceUpdate(true)
+      }}
+    />
+  )
+}
 
-    graph.zoomTo(zoomTransform.transform ?? d3.zoomIdentity, zoomTransform.zoomY)
-
-    graph.zoom.on("zoom.saveTransform", (event: D3ZoomEvent<SVGGElement, unknown>) => {
-      setZoomTransform({ transform: event.transform, zoomY: false })
-    })
-
-    if (boxSelectEnabled) {
-      graph.enableBoxBrush()
-    }
-
-    graph.on("boxSelectEnd", toggleBoxSelect)
-
-    return () => {
-      graph.cleanup()
-    }
-  }, [
-    tests,
-    scaleSettingX,
-    scaleSettingY,
-    axisSettingX,
-    axisSettingY,
-    viewSetting,
-    forceUpdate,
-    boxSelectEnabled,
-    navigate,
-    isMobile,
-    currentlyHovered,
-    testsLoaded,
-    // TODO including either of these makes click+drag reset badly,
-    // need to figure out why
-    // zoomTransform,
-    // filteredLines,
-  ])
+export function CoverageGraph({
+  tests,
+  filterString = "",
+  testsLoaded,
+  workers_after = null,
+  workerViews = [WorkerView.TOGETHER, WorkerView.SEPARATE, WorkerView.LATEST],
+  workerViewSetting,
+}: Props) {
+  const [viewSetting, setWorkerView] = useSetting<WorkerView>(
+    workerViewSetting,
+    WorkerView.TOGETHER,
+  )
 
   return (
     <div className="card">
@@ -436,15 +472,12 @@ export function CoverageGraph({
           {/* top left */}
           <LabelY />
           {/* top right */}
-          <svg
-            className="coverage-graph__svg"
-            ref={svgRef}
-            style={{ width: "100%", height: `${GRAPH_HEIGHT}px` }}
-            onMouseEnter={() => setCurrentlyHovered(true)}
-            onMouseLeave={() => {
-              setCurrentlyHovered(false)
-              setForceUpdate(true)
-            }}
+          <GraphComponent
+            tests={tests}
+            testsLoaded={testsLoaded}
+            viewSetting={viewSetting}
+            workers_after={workers_after}
+            filterString={filterString}
           />
           {/* bottom left */}
           <div></div>
