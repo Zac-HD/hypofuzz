@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "build:profiling": "tsc && vite build --mode profiling",
     "preview": "vite preview",
     "format": "eslint src --ext ts,tsx --fix && prettier --write src",
     "format:check": "prettier --check src"
