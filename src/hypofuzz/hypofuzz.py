@@ -539,6 +539,11 @@ class FuzzWorker:
                     # take a long time to discover a new behavior, to reduce the overhead
                     # of switching targets.
                     for _ in range(100):
+                        if target.has_found_failure:
+                            # stop as soon as we find a failure. We don't need to
+                            # check target.failed_fatally, that's done by the
+                            # try/except.
+                            break
                         target.run_one()
                 except FailedFatally:
                     assert target.failed_fatally

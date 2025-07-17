@@ -15,6 +15,8 @@ elif [ "$1" = "docs-clean" ]; then
     rm -rf "$ROOT/src/hypofuzz/frontend/public/docs"
 elif [ "$1" = "dashboard" ]; then
     VITE_USE_DASHBOARD_STATE=0 npm --prefix "$ROOT/src/hypofuzz/frontend" run build
+elif [ "$1" = "dashboard-profiling" ]; then
+    VITE_USE_DASHBOARD_STATE=0 npm --prefix "$ROOT/src/hypofuzz/frontend" run build:profiling
 # builds the dashboard with USE_DASHBOARD_STATE=1
 elif [ "$1" = "dashboard-json" ]; then
     VITE_USE_DASHBOARD_STATE=1 npm --prefix "$ROOT/src/hypofuzz/frontend" run build
@@ -27,6 +29,6 @@ elif [ "$1" = "dashboard-demo" ]; then
 elif [ "$1" = "format" ]; then
     npm --prefix "$ROOT/src/hypofuzz/frontend" run format && shed
 else
-    echo "Unknown build target $1. Available targets: docs, docs-clean, dashboard, dashboard-json, dashboard-demo, format"
+    echo "Unknown build target $1. Available targets: docs, docs-clean, dashboard, dashboard-profiling, dashboard-json, dashboard-demo, format"
     exit 1
 fi

@@ -58,17 +58,7 @@ export function Table<T>({
 
     const sorted = [...displayData].sortKey(item => headers[sortColumn].sortKey!(item))
     return sortDirection === SortOrder.ASC ? sorted : sorted.reverse()
-  }, [
-    data,
-    sortColumn,
-    sortDirection,
-    headers,
-    filterString,
-    row,
-    filterStrings,
-    mobileRow,
-    isMobile,
-  ])
+  }, [data, sortColumn, sortDirection, headers, filterString, filterStrings])
 
   const handleHeaderClick = (index: number) => {
     if (!headers[index].sortKey) return
