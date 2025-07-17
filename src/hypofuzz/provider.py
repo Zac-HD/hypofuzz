@@ -141,7 +141,9 @@ def bucket_target_value(v: Any) -> Any:
         return v
 
     # bucket by (base 2) orders of magnitude.
-    return int(math.log2(v))
+    sign = math.copysign(1, v)
+    bucketed = 0 if v == 0 else math.log2(abs(v))
+    return sign * (int(bucketed) if math.isfinite(bucketed) else math.inf)
 
 
 def bucket_features(features: dict[str, Any]) -> set[str]:
