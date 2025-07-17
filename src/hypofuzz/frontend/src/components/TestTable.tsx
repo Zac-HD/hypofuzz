@@ -10,9 +10,8 @@ import {
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
 import { Link } from "react-router-dom"
 import { Table } from "src/components/Table"
-import { TestStatusPill } from "src/components/TestStatusPill"
+import { statusStrings, TestStatusPill } from "src/components/TestStatusPill"
 import { Tooltip } from "src/components/Tooltip"
-import { Status } from "src/types/dashboard"
 import { Test } from "src/types/test"
 import { getTestStats, inputsPerSecond } from "src/utils/testStats"
 
@@ -179,7 +178,7 @@ export function TestTable({ tests, onFilterChange }: Props) {
   }
 
   function filterStrings(test: Test) {
-    return [test.nodeid, Status[test.status]]
+    return [test.nodeid, statusStrings[test.status]]
   }
 
   return (
