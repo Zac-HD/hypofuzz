@@ -112,7 +112,7 @@ export function TestPage() {
     if (test) {
       reHighlight(containerRef)
     }
-  }, [test?.failures])
+  }, [test])
 
   if (!nodeid || !test) {
     return <div>Test not found</div>

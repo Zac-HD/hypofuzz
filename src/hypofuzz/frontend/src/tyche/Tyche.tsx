@@ -24,7 +24,7 @@ export enum TYCHE_COLOR {
   ACCENT5 = "#8faac6",
 }
 
-function _Tyche({ test }: { test: Test }) {
+function TycheInner({ test }: { test: Test }) {
   const { filters, observationCategory, setObservationCategory } = useFilters()
 
   const rawObservations =
@@ -93,7 +93,7 @@ function _Tyche({ test }: { test: Test }) {
 export function Tyche({ test }: { test: Test }) {
   return (
     <FilterProvider>
-      <_Tyche test={test} />
+      <TycheInner test={test} />
     </FilterProvider>
   )
 }

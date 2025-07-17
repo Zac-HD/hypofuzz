@@ -6,7 +6,7 @@ import {
 } from "d3-scale"
 import { select as d3_select } from "d3-selection"
 import { Set } from "immutable"
-import { useEffect, useMemo, useRef } from "react"
+import { useCallback, useEffect, useMemo, useRef } from "react"
 import { Filter, useFilters } from "src/tyche/FilterContext"
 import { TYCHE_COLOR } from "src/tyche/Tyche"
 import { NOT_PRESENT_STRING, PRESENT_STRING } from "src/tyche/Tyche"
@@ -37,9 +37,9 @@ export function NominalChart({ feature, observations }: NominalChartProps) {
   const svgRef = useRef<SVGSVGElement>(null)
   const { filters, setFilters } = useFilters()
   const { showTooltip, hideTooltip, moveTooltip } = useTooltip()
-  const nominalFilters = filters.get(feature) || []
 
   const selectedValues = useMemo(() => {
+    const nominalFilters = filters.get(feature) || []
     if (nominalFilters.length === 0) {
       return Set<string>()
     }
@@ -47,7 +47,7 @@ export function NominalChart({ feature, observations }: NominalChartProps) {
     console.assert(nominalFilters.length === 1)
     const filter = nominalFilters[0]
     return Set(filter.extraData.selectedValues)
-  }, [nominalFilters])
+  }, [filters, feature])
 
   const filteredObservations = useMemo(
     () => ({
@@ -57,46 +57,49 @@ export function NominalChart({ feature, observations }: NominalChartProps) {
     [observations],
   )
 
-  const onValueClick = (value: string) => {
-    let newSelection = Set<string>()
+  const onValueClick = useCallback(
+    (value: string) => {
+      let newSelection = Set<string>()
 
-    // If clicking the same value that's already selected alone, deselect it
-    if (selectedValues.equals(Set([value]))) {
-      newSelection = Set()
-    } else {
-      // Otherwise, select just this value
-      newSelection = Set([value])
-    }
+      // If clicking the same value that's already selected alone, deselect it
+      if (selectedValues.equals(Set([value]))) {
+        newSelection = Set()
+      } else {
+        // Otherwise, select just this value
+        newSelection = Set([value])
+      }
 
-    let name
-    if (newSelection.size === 1) {
-      name = newSelection.first()!
-    } else {
-      name = newSelection.map(value => `${value}`).join(" or ")
-    }
+      let name
+      if (newSelection.size === 1) {
+        name = newSelection.first()!
+      } else {
+        name = newSelection.map(value => `${value}`).join(" or ")
+      }
 
-    const nominalFilters = []
-    if (newSelection.size > 0) {
-      nominalFilters.push(
-        new Filter(
-          name,
-          (obs: Observation) => {
-            return newSelection.some(value => {
-              return obs.features.get(feature) === value
-            })
-          },
-          feature,
-          {
-            selectedValues: newSelection,
-          },
-        ),
-      )
-    }
+      const nominalFilters = []
+      if (newSelection.size > 0) {
+        nominalFilters.push(
+          new Filter(
+            name,
+            (obs: Observation) => {
+              return newSelection.some(value => {
+                return obs.features.get(feature) === value
+              })
+            },
+            feature,
+            {
+              selectedValues: newSelection,
+            },
+          ),
+        )
+      }
 
-    const newFilters = new Map(filters)
-    newFilters.set(feature, nominalFilters)
-    setFilters(newFilters)
-  }
+      const newFilters = new Map(filters)
+      newFilters.set(feature, nominalFilters)
+      setFilters(newFilters)
+    },
+    [filters, feature, selectedValues, setFilters],
+  )
 
   useEffect(() => {
     const distinctRawValues = Set<string>(
@@ -321,7 +324,15 @@ export function NominalChart({ feature, observations }: NominalChartProps) {
         .text("Count")
         .style("font-size", "12px")
     }
-  }, [filteredObservations])
+  }, [
+    filteredObservations,
+    feature,
+    hideTooltip,
+    moveTooltip,
+    onValueClick,
+    selectedValues,
+    showTooltip,
+  ])
 
   return (
     <div>

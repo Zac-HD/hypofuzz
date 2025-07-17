@@ -319,7 +319,7 @@ export function CoverageGraph({
       }
     }
     return lines
-  }, [tests, workers_after, viewSetting])
+  }, [tests, workers_after, viewSetting, reportsColor])
 
   const filteredLines = useMemo(() => {
     if (!filterString) return lines
@@ -329,6 +329,11 @@ export function CoverageGraph({
   }, [lines, filterString])
 
   useEffect(() => {
+    const toggleBoxSelect = () => {
+      setBoxSelectEnabled(!boxSelectEnabled)
+      setForceUpdate(true)
+    }
+
     if (!svgRef.current) {
       return
     }
@@ -395,12 +400,14 @@ export function CoverageGraph({
     forceUpdate,
     boxSelectEnabled,
     navigate,
+    isMobile,
+    currentlyHovered,
+    testsLoaded,
+    // TODO including either of these makes click+drag reset badly,
+    // need to figure out why
+    // zoomTransform,
+    // filteredLines,
   ])
-
-  const toggleBoxSelect = () => {
-    setBoxSelectEnabled(!boxSelectEnabled)
-    setForceUpdate(true)
-  }
 
   return (
     <div className="card">

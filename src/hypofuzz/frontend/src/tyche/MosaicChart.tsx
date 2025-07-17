@@ -31,9 +31,9 @@ export function MosaicChart({
 }: MosaicChartProps) {
   const { filters, setFilters } = useFilters()
   const { showTooltip, hideTooltip, moveTooltip } = useTooltip()
-  const mosaicFilters = filters.get(name) || []
 
   const selectedCells = useMemo(() => {
+    const mosaicFilters = filters.get(name) || []
     if (mosaicFilters.length === 0) {
       return Set<List<number>>()
     }
@@ -41,7 +41,7 @@ export function MosaicChart({
     console.assert(mosaicFilters.length === 1)
     const filter = mosaicFilters[0]
     return Set(filter.extraData.selectedCells)
-  }, [mosaicFilters])
+  }, [filters, name])
 
   const cells: Cell[][] = []
   const rowTotals: number[] = Array(verticalAxis.length).fill(0)
@@ -183,6 +183,31 @@ export function MosaicChart({
     setFilters(newFilters)
   }
 
+  const { rowHeaderWidth, columnHeaderHeight, rowTotalWidth } = useMemo(() => {
+    return {
+      rowHeaderWidth: Math.max(
+        ...visibleRows.map(
+          rowIndex =>
+            measureText(verticalAxis[rowIndex][0], "tyche__mosaic__row-header").width,
+        ),
+      ),
+      columnHeaderHeight: Math.max(
+        ...visibleCols.map(
+          colIndex =>
+            measureText(horizontalAxis[colIndex][0], "tyche__mosaic__column-header")
+              .height,
+        ),
+      ),
+      rowTotalWidth: Math.max(
+        ...visibleRows.map(
+          rowIndex =>
+            measureText(rowTotals[rowIndex].toString(), "tyche__mosaic__row-total")
+              .width,
+        ),
+      ),
+    }
+  }, [visibleRows, visibleCols, verticalAxis, horizontalAxis, rowTotals])
+
   if (visibleRows.length === 0 || visibleCols.length === 0) {
     return <div>No observations</div>
   }
@@ -215,31 +240,6 @@ export function MosaicChart({
       return (i / (visibleCols.length - 1)) * 100
     }
   })
-
-  const { rowHeaderWidth, columnHeaderHeight, rowTotalWidth } = useMemo(() => {
-    return {
-      rowHeaderWidth: Math.max(
-        ...visibleRows.map(
-          rowIndex =>
-            measureText(verticalAxis[rowIndex][0], "tyche__mosaic__row-header").width,
-        ),
-      ),
-      columnHeaderHeight: Math.max(
-        ...visibleCols.map(
-          colIndex =>
-            measureText(horizontalAxis[colIndex][0], "tyche__mosaic__column-header")
-              .height,
-        ),
-      ),
-      rowTotalWidth: Math.max(
-        ...visibleRows.map(
-          rowIndex =>
-            measureText(rowTotals[rowIndex].toString(), "tyche__mosaic__row-total")
-              .width,
-        ),
-      ),
-    }
-  }, [visibleRows, visibleCols, verticalAxis, horizontalAxis, rowTotals])
 
   // Enforce minimum cell widths by adjusting proportions
   const cellContainerWidth = MAX_MOSAIC_WIDTH - rowHeaderWidth - rowTotalWidth

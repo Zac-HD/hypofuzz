@@ -172,7 +172,7 @@ export function WorkersPage() {
         backgroundColor: nodeColor(segment.nodeid),
       }
     },
-    [visibleDuration, visibleMin, visibleMax],
+    [visibleDuration, visibleMin],
   )
 
   function onWorkerClick(uuid: string) {

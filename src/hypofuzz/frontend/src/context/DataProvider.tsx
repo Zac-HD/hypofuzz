@@ -236,235 +236,240 @@ export function DataProvider({ children }: DataProviderProps) {
     )
   }, [loadingStatus, tests])
 
-  useEffect(() => {
-    if (!loadData) {
-      return
-    }
+  useEffect(
+    () => {
+      if (!loadData) {
+        return
+      }
 
-    // clear `tests` whenever we navigate to a new page. We want to avoid the following:
-    //
-    // * navigate to page A
-    //   * tests[A] = v1
-    // * navigate to page B
-    //   * tests[B] = v2
-    // * navigate back to page A
-    //   * tests[A] = v1 + v1
-    //
-    // where the data in tests[A] gets doubled because we sent multiple e.g. ADD_REPORTS events,
-    // where the backend re-sent the entire reports list under the assumption this was a fresh
-    // page load, but the frontend simply appends them and duplicates the data.
-    tests.clear()
-    setLoadingStatus({
-      count_tests: null,
-      count_tests_loaded: null,
-    })
+      // clear `tests` whenever we navigate to a new page. We want to avoid the following:
+      //
+      // * navigate to page A
+      //   * tests[A] = v1
+      // * navigate to page B
+      //   * tests[B] = v2
+      // * navigate back to page A
+      //   * tests[A] = v1 + v1
+      //
+      // where the data in tests[A] gets doubled because we sent multiple e.g. ADD_REPORTS events,
+      // where the backend re-sent the entire reports list under the assumption this was a fresh
+      // page load, but the frontend simply appends them and duplicates the data.
+      tests.clear()
+      setLoadingStatus({
+        count_tests: null,
+        count_tests_loaded: null,
+      })
 
-    // load data from local dashboard state json files iff the appropriate env var was set
-    // during building.
-    if (import.meta.env.VITE_USE_DASHBOARD_STATE === "1") {
-      fetch(new URL(/* @vite-ignore */ "dashboard_state/tests.json", import.meta.url))
-        .then(response => response.text())
-        .then(text => JSON.parse(text) as Record<string, any>)
-        .then(data => {
-          Object.entries(data).forEach(([nodeid, testData]) => {
-            dispatch({
-              type: DashboardEventType.ADD_TESTS,
-              tests: [
-                {
-                  database_key: testData.database_key,
-                  nodeid: nodeid,
-                  failures: testData.failures,
-                  fatal_failure: testData.fatal_failure,
-                },
-              ],
-            })
-
-            for (const [worker_uuid, reports] of Object.entries(
-              testData.reports_by_worker,
-            )) {
+      // load data from local dashboard state json files iff the appropriate env var was set
+      // during building.
+      if (import.meta.env.VITE_USE_DASHBOARD_STATE === "1") {
+        fetch(new URL(/* @vite-ignore */ "dashboard_state/tests.json", import.meta.url))
+          .then(response => response.text())
+          .then(text => JSON.parse(text) as Record<string, any>)
+          .then(data => {
+            Object.entries(data).forEach(([nodeid, testData]) => {
               dispatch({
-                type: DashboardEventType.ADD_REPORTS,
+                type: DashboardEventType.ADD_TESTS,
+                tests: [
+                  {
+                    database_key: testData.database_key,
+                    nodeid: nodeid,
+                    failures: testData.failures,
+                    fatal_failure: testData.fatal_failure,
+                  },
+                ],
+              })
+
+              for (const [worker_uuid, reports] of Object.entries(
+                testData.reports_by_worker,
+              )) {
+                dispatch({
+                  type: DashboardEventType.ADD_REPORTS,
+                  nodeid: nodeid,
+                  worker_uuid: worker_uuid,
+                  reports: (reports as any[]).map(report =>
+                    Report.fromJson(worker_uuid, report),
+                  ),
+                })
+              }
+
+              dispatch({
+                type: DashboardEventType.TEST_LOAD_FINISHED,
                 nodeid: nodeid,
-                worker_uuid: worker_uuid,
-                reports: (reports as any[]).map(report =>
-                  Report.fromJson(worker_uuid, report),
-                ),
+              })
+            })
+          })
+
+        // json.parse is sync (blocks ui) and expensive. Push it to a background worker to make it async.
+        // We pay a small serialization cost; ~5% by my measurement.
+        const worker = new Worker(new URL("./jsonWorker.js", import.meta.url))
+        fetch(
+          new URL(
+            /* @vite-ignore */ "dashboard_state/observations.json",
+            import.meta.url,
+          ),
+        )
+          .then(response => response.text())
+          .then(text => {
+            return new Promise<Record<string, { rolling: any[]; corpus: any[] }>>(
+              resolve => {
+                worker.onmessage = e => resolve(e.data)
+                worker.postMessage(text)
+              },
+            )
+          })
+          .then(data => {
+            for (const [nodeid, test] of Object.entries(data)) {
+              dispatch({
+                type: DashboardEventType.ADD_OBSERVATIONS,
+                nodeid: nodeid,
+                observation_type: "rolling",
+                observations: test.rolling.map(Observation.fromJson),
+              })
+              dispatch({
+                type: DashboardEventType.ADD_OBSERVATIONS,
+                nodeid: nodeid,
+                observation_type: "corpus",
+                observations: test.corpus.map(Observation.fromJson),
               })
             }
-
-            dispatch({
-              type: DashboardEventType.TEST_LOAD_FINISHED,
-              nodeid: nodeid,
-            })
           })
-        })
 
-      // json.parse is sync (blocks ui) and expensive. Push it to a background worker to make it async.
-      // We pay a small serialization cost; ~5% by my measurement.
-      const worker = new Worker(new URL("./jsonWorker.js", import.meta.url))
-      fetch(
-        new URL(
-          /* @vite-ignore */ "dashboard_state/observations.json",
-          import.meta.url,
-        ),
+        return () => worker.terminate()
+      }
+
+      const url = new URL(
+        `ws${window.location.protocol === "https:" ? "s" : ""}://${window.location.host}/ws`,
       )
-        .then(response => response.text())
-        .then(text => {
-          return new Promise<Record<string, { rolling: any[]; corpus: any[] }>>(
-            resolve => {
-              worker.onmessage = e => resolve(e.data)
-              worker.postMessage(text)
-            },
-          )
-        })
-        .then(data => {
-          for (const [nodeid, test] of Object.entries(data)) {
-            dispatch({
-              type: DashboardEventType.ADD_OBSERVATIONS,
-              nodeid: nodeid,
-              observation_type: "rolling",
-              observations: test.rolling.map(Observation.fromJson),
-            })
-            dispatch({
-              type: DashboardEventType.ADD_OBSERVATIONS,
-              nodeid: nodeid,
-              observation_type: "corpus",
-              observations: test.corpus.map(Observation.fromJson),
-            })
-          }
-        })
+      if (nodeid) {
+        url.searchParams.set("nodeid", nodeid)
+      }
 
-      return () => worker.terminate()
-    }
+      const ws = new WebSocket(url)
 
-    const url = new URL(
-      `ws${window.location.protocol === "https:" ? "s" : ""}://${window.location.host}/ws`,
-    )
-    if (nodeid) {
-      url.searchParams.set("nodeid", nodeid)
-    }
+      ws.onmessage = event => {
+        const data = JSON.parse(event.data)
+        const type = Number(data.type)
+        const count_tests = Number(data.count_tests)
+        const count_tests_loaded = Number(data.count_tests_loaded)
 
-    const ws = new WebSocket(url)
-
-    ws.onmessage = event => {
-      const data = JSON.parse(event.data)
-      const type = Number(data.type)
-      const count_tests = Number(data.count_tests)
-      const count_tests_loaded = Number(data.count_tests_loaded)
-
-      switch (type) {
-        case DashboardEventType.SET_STATUS: {
-          const loading_status = {
-            count_tests: count_tests,
-            count_tests_loaded: count_tests_loaded,
-          }
-          setLoadingStatus(loading_status)
-
-          dispatch({
-            type: DashboardEventType.SET_STATUS,
-            loading_status: loading_status,
-          })
-
-          if (count_tests_loaded === count_tests) {
-            if (statusNotification.current !== null) {
-              dismissNotification(statusNotification.current)
-              statusNotification.current = null
+        switch (type) {
+          case DashboardEventType.SET_STATUS: {
+            const loading_status = {
+              count_tests: count_tests,
+              count_tests_loaded: count_tests_loaded,
             }
+            setLoadingStatus(loading_status)
+
+            dispatch({
+              type: DashboardEventType.SET_STATUS,
+              loading_status: loading_status,
+            })
+
+            if (count_tests_loaded === count_tests) {
+              if (statusNotification.current !== null) {
+                dismissNotification(statusNotification.current)
+                statusNotification.current = null
+              }
+              break
+            }
+
+            const progressContent = React.createElement(ProgressBar, {
+              current: count_tests_loaded,
+              total: count_tests,
+              message: `Note: dashboard is still starting up (${count_tests_loaded}/${count_tests} tests loaded)`,
+            })
+
+            if (!statusNotification.current) {
+              statusNotification.current = addNotification(progressContent, null)
+            } else {
+              updateNotification(statusNotification.current, progressContent, null)
+            }
+
             break
           }
 
-          const progressContent = React.createElement(ProgressBar, {
-            current: count_tests_loaded,
-            total: count_tests,
-            message: `Note: dashboard is still starting up (${count_tests_loaded}/${count_tests} tests loaded)`,
-          })
-
-          if (!statusNotification.current) {
-            statusNotification.current = addNotification(progressContent, null)
-          } else {
-            updateNotification(statusNotification.current, progressContent, null)
+          case DashboardEventType.ADD_TESTS: {
+            dispatch({
+              type: DashboardEventType.ADD_TESTS,
+              tests: data.tests.map((test: any) => ({
+                database_key: test.database_key,
+                nodeid: test.nodeid,
+                failures: new Map(
+                  Object.entries(test.failures).map(([key, value]) => [
+                    key,
+                    Failure.fromJson(value),
+                  ]),
+                ),
+                fatal_failure: test.fatal_failure,
+              })),
+            })
+            break
           }
 
-          break
-        }
+          case DashboardEventType.ADD_REPORTS: {
+            dispatch({
+              type: DashboardEventType.ADD_REPORTS,
+              nodeid: data.nodeid,
+              worker_uuid: data.worker_uuid,
+              reports: (data.reports as any[]).map(report =>
+                Report.fromJson(data.worker_uuid, report),
+              ),
+            })
+            break
+          }
 
-        case DashboardEventType.ADD_TESTS: {
-          dispatch({
-            type: DashboardEventType.ADD_TESTS,
-            tests: data.tests.map((test: any) => ({
-              database_key: test.database_key,
-              nodeid: test.nodeid,
+          case DashboardEventType.ADD_OBSERVATIONS: {
+            dispatch({
+              type: DashboardEventType.ADD_OBSERVATIONS,
+              nodeid: data.nodeid,
+              observation_type: data.observation_type,
+              observations: data.observations.map(Observation.fromJson),
+            })
+            break
+          }
+
+          case DashboardEventType.ADD_FAILURES: {
+            dispatch({
+              type: DashboardEventType.ADD_FAILURES,
+              nodeid: data.nodeid,
               failures: new Map(
-                Object.entries(test.failures).map(([key, value]) => [
+                Object.entries(data.failures).map(([key, value]) => [
                   key,
                   Failure.fromJson(value),
                 ]),
               ),
-              fatal_failure: test.fatal_failure,
-            })),
-          })
-          break
-        }
+            })
+            break
+          }
 
-        case DashboardEventType.ADD_REPORTS: {
-          dispatch({
-            type: DashboardEventType.ADD_REPORTS,
-            nodeid: data.nodeid,
-            worker_uuid: data.worker_uuid,
-            reports: (data.reports as any[]).map(report =>
-              Report.fromJson(data.worker_uuid, report),
-            ),
-          })
-          break
-        }
+          case DashboardEventType.TEST_LOAD_FINISHED: {
+            dispatch({
+              type: DashboardEventType.TEST_LOAD_FINISHED,
+              nodeid: data.nodeid,
+            })
+            break
+          }
 
-        case DashboardEventType.ADD_OBSERVATIONS: {
-          dispatch({
-            type: DashboardEventType.ADD_OBSERVATIONS,
-            nodeid: data.nodeid,
-            observation_type: data.observation_type,
-            observations: data.observations.map(Observation.fromJson),
-          })
-          break
+          default:
+            throw new Error(`Unknown event type: ${data.type}`)
         }
-
-        case DashboardEventType.ADD_FAILURES: {
-          dispatch({
-            type: DashboardEventType.ADD_FAILURES,
-            nodeid: data.nodeid,
-            failures: new Map(
-              Object.entries(data.failures).map(([key, value]) => [
-                key,
-                Failure.fromJson(value),
-              ]),
-            ),
-          })
-          break
-        }
-
-        case DashboardEventType.TEST_LOAD_FINISHED: {
-          dispatch({
-            type: DashboardEventType.TEST_LOAD_FINISHED,
-            nodeid: data.nodeid,
-          })
-          break
-        }
-
-        default:
-          throw new Error(`Unknown event type: ${data.type}`)
       }
-    }
 
-    setSocket(ws)
+      setSocket(ws)
 
-    return () => {
-      ws.close()
-    }
-    // a single DataProvider is created for the entire lifetime of a tab. We want to re-load
-    // the provided data whenever we change the nodeid (e.g. going from overview to a specific
-    // test page) or we go from a page which doesn't want data (because it didn't call useData)
-    // to one that does.
-  }, [nodeid, loadData])
+      return () => {
+        ws.close()
+      }
+      // a single DataProvider is created for the entire lifetime of a tab. We want to re-load
+      // the provided data whenever we change the nodeid (e.g. going from overview to a specific
+      // test page) or we go from a page which doesn't want data (because it didn't call useData)
+      // to one that does.
+    },
+    // calls tests.clear, but dont want an infinite loop dependency
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [nodeid, loadData, addNotification, dismissNotification, updateNotification],
+  )
 
   return (
     <DataContext.Provider value={{ tests, socket, doLoadData, testsLoaded }}>
@@ -481,7 +486,7 @@ export function useData(nodeid: string | null = null) {
 
   useEffect(() => {
     context.doLoadData(nodeid)
-  }, [nodeid, context.doLoadData])
+  }, [nodeid, context])
 
   return context
 }
