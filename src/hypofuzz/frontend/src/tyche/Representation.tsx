@@ -62,7 +62,7 @@ export function Representation({
 
   return (
     <TycheSection
-      title="Textual representation"
+      title="String representations"
       defaultState="closed"
       onStateChange={state => {
         if (state === "open") {
