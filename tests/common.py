@@ -283,7 +283,7 @@ def write_test_code(path: Path, db_dir, code: str) -> None:
     code = (
         inspect.cleandoc(
             f"""
-            from hypothesis import given, settings, strategies as st, HealthCheck
+            from hypothesis import given, settings, strategies as st, HealthCheck, target
             from hypothesis.database import DirectoryBasedExampleDatabase
             import pytest
 
