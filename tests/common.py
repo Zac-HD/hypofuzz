@@ -287,6 +287,7 @@ def write_test_code(path: Path, db_dir, code: str) -> None:
             from hypothesis import given, settings, strategies as st, HealthCheck, target
             from hypothesis.database import DirectoryBasedExampleDatabase
             import pytest
+            from unittest import TestCase
 
             settings.register_profile("testing", settings(database=DirectoryBasedExampleDatabase("{db_dir}")))
             settings.load_profile("testing")
@@ -346,7 +347,6 @@ def collect(code: str) -> CollectionResult:
 
 def collect_names(code: str) -> set[str]:
     return {fp.test_fn.__name__ for fp in collect(code).fuzz_targets}
-
 
 
 def assert_no_failures(db, key):

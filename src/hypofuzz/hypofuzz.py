@@ -15,6 +15,8 @@ from typing import Any, Literal, NoReturn, Optional, Union
 import pytest
 from _pytest.fixtures import FixtureRequest, FuncFixtureInfo
 from _pytest.nodes import Item
+from _pytest.python import Class
+from _pytest.unittest import TestCaseFunction
 from hypothesis import HealthCheck, Verbosity, settings
 from hypothesis.core import (
     StateForActualGivenExecution,
@@ -136,6 +138,10 @@ class FuzzTarget:
         self.provider = HypofuzzProvider(None, database_key=database_key)
         self.stop_shrinking_at = math.inf
         self.failed_fatally = False
+        # if pytest_item is part of a class, either by subclassing unittest.TestCase
+        # or just by using pytest's class-based testing, this stores the class
+        # instance so it can be properly set up and torn down.
+        self._pytest_item_instance = None
 
     def _fail_fatally(self, exception: BaseException) -> NoReturn:
         self.failed_fatally = True
@@ -149,10 +155,19 @@ class FuzzTarget:
     def _new_state(
         self, *, extra_kwargs: Optional[dict[str, Any]] = None
     ) -> HypofuzzStateForActualGivenExecution:
+        arguments = []
+
+        if self.pytest_item is not None and isinstance(self.pytest_item.parent, Class):
+            assert self._pytest_item_instance is not None
+            # if we're a class-based test, we need to provide the `self` instance
+            # as the first argument.
+            # per pytest, every test execution gets its own class instance.
+            arguments.append(self._pytest_item_instance)
+
         try:
             _, _, stuff = process_arguments_to_given(
                 self.wrapped_test,
-                arguments=(),
+                arguments=arguments,
                 kwargs=(self.extra_kwargs or {}) | (extra_kwargs or {}),
                 given_kwargs=self.wrapped_test.hypothesis._given_kwargs,  # type: ignore
                 params=get_signature(self.wrapped_test).parameters,  # type: ignore
@@ -221,6 +236,31 @@ class FuzzTarget:
                 # It does not compute it twice.
                 extra_kwargs[name] = request.getfixturevalue(name)
 
+        if isinstance(self.pytest_item.parent, Class):
+            self._pytest_item_instance = self.pytest_item.parent.newinstance()
+
+        if isinstance(self.pytest_item, TestCaseFunction):
+            assert self._pytest_item_instance is not None
+            # we're a unittest TestCase instance. Mimic the unittest lifecycle;
+            # setUpClass / tearDownClass called around the entire class, and
+            # setUp / tearDown called around each test function. You can think of
+            # the lifecycle as setUpClass being a class-scoped fixture, and
+            # setUp being a function-scoped fixture, so any optimizations around
+            # switching states can apply here as well (eg do not setup/teardown
+            # the class when switching to a target in the same class).
+            #
+            # setUpClass
+            #   setUp
+            #     test_a
+            #   tearDown
+            #   setUp
+            #     test_b
+            #   tearDown
+            # tearDownClass
+
+            self.pytest_item.parent.obj.setUpClass()
+            self._pytest_item_instance.setUp()
+
         self.state = self._new_state(extra_kwargs=extra_kwargs)
 
     def _exit_fixtures(self) -> None:
@@ -230,6 +270,13 @@ class FuzzTarget:
         # we're only working with a single item, so we can just teardown everything
         # in order by passing None.
         self.pytest_item.session._setupstate.teardown_exact(None)
+
+        if isinstance(self.pytest_item, TestCaseFunction):
+            assert self._pytest_item_instance is not None
+            self._pytest_item_instance.tearDown()
+            self.pytest_item.parent.obj.tearDownClass()
+
+        self._pytest_item_instance = None
 
     def new_conjecture_data(
         self, *, choices: Optional[ChoicesT] = None

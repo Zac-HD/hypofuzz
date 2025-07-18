@@ -10,12 +10,19 @@ from common import fuzz_with_no_error
         """
     @given(st.integers())
     def test_trivial(n):
-        pass
+        assert isinstance(n, int)
     """,
         """
     @given(st.floats(allow_infinity=False, allow_nan=False) | st.integers())
     def test_targeting(v):
         target(v)
+    """,
+        """
+    class TestClassBased:
+        @given(st.integers())
+        def test_a(self, n):
+            assert isinstance(self, TestClassBased)
+            assert isinstance(n, int)
     """,
     ],
 )
