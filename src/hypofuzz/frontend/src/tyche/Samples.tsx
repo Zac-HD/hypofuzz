@@ -27,7 +27,7 @@ export function Samples({
   }
 
   return (
-    <TycheSection title="Sample breakdown">
+    <TycheSection title="Samples">
       <MosaicChart
         name="samples"
         observations={observations}

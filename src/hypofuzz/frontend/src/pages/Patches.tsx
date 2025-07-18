@@ -36,11 +36,9 @@ export function PatchesPage() {
               <span>{nodeid}</span>
               <Link
                 to={`/tests/${encodeURIComponent(nodeid)}`}
+                className="patches__test__link"
                 style={{
-                  color: "var(--secondary-color, #888)",
-                  fontSize: "0.9em",
-                  textDecoration: "none",
-                  marginLeft: "12px",
+                  marginLeft: "8px",
                 }}
               >
                 View test <FontAwesomeIcon icon={faArrowRight} />

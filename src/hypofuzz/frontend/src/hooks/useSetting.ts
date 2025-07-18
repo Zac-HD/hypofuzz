@@ -4,6 +4,9 @@ const settingCallbacks = new Map<string, Set<(value: any) => void>>()
 
 export function useSetting<T>(key: string, defaultValue: T): [T, (value: T) => void] {
   const [value, _setValue] = useState<T>(() => {
+    // note: sessionStorage is per-tab. localStorage is per-browser-session.
+    // we may want to add a param to use one or the other (with a fallback from
+    // session to local storage?)
     const saved = sessionStorage.getItem(key)
     if (saved === null) return defaultValue
     return JSON.parse(saved)
