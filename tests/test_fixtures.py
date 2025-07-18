@@ -1,16 +1,17 @@
 import inspect
 import subprocess
 
-from common import collect_names, fuzz, setup_test_code, wait_for, wait_for_test_key
+from common import (
+    assert_no_failures,
+    collect_names,
+    fuzz,
+    setup_test_code,
+    wait_for,
+    wait_for_test_key,
+)
 from hypothesis.database import DirectoryBasedExampleDatabase
 
-from hypofuzz.database import FailureState, HypofuzzDatabase, test_keys_key
-
-
-def assert_no_failures(db, key):
-    assert not list(db.fetch_failures(key, state=FailureState.SHRUNK))
-    assert not list(db.fetch_failures(key, state=FailureState.UNSHRUNK))
-    assert not list(db.fetch_failures(key, state=FailureState.FIXED))
+from hypofuzz.database import HypofuzzDatabase, test_keys_key
 
 
 def _assert_fixtures(test_dir, db_dir):
