@@ -42,7 +42,15 @@ from hypothesis.internal.reflection import (
     get_signature,
 )
 
-from hypofuzz.bayes import behaviors_per_second, softmax
+from hypofuzz.bayes import (
+    BehaviorRates,
+    CurrentWorker,
+    DistributeNodesTarget,
+    bandit_weights,
+    distribute_nodes,
+    e_target_rates,
+    e_worker_lifetime,
+)
 from hypofuzz.collection import collect_tests
 from hypofuzz.corpus import (
     get_shrinker,
@@ -560,12 +568,6 @@ class FuzzWorker:
             # exceeds n_tests, we still want to keep all workers alive, because the
             # hub will assign the same test to multiple workers simultaneously.
             if self.valid_targets:
-                # choose the next target to fuzz with probability equal to the softmax
-                # of its estimator. aka boltzmann exploration
-                estimators = [
-                    behaviors_per_second(target) for target in self.valid_targets
-                ]
-                estimators = softmax(estimators)
                 # softmax might return 0.0 probability for some targets if there is
                 # a substantial gap in estimator values (e.g. behaviors_per_second=1_000
                 # vs behaviors_per_second=1.0). We don't expect this to happen normally,
@@ -576,8 +578,12 @@ class FuzzWorker:
                 if self.random.random() < 0.01:
                     target = self.random.choice(self.valid_targets)
                 else:
+                    behaviors_rates = [
+                        e_target_rates(target) for target in self.valid_targets
+                    ]
+                    weights = bandit_weights(behaviors_rates)
                     target = self.random.choices(
-                        self.valid_targets, weights=estimators, k=1
+                        self.valid_targets, weights=weights, k=1
                     )[0]
 
                 try:
@@ -597,15 +603,14 @@ class FuzzWorker:
 
                 worker_state = self.shared_state["worker_state"]
                 worker_state["nodeids"][target.nodeid] = {
-                    "behavior_rates": None,
+                    "behavior_rates": e_target_rates(target),
                 }
 
             # give the hub up-to-date estimator states
             current_lifetime = time.perf_counter() - self.worker_start
             worker_state = self.shared_state["worker_state"]
             worker_state["current_lifetime"] = current_lifetime
-            worker_state["expected_lifetime"] = None
-
+            worker_state["expected_lifetime"] = e_worker_lifetime(current_lifetime)
             worker_state["valid_nodeids"] = [
                 target.nodeid for target in self.valid_targets
             ]
@@ -678,18 +683,48 @@ class FuzzWorkerHub:
         # and only assign more as the estimator says it's worthwhile.
 
         assert len(self.shared_states) == self.n_processes
-        partitions = []
-        for i in range(self.n_processes):
-            # Round-robin for large test suites; all-on-all for tiny, etc.
-            nodeids: set[str] = set()
-            for ix in range(self.n_processes):
-                nodeids.update(
-                    nodeid for nodeid in self.nodeids[i + ix :: self.n_processes]
-                )
-                if len(nodeids) >= 10:  # enough to prioritize between
-                    break
-            partitions.append(nodeids)
+        current_workers = [
+            CurrentWorker(
+                nodeids=state["worker_state"]["nodeids"].keys(),
+                e_lifetime=state["worker_state"]["expected_lifetime"],
+            )
+            for state in self.shared_states
+        ]
 
+        # fill with default estimators, for the first-time startup
+        # nodeid: (worker_lifetime, rates)
+        targets = {
+            nodeid: (0.0, BehaviorRates(per_second=1.0, per_input=1.0))
+            for nodeid in self.nodeids
+        }
+        for state in self.shared_states:
+            worker_state = state["worker_state"]
+            worker_lifetime = worker_state["current_lifetime"]
+            for nodeid, rates in worker_state["nodeids"].items():
+                if nodeid not in targets:
+                    targets[nodeid] = (worker_lifetime, rates)
+
+                # if the nodeid already exists, but we have a better estimator
+                # for it, replace it
+                if worker_lifetime > targets[nodeid][0]:
+                    targets[nodeid] = (worker_lifetime, rates)
+
+        # TODO estimate startup time of this target
+        # ("number of corpus elements" * "average input runtime" probably?)
+        targets = [
+            DistributeNodesTarget(nodeid=nodeid, rates=rates, e_startup_time=0)
+            for nodeid, (_lifetime, rates) in targets.items()
+        ]
+        partitions = distribute_nodes(
+            targets,
+            n=self.n_processes,
+            current_workers=current_workers,
+        )
+
+        # communicate the worker's new nodeids back to the worker.
+        #
+        # the iteration order of the partitions returned by distribute_nodes is
+        # the same as the iteration order of current_workers
         for state, nodeids in zip(self.shared_states, partitions):
             state["hub_state"]["nodeids"] = nodeids
 

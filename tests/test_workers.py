@@ -20,7 +20,7 @@ def test_c():
 """
 
 
-def test_workers(tmp_path):
+def test_worker_general(tmp_path):
     test_dir, _db_dir = setup_test_code(tmp_path, test_code)
 
     with multiprocessing.Manager() as manager:

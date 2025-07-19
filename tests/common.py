@@ -45,7 +45,7 @@ class Dashboard:
         return r.json()
 
 
-def wait_for(condition, *, timeout=10, interval):
+def wait_for(condition, *, timeout=5, interval):
     for _ in range(int(timeout // interval) + 1):
         if value := condition():
             return value
