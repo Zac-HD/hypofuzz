@@ -191,7 +191,7 @@ def collect_tests(args: Iterable[str], *, debug: bool = False) -> CollectionResu
     """
     from hypofuzz import detection
 
-    detection.in_hypofuzz_run = True
+    detection._in_hypofuzz_run = True
 
     args = list(args)
     if debug:
