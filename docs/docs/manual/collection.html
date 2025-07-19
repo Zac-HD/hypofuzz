@@ -294,7 +294,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">hypofuzz.detection</span><span class="w"> </span><span class="kn">import</span> <span class="n">in_hypofuzz_run</span>
 
 
-<span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">skipif</span><span class="p">(</span><span class="n">in_hypofuzz_run</span><span class="p">)</span>
+<span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">skipif</span><span class="p">(</span><span class="n">in_hypofuzz_run</span><span class="p">())</span>
 <span class="nd">@given</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">integers</span><span class="p">())</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">test_will_not_be_fuzzed</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
     <span class="k">pass</span>
