@@ -42,6 +42,7 @@ from hypothesis.internal.reflection import (
     get_signature,
 )
 
+from hypofuzz import detection
 from hypofuzz.bayes import behaviors_per_second, softmax
 from hypofuzz.collection import collect_tests
 from hypofuzz.corpus import (
@@ -703,5 +704,8 @@ def _start_worker(
     Designed to be used inside a multiprocessing.Process started with the spawn()
     method - requires picklable arguments but works on Windows too.
     """
+    # we set this in entrypoint.fuzz, but we're in a new process, so we have to
+    # set it again.
+    detection._in_hypofuzz_run = True
     worker = FuzzWorker(pytest_args=pytest_args, shared_state=shared_state)
     worker.start()

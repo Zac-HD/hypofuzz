@@ -47,7 +47,7 @@ If you would like to skip a test under HypoFuzz while keeping it part of your no
     from hypofuzz.detection import in_hypofuzz_run
 
 
-    @pytest.mark.skipif(in_hypofuzz_run)
+    @pytest.mark.skipif(in_hypofuzz_run())
     @given(st.integers())
     def test_will_not_be_fuzzed(n):
         pass

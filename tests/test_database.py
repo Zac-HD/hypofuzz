@@ -47,7 +47,6 @@ def test_database_state():
     process._execute_once(process.new_conjecture_data(choices=[2]))
     # for coverage stability
     process._execute_once(process.new_conjecture_data())
-    process.provider.db._db._join()
 
     key = process.database_key
 
@@ -81,7 +80,6 @@ def test_database_state():
     process._execute_once(process.new_conjecture_data(choices=[1]))
     # for stability
     process._execute_once(process.new_conjecture_data())
-    process.provider.db._db._join()
 
     # the key for the deleted observation sticks around in the database, it's
     # just an empty mapping.

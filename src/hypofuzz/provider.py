@@ -23,7 +23,7 @@ import hypothesis
 import hypothesis.internal.observability
 from hypothesis import settings
 from hypothesis.control import current_build_context
-from hypothesis.database import BackgroundWriteDatabase
+from hypothesis.database import BackgroundWriteDatabase, InMemoryExampleDatabase
 from hypothesis.internal.conjecture.choice import (
     ChoiceConstraintsT,
     ChoiceT,
@@ -62,6 +62,7 @@ from hypofuzz.database import (
     WorkerIdentity,
     test_keys_key,
 )
+from hypofuzz.detection import in_hypofuzz_run
 from hypofuzz.mutator import BlackBoxMutator, CrossOverMutator
 from hypofuzz.utils import lerp
 
@@ -230,20 +231,31 @@ class HypofuzzProvider(PrimitiveProvider):
         return sum(self.status_counts.values())
 
     def _startup(self) -> None:
-        if settings().database is None:
-            raise ValueError("HypofuzzProvider must be used with a database")
+        db = settings().database
+        if in_hypofuzz_run():
+            # we wouldn't have collected this test otherwise
+            assert db is not None
+            db = BackgroundWriteDatabase(db)
+        elif db is None:
+            # if we're being run with @settings(database=None, backend="hypofuzz"),
+            # use an in-memory database. We don't rely on this anywhere, but it
+            # does substantially simplify logic by letting other components assume
+            # they have a non-None database. Conceptually this is a "no-op" db.
+            db = InMemoryExampleDatabase()
+
+        self.db = HypofuzzDatabase(db)
 
         # TODO: make this a context manager we enter in per_test_case_context_manager,
         # so it resets after using hypofuzz?
         hypothesis.internal.observability.OBSERVABILITY_CHOICES = True
         hypothesis.internal.observability.OBSERVABILITY_COLLECT_COVERAGE = False
 
-        self.db = HypofuzzDatabase(BackgroundWriteDatabase(settings().database))
         assert not self._started
         wrapped_test = current_build_context().wrapped_test
 
         if self.database_key is None:
             self.database_key = function_digest(wrapped_test.hypothesis.inner_test)  # type: ignore
+
         # TODO this means our nodeid might be different in the
         # @settings(backend="hypofuzz") case (which uses __func__.__name__)
         # and the hypofuzz worker case (which sets the current pytest item and

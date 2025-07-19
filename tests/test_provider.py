@@ -264,3 +264,22 @@ def test_invalid_data_does_not_add_coverage():
         process._execute_once(process.new_conjecture_data(choices=choices))
         assert not process.provider.corpus.behavior_counts
         assert not process.provider.corpus.fingerprints
+
+
+def test_explicit_backend_can_be_used_without_database():
+    # under `hypothesis fuzz`, the provider always has access to a database, because
+    # we skip tests with database=None during collection.
+    #
+    # But under backend="hypofuzz", we allow database=None.
+
+    called = False
+
+    @given(st.integers())
+    @settings(database=None, backend="hypofuzz")
+    def f(n):
+        nonlocal called
+        called = True
+
+    assert not called
+    f()
+    assert called
