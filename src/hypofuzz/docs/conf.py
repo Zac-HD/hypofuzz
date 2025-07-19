@@ -1,3 +1,4 @@
+import sys
 from datetime import date
 from pathlib import Path
 
@@ -10,6 +11,9 @@ init_file = Path(__file__).parent.parent / "__init__.py"
 for line in init_file.read_text().splitlines():
     if line.startswith("__version__ = "):
         _, version, _ = line.split('"')
+
+root = Path(__file__).parent.parent
+sys.path.append(str(Path(__file__).parent / "_ext"))
 
 
 # -- General configuration ---------------------------------------------------
@@ -24,6 +28,7 @@ extensions = [
     "sphinx.ext.viewcode",
     "sphinx.ext.intersphinx",
     "sphinxcontrib.bibtex",
+    "hypothesis_redirects"
 ]
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3/", None),
@@ -47,6 +52,11 @@ extlinks = {
 bibtex_bibfiles = ["literature.bib"]
 exclude_patterns = ["prolog.rst"]
 rst_prolog = (Path(__file__).parent / "prolog.rst").read_text()
+
+# redirect extension
+redirects = {"roadmap": "compatibility.html"}
+redirect_html_template_file = "redirect.html.template"
+
 
 # -- Options for HTML output -------------------------------------------------
 html_title = "HypoFuzz docs"
