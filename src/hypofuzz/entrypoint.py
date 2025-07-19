@@ -10,6 +10,8 @@ import hypothesis.extra.cli
 import psutil
 from hypothesis.internal.conjecture.providers import AVAILABLE_PROVIDERS
 
+from hypofuzz import detection
+
 AVAILABLE_PROVIDERS["hypofuzz"] = "hypofuzz.provider.HypofuzzProvider"
 
 
@@ -69,6 +71,8 @@ def fuzz(
 
     This process will run forever unless stopped with e.g. ctrl-C.
     """
+    detection._in_hypofuzz_run = True
+
     dash_proc = None
     if dashboard or dashboard_only:
         from hypofuzz.dashboard.dashboard import start_dashboard_process

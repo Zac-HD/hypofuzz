@@ -284,10 +284,13 @@ def write_test_code(path: Path, db_dir, code: str) -> None:
     code = (
         inspect.cleandoc(
             f"""
+            from unittest import TestCase
+
+            import pytest
             from hypothesis import given, settings, strategies as st, HealthCheck, target
             from hypothesis.database import DirectoryBasedExampleDatabase
-            import pytest
-            from unittest import TestCase
+
+            from hypofuzz import in_hypofuzz_run
 
             settings.register_profile("testing", settings(database=DirectoryBasedExampleDatabase("{db_dir}")))
             settings.load_profile("testing")

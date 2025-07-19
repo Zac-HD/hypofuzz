@@ -189,10 +189,6 @@ def collect_tests(args: Iterable[str], *, debug: bool = False) -> CollectionResu
 
     This basically uses `pytest --collect-only -m hypothesis $args`.
     """
-    from hypofuzz import detection
-
-    detection._in_hypofuzz_run = True
-
     args = list(args)
     if debug:
         args.append("-s")
@@ -213,7 +209,7 @@ def collect_tests(args: Iterable[str], *, debug: bool = False) -> CollectionResu
         print(f"Exiting because pytest returned exit code {ret}")
         sys.exit(ret)
     elif debug or not collector.fuzz_targets:
-        print("debug:" if debug else "no fuzz targets found:")
+        print("debug:" if debug else "no Hypothesis tests found:")
         print(out.getvalue())
         print("The following tests were not collected:")
         for nodeid, reason in collector.not_collected.items():
