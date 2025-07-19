@@ -1,5 +1,5 @@
-Summary of related research
-===========================
+Related research
+================
 
 HypoFuzz is built on, and inspired by, a wide range of research and practice
 in software testing and verification.  This page summarises and comments on

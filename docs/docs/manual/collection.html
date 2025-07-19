@@ -216,8 +216,8 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">About HypoFuzz</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../roadmap.html">Development roadmap</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../literature.html">Summary of related research</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../compatibility.html">Compatibility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../literature.html">Related research</a></li>
 </ul>
 
 </div>
@@ -260,13 +260,34 @@
         <article role="main" id="furo-main-content">
           <section id="test-collection">
 <h1>Test collection<a class="headerlink" href="#test-collection" title="Link to this heading">¶</a></h1>
-<p>HypoFuzz uses <a class="extlink-pypi reference external" href="https://pypi.org/project/pytest">pytest</a> to collect the test functions to fuzz, with almost identical command-line interfaces.  If you’re using <code class="docutils literal notranslate"><span class="pre">pytest</span> <span class="pre">...</span></code> to run your tests, <code class="docutils literal notranslate"><span class="pre">hypothesis</span> <span class="pre">fuzz</span> <span class="pre">--</span> <span class="pre">...</span></code> will fuzz them.</p>
-<p>This also means you can use the standard pytest <code class="docutils literal notranslate"><span class="pre">-k</span></code> selector to configure which tests to run, with <code class="docutils literal notranslate"><span class="pre">hypothesis</span> <span class="pre">fuzz</span> <span class="pre">--</span> <span class="pre">-k</span> <span class="pre">...</span></code>. See pytest’s docs on <a class="reference external" href="https://docs.pytest.org/en/stable/how-to/usage.html#select-tests" title="(in pytest v8.4.1)"><span>Specifying which tests to run</span></a> and <a class="reference external" href="https://docs.pytest.org/en/stable/explanation/goodpractices.html#test-discovery" title="(in pytest v8.4.1)"><span>Conventions for Python test discovery</span></a> for more details.</p>
-<p>Note that tests which use <a class="reference external" href="https://docs.pytest.org/en/stable/fixture.html">pytest fixtures</a> are not collected, as they may behave differently outside of the pytest runtime. We recommend using a context manager and the <code class="docutils literal notranslate"><span class="pre">with</span></code> statement instead. Support for pytest fixtures is on <a class="reference internal" href="../roadmap.html"><span class="doc">our roadmap</span></a>.</p>
-<p>Support for other test runners, such as <a class="reference external" href="https://docs.python.org/3/library/unittest.html#module-unittest" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">unittest</span></code></a>, is on our roadmap.</p>
+<p>Before HypoFuzz starts fuzzing by assigning tests to workers, it first needs to know what tests are available. HypoFuzz does so by running a collection step.</p>
+<section id="how-hypofuzz-collects-tests">
+<h2>How HypoFuzz collects tests<a class="headerlink" href="#how-hypofuzz-collects-tests" title="Link to this heading">¶</a></h2>
+<p>HypoFuzz uses <a class="extlink-pypi reference external" href="https://pypi.org/project/pytest">pytest</a> to collect test functions, with an almost identical command-line interface.</p>
+<p>If you’re using <code class="docutils literal notranslate"><span class="pre">pytest</span> <span class="pre">...</span></code> to run your tests, <code class="docutils literal notranslate"><span class="pre">hypothesis</span> <span class="pre">fuzz</span> <span class="pre">--</span> <span class="pre">...</span></code> will fuzz them. Everything after <code class="docutils literal notranslate"><span class="pre">--</span></code> is passed to a call to <code class="docutils literal notranslate"><span class="pre">pytest</span> <span class="pre">--collect-only</span></code> in HypoFuzz.</p>
+<p>Among others, this means you can use the standard pytest <code class="docutils literal notranslate"><span class="pre">-k</span></code> selector to configure which tests to run, with <code class="docutils literal notranslate"><span class="pre">hypothesis</span> <span class="pre">fuzz</span> <span class="pre">--</span> <span class="pre">-k</span> <span class="pre">...</span></code>. See pytest’s docs on <a class="reference external" href="https://docs.pytest.org/en/stable/how-to/usage.html#select-tests" title="(in pytest v8.4.1)"><span>Specifying which tests to run</span></a> and <a class="reference external" href="https://docs.pytest.org/en/stable/explanation/goodpractices.html#test-discovery" title="(in pytest v8.4.1)"><span>Conventions for Python test discovery</span></a> for more details.</p>
+<p>Concretely, if your source layout looks like this:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">src</span><span class="o">/</span>
+    <span class="o">...</span>
+<span class="n">tests</span><span class="o">/</span>
+    <span class="n">test_a</span><span class="o">.</span><span class="n">py</span>
+    <span class="n">test_b</span><span class="o">.</span><span class="n">py</span>
+</pre></div>
+</div>
+<p>and you normally run your tests with <code class="docutils literal notranslate"><span class="pre">pytest</span></code>, then:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">hypothesis</span> <span class="pre">fuzz</span></code> will fuzz all your tests</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">hypothesis</span> <span class="pre">fuzz</span> <span class="pre">--</span> <span class="pre">tests/test_a.py</span></code> will fuzz the tests in <code class="docutils literal notranslate"><span class="pre">test_a.py</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">hypothesis</span> <span class="pre">fuzz</span> <span class="pre">--</span> <span class="pre">-k</span> <span class="pre">selector_string</span></code> will fuzz the tests matching <code class="docutils literal notranslate"><span class="pre">selector_string</span></code> (see <a class="reference external" href="https://docs.pytest.org/en/stable/how-to/usage.html#select-tests" title="(in pytest v8.4.1)"><span>Specifying which tests to run</span></a>).</p></li>
+</ul>
+<section id="pytest-plugins-during-collection">
+<h3>Pytest plugins during collection<a class="headerlink" href="#pytest-plugins-during-collection" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">hypothesis</span> <span class="pre">fuzz</span></code> does not run pytest plugins during collection. If your standard pytest command includes plugin parameters like <code class="docutils literal notranslate"><span class="pre">pytest</span> <span class="pre">-n</span> <span class="pre">auto</span></code> (from e.g. <a class="extlink-pypi reference external" href="https://pypi.org/project/pytest-xdist">pytest-xdist</a>), do not pass these parameters to <code class="docutils literal notranslate"><span class="pre">hypothesis</span> <span class="pre">fuzz</span></code>.</p>
+</section>
+</section>
 <section id="skipping-tests-under-hypofuzz">
 <h2>Skipping tests under HypoFuzz<a class="headerlink" href="#skipping-tests-under-hypofuzz" title="Link to this heading">¶</a></h2>
-<p>If you would like to skip a test under HypoFuzz while keeping it part of your normal test suite, you can use <a class="reference internal" href="../reference.html#hypofuzz.detection.in_hypofuzz_run" title="hypofuzz.detection.in_hypofuzz_run"><code class="xref py py-data docutils literal notranslate"><span class="pre">in_hypofuzz_run</span></code></a>:</p>
+<p>If you would like to skip a test under HypoFuzz while keeping it part of your normal test suite, you can use <a class="reference external" href="https://docs.pytest.org/en/stable/reference/reference.html#pytest-mark-skipif-ref" title="(in pytest v8.4.1)"><span>pytest.mark.skipif</span></a> in combination with <a class="reference internal" href="../reference.html#hypofuzz.detection.in_hypofuzz_run" title="hypofuzz.detection.in_hypofuzz_run"><code class="xref py py-func docutils literal notranslate"><span class="pre">in_hypofuzz_run</span></code></a>:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">pytest</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">hypothesis</span><span class="w"> </span><span class="kn">import</span> <span class="n">given</span><span class="p">,</span> <span class="n">strategies</span> <span class="k">as</span> <span class="n">st</span>
 
@@ -279,7 +300,7 @@
     <span class="k">pass</span>
 </pre></div>
 </div>
-<p>You can also use <a class="reference internal" href="../reference.html#hypofuzz.detection.in_hypofuzz_run" title="hypofuzz.detection.in_hypofuzz_run"><code class="xref py py-data docutils literal notranslate"><span class="pre">in_hypofuzz_run</span></code></a> to run certain tests <em>only</em> under HypoFuzz.</p>
+<p><a class="reference internal" href="../reference.html#hypofuzz.detection.in_hypofuzz_run" title="hypofuzz.detection.in_hypofuzz_run"><code class="xref py py-func docutils literal notranslate"><span class="pre">in_hypofuzz_run</span></code></a> can also be used to mark tests which should run <em>only</em> under HypoFuzz, by inverting the conditional above.</p>
 </section>
 </section>
 
@@ -338,6 +359,10 @@
           <div class="toc-tree">
             <ul>
 <li><a class="reference internal" href="#">Test collection</a><ul>
+<li><a class="reference internal" href="#how-hypofuzz-collects-tests">How HypoFuzz collects tests</a><ul>
+<li><a class="reference internal" href="#pytest-plugins-during-collection">Pytest plugins during collection</a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#skipping-tests-under-hypofuzz">Skipping tests under HypoFuzz</a></li>
 </ul>
 </li>

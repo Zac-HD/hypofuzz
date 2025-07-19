@@ -2,12 +2,11 @@
 <html class="no-js" lang="en" data-content_root="../">
   <head><meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
-    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Command-line interface" href="cli.html" /><link rel="prev" title="User manual" href="index.html" />
-        <link rel="canonical" href="https://hypofuzz.com/docs/manual/operating.html" />
+    <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" />
+        <link rel="canonical" href="https://hypofuzz.com/docs/_modules/index.html" />
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2024.08.06 -->
-        <title>Operating HypoFuzz - HypoFuzz docs</title>
+        <title>Overview: module code - HypoFuzz docs</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=354aac6f" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=302659d7" />
@@ -180,7 +179,7 @@
           <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
         </button>
       </div>
-      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
         <div class="visually-hidden">Toggle table of contents sidebar</div>
         <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
       </label>
@@ -200,14 +199,14 @@
   <input type="hidden" name="area" value="default">
 </form>
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
-  <ul class="current">
+  <ul>
 <li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
-<li class="toctree-l1 current has-children"><a class="reference internal" href="index.html">User manual</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of User manual</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
-<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">Operating HypoFuzz</a></li>
-<li class="toctree-l2"><a class="reference internal" href="cli.html">Command-line interface</a></li>
-<li class="toctree-l2"><a class="reference internal" href="collection.html">Test collection</a></li>
-<li class="toctree-l2"><a class="reference internal" href="database.html">HypoFuzz database</a></li>
-<li class="toctree-l2"><a class="reference internal" href="behavior.html">Custom coverage events</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../manual/index.html">User manual</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of User manual</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../manual/operating.html">Operating HypoFuzz</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../manual/cli.html">Command-line interface</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../manual/collection.html">Test collection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../manual/database.html">HypoFuzz database</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../manual/behavior.html">Custom coverage events</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../reference.html">API Reference</a></li>
@@ -237,13 +236,7 @@
           <span>Back to top</span>
         </a>
         <div class="content-icon-container">
-          <div class="view-this-page">
-  <a class="muted-link" href="../_sources/manual/operating.rst.txt" title="View this page">
-    <svg><use href="#svg-eye"></use></svg>
-    <span class="visually-hidden">View this page</span>
-  </a>
-</div>
-<div class="theme-toggle-container theme-toggle-content">
+          <div class="theme-toggle-container theme-toggle-content">
             <button class="theme-toggle">
               <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
               <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
@@ -252,73 +245,22 @@
               <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
             </button>
           </div>
-          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
             <div class="visually-hidden">Toggle table of contents sidebar</div>
             <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
           </label>
         </div>
         <article role="main" id="furo-main-content">
-          <section id="operating-hypofuzz">
-<h1>Operating HypoFuzz<a class="headerlink" href="#operating-hypofuzz" title="Link to this heading">¶</a></h1>
-<p>HypoFuzz makes it easy to get started (or keep going!) on your laptop. We also support scaling up to a shared server for team-size projects, and then scaling out across multiple servers, or spot instances and idle capacity as they come and go.</p>
-<p>This page has configuration tips for each of those environments, including how to reproduce failing examples with Hypothesis for debugging if the dashboard wasn’t enough.</p>
-<section id="running-on-your-laptop">
-<h2>Running on your laptop<a class="headerlink" href="#running-on-your-laptop" title="Link to this heading">¶</a></h2>
-<p>For running HypoFuzz locally on your laptop, we recommend simply using <code class="docutils literal notranslate"><span class="pre">hypothesis</span> <span class="pre">fuzz</span></code>, which launches both the dashboard and the associated fuzz workers.</p>
-<p>If you like, you can run <code class="docutils literal notranslate"><span class="pre">hypothesis</span> <span class="pre">fuzz</span> <span class="pre">--dashboard-only</span></code> and <code class="docutils literal notranslate"><span class="pre">hypothesis</span> <span class="pre">fuzz</span> <span class="pre">--no-dashboard</span></code> as separate commands, so you can stop the fuzz workers while still being able to view the dashboard. You can launch the dashboard at any time with <code class="docutils literal notranslate"><span class="pre">hypothesis</span> <span class="pre">fuzz</span> <span class="pre">--dashboard-only</span></code>, whether or not any fuzz workers are running.</p>
-<p>The dashboard’s “Collection” page shows which tests were collected (or not collected) by HypoFuzz, which may be helpful for debugging.</p>
-</section>
-<section id="running-on-a-server">
-<h2>Running on a server<a class="headerlink" href="#running-on-a-server" title="Link to this heading">¶</a></h2>
-<p>This section is for running HypoFuzz on a single, centralized server.</p>
-<p>We recommend running a permanent dashboard with <code class="docutils literal notranslate"><span class="pre">hypothesis</span> <span class="pre">fuzz</span> <span class="pre">--dashboard-only</span></code>, and launching separate fuzz workers with <code class="docutils literal notranslate"><span class="pre">hypothesis</span> <span class="pre">fuzz</span> <span class="pre">--no-dashboard</span></code> whenever appropriate. (This might be “after every commit, for an hour”, or “once a day for an hour”, or on a manual trigger). You can of course combine both with <code class="docutils literal notranslate"><span class="pre">hypothesis</span> <span class="pre">fuzz</span></code> if you want to configure your server to search for bugs indefinitely.</p>
-<section id="reproducing-failures-locally">
-<h3>Reproducing failures locally<a class="headerlink" href="#reproducing-failures-locally" title="Link to this heading">¶</a></h3>
-<p>Since HypoFuzz is running on a server, developers will need to connect to the server’s Hypothesis database in order to locally reproduce failures found by HypoFuzz.</p>
-<p>The details of configuring this depends on your network topology. For instance, if you have a shared filesystem with the server, you can simply configure your database as a <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.database.DirectoryBasedExampleDatabase" title="(in Hypothesis v6.136.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">DirectoryBasedExampleDatabase</span></code></a> pointed to the location of the <code class="docutils literal notranslate"><span class="pre">.hypothesis</span></code> database on the server. In more complex cases, you may need to use a networked database such as <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.extra.redis.RedisExampleDatabase" title="(in Hypothesis v6.136.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">RedisExampleDatabase</span></code></a>, or write your own database class.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>See <a class="reference internal" href="database.html"><span class="doc">HypoFuzz database</span></a> for details on the HypoFuzz database, and how to write your own database class.</p>
-</div>
-<p>In the worst case (and if the server is using <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.database.DirectoryBasedExampleDatabase" title="(in Hypothesis v6.136.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">DirectoryBasedExampleDatabase</span></code></a>), you can copy the <code class="docutils literal notranslate"><span class="pre">.hypothesis</span></code> directory on the server to your local copy of the codebase to reproduce failures.</p>
-</section>
-</section>
-<section id="running-on-a-distributed-system">
-<h2>Running on a distributed system<a class="headerlink" href="#running-on-a-distributed-system" title="Link to this heading">¶</a></h2>
-<p>This section is for running HypoFuzz on a distributed system, where distributed workers might come and go, with varying degrees of compute load.</p>
-<p>As with the single-server case, we recommend running a permanent dashboard with <code class="docutils literal notranslate"><span class="pre">hypothesis</span> <span class="pre">fuzz</span> <span class="pre">--dashboard-only</span></code>, and running <code class="docutils literal notranslate"><span class="pre">hypothesis</span> <span class="pre">fuzz</span> <span class="pre">--no-dashboard</span></code> on each distributed worker.</p>
-<p>Starting a fuzz process with hypothesis fuzz has a moderate startup cost before it begins to do useful work. It has to complete pytest collection (typically a few seconds), and then replay any covering inputs discovered by previous runs in order to reload state. Improving the cost/benefit ratio of short runs, by spreading the replay cost over a longer period, is on our roadmap.</p>
-<p>Additionally, HypoFuzz’s adaptive techniques make compute allocation more efficient over the lifetime of a worker process. While short runs already do useful work, and we aim to improve the ratio by persisting estimator states, the sixtieth minute is likely to be several times more valuable than the first.</p>
-<p>Unless you’re testing interactively or using noticeably cheaper spot instances, we recommend running HypoFuzz at least “over lunch”, and more typically “overnight” - restarting every 12 or 24 hours to pick up code changes.</p>
-<p>As for the database on a distributed system, we recommend using Redis with <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.extra.redis.RedisExampleDatabase" title="(in Hypothesis v6.136.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">RedisExampleDatabase</span></code></a>. Alternatively, you can easily write your own database class (see <a class="reference internal" href="database.html"><span class="doc">HypoFuzz database</span></a>), and contributions of database class implementations to Hypothesis are most welcome as well!</p>
-</section>
-</section>
-
+          <h1>All modules for which code is available</h1>
+<ul><li><a href="hypofuzz/detection.html">hypofuzz.detection</a></li>
+</ul>
         </article>
       </div>
       <footer>
         
         <div class="related-pages">
-          <a class="next-page" href="cli.html">
-              <div class="page-info">
-                <div class="context">
-                  <span>Next</span>
-                </div>
-                <div class="title">Command-line interface</div>
-              </div>
-              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
-            </a>
-          <a class="prev-page" href="index.html">
-              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
-              <div class="page-info">
-                <div class="context">
-                  <span>Previous</span>
-                </div>
-                
-                <div class="title">User manual</div>
-                
-              </div>
-            </a>
+          
+          
         </div>
         <div class="bottom-of-page">
           <div class="left-details">
@@ -336,32 +278,8 @@
         
       </footer>
     </div>
-    <aside class="toc-drawer">
+    <aside class="toc-drawer no-toc">
       
-      
-      <div class="toc-sticky toc-scroll">
-        <div class="toc-title-container">
-          <span class="toc-title">
-            On this page
-          </span>
-        </div>
-        <div class="toc-tree-container">
-          <div class="toc-tree">
-            <ul>
-<li><a class="reference internal" href="#">Operating HypoFuzz</a><ul>
-<li><a class="reference internal" href="#running-on-your-laptop">Running on your laptop</a></li>
-<li><a class="reference internal" href="#running-on-a-server">Running on a server</a><ul>
-<li><a class="reference internal" href="#reproducing-failures-locally">Reproducing failures locally</a></li>
-</ul>
-</li>
-<li><a class="reference internal" href="#running-on-a-distributed-system">Running on a distributed system</a></li>
-</ul>
-</li>
-</ul>
-
-          </div>
-        </div>
-      </div>
       
       
     </aside>

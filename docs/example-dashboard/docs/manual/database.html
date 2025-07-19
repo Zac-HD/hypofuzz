@@ -216,8 +216,8 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">About HypoFuzz</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../roadmap.html">Development roadmap</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../literature.html">Summary of related research</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../compatibility.html">Compatibility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../literature.html">Related research</a></li>
 </ul>
 
 </div>
@@ -261,13 +261,13 @@
           <section id="hypofuzz-database">
 <h1>HypoFuzz database<a class="headerlink" href="#hypofuzz-database" title="Link to this heading">¶</a></h1>
 <p>The HypoFuzz database stores all the persistent information necessary for fuzzing, including the covering corpus of inputs, any failures found, and progress of behaviors discovered over time.</p>
-<p>The HypoFuzz database is a standard <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/reference/api.html#database" title="(in Hypothesis v6.135.33)"><span class="xref std std-ref">Hypothesis database</span></a>.</p>
+<p>The HypoFuzz database is a standard <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/reference/api.html#database" title="(in Hypothesis v6.136.0)"><span class="xref std std-ref">Hypothesis database</span></a>.</p>
 <section id="configure-which-database-hypofuzz-uses">
 <h2>Configure which database HypoFuzz uses<a class="headerlink" href="#configure-which-database-hypofuzz-uses" title="Link to this heading">¶</a></h2>
 <p>HypoFuzz determines which database to use as follows:</p>
 <ul class="simple">
 <li><p>Run a pytest test collection step.</p></li>
-<li><p>Then, use the <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.settings.database" title="(in Hypothesis v6.135.33)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">.database</span></code></a> attribute of the current <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.settings" title="(in Hypothesis v6.135.33)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">settings</span> <span class="pre">profile</span></code></a>.</p></li>
+<li><p>Then, use the <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.settings.database" title="(in Hypothesis v6.136.0)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">.database</span></code></a> attribute of the current <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.settings" title="(in Hypothesis v6.136.0)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">settings</span> <span class="pre">profile</span></code></a>.</p></li>
 </ul>
 <p>To configure which database HypoFuzz uses, register and load a Hypothesis settings profile with the desired database. So for instance, to tell HypoFuzz to use a redis database, place the following in any module loaded during pytest’s test collection:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">hypothesis</span><span class="w"> </span><span class="kn">import</span> <span class="n">settings</span>
@@ -290,7 +290,7 @@
 </section>
 <section id="writing-your-own-database">
 <h2>Writing your own database<a class="headerlink" href="#writing-your-own-database" title="Link to this heading">¶</a></h2>
-<p>The HypoFuzz database is a standard <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/reference/api.html#database" title="(in Hypothesis v6.135.33)"><span class="xref std std-ref">hypothesis database</span></a>, which is a simple key-value store that maps bytestrings to lists of bytestrings. Writing your own database requires implementing only the <code class="docutils literal notranslate"><span class="pre">.fetch(key:</span> <span class="pre">bytes)</span></code>, <code class="docutils literal notranslate"><span class="pre">.save(key:</span> <span class="pre">bytes,</span> <span class="pre">value:</span> <span class="pre">bytes)</span></code>, and <code class="docutils literal notranslate"><span class="pre">.delete(key:</span> <span class="pre">bytes,</span> <span class="pre">value:</span> <span class="pre">bytes)</span></code> methods. See the Hypothesis <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/how-to/custom-database.html" title="(in Hypothesis v6.135.33)"><span>Write a custom Hypothesis database</span></a> how-to for more details.</p>
+<p>The HypoFuzz database is a standard <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/reference/api.html#database" title="(in Hypothesis v6.136.0)"><span class="xref std std-ref">hypothesis database</span></a>, which is a simple key-value store that maps bytestrings to lists of bytestrings. Writing your own database requires implementing only the <code class="docutils literal notranslate"><span class="pre">.fetch(key:</span> <span class="pre">bytes)</span></code>, <code class="docutils literal notranslate"><span class="pre">.save(key:</span> <span class="pre">bytes,</span> <span class="pre">value:</span> <span class="pre">bytes)</span></code>, and <code class="docutils literal notranslate"><span class="pre">.delete(key:</span> <span class="pre">bytes,</span> <span class="pre">value:</span> <span class="pre">bytes)</span></code> methods. See the Hypothesis <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/how-to/custom-database.html" title="(in Hypothesis v6.136.0)"><span>Write a custom Hypothesis database</span></a> how-to for more details.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>We’ve already sketched designs for Hypothesis databases backed by S3, DynamoDB, and other cloud storage solutions. If something in this space would be useful for you, please <a class="reference external" href="mailto:sales&#37;&#52;&#48;hypofuzz&#46;com?subject=HypoFuzz%20database%20support">get in touch</a> and we can bump it up our todo list!</p>

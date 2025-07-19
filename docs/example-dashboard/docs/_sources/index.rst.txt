@@ -27,5 +27,5 @@ to find bugs early in your development cycle.
     :caption: About HypoFuzz
     :hidden:
 
-    roadmap
+    compatibility
     literature
