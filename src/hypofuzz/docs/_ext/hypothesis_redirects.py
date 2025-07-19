@@ -125,10 +125,7 @@ class Reredirects:
 
         # Corresponds to value of `html_file_suffix`, but takes into account
         # modifications done by the builder class
-        try:
-            suffix = self.app.builder.out_suffix  # type: ignore
-        except Exception:
-            suffix = ".html"
+        suffix = getattr(self.app.builder, "out_suffix", ".html")
 
         for docname, target in to_be_redirected.items():
             out = self.docname_out_path(docname, suffix)
