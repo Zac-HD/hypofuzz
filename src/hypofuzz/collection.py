@@ -152,6 +152,22 @@ class _ItemsCollector:
                         item.nodeid.encode()
                     )
                     target = item.obj
+
+                if getattr(target, "__self__", None) is not None:
+                    # Hypothesis internals (like process_arguments_to_given) don't
+                    # expect to work with bound methods, because @given is applied
+                    # at the point of it still being a plain function with a `self`
+                    # argument.
+                    #
+                    # At the point of pytest collection, `target` might be a bound
+                    # method, though. (I believe iff isinstance(item, TestCaseFunction),
+                    # but I don't want to assert that here in case I'm wrong).
+                    #
+                    # So pass on the function, not the bound method - FuzzTarget will
+                    # take care of inserting the `self` arg instance from `item` when
+                    # constructing StateForActualGivenExecution.
+                    target = target.__func__
+
                 fuzz = FuzzTarget.from_hypothesis_test(
                     target,
                     database=hypofuzz_db,

@@ -15,11 +15,12 @@ from queue import Queue
 from typing import Optional
 
 import requests
+from hypothesis.database import DirectoryBasedExampleDatabase
 from hypothesis.internal.escalation import InterestingOrigin
 from hypothesis.internal.reflection import get_pretty_function_description
 
 from hypofuzz.collection import CollectionResult, collect_tests
-from hypofuzz.database import test_keys_key
+from hypofuzz.database import FailureState, HypofuzzDatabase, test_keys_key
 
 
 @dataclass(frozen=True)
@@ -286,6 +287,7 @@ def write_test_code(path: Path, db_dir, code: str) -> None:
             from hypothesis import given, settings, strategies as st, HealthCheck, target
             from hypothesis.database import DirectoryBasedExampleDatabase
             import pytest
+            from unittest import TestCase
 
             settings.register_profile("testing", settings(database=DirectoryBasedExampleDatabase("{db_dir}")))
             settings.load_profile("testing")
@@ -345,3 +347,31 @@ def collect(code: str) -> CollectionResult:
 
 def collect_names(code: str) -> set[str]:
     return {fp.test_fn.__name__ for fp in collect(code).fuzz_targets}
+
+
+def assert_no_failures(db, key):
+    fatal_failure = db.fetch_fatal_failure(key)
+    assert not fatal_failure, fatal_failure
+
+    for state in [FailureState.SHRUNK, FailureState.UNSHRUNK, FailureState.FIXED]:
+        failures = list(db.fetch_failures(key, state=state))
+        assert not failures, [
+            db.fetch_failure_observation(key, choices, state=state)
+            for choices in failures
+        ]
+
+
+def fuzz_with_no_error(tmp_path, code):
+    test_path, db_path = setup_test_code(tmp_path, code)
+    db = HypofuzzDatabase(DirectoryBasedExampleDatabase(db_path))
+
+    with fuzz(test_path):
+        key = wait_for_test_key(db)
+        start = time.time()
+        wait_for(
+            lambda: len(list(db.fetch_observations(key))) > 5
+            or time.time() - start > 2,
+            interval=0.1,
+        )
+
+    assert_no_failures(db, key)
