@@ -155,7 +155,7 @@ class FuzzTarget:
     def _new_state(
         self, *, extra_kwargs: Optional[dict[str, Any]] = None
     ) -> HypofuzzStateForActualGivenExecution:
-        arguments = []
+        arguments: list[Any] = []
 
         if self.pytest_item is not None and isinstance(self.pytest_item.parent, Class):
             assert self._pytest_item_instance is not None
@@ -237,7 +237,7 @@ class FuzzTarget:
                 extra_kwargs[name] = request.getfixturevalue(name)
 
         if isinstance(self.pytest_item.parent, Class):
-            self._pytest_item_instance = self.pytest_item.parent.newinstance()
+            self._pytest_item_instance = self.pytest_item.parent.newinstance()  # type: ignore
 
         if isinstance(self.pytest_item, TestCaseFunction):
             assert self._pytest_item_instance is not None
