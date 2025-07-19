@@ -28,7 +28,7 @@ extensions = [
     "sphinx.ext.viewcode",
     "sphinx.ext.intersphinx",
     "sphinxcontrib.bibtex",
-    "hypothesis_redirects"
+    "hypothesis_redirects",
 ]
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3/", None),
