@@ -14,7 +14,7 @@ interface TableProps<T> {
   data: T[]
   row: (item: T) => React.ReactNode[]
   mobileRow?: (item: T) => React.ReactNode
-  getKey?: (item: T) => string | number
+  getKey?: (item: T) => string | number | undefined
   filterStrings?: (item: T) => string[]
   onFilterChange?: (filter: string) => void
 }
