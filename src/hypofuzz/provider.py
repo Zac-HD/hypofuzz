@@ -262,7 +262,7 @@ class HypofuzzProvider(PrimitiveProvider):
             original_failures = hypothesis.core.failure_exceptions_to_catch
             hypothesis.core.skip_exceptions_to_reraise = lambda: ()
             hypothesis.core.failure_exceptions_to_catch = (
-                lambda: original_failures() + original_skips()
+                lambda: original_failures() + original_skips()  # type: ignore
             )
 
         assert not self._started

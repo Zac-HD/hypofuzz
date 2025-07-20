@@ -64,7 +64,7 @@ from hypofuzz.provider import HypofuzzProvider
 SHRINK_TIMEOUT = 60 * 60
 
 
-def skip_exceptions():
+def skip_exceptions() -> tuple[type[BaseException]]:
     # this is a copy of hypothesis.core.skip_exceptions_to_reraise. We would
     # just use that, except HypofuzzProvider monkeypatches it to make skip exceptions
     # fatal, and storing an original copy is more finicky timing-wise than is
@@ -321,6 +321,7 @@ class FuzzTarget:
 
         if result.status is Status.INTERESTING:
             assert not isinstance(result, _Overrun)
+            assert result.interesting_origin is not None
             # Shrink to our minimal failing example, since we'll stop after this.
 
             # We don't report or care about the minimal failure for skip exceptions,
