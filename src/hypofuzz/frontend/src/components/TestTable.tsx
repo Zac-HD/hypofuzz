@@ -51,7 +51,8 @@ interface Props {
 export function TestTable({ tests, onFilterChange }: Props) {
   const sortedTests = Array.from(tests)
     .sortKey(([nodeid, test]) => {
-      return [test.status, nodeid]
+      const ninputs = test.ninputs(null)
+      return [test.status, ninputs != null ? -ninputs : -1, nodeid]
     })
     .map(([nodeid, test]) => test)
 
