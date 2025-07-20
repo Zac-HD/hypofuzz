@@ -4,6 +4,7 @@ import {
   Observation,
   Phase,
   Report,
+  SKIP_EXCEPTIONS,
   StatusCounts,
   TestStatus,
 } from "src/types/dashboard"
@@ -197,7 +198,27 @@ export class Test extends Dataclass<Test> {
     }
   }
 
+  get normalFailures() {
+    return Array.from(this.failures.entries())
+      .filter(
+        ([origin, failure]) =>
+          !SKIP_EXCEPTIONS.some(exception => origin.includes(`${exception} at`)),
+      )
+      .map(([_, failure]) => failure)
+  }
+
+  get skipFailures() {
+    return Array.from(this.failures.entries())
+      .filter(([origin, failure]) =>
+        SKIP_EXCEPTIONS.some(exception => origin.includes(`${exception} at`)),
+      )
+      .map(([_, failure]) => failure)
+  }
+
   get status() {
+    if (this.skipFailures.length > 0) {
+      return TestStatus.SKIPPED_DYNAMICALLY
+    }
     if (this.fatal_failure) {
       return TestStatus.FAILED_FATALLY
     }

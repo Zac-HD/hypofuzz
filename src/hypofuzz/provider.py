@@ -20,6 +20,7 @@ from typing import Any, ClassVar, Optional, TypeVar, Union, cast
 from uuid import uuid4
 
 import hypothesis
+import hypothesis.core
 import hypothesis.internal.observability
 from hypothesis import settings
 from hypothesis.control import current_build_context
@@ -249,6 +250,20 @@ class HypofuzzProvider(PrimitiveProvider):
         # so it resets after using hypofuzz?
         hypothesis.internal.observability.OBSERVABILITY_CHOICES = True
         hypothesis.internal.observability.OBSERVABILITY_COLLECT_COVERAGE = False
+
+        if in_hypofuzz_run():
+            # we want dynamic skip exceptions to be treated as standard exceptions
+            # under `hypothesis fuzz`, because there's no wrapping testing library
+            # like pytest to catch them. The dashboard has special-cased ui for
+            # interesting_origin strings which look like they are from a
+            # "skip exception": a "dynamically skipped" status, and not showing
+            # it on the failure card.
+            original_skips = hypothesis.core.skip_exceptions_to_reraise
+            original_failures = hypothesis.core.failure_exceptions_to_catch
+            hypothesis.core.skip_exceptions_to_reraise = lambda: ()
+            hypothesis.core.failure_exceptions_to_catch = (
+                lambda: original_failures() + original_skips()
+            )
 
         assert not self._started
         wrapped_test = current_build_context().wrapped_test
@@ -504,11 +519,11 @@ class HypofuzzProvider(PrimitiveProvider):
             # it's not possible for another worker to move the same choice
             # sequence from unshrunk to shrunk - and failures are rare +
             # deletions cheap. Just try deleting from both.
-            for state in [FailureState.SHRUNK, FailureState.UNSHRUNK]:
+            for failure_state in [FailureState.SHRUNK, FailureState.UNSHRUNK]:
                 self.db.delete_failure(
                     self.database_key,
                     choices,
-                    state=state,
+                    state=failure_state,
                 )
 
             # move it to the FIXED key so we still try it in the future

@@ -378,3 +378,16 @@ def fuzz_with_no_error(tmp_path, code):
         )
 
     assert_no_failures(db, key)
+
+
+@contextmanager
+def with_in_hypofuzz_run(value: bool = True):
+    from hypofuzz import detection
+
+    before = detection._in_hypofuzz_run
+    detection._in_hypofuzz_run = value
+
+    try:
+        yield
+    finally:
+        detection._in_hypofuzz_run = before

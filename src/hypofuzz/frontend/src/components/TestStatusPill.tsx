@@ -5,6 +5,7 @@ export const statusStrings = {
   [TestStatus.FAILED]: "Failed",
   [TestStatus.SHRINKING]: "Shrinking",
   [TestStatus.RUNNING]: "Running",
+  [TestStatus.SKIPPED_DYNAMICALLY]: "Skipped dynamically",
   [TestStatus.WAITING]: "Waiting",
 }
 

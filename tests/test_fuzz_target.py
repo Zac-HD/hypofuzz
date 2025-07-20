@@ -1,11 +1,20 @@
 import textwrap
+import unittest
 
+import _pytest
 import pytest
-from common import fuzz, setup_test_code, wait_for, wait_for_test_key
+from common import (
+    fuzz,
+    setup_test_code,
+    wait_for,
+    wait_for_test_key,
+    with_in_hypofuzz_run,
+)
 from hypothesis import given, strategies as st
 from hypothesis.database import DirectoryBasedExampleDatabase, InMemoryExampleDatabase
 from hypothesis.internal.conjecture.data import Status
 
+import hypofuzz.corpus
 from hypofuzz.database import FailureState, HypofuzzDatabase
 from hypofuzz.hypofuzz import FailedFatally, FuzzTarget
 
@@ -91,3 +100,42 @@ def test_raises_failed_fatally_in_enter_fixtures():
     with pytest.raises(FailedFatally):
         target._enter_fixtures()
     assert target.failed_fatally
+
+
+@pytest.mark.parametrize(
+    "SkipException",
+    [
+        _pytest.outcomes.Skipped,
+        unittest.SkipTest,
+        pytest.param(Exception, marks=pytest.mark.xfail),
+    ],
+)
+@with_in_hypofuzz_run(True)
+def test_does_not_shrink_skip_exceptions(monkeypatch, SkipException):
+    def get_shrinker(*args, **kwargs):
+        raise ValueError("get_shrinker was called")
+
+    monkeypatch.setattr(hypofuzz.hypofuzz, "get_shrinker", get_shrinker)
+
+    @given(st.integers())
+    def test_a(n):
+        raise SkipException()
+
+    target = FuzzTarget.from_hypothesis_test(
+        test_a, database=HypofuzzDatabase(InMemoryExampleDatabase())
+    )
+    target._enter_fixtures()
+    try:
+        target.run_one()
+    except BaseException as e:
+        # if pytest.skip escapes to pytest it will skip the test, and CI will
+        # look green. Don't let this happen.
+        if isinstance(e, _pytest.outcomes.Skipped):
+            raise ValueError(
+                "Expected pytest.skip to result in a Status.INTERESTING data"
+            )
+        raise
+
+    assert target.has_found_failure
+    interesting_origin = list(target.provider.corpus.interesting_examples.keys())[0]
+    assert interesting_origin.exc_type is SkipException

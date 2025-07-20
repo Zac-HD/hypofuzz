@@ -2,6 +2,7 @@
 
 import contextlib
 import math
+import sys
 import time
 import traceback
 from collections import defaultdict
@@ -61,6 +62,23 @@ from hypofuzz.provider import HypofuzzProvider
 
 # 1 hour
 SHRINK_TIMEOUT = 60 * 60
+
+
+def skip_exceptions():
+    # this is a copy of hypothesis.core.skip_exceptions_to_reraise. We would
+    # just use that, except HypofuzzProvider monkeypatches it to make skip exceptions
+    # fatal, and storing an original copy is more finicky timing-wise than is
+    # worthwhile given how intermittently this changes.
+    exceptions = set()
+    if "unittest" in sys.modules:
+        exceptions.add(sys.modules["unittest"].SkipTest)
+    if "unittest2" in sys.modules:
+        exceptions.add(sys.modules["unittest2"].SkipTest)
+    if "nose" in sys.modules:
+        exceptions.add(sys.modules["nose"].SkipTest)
+    if "_pytest.outcomes" in sys.modules:
+        exceptions.add(sys.modules["_pytest.outcomes"].Skipped)
+    return tuple(sorted(exceptions, key=str))
 
 
 class HitShrinkTimeoutError(Exception):
@@ -305,27 +323,28 @@ class FuzzTarget:
             assert not isinstance(result, _Overrun)
             # Shrink to our minimal failing example, since we'll stop after this.
 
-            # _start_phase here is a horrible horrible hack, reporting and phase
-            # logic needs to be extracted / unified somehow
-            self.provider._start_phase(Phase.SHRINK)
-            shrinker = get_shrinker(
-                partial(self._execute_once, observation_callback=None),
-                initial=result,
-                predicate=lambda d: d.status is Status.INTERESTING,
-                random=self.random,
-                explain=True,
-            )
-            self.stop_shrinking_at = self.provider.elapsed_time + SHRINK_TIMEOUT
-            with contextlib.suppress(HitShrinkTimeoutError, RunIsComplete):
-                shrinker.shrink()
+            # We don't report or care about the minimal failure for skip exceptions,
+            # just that this test was skipped dynamically. Don't shrink it.
+            if result.interesting_origin.exc_type not in skip_exceptions():
+                # _start_phase here is a horrible horrible hack, reporting and phase
+                # logic needs to be extracted / unified somehow
+                self.provider._start_phase(Phase.SHRINK)
+                shrinker = get_shrinker(
+                    partial(self._execute_once, observation_callback=None),
+                    initial=result,
+                    predicate=lambda d: d.status is Status.INTERESTING,
+                    random=self.random,
+                    explain=True,
+                )
+                self.stop_shrinking_at = self.provider.elapsed_time + SHRINK_TIMEOUT
+                with contextlib.suppress(HitShrinkTimeoutError, RunIsComplete):
+                    shrinker.shrink()
+
+                data = ConjectureData.for_choices(shrinker.shrink_target.choices)
+                # make sure to carry over explain-phase comments
+                data.slice_comments = shrinker.shrink_target.slice_comments
 
             self.provider._start_phase(Phase.FAILED)
-            # re-execute the failing example under observability, so we
-            # can save the shrunk obervation.
-            data = ConjectureData.for_choices(shrinker.shrink_target.choices)
-            # make sure to carry over explain-phase comments
-            data.slice_comments = shrinker.shrink_target.slice_comments
-
             observation = None
 
             def on_observation(
@@ -336,6 +355,8 @@ class FuzzTarget:
                 nonlocal observation
                 observation = passed_observation
 
+            # re-execute the final shrunk failing example under observability,
+            # so we get the shrunk observation to save
             self._execute_once(data, observation_callback=on_observation)
             self.provider._save_report(self.provider._report)
 
@@ -343,12 +364,12 @@ class FuzzTarget:
             assert observation is not None
             self.database.delete_failure(
                 self.database_key,
-                shrinker.choices,
+                data.choices,
                 state=FailureState.UNSHRUNK,
             )
             self.database.save_failure(
                 self.database_key,
-                shrinker.choices,
+                data.choices,
                 Observation.from_hypothesis(observation),
                 state=FailureState.SHRUNK,
             )
