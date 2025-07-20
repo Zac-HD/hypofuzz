@@ -1,5 +1,6 @@
 import pytest
 from common import fuzz_with_no_error
+from hypothesis import given, strategies as st
 
 # high-level tests that fuzzing something does not produce an error
 
@@ -28,3 +29,18 @@ from common import fuzz_with_no_error
 )
 def test_fuzz_with_no_error(tmp_path, code):
     fuzz_with_no_error(tmp_path, code)
+
+
+# this is a clear no-op success, butfails when running `hypothesis fuzz` on
+# the hypofuzz test suite itself.
+# Something about the observability callback on nested test functions?
+@pytest.mark.skip(
+    "broken, but nested @given is sufficiently rare that I'm deferring this"
+)
+@given(st.integers())
+def test_nested(n):
+    @given(st.integers())
+    def f(m):
+        pass
+
+    f()
