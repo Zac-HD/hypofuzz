@@ -2,6 +2,11 @@
 HypoFuzz uses [calendar-based versioning](https://calver.org/), with a
 `YY-MM-patch` format.
 
+(v25-07-02)=
+## 25.07.02
+
+Add support for unittest and class-based pytest tests. See https://hypofuzz.com/docs/compatibility.html for details.
+
 (v25-07-01)=
 ## 25.07.01
 
