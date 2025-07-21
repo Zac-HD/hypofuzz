@@ -494,13 +494,14 @@ class HypofuzzProvider(PrimitiveProvider):
     def on_observation(
         self, observation: Union[TestCaseObservation, InfoObservation]
     ) -> None:
+        assert observation.type == "test_case"
         if self._errored_in_startup:
             # this is the observation for the exception we raised in _startup,
             # we don't want to do anything here (or trigger internal assertions
             # from not finishing startup)
             assert observation.status == "failed"
             return
-        assert observation.type == "test_case"
+
         assert observation.property == self.nodeid
         self.after_test_case(observation)
 
