@@ -5,6 +5,7 @@ from random import Random
 import pytest
 from hypothesis import assume, given, settings, strategies as st
 from hypothesis.database import InMemoryExampleDatabase
+from hypothesis.errors import FlakyBackendFailure
 from hypothesis.internal.conjecture.choice import choice_equal, choice_permitted
 from hypothesis.internal.conjecture.data import ConjectureData
 from hypothesis.internal.reflection import function_digest
@@ -12,7 +13,7 @@ from strategies import choice_type_and_constraints, constraints_strategy, nodes
 
 from hypofuzz import provider
 from hypofuzz.coverage import CoverageCollector
-from hypofuzz.database import ChoicesT, HypofuzzDatabase
+from hypofuzz.database import ChoicesT, FailureState, HypofuzzDatabase, test_keys_key
 from hypofuzz.hypofuzz import FuzzTarget
 from hypofuzz.provider import HypofuzzProvider, QueuePriority
 
@@ -266,20 +267,31 @@ def test_invalid_data_does_not_add_coverage():
         assert not process.provider.corpus.fingerprints
 
 
-def test_explicit_backend_can_be_used_without_database():
-    # under `hypothesis fuzz`, the provider always has access to a database, because
-    # we skip tests with database=None during collection.
-    #
-    # But under backend="hypofuzz", we allow database=None.
+def test_backend_setting_can_fail():
+    db = InMemoryExampleDatabase()
 
-    called = False
+    @given(st.integers())
+    @settings(backend="hypofuzz", database=db)
+    def f(n):
+        assert n < 100, "unique identifier"
 
+    with pytest.raises(AssertionError, match="unique identifier"):
+        f()
+
+    key = list(db.data[test_keys_key])[0]
+    hypofuzz_db = HypofuzzDatabase(db)
+    assert list(hypofuzz_db.fetch_failures(key, state=FailureState.UNSHRUNK))
+
+
+def test_explicit_backend_errors_without_db():
     @given(st.integers())
     @settings(database=None, backend="hypofuzz")
     def f(n):
-        nonlocal called
-        called = True
+        pass
 
-    assert not called
-    f()
-    assert called
+    # validation errors raised by backends are treated as failures and replayed
+    # by hypothesis. Maybe we need a BackendValidationError which is not replayed,
+    # or a separate PrimitiveProvider.validate method? (careful about where in
+    # the lifecycle the latter fits; needs access to the test function and settings).
+    with pytest.raises(FlakyBackendFailure):
+        f()
