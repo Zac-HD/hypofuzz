@@ -653,7 +653,7 @@ $mobile-breakpoint: 768px;
     }
 }
 
-.scale-toggle {
+.toggle {
     display: flex;
     gap: 2px;
     background: #eee;
@@ -664,20 +664,31 @@ $mobile-breakpoint: 768px;
         border: none;
         background: none;
         padding: 4px 8px;
-        cursor: pointer;
         border-radius: 3px;
         font-size: 0.9em;
         color: #666;
-
-        &:hover {
-            background: rgba(255, 255, 255, 0.6);
-        }
 
         &--active {
             background: #fff;
             color: #2c3e50;
             box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
         }
+
+        &:not(&--disabled) {
+            cursor: pointer;
+            &:hover {
+                background: rgba(255, 255, 255, 0.6);
+            }
+        }
+
+        &--disabled {
+            cursor: not-allowed;
+        }
+    }
+
+    &--disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
     }
 }
 
@@ -745,7 +756,10 @@ $mobile-breakpoint: 768px;
 // tooltip bubbles that follow the cursor location.
 .tooltip {
     position: relative;
-    border-bottom: 2px dotted #666;
+
+    &--underline {
+        border-bottom: 2px dotted #666;
+    }
 
     &__text {
         display: none;
