@@ -26,6 +26,7 @@ import {
   zoomIdentity as d3_zoomIdentity,
   ZoomTransform,
 } from "d3-zoom"
+import { Set } from "immutable"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Graph, GRAPH_HEIGHT, GraphLine, GraphReport } from "src/components/graph/graph"
@@ -494,10 +495,22 @@ export function CoverageGraph({
   workerViews = [WorkerView.TOGETHER, WorkerView.SEPARATE, WorkerView.LATEST],
   workerViewSetting,
 }: Props) {
-  const [viewSetting, setWorkerView] = useSetting<WorkerView>(
+  let [viewSetting, setWorkerView] = useSetting<WorkerView>(
     workerViewSetting,
     WorkerView.TOGETHER,
   )
+
+  const workers = Set(
+    Array.from(tests.values()).flatMap(test =>
+      Array.from(test.reports_by_worker.values()),
+    ),
+  )
+  const disabled = workers.size == 1
+  // force view setting to be WorkerView.TOGETHER if we're disabled, to avoid confusing people that
+  // they can't switch away from the default
+  if (disabled) {
+    viewSetting = WorkerView.TOGETHER
+  }
 
   return (
     <div className="card">
@@ -515,15 +528,23 @@ export function CoverageGraph({
         }}
       >
         {viewSetting === WorkerView.SEPARATE && <ColorLegend />}
-        <Toggle
-          value={viewSetting}
-          onChange={setWorkerView}
-          options={workerViews.map(view => ({
-            value: view,
-            content: workerToggleContent[view].content,
-            mobileContent: workerToggleContent[view].mobileContent,
-          }))}
-        />
+        <span className="tooltip">
+          <Toggle
+            value={viewSetting}
+            onChange={setWorkerView}
+            options={workerViews.map(view => ({
+              value: view,
+              content: workerToggleContent[view].content,
+              mobileContent: workerToggleContent[view].mobileContent,
+            }))}
+            disabled={disabled}
+          />
+          {disabled && (
+            <span className="tooltip__text">
+              Switching worker display mode requires multiple workers
+            </span>
+          )}
+        </span>
       </div>
       <div className="coverage-graph__container">
         <div
