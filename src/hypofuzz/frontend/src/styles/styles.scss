@@ -651,6 +651,19 @@ $mobile-breakpoint: 768px;
             }
         }
     }
+
+    &__color-legend {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.8rem;
+        color: #666;
+
+        &__square {
+            width: 12px;
+            height: 12px;
+        }
+    }
 }
 
 .toggle {
