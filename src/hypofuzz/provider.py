@@ -20,7 +20,6 @@ from typing import Any, ClassVar, Optional, TypeVar, Union, cast
 from uuid import uuid4
 
 import hypothesis
-import hypothesis.core
 import hypothesis.internal.observability
 from hypothesis import settings
 from hypothesis.control import current_build_context

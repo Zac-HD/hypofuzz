@@ -8,13 +8,11 @@ from common import (
     setup_test_code,
     wait_for,
     wait_for_test_key,
-    with_in_hypofuzz_run,
 )
 from hypothesis import given, strategies as st
 from hypothesis.database import DirectoryBasedExampleDatabase, InMemoryExampleDatabase
 from hypothesis.internal.conjecture.data import Status
 
-import hypofuzz.corpus
 from hypofuzz.database import FailureState, HypofuzzDatabase
 from hypofuzz.hypofuzz import FailedFatally, FuzzTarget
 
@@ -110,13 +108,10 @@ def test_raises_failed_fatally_in_enter_fixtures():
         pytest.param(Exception, marks=pytest.mark.xfail),
     ],
 )
-@with_in_hypofuzz_run(True)
-def test_does_not_shrink_skip_exceptions(monkeypatch, SkipException):
-    def get_shrinker(*args, **kwargs):
-        raise ValueError("get_shrinker was called")
-
-    monkeypatch.setattr(hypofuzz.hypofuzz, "get_shrinker", get_shrinker)
-
+def test_fuzz_target_reraises_skip_exception(SkipException):
+    # this isn't a great test, because it doesn't exercise our logic inside
+    # FuzzWorker for saving skip exception observation, or we stop fuzzing a
+    # FuzzTarget which finds a skip exception.
     @given(st.integers())
     def test_a(n):
         raise SkipException()
@@ -125,17 +120,5 @@ def test_does_not_shrink_skip_exceptions(monkeypatch, SkipException):
         test_a, database=HypofuzzDatabase(InMemoryExampleDatabase())
     )
     target._enter_fixtures()
-    try:
+    with pytest.raises(SkipException):
         target.run_one()
-    except BaseException as e:
-        # if pytest.skip escapes to pytest it will skip the test, and CI will
-        # look green. Don't let this happen.
-        if isinstance(e, _pytest.outcomes.Skipped):
-            raise ValueError(
-                "Expected pytest.skip to result in a Status.INTERESTING data"
-            )
-        raise
-
-    assert target.has_found_failure
-    interesting_origin = list(target.provider.corpus.interesting_examples.keys())[0]
-    assert interesting_origin.exc_type is SkipException

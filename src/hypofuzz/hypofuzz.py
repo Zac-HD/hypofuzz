@@ -395,6 +395,8 @@ class FuzzTarget:
                 self.state._execute_once_for_engine(data)
             except StopTest:
                 pass
+            except skip_exceptions_to_reraise():
+                raise
             except Exception as e:
                 # In case of a fatal error inside Hypothesis, because e.g. the
                 # property defines too many parameters, or because HypoFuzz has
@@ -602,7 +604,7 @@ class FuzzWorker:
                         target.run_one()
                 except FailedFatally:
                     assert target.failed_fatally
-                except skip_exceptions_to_reraise() as e:
+                except skip_exceptions_to_reraise() as e:  # type: ignore
                     # Hypothesis re-raises testing framework skip exceptions like
                     # pytest.skip. Because hypofuzz *is* the testing framework here,
                     # we catch and handle this here.
@@ -612,6 +614,8 @@ class FuzzWorker:
                     # a "dynamically skipped" status, and not showing it on the
                     # failure card.
                     observation = target.provider.most_recent_observation
+                    assert observation is not None
+                    assert observation.metadata.choice_nodes
                     origin = InterestingOrigin.from_exception(e)
                     # hypothesis just reraises the skip exception; it doesn't
                     # think that it failed. Update the required fields
