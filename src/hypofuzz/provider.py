@@ -229,6 +229,7 @@ class HypofuzzProvider(PrimitiveProvider):
         # we use this to ignore the on_observation observation if we error in
         # startup
         self._errored_in_startup = False
+        self.most_recent_observation: TestCaseObservation | None = None
 
     @property
     def ninputs(self) -> int:
@@ -266,20 +267,6 @@ class HypofuzzProvider(PrimitiveProvider):
         # so it resets after using hypofuzz?
         hypothesis.internal.observability.OBSERVABILITY_CHOICES = True
         hypothesis.internal.observability.OBSERVABILITY_COLLECT_COVERAGE = False
-
-        if in_hypofuzz_run():
-            # we want dynamic skip exceptions to be treated as standard exceptions
-            # under `hypothesis fuzz`, because there's no wrapping testing library
-            # like pytest to catch them. The dashboard has special-cased ui for
-            # interesting_origin strings which look like they are from a
-            # "skip exception": a "dynamically skipped" status, and not showing
-            # it on the failure card.
-            original_skips = hypothesis.core.skip_exceptions_to_reraise
-            original_failures = hypothesis.core.failure_exceptions_to_catch
-            hypothesis.core.skip_exceptions_to_reraise = lambda: ()
-            hypothesis.core.failure_exceptions_to_catch = (
-                lambda: original_failures() + original_skips()  # type: ignore
-            )
 
         assert not self._started
         wrapped_test = current_build_context().wrapped_test
@@ -518,6 +505,9 @@ class HypofuzzProvider(PrimitiveProvider):
             return
 
         assert observation.property == self.nodeid
+        # HypofuzzProvider doesn't use this anywhere, but we save it so FuzzWorker
+        # can access it when saving failures corresponding to test framework skips.
+        self.most_recent_observation = observation
         self.after_test_case(observation)
 
     def downgrade_failure(

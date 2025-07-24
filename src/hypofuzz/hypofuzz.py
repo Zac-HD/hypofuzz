@@ -2,7 +2,6 @@
 
 import contextlib
 import math
-import sys
 import time
 import traceback
 from collections import defaultdict
@@ -22,6 +21,7 @@ from hypothesis import HealthCheck, Verbosity, settings
 from hypothesis.core import (
     StateForActualGivenExecution,
     process_arguments_to_given,
+    skip_exceptions_to_reraise,
 )
 from hypothesis.database import ListenerEventT
 from hypothesis.errors import StopTest
@@ -31,7 +31,7 @@ from hypothesis.internal.conjecture.data import (
     _Overrun,
 )
 from hypothesis.internal.conjecture.engine import RunIsComplete
-from hypothesis.internal.escalation import current_pytest_item
+from hypothesis.internal.escalation import InterestingOrigin, current_pytest_item
 from hypothesis.internal.observability import (
     InfoObservation,
     TestCaseObservation,
@@ -62,23 +62,6 @@ from hypofuzz.provider import HypofuzzProvider
 
 # 1 hour
 SHRINK_TIMEOUT = 60 * 60
-
-
-def skip_exceptions() -> tuple[type[BaseException]]:
-    # this is a copy of hypothesis.core.skip_exceptions_to_reraise. We would
-    # just use that, except HypofuzzProvider monkeypatches it to make skip exceptions
-    # fatal, and storing an original copy is more finicky timing-wise than is
-    # worthwhile given how intermittently this changes.
-    exceptions = set()
-    if "unittest" in sys.modules:
-        exceptions.add(sys.modules["unittest"].SkipTest)
-    if "unittest2" in sys.modules:
-        exceptions.add(sys.modules["unittest2"].SkipTest)
-    if "nose" in sys.modules:
-        exceptions.add(sys.modules["nose"].SkipTest)
-    if "_pytest.outcomes" in sys.modules:
-        exceptions.add(sys.modules["_pytest.outcomes"].Skipped)
-    return tuple(sorted(exceptions, key=str))
 
 
 class HitShrinkTimeoutError(Exception):
@@ -157,6 +140,7 @@ class FuzzTarget:
         self.provider = HypofuzzProvider(None, database_key=database_key)
         self.stop_shrinking_at = math.inf
         self.failed_fatally = False
+        self.skipped_dynamically = False
         # if pytest_item is part of a class, either by subclassing unittest.TestCase
         # or just by using pytest's class-based testing, this stores the class
         # instance so it can be properly set up and torn down.
@@ -324,26 +308,23 @@ class FuzzTarget:
             assert result.interesting_origin is not None
             # Shrink to our minimal failing example, since we'll stop after this.
 
-            # We don't report or care about the minimal failure for skip exceptions,
-            # just that this test was skipped dynamically. Don't shrink it.
-            if result.interesting_origin.exc_type not in skip_exceptions():
-                # _start_phase here is a horrible horrible hack, reporting and phase
-                # logic needs to be extracted / unified somehow
-                self.provider._start_phase(Phase.SHRINK)
-                shrinker = get_shrinker(
-                    partial(self._execute_once, observation_callback=None),
-                    initial=result,
-                    predicate=lambda d: d.status is Status.INTERESTING,
-                    random=self.random,
-                    explain=True,
-                )
-                self.stop_shrinking_at = self.provider.elapsed_time + SHRINK_TIMEOUT
-                with contextlib.suppress(HitShrinkTimeoutError, RunIsComplete):
-                    shrinker.shrink()
+            # _start_phase here is a horrible horrible hack, reporting and phase
+            # logic needs to be extracted / unified somehow
+            self.provider._start_phase(Phase.SHRINK)
+            shrinker = get_shrinker(
+                partial(self._execute_once, observation_callback=None),
+                initial=result,
+                predicate=lambda d: d.status is Status.INTERESTING,
+                random=self.random,
+                explain=True,
+            )
+            self.stop_shrinking_at = self.provider.elapsed_time + SHRINK_TIMEOUT
+            with contextlib.suppress(HitShrinkTimeoutError, RunIsComplete):
+                shrinker.shrink()
 
-                data = ConjectureData.for_choices(shrinker.shrink_target.choices)
-                # make sure to carry over explain-phase comments
-                data.slice_comments = shrinker.shrink_target.slice_comments
+            data = ConjectureData.for_choices(shrinker.shrink_target.choices)
+            # make sure to carry over explain-phase comments
+            data.slice_comments = shrinker.shrink_target.slice_comments
 
             self.provider._start_phase(Phase.FAILED)
             observation = None
@@ -525,7 +506,11 @@ class FuzzWorker:
         return [
             target
             for target in self.targets.values()
-            if not (target.has_found_failure or target.failed_fatally)
+            if not (
+                target.has_found_failure
+                or target.failed_fatally
+                or target.skipped_dynamically
+            )
         ]
 
     def _update_targets(self, nodeids: Sequence[str]) -> None:
@@ -617,6 +602,32 @@ class FuzzWorker:
                         target.run_one()
                 except FailedFatally:
                     assert target.failed_fatally
+                except skip_exceptions_to_reraise() as e:
+                    # Hypothesis re-raises testing framework skip exceptions like
+                    # pytest.skip. Because hypofuzz *is* the testing framework here,
+                    # we catch and handle this here.
+                    #
+                    # The dashboard has special-cased ui for interesting_origin
+                    # strings which look like they are from a "skip exception":
+                    # a "dynamically skipped" status, and not showing it on the
+                    # failure card.
+                    observation = target.provider.most_recent_observation
+                    origin = InterestingOrigin.from_exception(e)
+                    # hypothesis just reraises the skip exception; it doesn't
+                    # think that it failed. Update the required fields
+                    observation.status == "failed"
+                    observation.status_reason = str(origin)
+                    observation.metadata.interesting_origin = origin
+                    observation.metadata.traceback = "".join(
+                        traceback.format_exception(e)
+                    )
+                    target.database.save_failure(
+                        target.database_key,
+                        tuple(n.value for n in observation.metadata.choice_nodes),
+                        Observation.from_hypothesis(observation),
+                        state=FailureState.SHRUNK,
+                    )
+                    target.skipped_dynamically = True
 
                 worker_state = self.shared_state["worker_state"]
                 worker_state["nodeids"][target.nodeid] = {
