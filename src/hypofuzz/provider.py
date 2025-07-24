@@ -226,6 +226,9 @@ class HypofuzzProvider(PrimitiveProvider):
         # per-test-case state, reset at the beginning of each test case.
         self._state: Optional[State] = None
         self._started = False
+        # we use this to ignore the on_observation observation if we error in
+        # startup
+        self._errored_in_startup = False
 
     @property
     def ninputs(self) -> int:
@@ -233,6 +236,19 @@ class HypofuzzProvider(PrimitiveProvider):
 
     def _startup(self) -> None:
         db = settings().database
+        if db is None:
+            self._errored_in_startup = True
+            raise ValueError(
+                '@settings(backend="hypofuzz") cannot be combined with '
+                "@settings(database=None), because fuzzing is substantially less "
+                "powerful without the ability to persist choice sequences which "
+                "discover new behaviors. "
+                "\n\n"
+                "If you cannot use a persistent database in this test, you can "
+                "also pass @settings(database=InMemoryExampleDatabase()), which "
+                "will silence this error (but not persist discovered behaviors "
+                "across runs)."
+            )
         if in_hypofuzz_run():
             # we wouldn't have collected this test otherwise
             assert db is not None
@@ -494,6 +510,13 @@ class HypofuzzProvider(PrimitiveProvider):
         self, observation: Union[TestCaseObservation, InfoObservation]
     ) -> None:
         assert observation.type == "test_case"
+        if self._errored_in_startup:
+            # this is the observation for the exception we raised in _startup,
+            # we don't want to do anything here (or trigger internal assertions
+            # from not finishing startup)
+            assert observation.status == "failed"
+            return
+
         assert observation.property == self.nodeid
         self.after_test_case(observation)
 
