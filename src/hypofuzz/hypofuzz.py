@@ -395,7 +395,7 @@ class FuzzTarget:
                 self.state._execute_once_for_engine(data)
             except StopTest:
                 pass
-            except skip_exceptions_to_reraise():
+            except skip_exceptions_to_reraise():  # type: ignore
                 raise
             except Exception as e:
                 # In case of a fatal error inside Hypothesis, because e.g. the

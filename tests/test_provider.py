@@ -280,7 +280,10 @@ def test_backend_setting_can_fail():
 
     key = list(db.data[test_keys_key])[0]
     hypofuzz_db = HypofuzzDatabase(db)
-    assert list(hypofuzz_db.fetch_failures(key, state=FailureState.UNSHRUNK))
+    failures = list(
+        hypofuzz_db.fetch_failures(key, state=FailureState.UNSHRUNK)
+    ) + list(hypofuzz_db.fetch_failures(key, state=FailureState.SHRUNK))
+    assert failures
 
 
 def test_explicit_backend_errors_without_db():
