@@ -228,6 +228,7 @@ class HypofuzzProvider(PrimitiveProvider):
         # we use this to ignore the on_observation observation if we error in
         # startup
         self._errored_in_startup = False
+        self.most_recent_observation: TestCaseObservation | None = None
 
     @property
     def ninputs(self) -> int:
@@ -503,6 +504,9 @@ class HypofuzzProvider(PrimitiveProvider):
             return
 
         assert observation.property == self.nodeid
+        # HypofuzzProvider doesn't use this anywhere, but we save it so FuzzWorker
+        # can access it when saving failures corresponding to test framework skips.
+        self.most_recent_observation = observation
         self.after_test_case(observation)
 
     def downgrade_failure(
@@ -527,11 +531,11 @@ class HypofuzzProvider(PrimitiveProvider):
             # it's not possible for another worker to move the same choice
             # sequence from unshrunk to shrunk - and failures are rare +
             # deletions cheap. Just try deleting from both.
-            for state in [FailureState.SHRUNK, FailureState.UNSHRUNK]:
+            for failure_state in [FailureState.SHRUNK, FailureState.UNSHRUNK]:
                 self.db.delete_failure(
                     self.database_key,
                     choices,
-                    state=state,
+                    state=failure_state,
                 )
 
             # move it to the FIXED key so we still try it in the future

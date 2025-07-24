@@ -243,7 +243,7 @@ export function TestPage() {
         testsLoaded={testsLoaded}
         workerViewSetting="graph_worker_view_test"
       />
-      {Array.from(test.failures.values()).map(failure => (
+      {test.normalFailures.map(failure => (
         <FailureCard failure={failure} />
       ))}
       {test.fatal_failure && <FatalFailureCard failure={test.fatal_failure} />}

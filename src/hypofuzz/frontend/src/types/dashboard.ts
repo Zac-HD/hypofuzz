@@ -1,4 +1,6 @@
-import { bisectRight, sum } from "src/utils/utils"
+import { sum } from "src/utils/utils"
+
+export const SKIP_EXCEPTIONS = ["Skipped", "SkipTest"]
 
 export abstract class Dataclass<T> {
   withProperties(props: Partial<T>): T {
@@ -193,5 +195,6 @@ export enum TestStatus {
   FAILED = 1,
   SHRINKING = 2,
   RUNNING = 3,
-  WAITING = 4,
+  SKIPPED_DYNAMICALLY = 4,
+  WAITING = 5,
 }

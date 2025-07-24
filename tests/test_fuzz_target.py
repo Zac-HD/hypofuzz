@@ -1,7 +1,14 @@
 import textwrap
+import unittest
 
+import _pytest
 import pytest
-from common import fuzz, setup_test_code, wait_for, wait_for_test_key
+from common import (
+    fuzz,
+    setup_test_code,
+    wait_for,
+    wait_for_test_key,
+)
 from hypothesis import given, strategies as st
 from hypothesis.database import DirectoryBasedExampleDatabase, InMemoryExampleDatabase
 from hypothesis.internal.conjecture.data import Status
@@ -91,3 +98,27 @@ def test_raises_failed_fatally_in_enter_fixtures():
     with pytest.raises(FailedFatally):
         target._enter_fixtures()
     assert target.failed_fatally
+
+
+@pytest.mark.parametrize(
+    "SkipException",
+    [
+        _pytest.outcomes.Skipped,
+        unittest.SkipTest,
+        pytest.param(Exception, marks=pytest.mark.xfail),
+    ],
+)
+def test_fuzz_target_reraises_skip_exception(SkipException):
+    # this isn't a great test, because it doesn't exercise our logic inside
+    # FuzzWorker for saving skip exception observation, or we stop fuzzing a
+    # FuzzTarget which finds a skip exception.
+    @given(st.integers())
+    def test_a(n):
+        raise SkipException()
+
+    target = FuzzTarget.from_hypothesis_test(
+        test_a, database=HypofuzzDatabase(InMemoryExampleDatabase())
+    )
+    target._enter_fixtures()
+    with pytest.raises(SkipException):
+        target.run_one()

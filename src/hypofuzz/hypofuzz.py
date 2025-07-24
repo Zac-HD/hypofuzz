@@ -21,6 +21,7 @@ from hypothesis import HealthCheck, Verbosity, settings
 from hypothesis.core import (
     StateForActualGivenExecution,
     process_arguments_to_given,
+    skip_exceptions_to_reraise,
 )
 from hypothesis.database import ListenerEventT
 from hypothesis.errors import StopTest
@@ -30,7 +31,7 @@ from hypothesis.internal.conjecture.data import (
     _Overrun,
 )
 from hypothesis.internal.conjecture.engine import RunIsComplete
-from hypothesis.internal.escalation import current_pytest_item
+from hypothesis.internal.escalation import InterestingOrigin, current_pytest_item
 from hypothesis.internal.observability import (
     InfoObservation,
     TestCaseObservation,
@@ -139,6 +140,7 @@ class FuzzTarget:
         self.provider = HypofuzzProvider(None, database_key=database_key)
         self.stop_shrinking_at = math.inf
         self.failed_fatally = False
+        self.skipped_dynamically = False
         # if pytest_item is part of a class, either by subclassing unittest.TestCase
         # or just by using pytest's class-based testing, this stores the class
         # instance so it can be properly set up and torn down.
@@ -303,6 +305,7 @@ class FuzzTarget:
 
         if result.status is Status.INTERESTING:
             assert not isinstance(result, _Overrun)
+            assert result.interesting_origin is not None
             # Shrink to our minimal failing example, since we'll stop after this.
 
             # _start_phase here is a horrible horrible hack, reporting and phase
@@ -319,13 +322,11 @@ class FuzzTarget:
             with contextlib.suppress(HitShrinkTimeoutError, RunIsComplete):
                 shrinker.shrink()
 
-            self.provider._start_phase(Phase.FAILED)
-            # re-execute the failing example under observability, so we
-            # can save the shrunk obervation.
             data = ConjectureData.for_choices(shrinker.shrink_target.choices)
             # make sure to carry over explain-phase comments
             data.slice_comments = shrinker.shrink_target.slice_comments
 
+            self.provider._start_phase(Phase.FAILED)
             observation = None
 
             def on_observation(
@@ -336,6 +337,8 @@ class FuzzTarget:
                 nonlocal observation
                 observation = passed_observation
 
+            # re-execute the final shrunk failing example under observability,
+            # so we get the shrunk observation to save
             self._execute_once(data, observation_callback=on_observation)
             self.provider._save_report(self.provider._report)
 
@@ -343,12 +346,12 @@ class FuzzTarget:
             assert observation is not None
             self.database.delete_failure(
                 self.database_key,
-                shrinker.choices,
+                data.choices,
                 state=FailureState.UNSHRUNK,
             )
             self.database.save_failure(
                 self.database_key,
-                shrinker.choices,
+                data.choices,
                 Observation.from_hypothesis(observation),
                 state=FailureState.SHRUNK,
             )
@@ -392,6 +395,8 @@ class FuzzTarget:
                 self.state._execute_once_for_engine(data)
             except StopTest:
                 pass
+            except skip_exceptions_to_reraise():  # type: ignore
+                raise
             except Exception as e:
                 # In case of a fatal error inside Hypothesis, because e.g. the
                 # property defines too many parameters, or because HypoFuzz has
@@ -503,7 +508,11 @@ class FuzzWorker:
         return [
             target
             for target in self.targets.values()
-            if not (target.has_found_failure or target.failed_fatally)
+            if not (
+                target.has_found_failure
+                or target.failed_fatally
+                or target.skipped_dynamically
+            )
         ]
 
     def _update_targets(self, nodeids: Sequence[str]) -> None:
@@ -595,6 +604,34 @@ class FuzzWorker:
                         target.run_one()
                 except FailedFatally:
                     assert target.failed_fatally
+                except skip_exceptions_to_reraise() as e:  # type: ignore
+                    # Hypothesis re-raises testing framework skip exceptions like
+                    # pytest.skip. Because hypofuzz *is* the testing framework here,
+                    # we catch and handle this here.
+                    #
+                    # The dashboard has special-cased ui for interesting_origin
+                    # strings which look like they are from a "skip exception":
+                    # a "dynamically skipped" status, and not showing it on the
+                    # failure card.
+                    observation = target.provider.most_recent_observation
+                    assert observation is not None
+                    assert observation.metadata.choice_nodes
+                    origin = InterestingOrigin.from_exception(e)
+                    # hypothesis just reraises the skip exception; it doesn't
+                    # think that it failed. Update the required fields
+                    observation.status == "failed"
+                    observation.status_reason = str(origin)
+                    observation.metadata.interesting_origin = origin
+                    observation.metadata.traceback = "".join(
+                        traceback.format_exception(e)
+                    )
+                    target.database.save_failure(
+                        target.database_key,
+                        tuple(n.value for n in observation.metadata.choice_nodes),
+                        Observation.from_hypothesis(observation),
+                        state=FailureState.SHRUNK,
+                    )
+                    target.skipped_dynamically = True
 
                 worker_state = self.shared_state["worker_state"]
                 worker_state["nodeids"][target.nodeid] = {
