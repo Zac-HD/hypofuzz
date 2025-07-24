@@ -10,7 +10,11 @@ import {
   faUsers,
 } from "@fortawesome/free-solid-svg-icons"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
-import { scaleOrdinal as d3_scaleOrdinal } from "d3-scale"
+import { interpolateRgb as d3_interpolateRgb } from "d3-interpolate"
+import {
+  scaleLinear as d3_scaleLinear,
+  scaleOrdinal as d3_scaleOrdinal,
+} from "d3-scale"
 import {
   interpolateViridis as d3_interpolateViridis,
   schemeCategory10 as d3_schemeCategory10,
@@ -36,10 +40,31 @@ const d3 = {
   zoom: d3_zoom,
   zoomIdentity: d3_zoomIdentity,
   select: d3_select,
+  scaleLinear: d3_scaleLinear,
   scaleOrdinal: d3_scaleOrdinal,
   interpolateViridis: d3_interpolateViridis,
+  interpolateRgb: d3_interpolateRgb,
   schemeCategory10: d3_schemeCategory10,
 }
+
+// lifted from github's "blame" color scale for "time since now".
+//
+// including the commented-out colors makes the color a bit too extreme.
+const timeColorScale = d3
+  .scaleLinear<string>()
+  .domain([0, 1])
+  .range([
+    // "rgb(255, 223, 182)",
+    "rgb(255, 198, 128)",
+    "rgb(240, 136, 62)",
+    "rgb(219, 109, 40)",
+    "rgb(189, 86, 29)",
+    "rgb(155, 66, 21)",
+    "rgb(118, 45, 10)",
+    "rgb(90, 30, 2)",
+    // "rgb(61, 19, 0)"
+  ])
+  .interpolate(d3.interpolateRgb)
 
 export enum WorkerView {
   TOGETHER = "linearized",
@@ -279,12 +304,13 @@ export function GraphComponent({
 
       const minTimestamp = min(timestamps) ?? 0
       const maxTimestamp = max(timestamps) ?? 0
-      function viridisColor(timestamp: number) {
+
+      function timeColor(timestamp: number) {
         if (timestamps.length <= 1) {
-          return d3.interpolateViridis(0.5) // Use middle color if only one worker
+          return timeColorScale(0.5) // Use middle color if only one worker
         }
         const normalized = (timestamp - minTimestamp) / (maxTimestamp - minTimestamp)
-        return d3.interpolateViridis(normalized)
+        return timeColorScale(normalized)
       }
 
       for (const [nodeid, test] of tests.entries()) {
@@ -295,7 +321,7 @@ export function GraphComponent({
               reports: workerReports.map(report =>
                 GraphReport.fromReport(nodeid, report),
               ),
-              color: viridisColor(workerReports[0].timestamp),
+              color: timeColor(workerReports[0].timestamp),
             })
           }
         }
@@ -432,6 +458,34 @@ export function GraphComponent({
   )
 }
 
+function ColorLegend() {
+  const colors = [
+    "rgb(255, 198, 128)",
+    "rgb(240, 136, 62)",
+    "rgb(219, 109, 40)",
+    "rgb(189, 86, 29)",
+    "rgb(155, 66, 21)",
+    "rgb(118, 45, 10)",
+    "rgb(90, 30, 2)",
+  ]
+
+  return (
+    <div className="coverage-graph__color-legend">
+      <span>Older</span>
+      <div style={{ display: "flex", gap: "2px" }}>
+        {colors.map((color, index) => (
+          <div
+            key={index}
+            className="coverage-graph__color-legend__square"
+            style={{ backgroundColor: color }}
+          />
+        ))}
+      </div>
+      <span>Newer</span>
+    </div>
+  )
+}
+
 export function CoverageGraph({
   tests,
   filterString = "",
@@ -452,8 +506,15 @@ export function CoverageGraph({
       </div>
       <div className="coverage-graph__tooltip" />
       <div
-        style={{ display: "flex", justifyContent: "flex-end", marginBottom: "1rem" }}
+        style={{
+          display: "flex",
+          justifyContent:
+            viewSetting === WorkerView.SEPARATE ? "space-between" : "flex-end",
+          alignItems: viewSetting === WorkerView.SEPARATE ? "center" : "default",
+          marginBottom: "1rem",
+        }}
       >
+        {viewSetting === WorkerView.SEPARATE && <ColorLegend />}
         <Toggle
           value={viewSetting}
           onChange={setWorkerView}

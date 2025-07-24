@@ -198,7 +198,7 @@ export function TestPage() {
   return (
     <div ref={containerRef}>
       <Link to="/" className="back-link">
-        <FontAwesomeIcon icon={faArrowLeft} /> Back to all tests
+        <FontAwesomeIcon icon={faArrowLeft} /> All tests
       </Link>
       <div className="card">
         <div style={{ display: "flex", alignItems: "center", gap: "0.7rem" }}>
