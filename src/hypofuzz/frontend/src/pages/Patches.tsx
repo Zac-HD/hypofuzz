@@ -19,7 +19,7 @@ export function PatchesPage() {
     return (
       <div className="card">
         <div className="card__header">Patches</div>
-        <p>No tests collected</p>
+        <p>No tests with patches present.</p>
       </div>
     )
   }

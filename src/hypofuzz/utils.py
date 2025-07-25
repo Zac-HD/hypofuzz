@@ -103,7 +103,7 @@ def fast_bisect_right(
         return 0
 
     # Fast case for if x is at the end or the beginning of the list. Turns logn
-    # into constant time.
+    # into constant time in the best case.
     if x > (a[-1] if key is None else key(a[-1])):
         return len(a)
     if x < (a[0] if key is None else key(a[0])):

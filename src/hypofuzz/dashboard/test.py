@@ -78,8 +78,8 @@ class Test:
             ), (attribute, [getattr(r, attribute) for r in reports])
 
     def _check_invariants(self) -> None:
-        # this function is pretty expensive, only call at important junctures
-        # or during test-time
+        # this function is pretty expensive. Only call it at important junctures,
+        # or in tests
         self._assert_reports_ordered(self.linear_reports, ["timestamp_monotonic"])
 
         linear_status_counts = self.linear_status_counts()

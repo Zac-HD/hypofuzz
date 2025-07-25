@@ -220,13 +220,17 @@ export class Graph {
         const closestReport = this.quadtree.find(mouseX, mouseY, distanceThreshold)
 
         if (closestReport) {
+          const behaviors_s = closestReport.behaviors == 1 ? "" : "s"
+          const fingerprints_s = closestReport.fingerprints == 1 ? "" : "s"
+          const inputs_s = closestReport.linear_status_counts.sum() == 1 ? "" : "s"
+          const seconds_s = closestReport.linear_elapsed_time == 1 ? "" : "s"
           this.tooltip
             .style("display", "block")
             .style("left", `${event.pageX + 10}px`)
             .style("top", `${event.pageY - 10}px`).html(`
                 <strong>${readableNodeid(closestReport.nodeid)}</strong><br/>
-                ${closestReport.behaviors.toLocaleString()} behaviors / ${closestReport.fingerprints.toLocaleString()} fingerprints<br/>
-                ${closestReport.linear_status_counts.sum().toLocaleString()} inputs / ${closestReport.linear_elapsed_time.toFixed(1)} seconds
+                ${closestReport.behaviors.toLocaleString()} behavior${behaviors_s} / ${closestReport.fingerprints.toLocaleString()} fingerprint${fingerprints_s}<br/>
+                ${closestReport.linear_status_counts.sum().toLocaleString()} input${inputs_s} / ${closestReport.linear_elapsed_time.toFixed(1)} second${seconds_s}
               `)
         } else {
           this.tooltip.style("display", "none")
