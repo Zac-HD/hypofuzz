@@ -303,6 +303,7 @@ def test_explicit_backend_errors_without_db():
         f()
 
 
+@pytest.mark.skipif(sys.version_info < (3, 10), reason="different branches on 3.9?")
 def test_does_not_switch_to_generate_when_replaying():
     @given(st.integers())
     def test_a(x):
