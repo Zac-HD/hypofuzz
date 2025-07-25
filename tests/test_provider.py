@@ -13,7 +13,13 @@ from strategies import choice_type_and_constraints, constraints_strategy, nodes
 
 from hypofuzz import provider
 from hypofuzz.coverage import CoverageCollector
-from hypofuzz.database import ChoicesT, FailureState, HypofuzzDatabase, test_keys_key
+from hypofuzz.database import (
+    ChoicesT,
+    FailureState,
+    HypofuzzDatabase,
+    Phase,
+    test_keys_key,
+)
 from hypofuzz.hypofuzz import FuzzTarget
 from hypofuzz.provider import HypofuzzProvider, QueuePriority
 
@@ -167,9 +173,6 @@ def test_provider_deletes_old_timed_reports(monkeypatch):
     reports = hypofuzz_db.fetch_reports(function_digest(f.hypothesis.inner_test))
     reports = sorted(reports, key=lambda r: r.elapsed_time)
 
-    print("behaviors", [report.behaviors for report in reports])
-    print("fingerprints", [report.fingerprints for report in reports])
-
     # explicitly use `- 2` instead of `- 1` here. We do not want to compare
     # the second to last report to the last report, because the last report is
     # likely to be a timed report, in which case it is valid for it to have the
@@ -298,3 +301,56 @@ def test_explicit_backend_errors_without_db():
     # the lifecycle the latter fits; needs access to the test function and settings).
     with pytest.raises(FlakyBackendFailure):
         f()
+
+
+def test_does_not_switch_to_generate_when_replaying():
+    @given(st.integers())
+    def test_a(x):
+        if x == 10:
+            pass
+
+    db = HypofuzzDatabase(InMemoryExampleDatabase())
+    process = FuzzTarget.from_hypothesis_test(test_a, database=db)
+
+    db.save_corpus(process.database_key, [2])
+    db.save_corpus(process.database_key, [10])
+    process._enter_fixtures()
+
+    def _assert_priority(priorities):
+        expected = [
+            priority
+            for (priority, _choices, _extra_data) in process.provider._choices_queue
+        ]
+        assert expected == priorities
+
+    # we start in this state conceptually, except the provider hasn't loaded from
+    # the db yet, so we can't assert it.
+    # _assert_priority([QueuePriority.COVERING_REPLAY, QueuePriority.COVERING_REPLAY])
+
+    # we pop the first COVERING_REPLAY element [2]. It discovers new coverage, so gets
+    # re-queued as STABILITY.
+    process.run_one()
+    _assert_priority([QueuePriority.STABILITY, QueuePriority.COVERING_REPLAY])
+    assert process.provider.phase is Phase.REPLAY
+
+    # we pop the STABILITY element [2], adding it to the corpus.
+    process.run_one()
+    _assert_priority([QueuePriority.COVERING_REPLAY])
+    assert process.provider.phase is Phase.REPLAY
+
+    # we pop the COVERING_REPLAY element [10]. It also discovers new coverage, and
+    # gets re-queued as STABILITY.
+    process.run_one()
+    _assert_priority([QueuePriority.STABILITY])
+    assert process.provider.phase is Phase.REPLAY
+
+    # we pop the STABILITY element [10], adding it to the corpus. This completes
+    # our queue.
+    process.run_one()
+    _assert_priority([])
+    assert process.provider.phase is Phase.REPLAY
+
+    # we have no more queue elements left, so we transition into Phase.GENERATE.
+    process.run_one()
+    _assert_priority([])
+    assert process.provider.phase is Phase.GENERATE

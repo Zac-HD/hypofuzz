@@ -450,6 +450,10 @@ class HypofuzzProvider(PrimitiveProvider):
             self._start_phase(
                 Phase.REPLAY
                 if priority is QueuePriority.COVERING_REPLAY
+                # don't switch out of Phase.REPLAY during stability re-executions
+                # TODO also consider not switching out of replay when executing
+                # queued failures?
+                or (priority is QueuePriority.STABILITY and self.phase is Phase.REPLAY)
                 else Phase.GENERATE
             )
             return (choices, priority, extra_queue_data)
