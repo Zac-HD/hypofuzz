@@ -27,7 +27,7 @@ const defaultZoomState: ZoomState = { x: 0, y: 0, scaleX: 1 }
 export function useZoom({
   minScale = 1,
   maxScale = 50,
-  wheelSensitivity = 0.002,
+  wheelSensitivity = 0.0013,
 }: UseZoomOptions = {}): UseZoomReturn {
   const [transform, setTransformState] = useState<ZoomState>(defaultZoomState)
   const isDragging = useRef(false)
