@@ -11,6 +11,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
 import { interpolateRgb as d3_interpolateRgb } from "d3-interpolate"
+import { quadtree } from "d3-quadtree"
 import {
   scaleLinear as d3_scaleLinear,
   scaleOrdinal as d3_scaleOrdinal,
@@ -20,25 +21,26 @@ import {
   schemeCategory10 as d3_schemeCategory10,
 } from "d3-scale-chromatic"
 import { select as d3_select } from "d3-selection"
-import {
-  D3ZoomEvent,
-  zoom as d3_zoom,
-  zoomIdentity as d3_zoomIdentity,
-  ZoomTransform,
-} from "d3-zoom"
+import { zoomIdentity as d3_zoomIdentity } from "d3-zoom"
 import { Set } from "immutable"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { Graph, GRAPH_HEIGHT, GraphLine, GraphReport } from "src/components/graph/graph"
+import { Axis } from "src/components/graph/Axis"
+import { DataLines } from "src/components/graph/DataLines"
+import { GraphLine, GraphReport } from "src/components/graph/types"
 import { Toggle } from "src/components/Toggle"
 // import BoxSelect from "src/assets/box-select.svg?react"
 import { useIsMobile } from "src/hooks/useIsMobile"
 import { useSetting } from "src/hooks/useSetting"
 import { Test } from "src/types/test"
-import { max, min } from "src/utils/utils"
+import { useTooltip } from "src/utils/tooltip"
+import { max, min, readableNodeid } from "src/utils/utils"
+
+const GRAPH_HEIGHT = 270
+import { useScales } from "./useScales"
+import { useZoom } from "./useZoom"
 
 const d3 = {
-  zoom: d3_zoom,
   zoomIdentity: d3_zoomIdentity,
   select: d3_select,
   scaleLinear: d3_scaleLinear,
@@ -174,6 +176,7 @@ function LabelY() {
         flexDirection: "column",
         alignItems: "center",
         gap: "0.5rem",
+        zIndex: 1,
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
@@ -244,7 +247,7 @@ export function GraphComponent({
   workers_after?: number | null
   viewSetting: WorkerView
 }) {
-  const svgRef = useRef<SVGSVGElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
   const [scaleSettingX, setScaleSettingX] = useSetting<"log" | "linear">(
     "graph_scale_x",
     "log",
@@ -261,15 +264,9 @@ export function GraphComponent({
     "graph_axis_y",
     "behaviors",
   )
-  const [forceUpdate, setForceUpdate] = useState(true)
-  const [zoomTransform, setZoomTransform] = useState<{
-    transform: ZoomTransform | null
-    zoomY: boolean
-  }>({ transform: null, zoomY: false })
-  const [boxSelectEnabled, setBoxSelectEnabled] = useState(false)
   const navigate = useNavigate()
   const isMobile = useIsMobile()
-  const [currentlyHovered, setCurrentlyHovered] = useState(false)
+  const tooltip = useTooltip()
 
   // use the unfiltered reports as the domain so colors are stable across filtering.
   const reportsColor = d3
@@ -284,13 +281,6 @@ export function GraphComponent({
         .map(([nodeid, test]) => ({
           url: `/tests/${encodeURIComponent(nodeid)}`,
           reports: graphReports(test, workers_after),
-          // deterministic line color ordering, regardless of insertion order (which might vary
-          // based on websocket arrival order)
-          //
-          // we may also want a deterministic mapping of hash(nodeid) -> color, so the color is stable
-          // even across pages (overview vs individual test) or after a new test is added? But maybe we
-          // *don't* want this. I'm not sure which is better ux. A graph with only one line and having
-          // a non-blue color is weird.
           color: reportsColor(nodeid),
         }))
     } else if (viewSetting === WorkerView.SEPARATE) {
@@ -318,7 +308,7 @@ export function GraphComponent({
         for (const workerReports of test.reports_by_worker.values()) {
           if (workerReports.length > 0) {
             lines.push({
-              url: null,
+              url: `/tests/${encodeURIComponent(nodeid)}`,
               reports: workerReports.map(report =>
                 GraphReport.fromReport(nodeid, report),
               ),
@@ -336,7 +326,7 @@ export function GraphComponent({
 
         if (recentReports) {
           lines.push({
-            url: null,
+            url: `/tests/${encodeURIComponent(nodeid)}`,
             reports: recentReports.map(report =>
               GraphReport.fromReport(nodeid, report),
             ),
@@ -356,106 +346,170 @@ export function GraphComponent({
     )
   }, [lines, filterString])
 
-  useEffect(
-    () => {
-      const toggleBoxSelect = () => {
-        setBoxSelectEnabled(!boxSelectEnabled)
-        setForceUpdate(true)
-      }
+  // Get container width for dimensions calculation
+  const [containerWidth, setContainerWidth] = useState(800)
 
-      if (!svgRef.current) {
-        return
-      }
+  useEffect(() => {
+    if (containerRef.current) {
+      const resizeObserver = new ResizeObserver(entries => {
+        for (const entry of entries) {
+          setContainerWidth(entry.contentRect.width)
+        }
+      })
+      resizeObserver.observe(containerRef.current)
+      return () => resizeObserver.disconnect()
+    }
+    return undefined
+  }, [])
 
-      // to avoid flickering of e.g. tooltips, only update the graph when
-      // the cursor is not over it.
-      // This is maybe a bit more aggressive than we want. We could check
-      // wether a tooltip exists instead.
-      //
-      // Though, we should really replace all of this with updating directly
-      // from websocket events, so the graph never gets redrawn. Not sure
-      // yet how that would work in react.
+  const dimensions = useMemo(() => {
+    const margin = {
+      top: 5,
+      right: 5,
+      bottom: 25,
+      left: 40,
+    }
 
-      // also,
-      // if any test is still loading from the websocket, we still want to update the graph,
-      // so a user loading the page with their cursor on the graph does not see an empty
-      // graph.
-      if (!forceUpdate && currentlyHovered && testsLoaded()) {
-        return
-      }
+    const width = (containerWidth || 800) - margin.left - margin.right
+    const height = GRAPH_HEIGHT - margin.top - margin.bottom
 
-      if (forceUpdate) {
-        setForceUpdate(false)
-      }
+    return {
+      margin,
+      width,
+      height,
+      totalWidth: width + margin.left + margin.right,
+      totalHeight: height + margin.top + margin.bottom,
+    }
+  }, [containerWidth])
 
-      d3.select(svgRef.current).selectAll("*").remove()
-      const graph = new Graph(
-        svgRef.current,
-        filteredLines,
-        scaleSettingX,
-        scaleSettingY,
-        axisSettingX,
-        axisSettingY,
-        navigate,
-        isMobile,
-      )
-
-      if (zoomTransform.transform) {
-        graph.zoom.transform(graph.chartArea, zoomTransform.transform)
-      }
-
-      graph.zoomTo(zoomTransform.transform ?? d3.zoomIdentity, zoomTransform.zoomY)
-
-      graph.zoom.on(
-        "zoom.saveTransform",
-        (event: D3ZoomEvent<SVGGElement, unknown>) => {
-          setZoomTransform({ transform: event.transform, zoomY: false })
-        },
-      )
-
-      if (boxSelectEnabled) {
-        graph.enableBoxBrush()
-      }
-
-      graph.on("boxSelectEnd", toggleBoxSelect)
-
-      return () => {
-        graph.cleanup()
-      }
-    },
-    // TODO including zoomTransform or filteredLines makes click+drag reset badly,
-    // need to figure out why
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [
-      tests,
-      scaleSettingX,
-      scaleSettingY,
-      axisSettingX,
-      axisSettingY,
-      viewSetting,
-      forceUpdate,
-      boxSelectEnabled,
-      navigate,
-      isMobile,
-      currentlyHovered,
-      testsLoaded,
-      filterString,
-      // zoomTransform,
-      // filteredLines,
-    ],
+  // Flatten all reports for scale domain calculation
+  const allReports = useMemo(
+    () => filteredLines.flatMap(line => line.reports),
+    [filteredLines],
   )
 
+  const zoom = useZoom({ minScale: 1, maxScale: 50 })
+  const scales = useScales(
+    allReports,
+    scaleSettingX,
+    scaleSettingY,
+    axisSettingX,
+    axisSettingY,
+    dimensions.width,
+    dimensions.height,
+    zoom.transform,
+    { yMin: 0 },
+  )
+
+  const distanceThreshold = 10
+
+  const graphQuadtree = useMemo(() => {
+    return quadtree<GraphReport>()
+      .x(d => scales.viewportScales.xScale(scales.xValue(d)))
+      .y(d => scales.viewportScales.yScale(scales.yValue(d)))
+      .addAll(allReports)
+  }, [allReports, scales])
+
+  const findClosestReport = useMemo(() => {
+    return (chartX: number, chartY: number): GraphReport | null => {
+      return graphQuadtree.find(chartX, chartY, distanceThreshold) || null
+    }
+  }, [graphQuadtree])
+
   return (
-    <svg
-      className="coverage-graph__svg"
-      ref={svgRef}
-      style={{ width: "100%", height: `${GRAPH_HEIGHT}px` }}
-      onMouseEnter={() => setCurrentlyHovered(true)}
-      onMouseLeave={() => {
-        setCurrentlyHovered(false)
-        setForceUpdate(true)
+    <div
+      ref={element => {
+        if (containerRef.current !== element) {
+          containerRef.current = element
+        }
+        if (zoom.containerRef.current !== element) {
+          zoom.containerRef.current = element
+        }
       }}
-    />
+      style={{
+        position: "relative",
+        width: "100%",
+        height: `${GRAPH_HEIGHT}px`,
+        userSelect: "none",
+      }}
+      onMouseDown={zoom.onMouseDown}
+      onDoubleClick={zoom.onDoubleClick}
+      onMouseMove={event => {
+        const rect = event.currentTarget.getBoundingClientRect()
+        const mouseX = event.clientX - rect.left - dimensions.margin.left
+        const mouseY = event.clientY - rect.top - dimensions.margin.top
+
+        const closestReport = findClosestReport(mouseX, mouseY)
+
+        if (closestReport) {
+          const behaviors_s = closestReport.behaviors === 1 ? "" : "s"
+          const fingerprints_s = closestReport.fingerprints === 1 ? "" : "s"
+          const inputs_s = closestReport.linear_status_counts.sum() === 1 ? "" : "s"
+          const seconds_s = closestReport.linear_elapsed_time === 1 ? "" : "s"
+
+          const content = `
+            <div style="font-weight: bold; margin-bottom: 4px;">${readableNodeid(closestReport.nodeid)}</div>
+            <div>${closestReport.behaviors.toLocaleString()} behavior${behaviors_s} / ${closestReport.fingerprints.toLocaleString()} fingerprint${fingerprints_s}</div>
+            <div>${closestReport.linear_status_counts.sum().toLocaleString()} input${inputs_s} / ${closestReport.linear_elapsed_time.toFixed(1)} second${seconds_s}</div>
+          `
+
+          tooltip.showTooltip(content, event.clientX, event.clientY, "coverage-graph")
+        } else {
+          tooltip.hideTooltip("coverage-graph")
+        }
+      }}
+      onMouseLeave={() => {
+        tooltip.hideTooltip("coverage-graph")
+      }}
+    >
+      <svg
+        className="coverage-graph__svg"
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: `${GRAPH_HEIGHT}px`,
+          pointerEvents: "none",
+        }}
+      >
+        <defs>
+          <clipPath id="clip-content">
+            {/* add some padding so the stroke width doesn't get clipped, even though the center
+            of the line would still be inside the clip path */}
+            <rect y={-2} width={dimensions.width} height={dimensions.height + 4} />
+          </clipPath>
+        </defs>
+
+        <g transform={`translate(${dimensions.margin.left}, ${dimensions.margin.top})`}>
+          <g clipPath="url(#clip-content)">
+            <DataLines
+              lines={filteredLines}
+              viewportXScale={scales.viewportScales.xScale}
+              viewportYScale={scales.viewportScales.yScale}
+              xValue={scales.xValue}
+              yValue={scales.yValue}
+              navigate={navigate}
+            />
+          </g>
+
+          <Axis
+            baseScale={scales.baseScales.xScale}
+            orientation="bottom"
+            transform={`translate(0, ${scales.baseScales.yScale.range()[0]})`}
+            isLogScale={scaleSettingX === "log"}
+            zoomTransform={scales.constrainedTransform}
+          />
+
+          <Axis
+            baseScale={scales.baseScales.yScale}
+            orientation="left"
+            isLogScale={scaleSettingY === "log"}
+            zoomTransform={scales.constrainedTransform}
+          />
+        </g>
+      </svg>
+    </div>
   )
 }
 
@@ -506,8 +560,8 @@ export function CoverageGraph({
     ),
   )
   const disabled = workers.size == 1
-  // force view setting to be WorkerView.TOGETHER if we're disabled, to avoid confusing people that
-  // they can't switch away from the default
+  // force view setting to be the default WorkerView.TOGETHER if we're disabled, to avoid
+  // confusing people that they can't switch away from the default
   if (disabled) {
     viewSetting = WorkerView.TOGETHER
   }
@@ -517,7 +571,6 @@ export function CoverageGraph({
       <div className="card__header" style={{ marginBottom: "1rem" }}>
         Coverage
       </div>
-      <div className="coverage-graph__tooltip" />
       <div
         style={{
           display: "flex",
