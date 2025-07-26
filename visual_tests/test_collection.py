@@ -39,4 +39,10 @@ def test_no_generate_phase(n):
     pass
 
 
+@settings(derandomize=True)
+@given(st.integers())
+def test_sets_derandomize(n):
+    pass
+
+
 # TODO: visual tests for _skip_because("error") and _skip_because("not_a_function")
