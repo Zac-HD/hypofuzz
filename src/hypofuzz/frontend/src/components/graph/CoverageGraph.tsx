@@ -23,7 +23,7 @@ import {
 import { select as d3_select } from "d3-selection"
 import { zoomIdentity as d3_zoomIdentity } from "d3-zoom"
 import { Set } from "immutable"
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Axis } from "src/components/graph/Axis"
 import { DataLines } from "src/components/graph/DataLines"
@@ -234,6 +234,13 @@ const workerToggleContent = {
   },
 }
 
+const GRAPH_MARGIN = {
+  top: 5,
+  right: 5,
+  bottom: 25,
+  left: 40,
+}
+
 export function GraphComponent({
   tests,
   filterString = "",
@@ -267,13 +274,14 @@ export function GraphComponent({
   const navigate = useNavigate()
   const isMobile = useIsMobile()
   const tooltip = useTooltip()
+  const [containerWidth, setContainerWidth] = useState(800)
 
   // use the unfiltered reports as the domain so colors are stable across filtering.
   const reportsColor = d3
     .scaleOrdinal(d3.schemeCategory10)
     .domain(Array.from(tests.keys()))
 
-  const lines = useMemo(() => {
+  function getLines() {
     let lines: GraphLine[] = []
     if (viewSetting === WorkerView.TOGETHER) {
       lines = Array.from(tests.entries())
@@ -337,17 +345,15 @@ export function GraphComponent({
       }
     }
     return lines
-  }, [tests, workers_after, viewSetting, reportsColor])
+  }
 
-  const filteredLines = useMemo(() => {
-    if (!filterString) return lines
-    return lines.filter(line =>
+  const lines = getLines()
+  let filteredLines = lines
+  if (filterString) {
+    filteredLines = lines.filter(line =>
       line.url?.toLowerCase().includes(filterString.toLowerCase()),
     )
-  }, [lines, filterString])
-
-  // Get container width for dimensions calculation
-  const [containerWidth, setContainerWidth] = useState(800)
+  }
 
   useEffect(() => {
     if (containerRef.current) {
@@ -362,68 +368,40 @@ export function GraphComponent({
     return undefined
   }, [])
 
-  const dimensions = useMemo(() => {
-    const margin = {
-      top: 5,
-      right: 5,
-      bottom: 25,
-      left: 40,
-    }
-
-    const width = (containerWidth || 800) - margin.left - margin.right
-    const height = GRAPH_HEIGHT - margin.top - margin.bottom
-
-    return {
-      margin,
-      width,
-      height,
-      totalWidth: width + margin.left + margin.right,
-      totalHeight: height + margin.top + margin.bottom,
-    }
-  }, [containerWidth])
-
+  const graphWidth = containerWidth - GRAPH_MARGIN.left - GRAPH_MARGIN.right
+  const graphHeight = GRAPH_HEIGHT - GRAPH_MARGIN.top - GRAPH_MARGIN.bottom
   // Flatten all reports for scale domain calculation
-  const allReports = useMemo(
-    () => filteredLines.flatMap(line => line.reports),
-    [filteredLines],
-  )
+  const allReports = filteredLines.flatMap(line => line.reports)
 
-  const zoom = useZoom({ minScale: 1, maxScale: 50 })
+  const zoom = useZoom({ minScale: 1, maxScale: 50, containerRef })
   const scales = useScales(
     allReports,
     scaleSettingX,
     scaleSettingY,
     axisSettingX,
     axisSettingY,
-    dimensions.width,
-    dimensions.height,
+    graphWidth,
+    graphHeight,
     zoom.transform,
     { yMin: 0 },
   )
 
   const distanceThreshold = 10
 
-  const graphQuadtree = useMemo(() => {
-    return quadtree<GraphReport>()
-      .x(d => scales.viewportScales.xScale(scales.xValue(d)))
-      .y(d => scales.viewportScales.yScale(scales.yValue(d)))
-      .addAll(allReports)
-  }, [allReports, scales])
+  const graphQuadtree = quadtree<GraphReport>()
+    .x(d => scales.viewportX(scales.xValue(d)))
+    .y(d => scales.viewportY(scales.yValue(d)))
+    .addAll(allReports)
 
-  const findClosestReport = useMemo(() => {
-    return (chartX: number, chartY: number): GraphReport | null => {
-      return graphQuadtree.find(chartX, chartY, distanceThreshold) || null
-    }
-  }, [graphQuadtree])
+  const findClosestReport = (chartX: number, chartY: number): GraphReport | null => {
+    return graphQuadtree.find(chartX, chartY, distanceThreshold) || null
+  }
 
   return (
     <div
       ref={element => {
         if (containerRef.current !== element) {
           containerRef.current = element
-        }
-        if (zoom.containerRef.current !== element) {
-          zoom.containerRef.current = element
         }
       }}
       style={{
@@ -436,8 +414,8 @@ export function GraphComponent({
       onDoubleClick={zoom.onDoubleClick}
       onMouseMove={event => {
         const rect = event.currentTarget.getBoundingClientRect()
-        const mouseX = event.clientX - rect.left - dimensions.margin.left
-        const mouseY = event.clientY - rect.top - dimensions.margin.top
+        const mouseX = event.clientX - rect.left - GRAPH_MARGIN.left
+        const mouseY = event.clientY - rect.top - GRAPH_MARGIN.top
 
         const closestReport = findClosestReport(mouseX, mouseY)
 
@@ -477,16 +455,16 @@ export function GraphComponent({
           <clipPath id="clip-content">
             {/* add some padding so the stroke width doesn't get clipped, even though the center
             of the line would still be inside the clip path */}
-            <rect y={-2} width={dimensions.width} height={dimensions.height + 4} />
+            <rect y={-2} width={graphWidth} height={graphHeight + 4} />
           </clipPath>
         </defs>
 
-        <g transform={`translate(${dimensions.margin.left}, ${dimensions.margin.top})`}>
+        <g transform={`translate(${GRAPH_MARGIN.left}, ${GRAPH_MARGIN.top})`}>
           <g clipPath="url(#clip-content)">
             <DataLines
               lines={filteredLines}
-              viewportXScale={scales.viewportScales.xScale}
-              viewportYScale={scales.viewportScales.yScale}
+              viewportXScale={scales.viewportX}
+              viewportYScale={scales.viewportY}
               xValue={scales.xValue}
               yValue={scales.yValue}
               navigate={navigate}
@@ -494,15 +472,15 @@ export function GraphComponent({
           </g>
 
           <Axis
-            baseScale={scales.baseScales.xScale}
+            baseScale={scales.baseX}
             orientation="bottom"
-            transform={`translate(0, ${scales.baseScales.yScale.range()[0]})`}
+            transform={`translate(0, ${scales.baseY.range()[0]})`}
             isLogScale={scaleSettingX === "log"}
             zoomTransform={scales.constrainedTransform}
           />
 
           <Axis
-            baseScale={scales.baseScales.yScale}
+            baseScale={scales.baseY}
             orientation="left"
             isLogScale={scaleSettingY === "log"}
             zoomTransform={scales.constrainedTransform}
