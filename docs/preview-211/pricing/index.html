@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-176879127-1"></script>
+
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
+        gtag('config', 'UA-176879127-1');
+    </script>
+
+    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../assets/styles.css">
+
+    <!-- favicon -->
+    <link rel="icon" type="image/png" href="../assets/favicon/favicon-96x96.png" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="../assets/favicon/favicon.svg" />
+    <link rel="shortcut icon" href="../assets/favicon/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="../assets/favicon/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-title" content="HypoFuzz" />
+    <link rel="manifest" href="../assets/favicon/site.webmanifest" />
+
+    <title>HypoFuzz</title>
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="navbar__container">
+            <a class="navbar__brand" href="../">HypoFuzz</a>
+            <ul class="navbar__nav">
+                <li><a class="navbar__link" href="../docs/features.html">Features</a></li>
+                <li><a class="navbar__link" href="../docs/">Docs</a></li>
+                <li><a class="navbar__link" href="../example-dashboard/">Demo</a></li>
+                <li><a class="navbar__link" href="../pricing/">Pricing</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="content">
+        <div class="pricing-header">
+            <div class="pricing-title">Pricing</div>
+            <div class="pricing-lead">
+                HypoFuzz lets you trade cpu time for bugs. We think that's a pretty good deal.
+                <div style="margin-top: 0.5rem;"></div>
+                Every bug HypoFuzz finds comes with a fast, deterministic, and minimal test case—so you can easily reproduce it, every time.
+            </div>
+        </div>
+
+        <div class="pricing-container">
+            <div class="pricing-cards">
+
+                <div class="pricing-card">
+                    <div class="pricing-card__header">
+                        <div class="pricing-card__plan">Non-commercial</div>
+                    </div>
+                    <div class="pricing-card__body">
+                        <div class="pricing-card__price">Free</div>
+                        <p>
+                            We love research and open-source! HypoFuzz is free for non-commercial use.
+                        </p>
+                        <p>
+                            <em>Just&nbsp;&nbsp;&nbsp;</em><span class="code">pip install hypofuzz</span> <em>and start running!</em>
+                        </p>
+                        <a href="/docs/quickstart.html" class="button button--cta pricing-card__button">Get started</a>
+                    </div>
+                </div>
+
+                <div class="pricing-card">
+                    <div class="pricing-card__header">
+                        <div class="pricing-card__plan">Per-seat</div>
+                    </div>
+                    <div class="pricing-card__body">
+                        <div class="pricing-card__price pricing-card__price--strikethrough">$ <small class="pricing-muted">/ seat / <span id="period">mo</span></small></div>
+                        <!-- <div class="pricing-switch">
+                            <div class="pricing-switch__group">
+                                <button type="button" class="pricing-switch__button pricing-switch__button--active" id="monthlyBtn">Monthly</button>
+                                <button type="button" class="pricing-switch__button" id="annualBtn">Annually <small class="pricing-success">10% off</small></button>
+                            </div>
+                        </div> -->
+                        <p>
+                            Works seamlessly across CI, shared fuzzing servers, and everyone's dev machines.
+                        </p>
+                        <p>
+                            <em>Unlimited use for the whole team.</em>
+                        </p>
+                        <div class="pricing-important-notice" style="margin-bottom: 1rem;">
+                            While we work on getting the HypoFuzz paperwork together, we'd love to hand out exploratory licenses to interested companies, <strong>at no cost</strong>. Get in touch!
+                        </div>
+                        <a href="mailto:sales@hypofuzz.com?subject=Per-seat%20HypoFuzz%20licence" class="button button--cta pricing-card__button">Get in touch</a>
+                    </div>
+                </div>
+            </div>
+            <div class="separator" style="margin-top: 2rem; margin-bottom: 2rem"></div>
+            <!-- <div class="pricing-note">
+                <em>
+                    Hypofuzz is designed for significant compute workloads, and to autoscale and run efficiently on spot instances or idle capacity.
+                    <br>
+                    For best results, we typically see customers allocating compute budgets 2-3x their licensing costs (or more).
+                </em>
+            </div> -->
+        </div>
+    </div>
+
+    <div class="footer">
+        <hr class="footer__hr">
+        <p>&copy; HypoFuzz authors, 2025</p>
+    </div>
+
+    <script>
+        const monthlyBtn = document.getElementById('monthlyBtn');
+        const annualBtn = document.getElementById('annualBtn');
+        const priceElement = document.getElementById('price');
+        const periodElement = document.getElementById('period');
+
+        function updatePrice(isAnnual) {
+            if (isAnnual) {
+                priceElement.textContent = '9';
+                periodElement.textContent = 'mo';
+                monthlyBtn.classList.remove('pricing-switch__button--active');
+                annualBtn.classList.add('pricing-switch__button--active');
+            } else {
+                priceElement.textContent = '10';
+                periodElement.textContent = 'mo';
+                monthlyBtn.classList.add('pricing-switch__button--active');
+                annualBtn.classList.remove('pricing-switch__button--active');
+            }
+        }
+
+        monthlyBtn.addEventListener('click', () => updatePrice(false));
+        annualBtn.addEventListener('click', () => updatePrice(true));
+    </script>
+</body>
+
+</html>
