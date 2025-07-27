@@ -11,7 +11,11 @@ export default defineConfig(({ mode }) => {
     alias['scheduler/tracing'] = 'scheduler/tracing-profiling'
   }
   return {
-    plugins: [react(), svgr()],
+    plugins: [react({
+      babel: {
+        plugins: ['babel-plugin-react-compiler'],
+      },
+    }), svgr()],
     resolve: {
       alias: alias,
     },

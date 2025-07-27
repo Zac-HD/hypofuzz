@@ -1,11 +1,4 @@
-import React, {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from "react"
+import React, { createContext, useContext, useEffect, useState } from "react"
 import { createPortal } from "react-dom"
 import { useLocation } from "react-router-dom"
 
@@ -73,20 +66,17 @@ export function TooltipProvider({ children }: { children: React.ReactNode }) {
     }))
   }, [location.pathname])
 
-  const showTooltip = useCallback(
-    (content: string, x: number, y: number, owner: string) => {
-      setTooltipState({
-        visible: true,
-        content,
-        x,
-        y,
-        owner,
-      })
-    },
-    [],
-  )
+  const showTooltip = (content: string, x: number, y: number, owner: string) => {
+    setTooltipState({
+      visible: true,
+      content,
+      x,
+      y,
+      owner,
+    })
+  }
 
-  const hideTooltip = useCallback((owner: string) => {
+  const hideTooltip = (owner: string) => {
     setTooltipState(prev => {
       if (prev.owner === owner) {
         return {
@@ -97,9 +87,9 @@ export function TooltipProvider({ children }: { children: React.ReactNode }) {
       }
       return prev
     })
-  }, [])
+  }
 
-  const moveTooltip = useCallback((x: number, y: number, owner: string) => {
+  const moveTooltip = (x: number, y: number, owner: string) => {
     setTooltipState(prev => {
       if (prev.visible && prev.owner === owner && (prev.x !== x || prev.y !== y)) {
         return {
@@ -110,17 +100,14 @@ export function TooltipProvider({ children }: { children: React.ReactNode }) {
       }
       return prev
     })
-  }, [])
+  }
 
-  const contextValue: TooltipContextType = useMemo(
-    () => ({
-      showTooltip,
-      hideTooltip,
-      moveTooltip,
-      visible: tooltipState.visible,
-    }),
-    [showTooltip, hideTooltip, moveTooltip, tooltipState.visible],
-  )
+  const contextValue: TooltipContextType = {
+    showTooltip,
+    hideTooltip,
+    moveTooltip,
+    visible: tooltipState.visible,
+  }
 
   return (
     <TooltipContext.Provider value={contextValue}>

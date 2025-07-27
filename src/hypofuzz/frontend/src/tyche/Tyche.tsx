@@ -1,4 +1,3 @@
-import { useMemo } from "react"
 import { Toggle } from "src/components/Toggle"
 import { Features } from "src/tyche/Features"
 import { FilterProvider, useFilters } from "src/tyche/FilterContext"
@@ -33,7 +32,7 @@ function TycheInner({ test }: { test: Test }) {
         test.rolling_observations.sortKey(observation => -observation.run_start)
       : test.corpus_observations
 
-  const filteredobservations = useMemo(() => {
+  function filteredObservations() {
     const allFilters = Array.from(filters.values()).flat()
 
     if (allFilters.length === 0) {
@@ -43,11 +42,11 @@ function TycheInner({ test }: { test: Test }) {
     return rawObservations.filter(observation => {
       return allFilters.every(filter => filter.predicate(observation))
     })
-  }, [rawObservations, filters])
+  }
 
   const observations = {
     raw: rawObservations,
-    filtered: filteredobservations,
+    filtered: filteredObservations(),
   }
 
   return (

@@ -1,5 +1,5 @@
 import { OrderedSet } from "immutable"
-import React, { useCallback, useEffect, useMemo, useState } from "react"
+import React, { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { RangeSlider } from "src/components/RangeSlider"
 import { useData } from "src/context/DataProvider"
@@ -70,78 +70,71 @@ function DetailsItem({ label, value }: { label: string; value: React.ReactNode }
   )
 }
 
-const WorkerBar = React.memo(
-  ({
-    worker,
-    range,
-    expandedWorkers,
-    onWorkerClick,
-    segmentStyle,
-    navigate,
-    showTooltip,
-    hideTooltip,
-    moveTooltip,
-  }: {
-    worker: Worker
-    range: [number, number]
-    expandedWorkers: Set<string>
-    onWorkerClick: (uuid: string) => void
-    segmentStyle: (segment: Segment) => React.CSSProperties
-    navigate: ReturnType<typeof useNavigate>
-    showTooltip: (text: string, x: number, y: number, id: string) => void
-    hideTooltip: (id: string) => void
-    moveTooltip: (x: number, y: number, id: string) => void
-  }) => {
-    return (
-      <div
-        key={worker.uuid}
-        className={`workers__worker ${expandedWorkers.has(worker.uuid) ? "workers__worker--expanded" : ""}`}
-        onClick={() => onWorkerClick(worker.uuid)}
-        // these extra onMouseLeave calls shouldn't be necessary, but I've had trouble
-        // with the workers__timeline__segment mouse leave handler not firing consistently
-        onMouseLeave={() => hideTooltip("workers")}
-      >
-        <div
-          className="workers__worker__bar"
-          onMouseLeave={() => hideTooltip("workers")}
-        >
-          {worker.visibleSegments(range).map((segment, index) => (
-            <div
-              key={index}
-              className="workers__timeline__segment"
-              style={segmentStyle(segment)}
-              onClick={event => {
-                navigateOnClick(
-                  event,
-                  `/tests/${encodeURIComponent(segment.nodeid)}`,
-                  navigate,
-                )
-                // prevent the worker click handler from firing (which would distractingly
-                // expand the worker details for this worker during navigation)
-                event.stopPropagation()
-              }}
-              onMouseEnter={event =>
-                showTooltip(
-                  readableNodeid(segment.nodeid),
-                  event.clientX,
-                  event.clientY,
-                  "workers",
-                )
-              }
-              onMouseLeave={() => hideTooltip("workers")}
-              onMouseMove={event =>
-                moveTooltip(event.clientX, event.clientY, "workers")
-              }
-            />
-          ))}
-        </div>
-        {expandedWorkers.has(worker.uuid) && <WorkerDetails worker={worker} />}
+const WorkerBar = ({
+  worker,
+  range,
+  expandedWorkers,
+  onWorkerClick,
+  segmentStyle,
+  navigate,
+  showTooltip,
+  hideTooltip,
+  moveTooltip,
+}: {
+  worker: Worker
+  range: [number, number]
+  expandedWorkers: Set<string>
+  onWorkerClick: (uuid: string) => void
+  segmentStyle: (segment: Segment) => React.CSSProperties
+  navigate: ReturnType<typeof useNavigate>
+  showTooltip: (text: string, x: number, y: number, id: string) => void
+  hideTooltip: (id: string) => void
+  moveTooltip: (x: number, y: number, id: string) => void
+}) => {
+  return (
+    <div
+      key={worker.uuid}
+      className={`workers__worker ${expandedWorkers.has(worker.uuid) ? "workers__worker--expanded" : ""}`}
+      onClick={() => onWorkerClick(worker.uuid)}
+      // these extra onMouseLeave calls shouldn't be necessary, but I've had trouble
+      // with the workers__timeline__segment mouse leave handler not firing consistently
+      onMouseLeave={() => hideTooltip("workers")}
+    >
+      <div className="workers__worker__bar" onMouseLeave={() => hideTooltip("workers")}>
+        {worker.visibleSegments(range).map((segment, index) => (
+          <div
+            key={index}
+            className="workers__timeline__segment"
+            style={segmentStyle(segment)}
+            onClick={event => {
+              navigateOnClick(
+                event,
+                `/tests/${encodeURIComponent(segment.nodeid)}`,
+                navigate,
+              )
+              // prevent the worker click handler from firing (which would distractingly
+              // expand the worker details for this worker during navigation)
+              event.stopPropagation()
+            }}
+            onMouseEnter={event =>
+              showTooltip(
+                readableNodeid(segment.nodeid),
+                event.clientX,
+                event.clientY,
+                "workers",
+              )
+            }
+            onMouseLeave={() => hideTooltip("workers")}
+            onMouseMove={event => moveTooltip(event.clientX, event.clientY, "workers")}
+          />
+        ))}
       </div>
-    )
-  },
-)
+      {expandedWorkers.has(worker.uuid) && <WorkerDetails worker={worker} />}
+    </div>
+  )
+}
 
-const WorkerDetails = React.memo(({ worker }: { worker: Worker }) => {
+const WorkerDetails = ({ worker }: { worker: Worker }) => {
   return (
     <div className="workers__worker__details">
       <div className="workers__worker__details__grid">
@@ -163,7 +156,7 @@ const WorkerDetails = React.memo(({ worker }: { worker: Worker }) => {
       </div>
     </div>
   )
-})
+}
 
 export function WorkersPage() {
   const { tests } = useData()
@@ -249,28 +242,25 @@ export function WorkersPage() {
   const [visibleMin, visibleMax] = visibleRange
   const visibleDuration = visibleMax - visibleMin
 
-  const segmentStyle = useCallback(
-    (segment: Segment) => {
-      let left: number
-      let width: number
-      if (visibleDuration === 0) {
-        left = 0
-        width = 100
-      } else {
-        left = ((segment.start - visibleMin) / visibleDuration) * 100
-        width = ((segment.end - segment.start) / visibleDuration) * 100
-      }
+  const segmentStyle = (segment: Segment) => {
+    let left: number
+    let width: number
+    if (visibleDuration === 0) {
+      left = 0
+      width = 100
+    } else {
+      left = ((segment.start - visibleMin) / visibleDuration) * 100
+      width = ((segment.end - segment.start) / visibleDuration) * 100
+    }
 
-      return {
-        left: `${left}%`,
-        width: `${width}%`,
-        backgroundColor: nodeColor(segment.nodeid),
-      }
-    },
-    [visibleDuration, visibleMin],
-  )
+    return {
+      left: `${left}%`,
+      width: `${width}%`,
+      backgroundColor: nodeColor(segment.nodeid),
+    }
+  }
 
-  const onWorkerClick = useCallback((uuid: string) => {
+  const onWorkerClick = (uuid: string) => {
     setExpandedWorkers(prev => {
       const newSet = new Set(prev)
       if (newSet.has(uuid)) {
@@ -280,7 +270,7 @@ export function WorkersPage() {
       }
       return newSet
     })
-  }, [])
+  }
 
   return (
     <div className="card">

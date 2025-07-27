@@ -1,11 +1,4 @@
-import React, {
-  createContext,
-  ReactNode,
-  useCallback,
-  useContext,
-  useRef,
-  useState,
-} from "react"
+import React, { createContext, ReactNode, useContext, useRef, useState } from "react"
 import { Notification } from "src/components/Notification"
 
 interface NotificationData {
@@ -31,52 +24,48 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
   const timers = useRef<Map<number, number>>(new Map())
   const idCounter = useRef(0)
 
-  const dismissNotification = useCallback((id: number) => {
+  const dismissNotification = (id: number) => {
     clearTimeout(timers.current.get(id)!)
     timers.current.delete(id)
 
     setNotifications(prev => prev.filter(n => n.id !== id))
-  }, [])
+  }
 
-  const addNotification = useCallback(
-    (message: ReactNode, duration: number | null) => {
-      const id = ++idCounter.current
-      const notification: NotificationData = { id, message, duration }
+  const addNotification = (message: ReactNode, duration: number | null) => {
+    const id = ++idCounter.current
+    const notification: NotificationData = { id, message, duration }
 
-      setNotifications(prev => [...prev, notification])
+    setNotifications(prev => [...prev, notification])
 
-      if (duration !== null) {
-        const timer = setTimeout(() => {
-          dismissNotification(id)
-        }, duration)
-        timers.current.set(id, timer)
-      }
+    if (duration !== null) {
+      const timer = setTimeout(() => {
+        dismissNotification(id)
+      }, duration)
+      timers.current.set(id, timer)
+    }
 
-      return id
-    },
-    [dismissNotification],
-  )
+    return id
+  }
 
-  const updateNotification = useCallback(
-    (id: number, message: ReactNode, duration: number | null) => {
-      setNotifications(prev =>
-        prev.map(notification =>
-          notification.id === id
-            ? { ...notification, message, duration }
-            : notification,
-        ),
-      )
+  const updateNotification = (
+    id: number,
+    message: ReactNode,
+    duration: number | null,
+  ) => {
+    setNotifications(prev =>
+      prev.map(notification =>
+        notification.id === id ? { ...notification, message, duration } : notification,
+      ),
+    )
 
-      if (duration !== null) {
-        clearTimeout(timers.current.get(id)!)
-        const timer = setTimeout(() => {
-          dismissNotification(id)
-        }, duration)
-        timers.current.set(id, timer)
-      }
-    },
-    [dismissNotification],
-  )
+    if (duration !== null) {
+      clearTimeout(timers.current.get(id)!)
+      const timer = setTimeout(() => {
+        dismissNotification(id)
+      }, duration)
+      timers.current.set(id, timer)
+    }
+  }
 
   return (
     <NotificationContext.Provider

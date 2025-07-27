@@ -1,5 +1,5 @@
 import { interpolate } from "d3-interpolate"
-import { MouseEvent, useCallback, useEffect, useRef, useState } from "react"
+import { MouseEvent, useEffect, useRef, useState } from "react"
 
 interface ZoomState {
   x: number
@@ -11,11 +11,11 @@ interface UseZoomOptions {
   minScale?: number
   maxScale?: number
   wheelSensitivity?: number
+  containerRef: React.RefObject<HTMLElement | null>
 }
 
 interface UseZoomReturn {
   transform: ZoomState
-  containerRef: React.RefObject<HTMLElement | null>
   onMouseDown: (event: MouseEvent<HTMLElement>) => void
   onDoubleClick: (event: MouseEvent<HTMLElement>) => void
   resetZoom: () => void
@@ -28,33 +28,30 @@ export function useZoom({
   minScale = 1,
   maxScale = 50,
   wheelSensitivity = 0.0013,
-}: UseZoomOptions = {}): UseZoomReturn {
+  containerRef,
+}: UseZoomOptions): UseZoomReturn {
   const [transform, setTransformState] = useState<ZoomState>(defaultZoomState)
   const isDragging = useRef(false)
   const lastPointer = useRef({ x: 0, y: 0 })
   const animationRef = useRef<number | null>(null)
-  const containerRef = useRef<HTMLElement>(null)
   const isZooming = useRef(false)
   const wheelEventCount = useRef(0)
   const wheelTimeoutRef = useRef<number | null>(null)
 
-  const cancelAnimation = useCallback(() => {
+  const cancelAnimation = () => {
     if (animationRef.current) {
       cancelAnimationFrame(animationRef.current)
       animationRef.current = null
     }
-  }, [])
+  }
 
-  const setTransform = useCallback(
-    (newTransform: ZoomState) => {
-      cancelAnimation()
-      const constrainedTransform = newTransform
-      setTransformState(constrainedTransform)
-    },
-    [cancelAnimation],
-  )
+  const setTransform = (newTransform: ZoomState) => {
+    cancelAnimation()
+    const constrainedTransform = newTransform
+    setTransformState(constrainedTransform)
+  }
 
-  const resetZoom = useCallback(() => {
+  const resetZoom = () => {
     cancelAnimation()
 
     const startTransform = transform
@@ -89,7 +86,7 @@ export function useZoom({
     }
 
     animationRef.current = requestAnimationFrame(animate)
-  }, [transform, cancelAnimation])
+  }
 
   useEffect(() => {
     const container = containerRef.current
@@ -162,51 +159,45 @@ export function useZoom({
     }
   }, [transform, minScale, maxScale, wheelSensitivity, cancelAnimation])
 
-  const onMouseDown = useCallback(
-    (event: MouseEvent<HTMLElement>) => {
-      if (event.button !== 0) return // Only accept left mouse button
-      cancelAnimation()
+  const onMouseDown = (event: MouseEvent<HTMLElement>) => {
+    if (event.button !== 0) return // Only accept left mouse button
+    cancelAnimation()
 
-      isDragging.current = true
-      lastPointer.current = { x: event.clientX, y: event.clientY }
+    isDragging.current = true
+    lastPointer.current = { x: event.clientX, y: event.clientY }
 
-      const handleMouseMove = (e: globalThis.MouseEvent) => {
-        if (!isDragging.current) return
+    const handleMouseMove = (e: globalThis.MouseEvent) => {
+      if (!isDragging.current) return
 
-        const deltaX = e.clientX - lastPointer.current.x
-        const deltaY = e.clientY - lastPointer.current.y
+      const deltaX = e.clientX - lastPointer.current.x
+      const deltaY = e.clientY - lastPointer.current.y
 
-        setTransformState(prev => {
-          const newTransform = {
-            x: prev.x + deltaX,
-            y: prev.y + deltaY,
-            scaleX: prev.scaleX,
-          }
-          return newTransform
-        })
+      setTransformState(prev => {
+        const newTransform = {
+          x: prev.x + deltaX,
+          y: prev.y + deltaY,
+          scaleX: prev.scaleX,
+        }
+        return newTransform
+      })
 
-        lastPointer.current = { x: e.clientX, y: e.clientY }
-      }
+      lastPointer.current = { x: e.clientX, y: e.clientY }
+    }
 
-      const handleMouseUp = () => {
-        isDragging.current = false
-        document.removeEventListener("mousemove", handleMouseMove)
-        document.removeEventListener("mouseup", handleMouseUp)
-      }
+    const handleMouseUp = () => {
+      isDragging.current = false
+      document.removeEventListener("mousemove", handleMouseMove)
+      document.removeEventListener("mouseup", handleMouseUp)
+    }
 
-      document.addEventListener("mousemove", handleMouseMove)
-      document.addEventListener("mouseup", handleMouseUp)
-    },
-    [cancelAnimation],
-  )
+    document.addEventListener("mousemove", handleMouseMove)
+    document.addEventListener("mouseup", handleMouseUp)
+  }
 
-  const onDoubleClick = useCallback(
-    (event: MouseEvent<HTMLElement>) => {
-      event.preventDefault()
-      resetZoom()
-    },
-    [resetZoom],
-  )
+  const onDoubleClick = (event: MouseEvent<HTMLElement>) => {
+    event.preventDefault()
+    resetZoom()
+  }
 
   useEffect(() => {
     return () => {
@@ -219,7 +210,6 @@ export function useZoom({
 
   return {
     transform,
-    containerRef,
     onMouseDown,
     onDoubleClick,
     resetZoom,
