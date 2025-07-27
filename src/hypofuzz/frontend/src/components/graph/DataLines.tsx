@@ -15,13 +15,6 @@ interface DataLinesProps {
   navigate: (path: string) => void
 }
 
-interface LineData {
-  pathData: string
-  color: string
-  url: string | null
-  key: string
-}
-
 export function DataLines({
   lines,
   viewportXScale,

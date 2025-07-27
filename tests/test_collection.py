@@ -274,3 +274,13 @@ def test_skips_test_with_no_generate_phase():
         pass
     """
     assert not collect_names(code)
+
+
+def test_skips_derandomize():
+    code = """
+    @given(st.integers())
+    @settings(derandomize=True)
+    def test_a(n):
+        pass
+    """
+    assert not collect_names(code)

@@ -1340,6 +1340,51 @@ pre code.hljs {
         }
     }
 
+    &__durations {
+        display: flex;
+        gap: 6px;
+        margin-bottom: 15px;
+        flex-wrap: wrap;
+
+        &__button {
+            background: white;
+            color: #666;
+
+            padding: 4px 7px;
+            border: 1px solid #d1d9e0;
+            border-radius: 4px;
+
+            cursor: pointer;
+            font-size: 0.9rem;
+            user-select: none;
+            transition: all 0.05s ease;
+
+            &:hover:not(&--disabled):not(&--active) {
+                background: #f8f9fa;
+                color: #495057;
+            }
+
+            &--active {
+                background: $color-primary;
+                border-color: $color-primary;
+                color: white;
+                font-weight: 600;
+
+                &:hover {
+                    background: $color-primary-hover;
+                }
+            }
+
+            &--disabled {
+                background: #f8f9fa;
+                border-color: #e9ecef;
+                color: #adb5bd;
+                cursor: not-allowed;
+                opacity: 0.6;
+            }
+        }
+    }
+
     &__timeline-header {
         display: flex;
         justify-content: space-between;

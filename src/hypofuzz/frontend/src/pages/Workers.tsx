@@ -31,21 +31,72 @@ class Worker {
   }
 }
 
+interface TimePeriod {
+  label: string
+  // duration in seconds
+  duration: number | null
+}
+
+const TIME_PERIODS: TimePeriod[] = [
+  { label: "Latest", duration: null },
+  { label: "1 hour", duration: 1 * 60 * 60 },
+  { label: "1 day", duration: 24 * 60 * 60 },
+  { label: "7 days", duration: 7 * 24 * 60 * 60 },
+  { label: "1 month", duration: 30 * 24 * 60 * 60 },
+  { label: "3 months", duration: 90 * 24 * 60 * 60 },
+]
+
 function formatTimestamp(timestamp: number): string {
   const date = new Date(timestamp * 1000)
   return date.toLocaleString()
 }
 
-// 24 hours
-const DEFAULT_RANGE_DURATION = 24 * 60 * 60
+// tolerance for a region, in seconds
+const REGION_TOLERANCE = 5 * 60
 
-function niceDefaultRange(
-  minTimestamp: number,
-  maxTimestamp: number,
-): [number, number] {
-  // by default: show from maxTimestamp at the end, to DEFAULT_RANGE_DURATION seconds before
-  // that at the start.
-  return [Math.max(minTimestamp, maxTimestamp - DEFAULT_RANGE_DURATION), maxTimestamp]
+function segmentRegions(segments: Segment[]): [number, number][] {
+  // returns a list of [start, end] regions, where a region is defined as the largest
+  // interval where there is no timestamp without an active segment.
+  // so in
+  //
+  // ```
+  //  [--]          [-------]
+  //   [---]  [-]     [------]
+  // [----]   [--]
+  // ```
+  // there are 3 regions.
+
+  // We iterate over the egments in order of start time. We track the latest seen end time.
+  // If we ever see a segment with a later start time than the current end time, that means
+  // there must have been empty space between them, which marks a new region.
+
+  // assert segments are sorted by segment.start
+  console.assert(
+    segments.every(
+      (segment, index) => index === 0 || segment.start >= segments[index - 1].start,
+    ),
+  )
+
+  if (segments.length == 0) {
+    return []
+  }
+
+  let regions: [number, number][] = []
+  let regionStart = segments[0].start
+  let latestEnd = segments[0].end
+  for (const segment of segments) {
+    if (segment.start > latestEnd + REGION_TOLERANCE) {
+      // this marks a new region
+      regions.push([regionStart, latestEnd])
+      regionStart = segment.start
+    }
+
+    latestEnd = Math.max(latestEnd, segment.end)
+  }
+
+  // finalize the current region
+  regions.push([regionStart, latestEnd])
+  return regions
 }
 
 function nodeColor(nodeid: string): string {
@@ -163,6 +214,8 @@ export function WorkersPage() {
   const navigate = useNavigate()
   const { showTooltip, hideTooltip, moveTooltip } = useTooltip()
   const [expandedWorkers, setExpandedWorkers] = useState<Set<string>>(new Set())
+  const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>(TIME_PERIODS[0]) // Default to "Latest"
+  const [userRange, setUserRange] = useState<[number, number] | null>(null)
 
   const workerUuids = OrderedSet(
     Array.from(tests.values())
@@ -230,14 +283,65 @@ export function WorkersPage() {
   })
 
   workers.sortKey(worker => worker.segments[0].start)
+  const segments = workers
+    .flatMap(worker => worker.segments)
+    .sortKey(segment => segment.start)
+  const regions = segmentRegions(segments)
 
-  const [visibleRange, setVisibleRange] = useState<[number, number]>(
-    niceDefaultRange(minTimestamp, maxTimestamp),
+  const span = maxTimestamp - minTimestamp
+  // find the first time period which is larger than the span of the workers.
+  // that time period is available, but anything after is not.
+  const firstLargerPeriod = TIME_PERIODS.findIndex(
+    period => period.duration !== null && period.duration >= span,
   )
 
+  function getSliderRange(): [number, number] {
+    if (selectedPeriod.duration === null) {
+      const latestRegion = regions[regions.length - 1]
+      // the range is just the last region, unless there are no segments, in which case
+      // we use the min/max timestamp
+      return regions.length > 0
+        ? [latestRegion[0], latestRegion[1]]
+        : [minTimestamp, maxTimestamp]
+    }
+
+    const range: [number, number] = [
+      Math.max(minTimestamp, maxTimestamp - selectedPeriod.duration!),
+      maxTimestamp,
+    ]
+
+    // trim the slider range to remove any time at the beginning or end when there
+    // are no active workers
+    let trimmedMin: number | null = null
+    let trimmedMax: number | null = null
+    for (const worker of workers) {
+      const visibleSegments = worker.visibleSegments(range)
+      if (visibleSegments.length === 0) {
+        continue
+      }
+
+      if (trimmedMin === null || visibleSegments[0].start < trimmedMin) {
+        trimmedMin = visibleSegments[0].start
+      }
+
+      if (
+        trimmedMax === null ||
+        visibleSegments[visibleSegments.length - 1].end > trimmedMax
+      ) {
+        trimmedMax = visibleSegments[visibleSegments.length - 1].end
+      }
+    }
+
+    return [trimmedMin ?? range[0], trimmedMax ?? range[1]]
+  }
+  const sliderRange = getSliderRange()
+  const visibleRange = userRange ?? sliderRange
+
   useEffect(() => {
-    setVisibleRange(niceDefaultRange(minTimestamp, maxTimestamp))
-  }, [minTimestamp, maxTimestamp])
+    // reset the range when clicking on a period, even if it's the same period. This gives a
+    // nice "reset button" ux to users.
+    setUserRange(null)
+  }, [selectedPeriod])
 
   const [visibleMin, visibleMax] = visibleRange
   const visibleDuration = visibleMax - visibleMin
@@ -287,12 +391,30 @@ export function WorkersPage() {
         </div>
         <div className="workers">
           <div className="workers__controls">
+            <div className="workers__durations">
+              {TIME_PERIODS.map((period, index) => {
+                const available = index <= firstLargerPeriod
+                return (
+                  <div
+                    key={index}
+                    className={`workers__durations__button ${
+                      selectedPeriod.label === period.label
+                        ? "workers__durations__button--active"
+                        : ""
+                    } ${!available ? "workers__durations__button--disabled" : ""}`}
+                    onClick={() => available && setSelectedPeriod(period)}
+                  >
+                    {period.label}
+                  </div>
+                )
+              })}
+            </div>
             <RangeSlider
-              min={minTimestamp}
-              max={maxTimestamp}
+              min={sliderRange[0]}
+              max={sliderRange[1]}
               value={visibleRange}
-              onChange={newRange => setVisibleRange(newRange)}
-              step={(maxTimestamp - minTimestamp) / 1000}
+              onChange={newRange => setUserRange(newRange)}
+              step={(sliderRange[1] - sliderRange[0]) / 1000}
             />
           </div>
           <div className="workers__timeline-header">

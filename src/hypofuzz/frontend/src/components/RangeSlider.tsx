@@ -60,7 +60,7 @@ export function RangeSlider({ min, max, value, onChange, step = 1 }: RangeSlider
     setDragging(null)
   }
 
-  const handleTrackClick = (event: React.MouseEvent) => {
+  const handleTrackMouseDown = (event: React.MouseEvent) => {
     if (dragging) return
 
     const newValue = getValueFromPosition(event.clientX)
@@ -69,8 +69,10 @@ export function RangeSlider({ min, max, value, onChange, step = 1 }: RangeSlider
 
     if (minDistance < maxDistance) {
       onChange([Math.min(newValue, maxValue), maxValue])
+      setDragging("min")
     } else {
       onChange([minValue, Math.max(newValue, minValue)])
+      setDragging("max")
     }
   }
 
@@ -89,7 +91,11 @@ export function RangeSlider({ min, max, value, onChange, step = 1 }: RangeSlider
   return (
     <div className="range-slider">
       <div className="range-slider__container">
-        <div ref={sliderRef} className="range-slider__track" onClick={handleTrackClick}>
+        <div
+          ref={sliderRef}
+          className="range-slider__track"
+          onMouseDown={handleTrackMouseDown}
+        >
           <div
             className="range-slider__range"
             style={{

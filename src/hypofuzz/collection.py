@@ -106,6 +106,14 @@ class _ItemsCollector:
             test_settings = getattr(
                 item.obj, "_hypothesis_internal_use_settings", settings()
             )
+
+            # derandomize=True implies database=None, so this will be skipped by our
+            # differing_database check below anyway, but we can give a less confusing
+            # skip reason by checking for derandomize explicitly.
+            if test_settings.derandomize:
+                self._skip_because("sets_derandomize", item.nodeid)
+                continue
+
             if (test_database := test_settings.database) != settings().database:
                 self._skip_because(
                     "differing_database",
