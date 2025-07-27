@@ -71,7 +71,11 @@ function segmentRegions(segments: Segment[]): [number, number][] {
   // there must have been empty space between them, which marks a new region.
 
   // assert segments are sorted by segment.start
-  console.assert(segments.every((segment, index) => index === 0 || segment.start >= segments[index - 1].start))
+  console.assert(
+    segments.every(
+      (segment, index) => index === 0 || segment.start >= segments[index - 1].start,
+    ),
+  )
 
   if (segments.length == 0) {
     return []
@@ -279,26 +283,32 @@ export function WorkersPage() {
   })
 
   workers.sortKey(worker => worker.segments[0].start)
-  const segments = workers.flatMap(worker => worker.segments).sortKey(segment => segment.start)
+  const segments = workers
+    .flatMap(worker => worker.segments)
+    .sortKey(segment => segment.start)
   const regions = segmentRegions(segments)
 
   const span = maxTimestamp - minTimestamp
   // find the first time period which is larger than the span of the workers.
   // that time period is available, but anything after is not.
-  const firstLargerPeriod = TIME_PERIODS.findIndex(period => period.duration !== null && period.duration >= span)
+  const firstLargerPeriod = TIME_PERIODS.findIndex(
+    period => period.duration !== null && period.duration >= span,
+  )
 
   function getSliderRange(): [number, number] {
     if (selectedPeriod.duration === null) {
       const latestRegion = regions[regions.length - 1]
       // the range is just the last region, unless there are no segments, in which case
       // we use the min/max timestamp
-      return regions.length > 0 ? [latestRegion[0], latestRegion[1]] : [minTimestamp, maxTimestamp]
+      return regions.length > 0
+        ? [latestRegion[0], latestRegion[1]]
+        : [minTimestamp, maxTimestamp]
     }
 
     const range: [number, number] = [
-        Math.max(minTimestamp, maxTimestamp - selectedPeriod.duration!),
-        maxTimestamp,
-      ]
+      Math.max(minTimestamp, maxTimestamp - selectedPeriod.duration!),
+      maxTimestamp,
+    ]
 
     // trim the slider range to remove any time at the beginning or end when there
     // are no active workers
@@ -385,18 +395,19 @@ export function WorkersPage() {
               {TIME_PERIODS.map((period, index) => {
                 const available = index <= firstLargerPeriod
                 return (
-                <div
-                  key={index}
-                  className={`workers__durations__button ${
-                    selectedPeriod.label === period.label
-                      ? "workers__durations__button--active"
-                      : ""
-                  } ${!available ? "workers__durations__button--disabled" : ""}`}
-                  onClick={() => available && setSelectedPeriod(period)}
-                >
-                  {period.label}
-                </div>
-              )})}
+                  <div
+                    key={index}
+                    className={`workers__durations__button ${
+                      selectedPeriod.label === period.label
+                        ? "workers__durations__button--active"
+                        : ""
+                    } ${!available ? "workers__durations__button--disabled" : ""}`}
+                    onClick={() => available && setSelectedPeriod(period)}
+                  >
+                    {period.label}
+                  </div>
+                )
+              })}
             </div>
             <RangeSlider
               min={sliderRange[0]}
