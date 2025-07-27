@@ -1,6 +1,6 @@
 import { faArrowDown, faArrowUp, faTimes } from "@fortawesome/free-solid-svg-icons"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
-import React, { ReactNode, useMemo, useState } from "react"
+import React, { ReactNode, useState } from "react"
 import { useIsMobile } from "src/hooks/useIsMobile"
 
 interface TableHeader<T> {
@@ -38,7 +38,7 @@ export function Table<T>({
   const [filterString, setFilterString] = useState("")
   const isMobile = useIsMobile()
 
-  const displayData = useMemo(() => {
+  function getDisplayData() {
     let displayData = data
 
     if (filterString) {
@@ -58,7 +58,7 @@ export function Table<T>({
 
     const sorted = [...displayData].sortKey(item => headers[sortColumn].sortKey!(item))
     return sortDirection === SortOrder.ASC ? sorted : sorted.reverse()
-  }, [data, sortColumn, sortDirection, headers, filterString, filterStrings])
+  }
 
   const handleHeaderClick = (index: number) => {
     if (!headers[index].sortKey) return
@@ -77,6 +77,8 @@ export function Table<T>({
     setFilterString(filter)
     onFilterChange?.(filter)
   }
+
+  const displayData = getDisplayData()
 
   return (
     <div className="table">

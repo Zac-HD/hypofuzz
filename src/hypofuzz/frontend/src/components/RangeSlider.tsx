@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 
 interface RangeSliderProps {
   min: number
@@ -24,47 +24,41 @@ export function RangeSlider({ min, max, value, onChange, step = 1 }: RangeSlider
   const zIndexMin = minPercent < 50 ? 1 : 2
   const zIndexMax = maxPercent < 50 ? 2 : 1
 
-  const getValueFromPosition = useCallback(
-    (clientX: number): number => {
-      if (!sliderRef.current) return min
+  const getValueFromPosition = (clientX: number): number => {
+    if (!sliderRef.current) return min
 
-      const rect = sliderRef.current.getBoundingClientRect()
-      const percent = Math.max(
-        0,
-        Math.min(100, ((clientX - rect.left) / rect.width) * 100),
-      )
-      const rawValue = min + (percent / 100) * range
+    const rect = sliderRef.current.getBoundingClientRect()
+    const percent = Math.max(
+      0,
+      Math.min(100, ((clientX - rect.left) / rect.width) * 100),
+    )
+    const rawValue = min + (percent / 100) * range
 
-      // Snap to step
-      const steppedValue = Math.round(rawValue / step) * step
-      return Math.max(min, Math.min(max, steppedValue))
-    },
-    [min, max, range, step],
-  )
+    // Snap to step
+    const steppedValue = Math.round(rawValue / step) * step
+    return Math.max(min, Math.min(max, steppedValue))
+  }
 
   const handleMouseDown = (thumb: "min" | "max") => (event: React.MouseEvent) => {
     event.preventDefault()
     setDragging(thumb)
   }
 
-  const handleMouseMove = useCallback(
-    (event: MouseEvent) => {
-      if (!dragging) return
+  const handleMouseMove = (event: MouseEvent) => {
+    if (!dragging) return
 
-      const newValue = getValueFromPosition(event.clientX)
+    const newValue = getValueFromPosition(event.clientX)
 
-      if (dragging === "min") {
-        onChange([Math.min(newValue, maxValue), maxValue])
-      } else {
-        onChange([minValue, Math.max(newValue, minValue)])
-      }
-    },
-    [dragging, getValueFromPosition, minValue, maxValue, onChange],
-  )
+    if (dragging === "min") {
+      onChange([Math.min(newValue, maxValue), maxValue])
+    } else {
+      onChange([minValue, Math.max(newValue, minValue)])
+    }
+  }
 
-  const handleMouseUp = useCallback(() => {
+  const handleMouseUp = () => {
     setDragging(null)
-  }, [])
+  }
 
   const handleTrackClick = (event: React.MouseEvent) => {
     if (dragging) return

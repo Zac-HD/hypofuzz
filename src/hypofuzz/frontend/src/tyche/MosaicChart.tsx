@@ -1,5 +1,5 @@
 import { List, Set } from "immutable"
-import React, { useMemo } from "react"
+import React from "react"
 import { Filter, useFilters } from "src/tyche/FilterContext"
 import { Observation } from "src/types/dashboard"
 import { useTooltip } from "src/utils/tooltip"
@@ -32,7 +32,7 @@ export function MosaicChart({
   const { filters, setFilters } = useFilters()
   const { showTooltip, hideTooltip, moveTooltip } = useTooltip()
 
-  const selectedCells = useMemo(() => {
+  function getSelectedCells() {
     const mosaicFilters = filters.get(name) || []
     if (mosaicFilters.length === 0) {
       return Set<List<number>>()
@@ -41,8 +41,9 @@ export function MosaicChart({
     console.assert(mosaicFilters.length === 1)
     const filter = mosaicFilters[0]
     return Set(filter.extraData.selectedCells)
-  }, [filters, name])
+  }
 
+  const selectedCells = getSelectedCells()
   const cells: Cell[][] = []
   const rowTotals: number[] = Array(verticalAxis.length).fill(0)
   const columnTotals: number[] = Array(horizontalAxis.length).fill(0)
@@ -183,30 +184,25 @@ export function MosaicChart({
     setFilters(newFilters)
   }
 
-  const { rowHeaderWidth, columnHeaderHeight, rowTotalWidth } = useMemo(() => {
-    return {
-      rowHeaderWidth: Math.max(
-        ...visibleRows.map(
-          rowIndex =>
-            measureText(verticalAxis[rowIndex][0], "tyche__mosaic__row-header").width,
-        ),
-      ),
-      columnHeaderHeight: Math.max(
-        ...visibleCols.map(
-          colIndex =>
-            measureText(horizontalAxis[colIndex][0], "tyche__mosaic__column-header")
-              .height,
-        ),
-      ),
-      rowTotalWidth: Math.max(
-        ...visibleRows.map(
-          rowIndex =>
-            measureText(rowTotals[rowIndex].toString(), "tyche__mosaic__row-total")
-              .width,
-        ),
-      ),
-    }
-  }, [visibleRows, visibleCols, verticalAxis, horizontalAxis, rowTotals])
+  const rowHeaderWidth = Math.max(
+    ...visibleRows.map(
+      rowIndex =>
+        measureText(verticalAxis[rowIndex][0], "tyche__mosaic__row-header").width,
+    ),
+  )
+
+  const columnHeaderHeight = Math.max(
+    ...visibleCols.map(
+      colIndex =>
+        measureText(horizontalAxis[colIndex][0], "tyche__mosaic__column-header").height,
+    ),
+  )
+  const rowTotalWidth = Math.max(
+    ...visibleRows.map(
+      rowIndex =>
+        measureText(rowTotals[rowIndex].toString(), "tyche__mosaic__row-total").width,
+    ),
+  )
 
   if (visibleRows.length === 0 || visibleCols.length === 0) {
     return <div>No observations</div>

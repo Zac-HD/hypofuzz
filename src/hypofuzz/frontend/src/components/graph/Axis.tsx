@@ -1,5 +1,4 @@
 import { ScaleContinuousNumeric, scaleLinear, scaleSymlog } from "d3-scale"
-import { useMemo } from "react"
 
 interface ZoomState {
   x: number
@@ -45,6 +44,85 @@ function getLogTickValues(maxValue: number): number[] {
   return tickValues
 }
 
+function getTicks({
+  baseScale,
+  tickCount,
+  isLogScale,
+  zoomTransform,
+  orientation,
+}: {
+  baseScale: ScaleContinuousNumeric<number, number>
+  tickCount: number
+  isLogScale: boolean
+  zoomTransform: ZoomState | undefined
+  orientation: "bottom" | "left"
+}) {
+  const baseDomain = baseScale.domain()
+  const baseRange = baseScale.range()
+
+  // Calculate visible domain based on zoom transform
+  let visibleDomain: [number, number]
+
+  if (zoomTransform) {
+    const isHorizontal = orientation === "bottom"
+    // only apply zoom horizontally
+    const scale = isHorizontal ? zoomTransform.scaleX : 1
+    const translation = isHorizontal ? zoomTransform.x : zoomTransform.y
+
+    // Apply inverse transform to range endpoints to get visible domain
+    const rangeStart = baseRange[0]
+    const rangeEnd = baseRange[baseRange.length - 1]
+
+    const visibleStart = baseScale.invert((rangeStart - translation) / scale)
+    const visibleEnd = baseScale.invert((rangeEnd - translation) / scale)
+
+    visibleDomain = [
+      Math.min(visibleStart, visibleEnd),
+      Math.max(visibleStart, visibleEnd),
+    ]
+  } else {
+    visibleDomain = [baseDomain[0], baseDomain[1]]
+  }
+
+  // Generate tick values for the visible domain
+  let tickValues: number[]
+
+  if (isLogScale) {
+    // For log scale, get all powers of 10 within visible range
+    tickValues = getLogTickValues(visibleDomain[1]).filter(
+      val => val >= visibleDomain[0] && val <= visibleDomain[1],
+    )
+  } else {
+    // Create a temporary scale for the visible domain to generate nice ticks
+    const tempScale = isLogScale ? scaleSymlog() : scaleLinear()
+    tempScale.domain(visibleDomain).range(baseRange)
+    tickValues = tempScale.ticks(tickCount)
+  }
+
+  // Position ticks using the base scale and apply zoom transform
+  const ticks: TickData[] = tickValues.map(value => {
+    const baseOffset = baseScale(value)
+    let transformedOffset = baseOffset
+
+    // Apply zoom transform to the tick position
+    if (zoomTransform) {
+      const isHorizontal = orientation === "bottom"
+      if (isHorizontal) {
+        // For horizontal axis, apply horizontal zoom transform
+        transformedOffset = baseOffset * zoomTransform.scaleX + zoomTransform.x
+      }
+    }
+
+    return {
+      value,
+      offset: transformedOffset,
+      formatted: isLogScale ? formatTick(value) : value.toLocaleString(),
+    }
+  })
+
+  return ticks
+}
+
 export function Axis({
   baseScale,
   orientation,
@@ -53,72 +131,13 @@ export function Axis({
   isLogScale = false,
   zoomTransform,
 }: AxisProps) {
-  const ticks = useMemo(() => {
-    const baseDomain = baseScale.domain()
-    const baseRange = baseScale.range()
-
-    // Calculate visible domain based on zoom transform
-    let visibleDomain: [number, number]
-
-    if (zoomTransform) {
-      const isHorizontal = orientation === "bottom"
-      // only apply zoom horizontally
-      const scale = isHorizontal ? zoomTransform.scaleX : 1
-      const translation = isHorizontal ? zoomTransform.x : zoomTransform.y
-
-      // Apply inverse transform to range endpoints to get visible domain
-      const rangeStart = baseRange[0]
-      const rangeEnd = baseRange[baseRange.length - 1]
-
-      const visibleStart = baseScale.invert((rangeStart - translation) / scale)
-      const visibleEnd = baseScale.invert((rangeEnd - translation) / scale)
-
-      visibleDomain = [
-        Math.min(visibleStart, visibleEnd),
-        Math.max(visibleStart, visibleEnd),
-      ]
-    } else {
-      visibleDomain = [baseDomain[0], baseDomain[1]]
-    }
-
-    // Generate tick values for the visible domain
-    let tickValues: number[]
-
-    if (isLogScale) {
-      // For log scale, get all powers of 10 within visible range
-      tickValues = getLogTickValues(visibleDomain[1]).filter(
-        val => val >= visibleDomain[0] && val <= visibleDomain[1],
-      )
-    } else {
-      // Create a temporary scale for the visible domain to generate nice ticks
-      const tempScale = isLogScale ? scaleSymlog() : scaleLinear()
-      tempScale.domain(visibleDomain).range(baseRange)
-      tickValues = tempScale.ticks(tickCount)
-    }
-
-    // Position ticks using the base scale and apply zoom transform
-    const ticks: TickData[] = tickValues.map(value => {
-      const baseOffset = baseScale(value)
-      let transformedOffset = baseOffset
-
-      // Apply zoom transform to the tick position
-      if (zoomTransform) {
-        const isHorizontal = orientation === "bottom"
-        if (isHorizontal) {
-          // For horizontal axis, apply horizontal zoom transform
-          transformedOffset = baseOffset * zoomTransform.scaleX + zoomTransform.x
-        }
-      }
-
-      return {
-        value,
-        offset: transformedOffset,
-        formatted: isLogScale ? formatTick(value) : value.toLocaleString(),
-      }
-    })
-
-    return ticks
-  }, [baseScale, tickCount, isLogScale, zoomTransform, orientation])
+  const ticks = getTicks({
+    baseScale,
+    tickCount,
+    isLogScale,
+    zoomTransform,
+    orientation,
+  })
 
   const isHorizontal = orientation === "bottom"
   const [x1, y1, x2, y2] = isHorizontal

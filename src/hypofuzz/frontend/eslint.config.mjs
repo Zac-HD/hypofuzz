@@ -18,6 +18,9 @@ export default [{
         "simple-import-sort/imports": "error",
         "simple-import-sort/exports": "error",
         "react-hooks/rules-of-hooks": "error",
-        "react-hooks/exhaustive-deps": "error",
+        'react-hooks/react-compiler': 'error',
+        // false positives with react compiler.
+        // see https://github.com/reactwg/react-compiler/discussions/18
+        // "react-hooks/exhaustive-deps": "error",
     },
 }];

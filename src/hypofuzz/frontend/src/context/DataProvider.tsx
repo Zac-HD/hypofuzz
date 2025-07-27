@@ -1,6 +1,5 @@
 import React, {
   createContext,
-  useCallback,
   useContext,
   useEffect,
   useReducer,
@@ -216,12 +215,12 @@ export function DataProvider({ children }: DataProviderProps) {
   const { addNotification, updateNotification, dismissNotification } = useNotification()
   const statusNotification = useRef<number | null>(null)
 
-  const doLoadData = useCallback((nodeid: string | null) => {
+  const doLoadData = (nodeid: string | null) => {
     setLoadData(true)
     setNodeid(nodeid)
-  }, [])
+  }
 
-  const testsLoaded = useCallback(() => {
+  const testsLoaded = () => {
     const now = Date.now()
     return (
       loadingStatus.count_tests_loaded !== null &&
@@ -234,7 +233,7 @@ export function DataProvider({ children }: DataProviderProps) {
         return now - test.load_finished_at > 200
       })
     )
-  }, [loadingStatus, tests])
+  }
 
   useEffect(
     () => {
@@ -467,7 +466,7 @@ export function DataProvider({ children }: DataProviderProps) {
       // to one that does.
     },
     // calls tests.clear, but dont want an infinite loop dependency
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
     [nodeid, loadData, addNotification, dismissNotification, updateNotification],
   )
 

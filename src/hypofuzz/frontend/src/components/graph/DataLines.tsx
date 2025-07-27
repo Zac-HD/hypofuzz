@@ -1,6 +1,6 @@
 import { ScaleContinuousNumeric } from "d3-scale"
 import { line as d3_line } from "d3-shape"
-import { useMemo, useState } from "react"
+import { useState } from "react"
 import { navigateOnClick } from "src/utils/utils"
 
 import { GraphLine, GraphReport } from "./types"
@@ -33,22 +33,20 @@ export function DataLines({
   const [hoveredLineKey, setHoveredLineKey] = useState<string | null>(null)
 
   // Calculate path data using D3 with viewport scales (zoom already applied)
-  const lineData = useMemo<LineData[]>(() => {
-    const lineGenerator = d3_line<GraphReport>()
-      .x(d => viewportXScale(xValue(d)))
-      .y(d => viewportYScale(yValue(d)))
+  const lineGenerator = d3_line<GraphReport>()
+    .x(d => viewportXScale(xValue(d)))
+    .y(d => viewportYScale(yValue(d)))
 
-    return lines.map((line, index) => {
-      const pathData = lineGenerator(line.reports) || ""
+  const lineData = lines.map((line, index) => {
+    const pathData = lineGenerator(line.reports) || ""
 
-      return {
-        pathData,
-        color: line.color,
-        url: line.url,
-        key: `line-${index}-${line.url || "no-url"}`, // Stable key for React
-      }
-    })
-  }, [lines, viewportXScale, viewportYScale, xValue, yValue])
+    return {
+      pathData,
+      color: line.color,
+      url: line.url,
+      key: `line-${index}-${line.url || "no-url"}`, // Stable key for React
+    }
+  })
 
   return (
     <g style={{ pointerEvents: "auto" }}>
