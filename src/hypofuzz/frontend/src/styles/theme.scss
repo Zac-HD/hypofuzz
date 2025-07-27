@@ -3,6 +3,8 @@ $primary-s: 75%;
 $primary-l: 30%;
 $color-primary: hsl($primary-h, $primary-s, $primary-l);
 
+$color-primary-hover: hsl($primary-h, $primary-s, 40%);
+
 $secondary-h: 24;
 $secondary-s: 80%;
 $secondary-l: 60%;
