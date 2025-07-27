@@ -157,6 +157,27 @@ export function Axis({
         strokeWidth={1}
       />
 
+      {/* end caps */}
+      <line
+        className="domain"
+        x1={isHorizontal ? x1 : x1}
+        y1={isHorizontal ? y1 : y1}
+        x2={isHorizontal ? x1 : x1 - 6}
+        y2={isHorizontal ? y1 + 6 : y1}
+        stroke="currentColor"
+        strokeWidth={1}
+      />
+
+      <line
+        className="domain"
+        x1={isHorizontal ? x2 : x2}
+        y1={isHorizontal ? y2 : y2}
+        x2={isHorizontal ? x2 : x2 - 6}
+        y2={isHorizontal ? y2 + 6 : y2}
+        stroke="currentColor"
+        strokeWidth={1}
+      />
+
       {/* Tick marks and labels */}
       {ticks.map((tick, i) => {
         const tickX = isHorizontal ? tick.offset : 0
