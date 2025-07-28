@@ -619,7 +619,7 @@ class FuzzWorker:
                     origin = InterestingOrigin.from_exception(e)
                     # hypothesis just reraises the skip exception; it doesn't
                     # think that it failed. Update the required fields
-                    observation.status == "failed"
+                    observation.status = "failed"
                     observation.status_reason = str(origin)
                     observation.metadata.interesting_origin = origin
                     observation.metadata.traceback = "".join(
