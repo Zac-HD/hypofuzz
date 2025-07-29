@@ -1,11 +1,11 @@
 import sys
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from random import Random
 from typing import Optional
-from hypothesis.control import BuildContext
 
 import pytest
 from hypothesis import assume, given, settings, strategies as st
+from hypothesis.control import BuildContext
 from hypothesis.database import InMemoryExampleDatabase
 from hypothesis.errors import FlakyBackendFailure
 from hypothesis.internal.conjecture.choice import choice_equal, choice_permitted
@@ -32,6 +32,13 @@ class EmptyCoverageCollector(CoverageCollector):
 
     def __exit__(self, *args):
         pass
+
+
+def _assert_priority(target: FuzzTarget, priorities: Sequence[QueuePriority]) -> None:
+    expected = [
+        priority for (priority, _choices, _extra_data) in target.provider._choices_queue
+    ]
+    assert expected == priorities
 
 
 @given(st.integers())
@@ -207,18 +214,18 @@ def test_stability_replays_exact_choices():
     calls = []
 
     @given(st.integers())
-    def test_a(x):
-        if x == 10:
+    def test_a(n):
+        if n == 10:
             pass
-        calls.append(x)
+        calls.append(n)
 
-    process = FuzzTarget.from_hypothesis_test(
+    target = FuzzTarget.from_hypothesis_test(
         test_a, database=HypofuzzDatabase(InMemoryExampleDatabase())
     )
-    process._enter_fixtures()
-    process._execute_once(process.new_conjecture_data(choices=[10]))
+    target._enter_fixtures()
+    target._execute_once(target.new_conjecture_data(choices=[10]))
     # executing again should execute the stability queue
-    process._execute_once(process.new_conjecture_data())
+    target._execute_once(target.new_conjecture_data())
 
     assert calls == [10, 10]
 
@@ -228,26 +235,26 @@ def test_stability_replays_exact_choices():
 )
 def test_stability_only_adds_behaviors_on_replay():
     @given(st.integers())
-    def test_a(x):
-        if x == 10:
+    def test_a(n):
+        if n == 10:
             pass
 
-    process = FuzzTarget.from_hypothesis_test(
+    target = FuzzTarget.from_hypothesis_test(
         test_a, database=HypofuzzDatabase(InMemoryExampleDatabase())
     )
-    process._enter_fixtures()
+    target._enter_fixtures()
 
-    process._execute_once(process.new_conjecture_data(choices=[10]))
+    target._execute_once(target.new_conjecture_data(choices=[10]))
     # added to queue with QueuePriority.COVERING_REPLAY
-    assert list(process.provider.corpus.behavior_counts.values()) == []
+    assert list(target.provider.corpus.behavior_counts.values()) == []
 
-    process._execute_once(process.new_conjecture_data())
+    target._execute_once(target.new_conjecture_data())
     # replaying choices=[10] from the queue for stability
-    assert list(process.provider.corpus.behavior_counts.values()) == [1]
+    assert list(target.provider.corpus.behavior_counts.values()) == [1]
 
-    process._execute_once(process.new_conjecture_data(choices=[10]))
+    target._execute_once(target.new_conjecture_data(choices=[10]))
     # no new behavior, so it increments behavior_counts
-    assert list(process.provider.corpus.behavior_counts.values()) == [2]
+    assert list(target.provider.corpus.behavior_counts.values()) == [2]
 
 
 def test_invalid_data_does_not_add_coverage():
@@ -259,15 +266,15 @@ def test_invalid_data_does_not_add_coverage():
             pass
         assume(False)
 
-    process = FuzzTarget.from_hypothesis_test(
+    target = FuzzTarget.from_hypothesis_test(
         test_a, database=HypofuzzDatabase(InMemoryExampleDatabase())
     )
-    process._enter_fixtures()
+    target._enter_fixtures()
 
     for choices in [[1], [-1], *([None] * 5)]:
-        process._execute_once(process.new_conjecture_data(choices=choices))
-        assert not process.provider.corpus.behavior_counts
-        assert not process.provider.corpus.fingerprints
+        target._execute_once(target.new_conjecture_data(choices=choices))
+        assert not target.provider.corpus.behavior_counts
+        assert not target.provider.corpus.fingerprints
 
 
 def test_backend_setting_can_fail():
@@ -306,23 +313,16 @@ def test_explicit_backend_errors_without_db():
 @pytest.mark.skipif(sys.version_info < (3, 10), reason="different branches on 3.9?")
 def test_does_not_switch_to_generate_when_replaying():
     @given(st.integers())
-    def test_a(x):
-        if x == 10:
+    def test_a(n):
+        if n == 10:
             pass
 
     db = HypofuzzDatabase(InMemoryExampleDatabase())
-    process = FuzzTarget.from_hypothesis_test(test_a, database=db)
+    target = FuzzTarget.from_hypothesis_test(test_a, database=db)
 
-    db.save_corpus(process.database_key, [2])
-    db.save_corpus(process.database_key, [10])
-    process._enter_fixtures()
-
-    def _assert_priority(priorities):
-        expected = [
-            priority
-            for (priority, _choices, _extra_data) in process.provider._choices_queue
-        ]
-        assert expected == priorities
+    db.save_corpus(target.database_key, [2])
+    db.save_corpus(target.database_key, [10])
+    target._enter_fixtures()
 
     # we start in this state conceptually, except the provider hasn't loaded from
     # the db yet, so we can't assert it.
@@ -330,28 +330,28 @@ def test_does_not_switch_to_generate_when_replaying():
 
     # we pop the first COVERING_REPLAY element [2]. It discovers new coverage, so gets
     # re-queued as STABILITY.
-    process.run_one()
-    _assert_priority([QueuePriority.STABILITY, QueuePriority.COVERING_REPLAY])
-    assert process.provider.phase is Phase.REPLAY
+    target.run_one()
+    _assert_priority(target, [QueuePriority.STABILITY, QueuePriority.COVERING_REPLAY])
+    assert target.provider.phase is Phase.REPLAY
 
     # we pop the STABILITY element [2], adding it to the corpus.
-    process.run_one()
-    _assert_priority([QueuePriority.COVERING_REPLAY])
-    assert process.provider.phase is Phase.REPLAY
+    target.run_one()
+    _assert_priority(target, [QueuePriority.COVERING_REPLAY])
+    assert target.provider.phase is Phase.REPLAY
 
     # we pop the COVERING_REPLAY element [10]. It also discovers new coverage, and
     # gets re-queued as STABILITY.
-    process.run_one()
-    _assert_priority([QueuePriority.STABILITY])
-    assert process.provider.phase is Phase.REPLAY
+    target.run_one()
+    _assert_priority(target, [QueuePriority.STABILITY])
+    assert target.provider.phase is Phase.REPLAY
 
     # we pop the STABILITY element [10], adding it to the corpus. This completes
     # our queue.
-    process.run_one()
-    _assert_priority([])
-    assert process.provider.phase is Phase.REPLAY
+    target.run_one()
+    _assert_priority(target, [])
+    assert target.provider.phase is Phase.REPLAY
 
     # we have no more queue elements left, so we transition into Phase.GENERATE.
-    process.run_one()
-    _assert_priority([])
-    assert process.provider.phase is Phase.GENERATE
+    target.run_one()
+    _assert_priority(target, [])
+    assert target.provider.phase is Phase.GENERATE
