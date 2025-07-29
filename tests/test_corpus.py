@@ -156,26 +156,27 @@ def test_corpus_resets_branch_counts_on_new_coverage():
         if x == 2:
             pass
 
-    process = FuzzTarget.from_hypothesis_test(
+    target = FuzzTarget.from_hypothesis_test(
         test_a, database=HypofuzzDatabase(InMemoryExampleDatabase())
     )
-    process._enter_fixtures()
-    provider = process.provider
-    process._execute_once(process.new_conjecture_data(choices=[1]))
+    target._enter_fixtures()
+    provider = target.provider
+    target._execute_once(target.new_conjecture_data(choices=[1]))
     # execute again to re-execute the stability queue
-    process._execute_once(process.new_conjecture_data())
+    target._execute_once(target.new_conjecture_data())
+    assert not provider._choices_queue
 
     for count in range(2, 10):
-        process._execute_once(process.new_conjecture_data(choices=[1]))
+        target._execute_once(target.new_conjecture_data(choices=[1]))
         # we keep incrementing arc counts if we don't find new coverage
         assert len(provider.corpus.behavior_counts) == 1
         assert list(provider.corpus.behavior_counts.values()) == [count]
 
     assert not provider._choices_queue
-    process._execute_once(process.new_conjecture_data(choices=[2]))
+    target._execute_once(target.new_conjecture_data(choices=[2]))
     assert len(provider._choices_queue) == 1
     # execute again for stability
-    process._execute_once(process.new_conjecture_data())
+    target._execute_once(target.new_conjecture_data())
     assert not provider._choices_queue
 
     # our behavior counts should get reset whenever we discover a new behavior (branch)

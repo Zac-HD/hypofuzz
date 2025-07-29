@@ -42,13 +42,13 @@ def test_database_state():
         if x:
             pass
 
-    process = FuzzTarget.from_hypothesis_test(test_a, database=db)
-    process._enter_fixtures()
-    process._execute_once(process.new_conjecture_data(choices=[2]))
+    target = FuzzTarget.from_hypothesis_test(test_a, database=db)
+    target._enter_fixtures()
+    target._execute_once(target.new_conjecture_data(choices=[2]))
     # for coverage stability
-    process._execute_once(process.new_conjecture_data())
+    target._execute_once(target.new_conjecture_data())
 
-    key = process.database_key
+    key = target.database_key
 
     # the database state should be:
     # * database_key.hypofuzz.test_keys                 (1 element)
@@ -77,9 +77,9 @@ def test_database_state():
     # * database_key.hypofuzz.corpus                    (1 element) (a new one)
     # * database_key.hypofuzz.corpus.<hash>.observation (1 element) (a new one)
     # * database_key.hypofuzz.reports                   (2 elements)
-    process._execute_once(process.new_conjecture_data(choices=[1]))
+    target._execute_once(target.new_conjecture_data(choices=[1]))
     # for stability
-    process._execute_once(process.new_conjecture_data())
+    target._execute_once(target.new_conjecture_data())
 
     # the key for the deleted observation sticks around in the database, it's
     # just an empty mapping.
@@ -102,22 +102,20 @@ def test_adds_failures_to_database():
     def test_a(x):
         assert x != 10
 
-    process = FuzzTarget.from_hypothesis_test(test_a, database=db)
-    process._enter_fixtures()
+    target = FuzzTarget.from_hypothesis_test(test_a, database=db)
+    target._enter_fixtures()
     for _ in range(500):
-        process.run_one()
+        target.run_one()
 
-    failures = list(db.fetch_failures(process.database_key, state=FailureState.SHRUNK))
-    failures_hypothesis = list(db._db.fetch(process.database_key))
+    failures = list(db.fetch_failures(target.database_key, state=FailureState.SHRUNK))
+    failures_hypothesis = list(db._db.fetch(target.database_key))
     assert len(failures) == 1
     assert len(failures_hypothesis) == 1
     assert failures[0] == (10,)
     assert choices_from_bytes(failures_hypothesis[0]) == (10,)
 
     # we should have fully shrunk the failure
-    assert not list(
-        db.fetch_failures(process.database_key, state=FailureState.UNSHRUNK)
-    )
+    assert not list(db.fetch_failures(target.database_key, state=FailureState.UNSHRUNK))
 
 
 def test_database_keys_incorporate_parametrization(tmp_path):

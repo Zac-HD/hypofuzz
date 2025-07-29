@@ -573,10 +573,7 @@ class HypofuzzDatabase:
             # If we don't have anything at all, load from the database - earliest
             # first so we drop those first
             obs_buffer.extend(
-                sorted(
-                    list(self.fetch_observations(key)),
-                    key=lambda x: x.run_start,
-                )
+                sorted(self.fetch_observations(key), key=lambda x: x.run_start)
             )
 
         obs_buffer.append(observation)
@@ -641,10 +638,10 @@ class HypofuzzDatabase:
             self.save(corpus_observation_key(key, choices), self._encode(observation))
             return
 
-        existing = list(self.fetch_corpus_observations(key, choices))
+        existing_observations = list(self.fetch_corpus_observations(key, choices))
         self.save(corpus_observation_key(key, choices), self._encode(observation))
-        for observation in existing:
-            self.delete_corpus_observation(key, choices, observation)
+        for existing in existing_observations:
+            self.delete_corpus_observation(key, choices, existing)
 
     def delete_corpus_observation(
         self, key: bytes, choices: HashableIterable[ChoiceT], observation: Observation
@@ -694,11 +691,11 @@ class HypofuzzDatabase:
                 failure_observation_key(key, choices, state=state),
                 self._encode(observation),
             )
-            for observation in existing_observations:
-                self._check_observation(observation)
+            for existing in existing_observations:
+                self._check_observation(existing)
                 self.delete(
                     failure_observation_key(key, choices, state=state),
-                    self._encode(observation),
+                    self._encode(existing),
                 )
 
     def delete_failure(
