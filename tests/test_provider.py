@@ -1,6 +1,8 @@
 import sys
 from collections.abc import Iterable
 from random import Random
+from typing import Optional
+from hypothesis.control import BuildContext
 
 import pytest
 from hypothesis import assume, given, settings, strategies as st
@@ -32,8 +34,15 @@ class EmptyCoverageCollector(CoverageCollector):
         pass
 
 
-def hypofuzz_data(
-    random: Random, *, queue: Iterable[tuple[QueuePriority, ChoicesT]] = ()
+@given(st.integers())
+def _wrapped_test(n):
+    pass
+
+
+def _data(
+    *,
+    random: Optional[Random] = None,
+    queue: Iterable[tuple[QueuePriority, ChoicesT]] = (),
 ) -> ConjectureData:
     data = ConjectureData(
         random=random,
@@ -50,7 +59,9 @@ def hypofuzz_data(
     assert isinstance(data.provider, HypofuzzProvider)
     # force HypofuzzProvider to load from the db now, so we can control the
     # queue for tests
-    data.provider._startup()
+
+    with BuildContext(ConjectureData.for_choices([]), wrapped_test=_wrapped_test):
+        data.provider._startup()
     # remove the initial ChoiceTemplate(type="simplest") queue
     data.provider._choices_queue.clear()
     for priority, choices in queue:
@@ -63,10 +74,7 @@ def hypofuzz_data(
 @settings(deadline=None)
 def test_drawing_prefix_exactly(nodes):
     # drawing exactly a prefix gives that prefix
-    data = hypofuzz_data(
-        random=None, queue=[(QueuePriority.COVERING, tuple(n.value for n in nodes))]
-    )
-
+    data = _data(queue=[(QueuePriority.COVERING, tuple(n.value for n in nodes))])
     with data.provider.per_test_case_context_manager():
         for node in nodes:
             choice = getattr(data, f"draw_{node.type}")(**node.constraints)
@@ -78,7 +86,7 @@ def test_drawing_prefix_exactly(nodes):
 def test_draw_past_prefix(choice_type_and_constraints, random):
     # drawing past the prefix gives random (permitted) values
     choice_type, constraints = choice_type_and_constraints
-    data = hypofuzz_data(random=random, queue=[(QueuePriority.COVERING, ())])
+    data = _data(random=random, queue=[(QueuePriority.COVERING, ())])
 
     with data.provider.per_test_case_context_manager():
         choice = getattr(data, f"draw_{choice_type}")(**constraints)
@@ -88,48 +96,42 @@ def test_draw_past_prefix(choice_type_and_constraints, random):
 
 @given(nodes(), choice_type_and_constraints(), st.randoms())
 @settings(deadline=None)
-def test_misaligned_type(node, ir_type_kwargs, random):
+def test_misaligned_type(node, choice_type_constraints, random):
     # misaligning in type gives us random values
-    ir_type, kwargs = ir_type_kwargs
-    assume(ir_type != node.type)
-    data = hypofuzz_data(random=random, queue=[(QueuePriority.COVERING, (node.value,))])
+    choice_type, constraints = choice_type_constraints
+    assume(choice_type != node.type)
+    data = _data(random=random, queue=[(QueuePriority.COVERING, (node.value,))])
 
     with data.provider.per_test_case_context_manager():
-        choice = getattr(data, f"draw_{ir_type}")(**kwargs)
+        choice = getattr(data, f"draw_{choice_type}")(**constraints)
 
-    assert choice_permitted(choice, kwargs)
+    assert choice_permitted(choice, constraints)
 
 
-@given(st.data())
+@given(st.data(), nodes(), st.randoms())
 @settings(deadline=None)
-def test_misaligned_kwargs(data):
-    # misaligning in permitted kwargs gives us random values
-    node = data.draw(nodes())
-    kwargs = data.draw(constraints_strategy(node.type))
-    assume(not choice_permitted(node.value, kwargs))
-    data = hypofuzz_data(
-        random=data.draw(st.randoms()), queue=[(QueuePriority.COVERING, (node.value,))]
-    )
+def test_misaligned_constraints(data, node, random):
+    # misaligning in constraints gives us random values
+    constraints = data.draw(constraints_strategy(node.type))
+    assume(not choice_permitted(node.value, constraints))
 
+    data = _data(random=random, queue=[(QueuePriority.COVERING, (node.value,))])
     with data.provider.per_test_case_context_manager():
-        choice = getattr(data, f"draw_{node.type}")(**kwargs)
+        choice = getattr(data, f"draw_{node.type}")(**constraints)
 
-    assert choice_permitted(choice, kwargs)
+    assert choice_permitted(choice, constraints)
 
 
-@given(st.data())
+@given(st.data(), nodes(), st.randoms())
 @settings(deadline=None)
-def test_changed_kwargs_pops_if_still_permitted(data):
-    # changing kwargs to something that still permits the value still pops the value
-    node = data.draw(nodes())
-    kwargs = data.draw(constraints_strategy(node.type))
-    assume(choice_permitted(node.value, kwargs))
-    data = hypofuzz_data(
-        random=data.draw(st.randoms()), queue=[(QueuePriority.COVERING, (node.value,))]
-    )
+def test_changed_constraints_pops_if_still_permitted(data, node, random):
+    # changing constraints to something that still permits the value still pops the value
+    constraints = data.draw(constraints_strategy(node.type))
+    assume(choice_permitted(node.value, constraints))
 
+    data = _data(random=random, queue=[(QueuePriority.COVERING, (node.value,))])
     with data.provider.per_test_case_context_manager():
-        choice = getattr(data, f"draw_{node.type}")(**kwargs)
+        choice = getattr(data, f"draw_{node.type}")(**constraints)
 
     assert choice_equal(choice, node.value)
 
@@ -189,10 +191,8 @@ def test_provider_deletes_old_timed_reports(monkeypatch):
         )
 
 
-@given(st.randoms())
-def test_reuse_provider(random):
-    data = hypofuzz_data(
-        random=random,
+def test_provider_multiple_executions():
+    data = _data(
         queue=[(QueuePriority.COVERING, (1,)), (QueuePriority.COVERING, (2,))],
     )
 
