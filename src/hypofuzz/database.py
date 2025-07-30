@@ -157,6 +157,10 @@ class Observation:
         # we disable observability coverage, so discard the empty key
         data.pop("coverage", None)
         data["status"] = ObservationStatus(data["status"])
+        data["metadata"]["predicates"] = {
+            k: PredicateCounts(satisfied=v["satisfied"], unsatisfied=v["unsatisfied"])
+            for k, v in data["metadata"]["predicates"].items()
+        }
         data["metadata"] = ObservationMetadata(**data["metadata"])
         return cls(**data)
 
@@ -209,11 +213,17 @@ class DatabaseEvent:
         value: Any
         parse: Any
         (event_type, (full_key, value)) = event
-        if b"." not in full_key or len(full_key) <= cls.DATABASE_KEY_LENGTH:
+        # unfortunately a key which is exactly equal to the database key length
+        # is valid, and we can't adjust that, because that's the database key
+        # hypothesis uses for failures.
+        if len(full_key) < cls.DATABASE_KEY_LENGTH or (
+            len(full_key) > cls.DATABASE_KEY_LENGTH and b"." not in full_key
+        ):
             return None
 
-        # indexing into bytes converts to int
-        assert full_key[cls.DATABASE_KEY_LENGTH] == ord("."), full_key
+        if len(full_key) > cls.DATABASE_KEY_LENGTH:
+            # ord because indexing into bytes converts to int
+            assert full_key[cls.DATABASE_KEY_LENGTH] == ord("."), full_key
         database_key = full_key[: cls.DATABASE_KEY_LENGTH]
 
         event_matchers: list[tuple[Callable, DatabaseEventKey, Callable]] = [
@@ -251,7 +261,7 @@ class DatabaseEvent:
             ),
             (
                 lambda: is_corpus_observation_key(full_key),
-                DatabaseEventKey.ROLLING_OBSERVATION,
+                DatabaseEventKey.CORPUS_OBSERVATION,
                 Observation.from_json,
             ),
             (
