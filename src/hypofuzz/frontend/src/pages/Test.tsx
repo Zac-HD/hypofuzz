@@ -6,6 +6,7 @@ import {
   faCodeBranch,
   faFingerprint,
   faHashtag,
+  faScaleBalanced,
   faSeedling,
   faTachometerAlt,
 } from "@fortawesome/free-solid-svg-icons"
@@ -122,6 +123,7 @@ export function TestPage() {
         existing.failures,
         existing.fatal_failure,
         existing.reports_by_worker,
+        existing.stability,
       )
     : null
 
@@ -210,6 +212,18 @@ export function TestPage() {
         />
       ),
     },
+    {
+      content: (
+        <Tooltip
+          content={
+            <div className="table__header__icon">
+              <FontAwesomeIcon icon={faScaleBalanced} />
+            </div>
+          }
+          tooltip="Coverage stability (percentage of inputs with deterministic coverage when replayed)"
+        />
+      ),
+    },
   ]
 
   return (
@@ -250,6 +264,9 @@ export function TestPage() {
               </div>,
               <div style={{ fontVariantNumeric: "tabular-nums" }}>
                 {item.timeSpent}
+              </div>,
+              <div style={{ fontVariantNumeric: "tabular-nums" }}>
+                {item.stability}
               </div>,
             ]}
           />

@@ -56,6 +56,7 @@ export class Test extends Dataclass<Test> {
     public failures: Map<string, Failure>,
     public fatal_failure: string | null,
     public reports_by_worker: Map<string, Report[]>,
+    public stability: number | null,
   ) {
     super()
     this.linear_reports = []
@@ -100,6 +101,7 @@ export class Test extends Dataclass<Test> {
           (value as any[]).map(Report.fromJson),
         ]),
       ),
+      data.stability,
     )
   }
 

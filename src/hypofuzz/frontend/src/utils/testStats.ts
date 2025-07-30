@@ -1,3 +1,4 @@
+import { Stability } from "src/types/dashboard"
 import { Test } from "src/types/test"
 
 export interface TestStats {
@@ -7,6 +8,7 @@ export interface TestStats {
   executions: string
   inputsSinceBranch: string
   timeSpent: string
+  stability: string
 }
 
 export function formatTime(t: number): string {
@@ -29,6 +31,11 @@ export function inputsPerSecond(test: Test): number | null {
   return elapsed === 0.0 ? null : ninputs / elapsed
 }
 
+function formatPercent(value: number): string {
+  const dp = (value * 100) % 1 === 0 ? 0 : 1
+  return (value * 100).toFixed(dp)
+}
+
 export function getTestStats(test: Test): TestStats {
   if (test.linear_reports.length === 0) {
     return {
@@ -38,6 +45,7 @@ export function getTestStats(test: Test): TestStats {
       executions: "—",
       inputsSinceBranch: "—",
       timeSpent: "—",
+      stability: "—",
     }
   }
 
@@ -49,5 +57,6 @@ export function getTestStats(test: Test): TestStats {
     executions: perSecond === null ? "—" : `${perSecond.toFixed(1).toLocaleString()}/s`,
     inputsSinceBranch: test.since_new_behavior?.toLocaleString() ?? "—",
     timeSpent: formatTime(test.elapsed_time(null)),
+    stability: test.stability === null ? "—" : `${formatPercent(test.stability)}%`,
   }
 }

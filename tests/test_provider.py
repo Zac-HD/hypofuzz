@@ -229,7 +229,7 @@ def test_stability_replays_exact_choices():
     target._enter_fixtures()
     target._execute_once(target.new_conjecture_data(choices=[10]))
     # executing again should execute the stability queue
-    target._execute_once(target.new_conjecture_data())
+    target.run_one()
 
     assert calls == [10, 10]
 
@@ -252,7 +252,7 @@ def test_stability_only_adds_behaviors_on_replay():
     # added to queue with QueuePriority.COVERING_REPLAY
     assert list(target.provider.corpus.behavior_counts.values()) == []
 
-    target._execute_once(target.new_conjecture_data())
+    target.run_one()
     # replaying choices=[10] from the queue for stability
     assert list(target.provider.corpus.behavior_counts.values()) == [1]
 
@@ -315,7 +315,7 @@ def test_explicit_backend_errors_without_db():
 
 
 @pytest.mark.skipif(sys.version_info < (3, 10), reason="different branches on 3.9?")
-def test_does_not_switch_to_generate_when_replaying():
+def test_does_not_switch_to_generate_when_replaying(monkeypatch):
     @given(st.integers())
     def test_a(n):
         if n == 10:
@@ -323,6 +323,10 @@ def test_does_not_switch_to_generate_when_replaying():
 
     db = HypofuzzDatabase(InMemoryExampleDatabase())
     target = FuzzTarget.from_hypothesis_test(test_a, database=db)
+    # rolling observations re-execute for stability. Ignore that for this test.
+    monkeypatch.setattr(
+        target.provider, "_should_save_rolling_observation", lambda priority: False
+    )
 
     db.save_corpus(target.database_key, [2])
     db.save_corpus(target.database_key, [10])
@@ -359,3 +363,85 @@ def test_does_not_switch_to_generate_when_replaying():
     target.run_one()
     _assert_priority(target, [])
     assert target.provider.phase is Phase.GENERATE
+
+
+def test_increments_since_counts_only_on_mutate():
+    # test that we only increment provider.since_new_{behavior, fingerprint}
+    # on mutated inputs, not on replayed inputs.
+    #
+    # the semantics of when exactly we reset these counts is a bit unusual.
+    # We reset to 0 when we successfully replay for stability, not when we
+    # first discover the new coverage.
+    @given(st.integers())
+    def f(n):
+        if n == 10:
+            pass
+
+    target = FuzzTarget.from_hypothesis_test(
+        f, database=HypofuzzDatabase(InMemoryExampleDatabase())
+    )
+    target._enter_fixtures()
+
+    assert target.provider.since_new_behavior == 0
+    assert target.provider.since_new_fingerprint == 0
+
+    target._execute_once(target.new_conjecture_data(choices=[10]))
+    _assert_priority(target, [QueuePriority.STABILITY])
+    assert target.provider.since_new_behavior == 1
+    assert target.provider.since_new_fingerprint == 1
+
+    target.run_one()
+    _assert_priority(target, [])
+    assert target.provider.since_new_behavior == 0
+    assert target.provider.since_new_fingerprint == 0
+
+
+def test_observation_and_corpus_stability(monkeypatch):
+    @given(st.integers())
+    def test_a(n):
+        if n == 10:
+            pass
+
+    def _assert_stability(reasons):
+        assert len(queue) == 1
+        assert queue[0][0] is QueuePriority.STABILITY
+        assert queue[0][2]["reasons"] == reasons
+
+    target = FuzzTarget.from_hypothesis_test(
+        test_a, database=HypofuzzDatabase(InMemoryExampleDatabase())
+    )
+    save_observations = False
+    monkeypatch.setattr(
+        target.provider,
+        "_should_save_rolling_observation",
+        lambda priority: save_observations,
+    )
+
+    queue = target.provider._choices_queue
+    target._enter_fixtures()
+
+    # this generates a single stability queue for both coverage and observability
+    save_observations = True
+    target._execute_once(target.new_conjecture_data(choices=[10]))
+    save_observations = False
+    _assert_stability({"covering", "observation"})
+    target.run_one()
+    assert not queue
+
+    # no new coverage, so no stability reexecution
+    target._execute_once(target.new_conjecture_data(choices=[10]))
+    assert not queue
+
+    # new coverage, but not new observation
+    target._execute_once(target.new_conjecture_data(choices=[0]))
+    _assert_stability({"covering"})
+    target.run_one()
+    assert not queue
+
+    # new observation, but not new coveraage
+    save_observations = True
+    target._execute_once(target.new_conjecture_data(choices=[0]))
+    save_observations = False
+    _assert_stability({"observation"})
+    target.run_one()
+    assert not queue

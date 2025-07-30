@@ -11,6 +11,7 @@ from hypofuzz.database import (
     Phase,
     Report,
     ReportWithDiff,
+    Stability,
     StatusCounts,
     convert_db_key,
 )
@@ -208,6 +209,17 @@ class Test:
                     for key, (start_idx, values) in cache.cache.items():
                         if index >= start_idx:
                             cache[key] = (start_idx, values[: index - start_idx])
+
+    @property
+    def stability(self) -> Optional[float]:
+        if not self.rolling_observations:
+            return None
+
+        count_stable = sum(
+            observation.stability is Stability.STABLE
+            for observation in self.rolling_observations
+        )
+        return count_stable / len(self.rolling_observations)
 
     @property
     def phase(self) -> Optional[Phase]:
