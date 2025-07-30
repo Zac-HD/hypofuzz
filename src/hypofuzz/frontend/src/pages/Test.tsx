@@ -23,6 +23,7 @@ import { Tooltip } from "src/components/Tooltip"
 import { useData } from "src/context/DataProvider"
 import { Tyche } from "src/tyche/Tyche"
 import { Failure } from "src/types/dashboard"
+import { Test } from "src/types/test"
 import { fetchAvailablePatches } from "src/utils/api"
 import { getTestStats } from "src/utils/testStats"
 import { reHighlight } from "src/utils/utils"
@@ -106,7 +107,23 @@ export function TestPage() {
     })
   }, [])
 
-  const test = tests.get(nodeid!) ?? null
+  const existing = tests.get(nodeid!)
+  // make a new object each time we rerender, or the component will never update.
+  //
+  // I feel like this should be fixed at a more basic level by creating a new Test each
+  // time in DataProvider's getOrCreateTest, but that didn't work. I'm misunderstanding
+  // something in react renders.
+  const test = existing
+    ? new Test(
+        existing.database_key,
+        existing.nodeid,
+        existing.rolling_observations,
+        existing.corpus_observations,
+        existing.failures,
+        existing.fatal_failure,
+        existing.reports_by_worker,
+      )
+    : null
 
   useEffect(() => {
     if (test) {

@@ -10,8 +10,12 @@ from hypothesis.database import InMemoryExampleDatabase
 from hypothesis.errors import FlakyBackendFailure
 from hypothesis.internal.conjecture.choice import choice_equal, choice_permitted
 from hypothesis.internal.conjecture.data import ConjectureData
+from hypothesis.internal.conjecture.provider_conformance import (
+    choice_types_constraints,
+    constraints_strategy,
+)
 from hypothesis.internal.reflection import function_digest
-from strategies import choice_type_and_constraints, constraints_strategy, nodes
+from strategies import nodes
 
 from hypofuzz import provider
 from hypofuzz.coverage import CoverageCollector
@@ -88,11 +92,11 @@ def test_drawing_prefix_exactly(nodes):
             assert choice_equal(node.value, choice)
 
 
-@given(choice_type_and_constraints(), st.randoms())
+@given(choice_types_constraints(), st.randoms())
 @settings(deadline=None)
-def test_draw_past_prefix(choice_type_and_constraints, random):
+def test_draw_past_prefix(choice_types_constraints, random):
     # drawing past the prefix gives random (permitted) values
-    choice_type, constraints = choice_type_and_constraints
+    choice_type, constraints = choice_types_constraints
     data = _data(random=random, queue=[(QueuePriority.COVERING, ())])
 
     with data.provider.per_test_case_context_manager():
@@ -101,7 +105,7 @@ def test_draw_past_prefix(choice_type_and_constraints, random):
     assert choice_permitted(choice, constraints)
 
 
-@given(nodes(), choice_type_and_constraints(), st.randoms())
+@given(nodes(), choice_types_constraints(), st.randoms())
 @settings(deadline=None)
 def test_misaligned_type(node, choice_type_constraints, random):
     # misaligning in type gives us random values

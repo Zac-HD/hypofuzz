@@ -1,5 +1,7 @@
+import json
 import subprocess
 
+import pytest
 from common import BASIC_TEST_CODE, fuzz, setup_test_code, wait_for, wait_for_test_key
 from hypothesis import given, strategies as st
 from hypothesis.database import (
@@ -7,8 +9,28 @@ from hypothesis.database import (
     InMemoryExampleDatabase,
     choices_from_bytes,
 )
+from hypothesis.internal.conjecture.choice import choice_equal
+from strategies import choices
 
-from hypofuzz.database import FailureState, HypofuzzDatabase, Phase, test_keys_key
+from hypofuzz.database import (
+    DatabaseEvent,
+    DatabaseEventKey,
+    FailureState,
+    HypofuzzDatabase,
+    HypofuzzEncoder,
+    Observation,
+    ObservationMetadata,
+    Phase,
+    Report,
+    _failure_observation_postfix,
+    _failure_postfix,
+    choices_to_bytes,
+    corpus_key,
+    failures_key,
+    reports_key,
+    rolling_observations_key,
+    test_keys_key,
+)
 from hypofuzz.hypofuzz import FuzzTarget
 
 
@@ -184,3 +206,141 @@ def test_all_corpus_choices_have_observations(tmp_path):
             return True
 
         wait_for(all_corpus_choices_have_observations, timeout=10, interval=0.05)
+
+
+def observations():
+    return st.builds(
+        Observation,
+        run_start=st.floats(allow_nan=False),
+        # these are typed as Any for convenience, but we can't generate from
+        # that. Can remove this when they are typed more strictly.
+        arguments=st.just({}),
+        features=st.just({}),
+        timing=st.just({}),
+        metadata=st.builds(
+            ObservationMetadata,
+            backend=st.just({}),
+            imported_at=st.floats(allow_nan=False),
+        ),
+    )
+
+
+def reports():
+    return st.builds(
+        Report,
+        elapsed_time=st.floats(min_value=0.0, allow_nan=False),
+        timestamp=st.floats(allow_nan=False),
+        behaviors=st.integers(min_value=0),
+        fingerprints=st.integers(min_value=0),
+        since_new_behavior=st.integers(min_value=0),
+    )
+
+
+@given(observations())
+def test_observation_roundtrip(observation):
+    encoded = bytes(json.dumps(observation, cls=HypofuzzEncoder), "ascii")
+    assert Observation.from_json(encoded) == observation
+
+
+# arbitrary choice sequence hash
+_choices_hash = b"00000"
+
+
+def _failure_observation_key(*, state: FailureState) -> bytes:
+    return (
+        failures_key
+        + _failure_observation_postfix(state=state)
+        + b"."
+        + _choices_hash
+        + b".observation"
+    )
+
+
+@pytest.mark.parametrize(
+    "key, event_key, value_strategy, serializer",
+    [
+        (reports_key, DatabaseEventKey.REPORT, reports, "json"),
+        (
+            corpus_key,
+            DatabaseEventKey.CORPUS,
+            lambda: st.tuples(choices()),
+            choices_to_bytes,
+        ),
+        (
+            _failure_postfix(state=FailureState.SHRUNK),
+            DatabaseEventKey.FAILURE_SHRUNK,
+            lambda: st.tuples(choices()),
+            choices_to_bytes,
+        ),
+        (
+            _failure_postfix(state=FailureState.UNSHRUNK),
+            DatabaseEventKey.FAILURE_UNSHRUNK,
+            lambda: st.tuples(choices()),
+            choices_to_bytes,
+        ),
+        (
+            _failure_postfix(state=FailureState.FIXED),
+            DatabaseEventKey.FAILURE_FIXED,
+            lambda: st.tuples(choices()),
+            choices_to_bytes,
+        ),
+        (
+            corpus_key + b"." + _choices_hash + b".observation",
+            DatabaseEventKey.CORPUS_OBSERVATION,
+            observations,
+            "json",
+        ),
+        (
+            rolling_observations_key,
+            DatabaseEventKey.ROLLING_OBSERVATION,
+            observations,
+            "json",
+        ),
+        (
+            _failure_observation_key(state=FailureState.SHRUNK),
+            DatabaseEventKey.FAILURE_SHRUNK_OBSERVATION,
+            observations,
+            "json",
+        ),
+        (
+            _failure_observation_key(state=FailureState.UNSHRUNK),
+            DatabaseEventKey.FAILURE_UNSHRUNK_OBSERVATION,
+            observations,
+            "json",
+        ),
+        (
+            _failure_observation_key(state=FailureState.FIXED),
+            DatabaseEventKey.FAILURE_FIXED_OBSERVATION,
+            observations,
+            "json",
+        ),
+    ],
+)
+def test_database_event(key, event_key, value_strategy, serializer):
+    @given(
+        st.sampled_from(["save", "delete"]),
+        st.binary(
+            min_size=DatabaseEvent.DATABASE_KEY_LENGTH,
+            max_size=DatabaseEvent.DATABASE_KEY_LENGTH,
+        ),
+        value_strategy(),
+    )
+    def test(event_type, database_key, value):
+        value_bytes = (
+            serializer(value)
+            if serializer != "json"
+            else bytes(json.dumps(value, cls=HypofuzzEncoder), "ascii")
+        )
+        full_key = database_key + key
+        event = DatabaseEvent.from_event((event_type, (full_key, value_bytes)))
+        assert event is not None
+        assert event.type == event_type
+        assert event.database_key == database_key
+        assert event.key is event_key
+        if isinstance(value, tuple):
+            assert len(event.value) == len(value)
+            assert all(choice_equal(v1, v2) for v1, v2 in zip(event.value, value))
+        else:
+            assert event.value == value
+
+    test()

@@ -175,7 +175,8 @@ function testsReducer(
       const { nodeid, observation_type, observations } = action
       const test = getOrCreateTest(nodeid)
       if (observation_type === "rolling") {
-        test.rolling_observations.push(...observations)
+        // make sure to create a new ref, not mutate the existing one
+        test.rolling_observations = [...test.rolling_observations, ...observations]
         // keep only the most recent 300 rolling observations, by run_start
         //
         // this is a good candidate for a proper nlogn SortedList
@@ -185,7 +186,7 @@ function testsReducer(
         prepareObservations(test.rolling_observations)
       } else {
         console.assert(observation_type === "corpus")
-        test.corpus_observations.push(...observations)
+        test.corpus_observations = [...test.corpus_observations, ...observations]
         prepareObservations(test.corpus_observations)
       }
       return newState
