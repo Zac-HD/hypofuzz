@@ -519,8 +519,14 @@ class HypofuzzProvider(PrimitiveProvider):
         )
         # Limit observations to a percentage of total runtime. If a test only
         # gets 1 exec/s, we could otherwise spend 50% of our time in replay.
-        rolling_observation_stability = self._time_in_observation_stability < (
-            self.elapsed_time * self.OBSERVATION_REEXECUTION_LIMIT
+        rolling_observation_stability = (
+            self._time_in_observation_stability
+            <= (self.elapsed_time * self.OBSERVATION_REEXECUTION_LIMIT)
+            # Sanity check: dont limit under very low runtimes.
+            # This is mostly for tests which monkeypatch should_save and have
+            # 0 runtime overhead. But it's good in general to not make too many
+            # runtime decisions until we have a reasonable sample size.
+            or self.elapsed_time < 1
         )
         start = time.perf_counter()
 
