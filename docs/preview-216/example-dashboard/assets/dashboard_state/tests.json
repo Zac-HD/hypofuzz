@@ -1,6 +1,7 @@
 {
   "tests/test_visual.py::test_visual_tyche_almost_always_invalid": {
     "database_key": "lQWt8AVUI93sjS+MqkLWbdycBtqHqKTiCRPxSGypvtjdih/RmPBHsYS5KGNnaLcQ",
+    "stability": 1,
     "nodeid": "tests/test_visual.py::test_visual_tyche_almost_always_invalid",
     "failures": [],
     "reports_by_worker": {
@@ -52,6 +53,7 @@
   },
   "tests/test_branches.py::test_branch_make": {
     "database_key": "CTbnl4qlfWt+ovSANSsdntw1wLuJ7pavnQFN/ZEvUVeQA1WgIYI0rlCS8j9b2cTL",
+    "stability": 1,
     "nodeid": "tests/test_branches.py::test_branch_make",
     "failures": [],
     "reports_by_worker": {
@@ -103,6 +105,7 @@
   },
   "tests/test_utils.py::test_k_way_merge": {
     "database_key": "M4s3YvS2ga7g22yo9a0b5dbhVv1gd+6cRYntqnWoNiqrDE3nSxPRKM2Z2ZWh1zL4",
+    "stability": 1,
     "nodeid": "tests/test_utils.py::test_k_way_merge",
     "failures": [],
     "reports_by_worker": {
@@ -154,6 +157,7 @@
   },
   "tests/test_branches.py::test_branch_cache": {
     "database_key": "ZqBR/uK7TefJf4GYTsUXTELatWQcez2KSbEnDFtBoygP03hrT5wm6P/AOODHQOgw",
+    "stability": 1,
     "nodeid": "tests/test_branches.py::test_branch_cache",
     "failures": [],
     "reports_by_worker": {
@@ -205,6 +209,7 @@
   },
   "tests/test_utils.py::test_fast_bisect_right": {
     "database_key": "kvV3BzOeK8FDeKgmHxk+job4eOXBUjcUbnIf3dGQbgbdNMtZeSLMQHK0m7XRdT7K",
+    "stability": 1,
     "nodeid": "tests/test_utils.py::test_fast_bisect_right",
     "failures": [],
     "reports_by_worker": {
@@ -270,6 +275,7 @@
   },
   "tests/test_visual.py::test_visual_no_data": {
     "database_key": "UVpGrYa1cNn9d5cUdmSn42mYy3eZDnOpDQNM/Cscz1a74HND3juQX/RSAnndO6Er",
+    "stability": 1,
     "nodeid": "tests/test_visual.py::test_visual_no_data",
     "failures": [],
     "reports_by_worker": {
@@ -419,6 +425,7 @@
   },
   "tests/test_visual.py::test_visual_tyche_grab_bag": {
     "database_key": "KnrMunpNoFJ/yfVbavrOeqcSKcdhg1zvdhfTASM5GnkDDsOck0LZqTSq0jZ4a+g8",
+    "stability": 1,
     "nodeid": "tests/test_visual.py::test_visual_tyche_grab_bag",
     "failures": [],
     "reports_by_worker": {
@@ -750,6 +757,7 @@
   },
   "tests/test_linearize.py::test_out_of_order_report_invalidates_cache": {
     "database_key": "a83mI4e150/21RzN3LnAxfqQrfWDKwZLC5Y7zkrrlUkSvlEK2ZbauBxEjJdJfx7Q",
+    "stability": 1,
     "nodeid": "tests/test_linearize.py::test_out_of_order_report_invalidates_cache",
     "failures": [],
     "reports_by_worker": {
@@ -857,6 +865,7 @@
   },
   "tests/test_linearize.py::test_non_overlapping_reports": {
     "database_key": "eXiuMZM24HOk/L/oOUQ5AsUfwbS3qAr9nD2qbjVyb1eSVI+7iUBgHJMbyo8a6FCx",
+    "stability": 1,
     "nodeid": "tests/test_linearize.py::test_non_overlapping_reports",
     "failures": [],
     "reports_by_worker": {
@@ -1076,6 +1085,7 @@
   },
   "tests/test_provider.py::test_changed_kwargs_pops_if_still_permitted": {
     "database_key": "HbYk11DZVyAPvCalcOazN6l2qEtiWP42WoDeaPBeYE9JFpIu3hZIT6li5eUNvZyr",
+    "stability": 1,
     "nodeid": "tests/test_provider.py::test_changed_kwargs_pops_if_still_permitted",
     "failures": [],
     "reports_by_worker": {
@@ -1575,6 +1585,7 @@
   },
   "tests/test_provider.py::test_draw_past_prefix": {
     "database_key": "QGorUu5ar9w6d63YZhTLo45DJqsHMmnYScNdEj+qelr6W2v49tDHtQqTA2AIzhXs",
+    "stability": 1,
     "nodeid": "tests/test_provider.py::test_draw_past_prefix",
     "failures": [],
     "reports_by_worker": {
@@ -6484,6 +6495,7 @@
   },
   "tests/test_provider.py::test_misaligned_kwargs": {
     "database_key": "YM0F4K2R3mB92S8dcvr6ArLZuGxgu6j0mckIVmOxdxuJ/chNymm82ShkD52gO34s",
+    "stability": 1,
     "nodeid": "tests/test_provider.py::test_misaligned_kwargs",
     "failures": [],
     "reports_by_worker": {
@@ -11113,6 +11125,7 @@
   },
   "tests/test_corpus.py::test_corpus_coverage_tracking": {
     "database_key": "JZxZH/OBtcIrd4E895JnkKjdTCPvL2/LuU8Rv7sasgzkx5AupMUe6fO0AORIe5bC",
+    "stability": 1,
     "nodeid": "tests/test_corpus.py::test_corpus_coverage_tracking",
     "failures": [],
     "reports_by_worker": {
@@ -15504,6 +15517,7 @@
   },
   "tests/test_corpus.py::test_corpus_covering_nodes": {
     "database_key": "HeDYgyMMFw7upnD7EbLsxRt1Wl45E35sPsGtsWJjcm22q1SFN7jNGOyMxBalRkem",
+    "stability": 1,
     "nodeid": "tests/test_corpus.py::test_corpus_covering_nodes",
     "failures": [],
     "reports_by_worker": {
@@ -20287,6 +20301,7 @@
   },
   "tests/test_provider.py::test_misaligned_type": {
     "database_key": "zvElPKdYMeRapjUUPZSEmqUSex9By1AxaeFeFwGZA5V3BsJ4pQGJ3G67fGyrdKXN",
+    "stability": 1,
     "nodeid": "tests/test_provider.py::test_misaligned_type",
     "failures": [],
     "reports_by_worker": {
@@ -33414,6 +33429,7 @@
   },
   "tests/test_provider.py::test_drawing_prefix_exactly": {
     "database_key": "IkEQuXCn2+gLUNWlQy/aM4RpNNP2epn0Bj5mI/+Ebn67SBxXTSKSD1hup/+h3E21",
+    "stability": 1,
     "nodeid": "tests/test_provider.py::test_drawing_prefix_exactly",
     "failures": [],
     "reports_by_worker": {
