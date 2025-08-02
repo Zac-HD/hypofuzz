@@ -9,6 +9,7 @@ from hypofuzz.database import (
     ObservationStatus,
     Phase,
     Report,
+    Stability,
     StatusCounts,
 )
 
@@ -30,6 +31,7 @@ class DashboardObservation(TypedDict):
     metadata: DashboardObservationMetadata
     property: str
     run_start: float
+    stability: Optional[Stability]
 
 
 class Failure(TypedDict):
@@ -57,6 +59,7 @@ class DashboardTest(TypedDict):
     failures: dict[str, Failure]
     fatal_failure: Optional[str]
     reports_by_worker: dict[str, list[DashboardReport]]
+    stability: Optional[float]
 
 
 # keep in sync with DashboardEventType in DataProvider.tsx
@@ -86,6 +89,7 @@ class AddTestsTest(TypedDict):
     nodeid: str
     failures: dict[str, Failure]
     fatal_failure: Optional[str]
+    stability: Optional[float]
 
 
 @dataclass
@@ -164,6 +168,7 @@ def dashboard_observation(observation: Observation) -> DashboardObservation:
         },
         "property": observation.property,
         "run_start": observation.run_start,
+        "stability": observation.stability,
     }
 
 
@@ -195,6 +200,7 @@ def dashboard_test(test: Test) -> DashboardTest:
             worker_uuid: [dashboard_report(report) for report in reports]
             for worker_uuid, reports in test.reports_by_worker.items()
         },
+        "stability": test.stability,
     }
 
 

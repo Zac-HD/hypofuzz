@@ -145,10 +145,15 @@ export class Report extends Dataclass<Report> {
   }
 }
 
-enum ObservationStatus {
+export enum ObservationStatus {
   PASSED = "passed",
   FAILED = "failed",
   GAVE_UP = "gave_up",
+}
+
+export enum Stability {
+  STABLE = "stable",
+  UNSTABLE = "unstable",
 }
 
 export class Observation extends Dataclass<Observation> {
@@ -169,6 +174,7 @@ export class Observation extends Dataclass<Observation> {
     public metadata: Map<string, any>,
     public property: string,
     public run_start: number,
+    public stability: Stability | null,
   ) {
     super()
   }
@@ -186,6 +192,7 @@ export class Observation extends Dataclass<Observation> {
       new Map(Object.entries(data.metadata)),
       data.property,
       Number(data.run_start),
+      data.stability,
     )
   }
 }

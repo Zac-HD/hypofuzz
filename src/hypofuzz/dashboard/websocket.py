@@ -117,6 +117,7 @@ class OverviewWebsocket(HypofuzzWebsocket):
                     "nodeid": test.nodeid,
                     "failures": dashboard_failures(test.failures),
                     "fatal_failure": test.fatal_failure,
+                    "stability": test.stability,
                 }
                 for test in tests.copy().values()
             ],
@@ -161,6 +162,7 @@ class TestWebsocket(HypofuzzWebsocket):
                     "nodeid": test.nodeid,
                     "failures": dashboard_failures(test.failures),
                     "fatal_failure": test.fatal_failure,
+                    "stability": test.stability,
                 }
             ],
         )

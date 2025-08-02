@@ -4,6 +4,7 @@ import {
   faCodeBranch,
   faFingerprint,
   faHashtag,
+  faLocationPinLock,
   faSeedling,
   faTachometerAlt,
 } from "@fortawesome/free-solid-svg-icons"
@@ -74,6 +75,12 @@ export function TestTable({ tests, onFilterChange }: Props) {
     <Icon icon={faSeedling} tooltip="Number of inputs since a new behavior" />
   )
   const iconTimeSpent = <Icon icon={faClock} tooltip="Total time spent running" />
+  const iconStability = (
+    <Icon
+      icon={faLocationPinLock}
+      tooltip="Coverage stability (percentage of inputs with deterministic coverage when replayed)"
+    />
+  )
 
   const headers = [
     {
@@ -115,6 +122,11 @@ export function TestTable({ tests, onFilterChange }: Props) {
       align: "right",
       sortKey: (test: Test) => test.elapsed_time(null),
     },
+    {
+      content: iconStability,
+      align: "right",
+      sortKey: (test: Test) => test.stability ?? 0,
+    },
   ]
 
   const row = (test: Test): React.ReactNode[] => {
@@ -149,6 +161,9 @@ export function TestTable({ tests, onFilterChange }: Props) {
       <div style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
         {stats.timeSpent}
       </div>,
+      <div style={{ textAlign: "center", fontVariantNumeric: "tabular-nums" }}>
+        {stats.stability}
+      </div>,
     ]
   }
 
@@ -173,6 +188,7 @@ export function TestTable({ tests, onFilterChange }: Props) {
           <InlineStatistic icon={iconExecutions} value={stats.executions} />
           <InlineStatistic icon={iconSinceNewBranch} value={stats.inputsSinceBranch} />
           <InlineStatistic icon={iconTimeSpent} value={stats.timeSpent} />
+          <InlineStatistic icon={iconStability} value={stats.stability} />
         </div>
       </div>
     )

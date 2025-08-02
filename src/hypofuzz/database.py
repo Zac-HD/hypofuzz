@@ -92,6 +92,13 @@ class ObservationStatus(Enum):
     GAVE_UP = "gave_up"
 
 
+class Stability(Enum):
+    STABLE = "stable"
+    UNSTABLE = "unstable"
+    # we'll want a third "semistable" status eventually, to represent first-time
+    # cache hits (with behaviors: A B B B ... ).
+
+
 # only the subset of the metadata that we store from HypothesisObservation.
 @dataclass(frozen=True)
 class ObservationMetadata:
@@ -135,9 +142,14 @@ class Observation:
     metadata: ObservationMetadata
     property: str
     run_start: float
+    # stability == None means we don't know the stability, because we didn't
+    # re-execute this observation
+    stability: Optional[Stability]
 
     @classmethod
-    def from_hypothesis(cls, observation: TestCaseObservation) -> "Observation":
+    def from_hypothesis(
+        cls, observation: TestCaseObservation, stability: Optional[Stability] = None
+    ) -> "Observation":
         return cls(
             type=observation.type,
             status=ObservationStatus(observation.status),
@@ -150,6 +162,7 @@ class Observation:
             metadata=ObservationMetadata.from_hypothesis(observation.metadata),
             property=observation.property,
             run_start=observation.run_start,
+            stability=stability,
         )
 
     @classmethod
@@ -157,6 +170,8 @@ class Observation:
         # we disable observability coverage, so discard the empty key
         data.pop("coverage", None)
         data["status"] = ObservationStatus(data["status"])
+        if data["stability"] is not None:
+            data["stability"] = Stability(data["stability"])
         data["metadata"]["predicates"] = {
             k: PredicateCounts(satisfied=v["satisfied"], unsatisfied=v["unsatisfied"])
             for k, v in data["metadata"]["predicates"].items()
