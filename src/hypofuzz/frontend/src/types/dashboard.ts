@@ -152,8 +152,8 @@ export enum ObservationStatus {
 }
 
 export enum Stability {
-  STABLE = "STABLE",
-  UNSTABLE = "UNSTABLE",
+  STABLE = "stable",
+  UNSTABLE = "unstable",
 }
 
 export class Observation extends Dataclass<Observation> {

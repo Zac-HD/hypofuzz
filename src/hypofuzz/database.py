@@ -93,8 +93,8 @@ class ObservationStatus(Enum):
 
 
 class Stability(Enum):
-    STABLE = "STABLE"
-    UNSTABLE = "UNSTABLE"
+    STABLE = "stable"
+    UNSTABLE = "unstable"
     # we'll want a third "semistable" status eventually, to represent first-time
     # cache hits (with behaviors: A B B B ... ).
 
