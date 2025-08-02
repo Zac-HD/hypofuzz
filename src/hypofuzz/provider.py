@@ -162,6 +162,14 @@ def bucket_features(features: dict[str, Any]) -> set[str]:
 class HypofuzzProvider(PrimitiveProvider):
     add_observability_callback: ClassVar[bool] = True
 
+    # the time between rolling observations, in seconds
+    ROLLING_OBSERVATION_INTERVAL: float = 1.0
+    # A limit on the percentage of time which we spend in re-executing rolling
+    # observations for stability, relative to self.elapsed_time. A value of 0.01
+    # indicates that we should spend no more than 1% of elapsed time on observation
+    # stability re-execution
+    OBSERVATION_REEXECUTION_LIMIT: float = 0.02
+
     def __init__(
         self,
         conjecturedata: Optional[ConjectureData],
@@ -180,7 +188,7 @@ class HypofuzzProvider(PrimitiveProvider):
         # These attributes are written to reports and used for coverage graph
         # display. They are NOT used for estimator state.
         self.status_counts = StatusCounts()
-        self.elapsed_time = 0.0
+        self.elapsed_time: float = 0.0
         # These four attributes are incremented only for inputs generated from a
         # mutator. This tracks the *useful* effort expended by this worker on this
         # test.
@@ -191,9 +199,9 @@ class HypofuzzProvider(PrimitiveProvider):
         # Invariant: elapsed_time_mutated <= elapsed_time and
         # status_counts_mutated <= status_counts.
         self.status_counts_mutated = StatusCounts()
-        self.elapsed_time_mutated = 0.0
-        self.since_new_behavior = 0
-        self.since_new_fingerprint = 0
+        self.elapsed_time_mutated: float = 0.0
+        self.since_new_behavior: int = 0
+        self.since_new_fingerprint: int = 0
 
         self.random = Random()
         self.phase: Optional[Phase] = None
@@ -230,6 +238,8 @@ class HypofuzzProvider(PrimitiveProvider):
         # startup
         self._errored_in_startup = False
         self.most_recent_observation: TestCaseObservation | None = None
+        # used to limit the time spent in re-executing observations for stability.
+        self._time_in_observation_stability: float = 0.0
 
     @property
     def ninputs(self) -> int:
@@ -481,17 +491,18 @@ class HypofuzzProvider(PrimitiveProvider):
     def _should_save_rolling_observation(
         self, *, priority: Optional[QueuePriority]
     ) -> bool:
-        # TODO limit observations to ~1% of total inputs in order to limit the
-        # overhead from stability replays. In the worst case, if
-        # a test only gets 1 exec/s, we would spend 50% of our time in replay:
-        # by the time we replay, we would be ready to save a new observation.
         return (
             self.phase is Phase.GENERATE
-            and self.elapsed_time > self._last_observed + 1
+            and self.elapsed_time
+            > self._last_observed + self.ROLLING_OBSERVATION_INTERVAL
             # We only save rolling observations if the queue priorty is None, ie the
             # input was generated via mutation. This prevents biasing towards replayed
             # choice sequences.
             and priority is None
+            # Limit observations to 1% of total time. If test only gets 1 exec/s, we
+            # could otherwise spend 50% of our time in replay.
+            and self._time_in_observation_stability
+            < (self.elapsed_time * self.OBSERVATION_REEXECUTION_LIMIT)
         )
 
     def before_test_case(self) -> None:
@@ -653,6 +664,7 @@ class HypofuzzProvider(PrimitiveProvider):
                     coverage_observation = self._state.extra_queue_data["observation"]
                     consider_corpus_coverage = True
             if "observation" in self._state.extra_queue_data["reasons"]:
+                self._time_in_observation_stability += elapsed_time
                 stability = (
                     Stability.STABLE
                     if behaviors == self._state.extra_queue_data["behaviors"]
