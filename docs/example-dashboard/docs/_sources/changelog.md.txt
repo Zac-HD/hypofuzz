@@ -2,6 +2,16 @@
 HypoFuzz uses [calendar-based versioning](https://calver.org/), with a
 `YY-MM-patch` format.
 
+(v25-08-01)=
+## 25.08.01
+
+* Compute and display coverage stability of the rolling observations on the dashboard.
+  * The coverage stability of a test is the percentage of inputs to that test which result in identical coverage when replayed.
+  * Low stability reduces the effectiveness of mutation in coverage-guided fuzzing. HypoFuzz communicates this metric to you so you can make an informed decision about when to invest in improving stability.
+* Add a new status `Skipped dynamically` on the dashboard, for when a test raises a skip like ``pytest.skip`` dynamically
+* Improve `Workers` page UI
+
+
 (v25-07-02)=
 ## 25.07.02
 

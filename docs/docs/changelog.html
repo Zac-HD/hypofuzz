@@ -261,20 +261,33 @@
 <h1>Changelog<a class="headerlink" href="#changelog" title="Link to this heading">¶</a></h1>
 <p>HypoFuzz uses <a class="reference external" href="https://calver.org/">calendar-based versioning</a>, with a
 <code class="docutils literal notranslate"><span class="pre">YY-MM-patch</span></code> format.</p>
+<section id="v25-08-01">
+<span id="id1"></span><h2>25.08.01<a class="headerlink" href="#v25-08-01" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Compute and display coverage stability of the rolling observations on the dashboard.</p>
+<ul>
+<li><p>The coverage stability of a test is the percentage of inputs to that test which result in identical coverage when replayed.</p></li>
+<li><p>Low stability reduces the effectiveness of mutation in coverage-guided fuzzing. HypoFuzz communicates this metric to you so you can make an informed decision about when to invest in improving stability.</p></li>
+</ul>
+</li>
+<li><p>Add a new status <code class="docutils literal notranslate"><span class="pre">Skipped</span> <span class="pre">dynamically</span></code> on the dashboard, for when a test raises a skip like <code class="docutils literal notranslate"><span class="pre">pytest.skip</span></code> dynamically</p></li>
+<li><p>Improve <code class="docutils literal notranslate"><span class="pre">Workers</span></code> page UI</p></li>
+</ul>
+</section>
 <section id="v25-07-02">
-<span id="id1"></span><h2>25.07.02<a class="headerlink" href="#v25-07-02" title="Link to this heading">¶</a></h2>
+<span id="id2"></span><h2>25.07.02<a class="headerlink" href="#v25-07-02" title="Link to this heading">¶</a></h2>
 <p>Add support for unittest and class-based pytest tests. See https://hypofuzz.com/docs/compatibility.html for details.</p>
 </section>
 <section id="v25-07-01">
-<span id="id2"></span><h2>25.07.01<a class="headerlink" href="#v25-07-01" title="Link to this heading">¶</a></h2>
+<span id="id3"></span><h2>25.07.01<a class="headerlink" href="#v25-07-01" title="Link to this heading">¶</a></h2>
 <p>Fix a bug where the <code class="docutils literal notranslate"><span class="pre">&#64;reproduce_failure</span></code> decorator would not be displayed on the dashboard for failures.</p>
 </section>
 <section id="v25-06-04">
-<span id="id3"></span><h2>25.06.04<a class="headerlink" href="#v25-06-04" title="Link to this heading">¶</a></h2>
+<span id="id4"></span><h2>25.06.04<a class="headerlink" href="#v25-06-04" title="Link to this heading">¶</a></h2>
 <p>Add support for pytest fixtures. This includes support for all fixture scopes, including <code class="docutils literal notranslate"><span class="pre">scope=&quot;session&quot;</span></code>. Fixtures are set up when starting to fuzz a test, and torn down when switching to fuzz another test.</p>
 </section>
 <section id="v25-06-03">
-<span id="id4"></span><h2>25.06.03<a class="headerlink" href="#v25-06-03" title="Link to this heading">¶</a></h2>
+<span id="id5"></span><h2>25.06.03<a class="headerlink" href="#v25-06-03" title="Link to this heading">¶</a></h2>
 <ul class="simple">
 <li><p>Add new display options for the test coverage graph: <code class="docutils literal notranslate"><span class="pre">Together</span></code>, <code class="docutils literal notranslate"><span class="pre">Separate</span></code>, and <code class="docutils literal notranslate"><span class="pre">Latest</span></code>.</p>
 <ul>
@@ -287,14 +300,14 @@
 </ul>
 </section>
 <section id="v25-06-02">
-<span id="id5"></span><h2>25.06.02<a class="headerlink" href="#v25-06-02" title="Link to this heading">¶</a></h2>
+<span id="id6"></span><h2>25.06.02<a class="headerlink" href="#v25-06-02" title="Link to this heading">¶</a></h2>
 <ul class="simple">
 <li><p>Add a dashboard notification while the dashboard process is still loading reports from the database</p></li>
 <li><p>Improve the display of covering and failing patches on the dashboard</p></li>
 </ul>
 </section>
 <section id="v25-06-01">
-<span id="id6"></span><h2>25.06.01<a class="headerlink" href="#v25-06-01" title="Link to this heading">¶</a></h2>
+<span id="id7"></span><h2>25.06.01<a class="headerlink" href="#v25-06-01" title="Link to this heading">¶</a></h2>
 <p>Substantial improvements to the dashboard UI and coverage tracking. Most notably:</p>
 <ul class="simple">
 <li><p>The dashboard now includes <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/reference/internals.html#observability">Hypothesis observability</a>, showing details about what inputs passed or failed an <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.assume"><code class="docutils literal notranslate"><span class="pre">assume</span></code></a> statement, custom <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.event"><code class="docutils literal notranslate"><span class="pre">event</span></code></a> occurrences, and more.</p></li>
@@ -302,120 +315,120 @@
 </ul>
 </section>
 <section id="v25-05-01">
-<span id="id7"></span><h2>25.05.01<a class="headerlink" href="#v25-05-01" title="Link to this heading">¶</a></h2>
+<span id="id8"></span><h2>25.05.01<a class="headerlink" href="#v25-05-01" title="Link to this heading">¶</a></h2>
 <p>Improve assignment of tests to fuzz workers, and bundle version-specific docs with the dashboard.</p>
 </section>
 <section id="v25-04-10">
-<span id="id8"></span><h2>25.04.10<a class="headerlink" href="#v25-04-10" title="Link to this heading">¶</a></h2>
+<span id="id9"></span><h2>25.04.10<a class="headerlink" href="#v25-04-10" title="Link to this heading">¶</a></h2>
 <p>Improve test table ui on mobile.</p>
 </section>
 <section id="v25-04-9">
-<span id="id9"></span><h2>25.04.9<a class="headerlink" href="#v25-04-9" title="Link to this heading">¶</a></h2>
+<span id="id10"></span><h2>25.04.9<a class="headerlink" href="#v25-04-9" title="Link to this heading">¶</a></h2>
 <p>Also filter the coverage graph when filtering the test table, and fix failures for parametrized tests being written to the incorrect database key.</p>
 </section>
 <section id="v25-04-8">
-<span id="id10"></span><h2>25.04.8<a class="headerlink" href="#v25-04-8" title="Link to this heading">¶</a></h2>
+<span id="id11"></span><h2>25.04.8<a class="headerlink" href="#v25-04-8" title="Link to this heading">¶</a></h2>
 <p>Improve text alignment of the test table UI.</p>
 </section>
 <section id="v25-04-7">
-<span id="id11"></span><h2>25.04.7<a class="headerlink" href="#v25-04-7" title="Link to this heading">¶</a></h2>
+<span id="id12"></span><h2>25.04.7<a class="headerlink" href="#v25-04-7" title="Link to this heading">¶</a></h2>
 <p>Improve test table UI by using icons for most columns.</p>
 </section>
 <section id="v25-04-6">
-<span id="id12"></span><h2>25.04.6<a class="headerlink" href="#v25-04-6" title="Link to this heading">¶</a></h2>
+<span id="id13"></span><h2>25.04.6<a class="headerlink" href="#v25-04-6" title="Link to this heading">¶</a></h2>
 <p>Improve mobile appearance, and add ability to filter table rows by string, for example to filter for all tests whose name contains a string.</p>
 </section>
 <section id="v25-04-5">
-<span id="id13"></span><h2>25.04.5<a class="headerlink" href="#v25-04-5" title="Link to this heading">¶</a></h2>
+<span id="id14"></span><h2>25.04.5<a class="headerlink" href="#v25-04-5" title="Link to this heading">¶</a></h2>
 <p>Remove integration with the time-travel debugger <a class="reference external" href="https://pytrace.com/">pytrace</a>. While (very) cool in principle, the ecosystem is not yet mature or stable enough.</p>
 </section>
 <section id="v25-04-4">
-<span id="id14"></span><h2>25.04.4<a class="headerlink" href="#v25-04-4" title="Link to this heading">¶</a></h2>
+<span id="id15"></span><h2>25.04.4<a class="headerlink" href="#v25-04-4" title="Link to this heading">¶</a></h2>
 <p>Tables in the dashboard can now be sorted by column.</p>
 </section>
 <section id="v25-04-3">
-<span id="id15"></span><h2>25.04.3<a class="headerlink" href="#v25-04-3" title="Link to this heading">¶</a></h2>
+<span id="id16"></span><h2>25.04.3<a class="headerlink" href="#v25-04-3" title="Link to this heading">¶</a></h2>
 <p>The coverage graph in the dashboard now displays a more unified view across restarts, avoiding displaying dramatic drops in coverage when replaying the covering corpus.</p>
 </section>
 <section id="v25-04-2">
-<span id="id16"></span><h2>25.04.2<a class="headerlink" href="#v25-04-2" title="Link to this heading">¶</a></h2>
+<span id="id17"></span><h2>25.04.2<a class="headerlink" href="#v25-04-2" title="Link to this heading">¶</a></h2>
 <p>Improve table UI in the dashboard.</p>
 </section>
 <section id="v25-04-1">
-<span id="id17"></span><h2>25.04.1<a class="headerlink" href="#v25-04-1" title="Link to this heading">¶</a></h2>
+<span id="id18"></span><h2>25.04.1<a class="headerlink" href="#v25-04-1" title="Link to this heading">¶</a></h2>
 <p>Hypofuzz now uses a more accurate method of measuring branch coverage on python 3.12+, resulting in better fuzzing performance in general.</p>
 </section>
 <section id="v25-03-3">
-<span id="id18"></span><h2>25.03.3<a class="headerlink" href="#v25-03-3" title="Link to this heading">¶</a></h2>
+<span id="id19"></span><h2>25.03.3<a class="headerlink" href="#v25-03-3" title="Link to this heading">¶</a></h2>
 <ul class="simple">
 <li><p>Add a new <code class="docutils literal notranslate"><span class="pre">/collected</span></code> page, which shows which tests were skipped during pytest collection, and why.</p></li>
 </ul>
 </section>
 <section id="v25-03-2">
-<span id="id19"></span><h2>25.03.2<a class="headerlink" href="#v25-03-2" title="Link to this heading">¶</a></h2>
+<span id="id20"></span><h2>25.03.2<a class="headerlink" href="#v25-03-2" title="Link to this heading">¶</a></h2>
 <ul class="simple">
 <li><p>Add ability to zoom coverage graphs on the dashboard by scrolling. Double click to reset.</p></li>
 <li><p>Fix initial database state not being loaded when starting the dashboard.</p></li>
 </ul>
 </section>
 <section id="v25-03-1">
-<span id="id20"></span><h2>25.03.1<a class="headerlink" href="#v25-03-1" title="Link to this heading">¶</a></h2>
+<span id="id21"></span><h2>25.03.1<a class="headerlink" href="#v25-03-1" title="Link to this heading">¶</a></h2>
 <p>Internal code formatting with no behavioral changes.</p>
 </section>
 <section id="v25-02-5">
-<span id="id21"></span><h2>25.02.5<a class="headerlink" href="#v25-02-5" title="Link to this heading">¶</a></h2>
+<span id="id22"></span><h2>25.02.5<a class="headerlink" href="#v25-02-5" title="Link to this heading">¶</a></h2>
 <p>We now use the new <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/changes.html#v6-126-0">pub-sub database interface in Hypothesis</a> to update the dashboard. Dashboard updates should be significantly more responsive and use less resources.</p>
 <p>This release is not compatible with old hypofuzz databases.</p>
 </section>
 <section id="v25-02-4">
-<span id="id22"></span><h2>25.02.4<a class="headerlink" href="#v25-02-4" title="Link to this heading">¶</a></h2>
+<span id="id23"></span><h2>25.02.4<a class="headerlink" href="#v25-02-4" title="Link to this heading">¶</a></h2>
 <p>Fix dashboard not getting properly built for pypi releases.</p>
 </section>
 <section id="v25-02-3">
-<span id="id23"></span><h2>25.02.3<a class="headerlink" href="#v25-02-3" title="Link to this heading">¶</a></h2>
+<span id="id24"></span><h2>25.02.3<a class="headerlink" href="#v25-02-3" title="Link to this heading">¶</a></h2>
 <p>Overhaul of the dashboard UI.</p>
 </section>
 <section id="v25-02-2">
-<span id="id24"></span><h2>25.02.2<a class="headerlink" href="#v25-02-2" title="Link to this heading">¶</a></h2>
+<span id="id25"></span><h2>25.02.2<a class="headerlink" href="#v25-02-2" title="Link to this heading">¶</a></h2>
 <p>Initial support for <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/stateful.html">stateful tests</a>.</p>
 </section>
 <section id="v25-02-1">
-<span id="id25"></span><h2>25.02.1<a class="headerlink" href="#v25-02-1" title="Link to this heading">¶</a></h2>
+<span id="id26"></span><h2>25.02.1<a class="headerlink" href="#v25-02-1" title="Link to this heading">¶</a></h2>
 <p>Use a new mutator based on the typed choice sequence (https://github.com/HypothesisWorks/hypothesis/issues/3921), bringing back compatibility with new Hypothesis versions.</p>
 <p>We also now ignore code coverage inside the <code class="docutils literal notranslate"><span class="pre">pytest</span></code> and <code class="docutils literal notranslate"><span class="pre">_pytest</span></code> modules, which is unhelpful to fuzz.</p>
 </section>
 <section id="v25-01-6">
-<span id="id26"></span><h2>25.01.6<a class="headerlink" href="#v25-01-6" title="Link to this heading">¶</a></h2>
+<span id="id27"></span><h2>25.01.6<a class="headerlink" href="#v25-01-6" title="Link to this heading">¶</a></h2>
 <p>Pin upper Hypothesis bound for compatibility, until we support new Hypothesis internals.</p>
 </section>
 <section id="v25-01-5">
-<span id="id27"></span><h2>25.01.5<a class="headerlink" href="#v25-01-5" title="Link to this heading">¶</a></h2>
+<span id="id28"></span><h2>25.01.5<a class="headerlink" href="#v25-01-5" title="Link to this heading">¶</a></h2>
 <p>Support for <code class="docutils literal notranslate"><span class="pre">&#64;pytest.mark.skip</span></code> and <code class="docutils literal notranslate"><span class="pre">&#64;pytest.mark.skipif</span></code>, and initial support for <code class="docutils literal notranslate"><span class="pre">&#64;pytest.mark.parametrize</span></code>.</p>
 <p>Also bumps Hypothesis to <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/changes.html#v6.124.0">6.124.0</a>, to support the new database format.</p>
 </section>
 <section id="v25-01-4">
-<span id="id28"></span><h2>25.01.4<a class="headerlink" href="#v25-01-4" title="Link to this heading">¶</a></h2>
+<span id="id29"></span><h2>25.01.4<a class="headerlink" href="#v25-01-4" title="Link to this heading">¶</a></h2>
 <p>Ignore standard library and dynamically generated code for coverage.</p>
 </section>
 <section id="v25-01-3">
-<span id="id29"></span><h2>25.01.3<a class="headerlink" href="#v25-01-3" title="Link to this heading">¶</a></h2>
+<span id="id30"></span><h2>25.01.3<a class="headerlink" href="#v25-01-3" title="Link to this heading">¶</a></h2>
 <p>Support collecting tests with a pytest autouse fixture that itself requests a non-autouse fixture.</p>
 </section>
 <section id="v25-01-2">
-<span id="id30"></span><h2>25.01.2<a class="headerlink" href="#v25-01-2" title="Link to this heading">¶</a></h2>
+<span id="id31"></span><h2>25.01.2<a class="headerlink" href="#v25-01-2" title="Link to this heading">¶</a></h2>
 <p>Hypofuzz now uses <a class="reference external" href="https://docs.python.org/3/library/sys.monitoring.html"><code class="docutils literal notranslate"><span class="pre">sys.monitoring</span></code></a> for coverage instrumentation on python 3.12+, resulting in considerable speedups for recent python versions.</p>
 <p>Also optimized database disk usage.</p>
 <p>Requires <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/changes.html#v6.123.12">Hypothesis 6.123.12</a>
 or newer, for a race condition fix which Hypofuzz is liable to hit.</p>
 </section>
 <section id="v25-01-1">
-<span id="id31"></span><h2>25.01.1<a class="headerlink" href="#v25-01-1" title="Link to this heading">¶</a></h2>
+<span id="id32"></span><h2>25.01.1<a class="headerlink" href="#v25-01-1" title="Link to this heading">¶</a></h2>
 <p>The dashboard now respects the current setting profile’s database when loading fuzzing progress.
 Use <code class="docutils literal notranslate"><span class="pre">settings.register_profile</span></code> and <code class="docutils literal notranslate"><span class="pre">settings.load_profile</span></code> to control the dashboard database.</p>
 <p>You can also now pass <code class="docutils literal notranslate"><span class="pre">--port</span> <span class="pre">0</span></code> to request an arbitrary open port for the dashboard.</p>
 </section>
 <section id="v24-11-1">
-<span id="id32"></span><h2>24.11.1<a class="headerlink" href="#v24-11-1" title="Link to this heading">¶</a></h2>
+<span id="id33"></span><h2>24.11.1<a class="headerlink" href="#v24-11-1" title="Link to this heading">¶</a></h2>
 <p>The dashboard can now be run independently of fuzzing worker processes, with metadata for
 display stored in Hypothesis’ database instead of ephemeral state.  This makes horizontal
 scalability very very easy, if you use e.g. the Redis database backend.</p>
@@ -423,97 +436,97 @@ scalability very very easy, if you use e.g. the Redis database backend.</p>
 or newer, so that those database writes happen in a background thread rather than blocking.</p>
 </section>
 <section id="v24-09-1">
-<span id="id33"></span><h2>24.09.1<a class="headerlink" href="#v24-09-1" title="Link to this heading">¶</a></h2>
+<span id="id34"></span><h2>24.09.1<a class="headerlink" href="#v24-09-1" title="Link to this heading">¶</a></h2>
 <p>Fixed compatibility with Pytest 8.1 (<a class="reference external" href="https://github.com/Zac-HD/hypofuzz/issues/35">#35</a>).
 Requires <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/changes.html#v6-103-0">Hypothesis 6.103</a>
 or newer, for compatibility with the new and improved shrinker.</p>
 </section>
 <section id="v24-02-3">
-<span id="id34"></span><h2>24.02.3<a class="headerlink" href="#v24-02-3" title="Link to this heading">¶</a></h2>
+<span id="id35"></span><h2>24.02.3<a class="headerlink" href="#v24-02-3" title="Link to this heading">¶</a></h2>
 <p>Fixed compatibility with Pytest 8.0 (<a class="reference external" href="https://github.com/Zac-HD/hypofuzz/issues/32">#32</a>).</p>
 </section>
 <section id="v24-02-2">
-<span id="id35"></span><h2>24.02.2<a class="headerlink" href="#v24-02-2" title="Link to this heading">¶</a></h2>
+<span id="id36"></span><h2>24.02.2<a class="headerlink" href="#v24-02-2" title="Link to this heading">¶</a></h2>
 <p>Fixed a dashboard bug (<a class="reference external" href="https://github.com/Zac-HD/hypofuzz/issues/31">#31</a>).</p>
 </section>
 <section id="v24-02-1">
-<span id="id36"></span><h2>24.02.1<a class="headerlink" href="#v24-02-1" title="Link to this heading">¶</a></h2>
+<span id="id37"></span><h2>24.02.1<a class="headerlink" href="#v24-02-1" title="Link to this heading">¶</a></h2>
 <p>Now requires <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/changes.html#v6-93-2">Hypothesis 6.93.2</a>
 or later, fixing compatibility with some unstable internals that HypoFuzz hooks into (yes, again).
 Also deduplicates the displayed covering examples in the dashboard, when their reprs are identical.</p>
 </section>
 <section id="v23-12-1">
-<span id="id37"></span><h2>23.12.1<a class="headerlink" href="#v23-12-1" title="Link to this heading">¶</a></h2>
+<span id="id38"></span><h2>23.12.1<a class="headerlink" href="#v23-12-1" title="Link to this heading">¶</a></h2>
 <p>Now requires <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/changes.html#v6-91-0">Hypothesis 6.91</a>
 or later, fixing compatibility with some unstable internals that HypoFuzz hooks into.</p>
 </section>
 <section id="v23-07-1">
-<span id="id38"></span><h2>23.07.1<a class="headerlink" href="#v23-07-1" title="Link to this heading">¶</a></h2>
+<span id="id39"></span><h2>23.07.1<a class="headerlink" href="#v23-07-1" title="Link to this heading">¶</a></h2>
 <p>Various small patches for issues found by fuzzing Hypothesis itself.
 Notably, we now try to fuzz functions which require autouse fixtures
 even though we don’t provide those fixtures - it often works!</p>
 </section>
 <section id="v23-06-1">
-<span id="id39"></span><h2>23.06.1<a class="headerlink" href="#v23-06-1" title="Link to this heading">¶</a></h2>
+<span id="id40"></span><h2>23.06.1<a class="headerlink" href="#v23-06-1" title="Link to this heading">¶</a></h2>
 <p>Hypofuzz now writes <code class="docutils literal notranslate"><span class="pre">.patch</span></code> files with failing examples, <em>and</em> optionally
 with covering examples - including removal of redundant covering examples.</p>
 </section>
 <section id="v23-05-3">
-<span id="id40"></span><h2>23.05.3<a class="headerlink" href="#v23-05-3" title="Link to this heading">¶</a></h2>
+<span id="id41"></span><h2>23.05.3<a class="headerlink" href="#v23-05-3" title="Link to this heading">¶</a></h2>
 <p>Yet another compatibility fix for explain mode, with even <em>more</em> tests for future regressions.
 Third time lucky, we hope!</p>
 </section>
 <section id="v23-05-2">
-<span id="id41"></span><h2>23.05.2<a class="headerlink" href="#v23-05-2" title="Link to this heading">¶</a></h2>
+<span id="id42"></span><h2>23.05.2<a class="headerlink" href="#v23-05-2" title="Link to this heading">¶</a></h2>
 <p>Additional compatibility fix, and improved tests to avoid future regressions.</p>
 </section>
 <section id="v23-05-1">
-<span id="id42"></span><h2>23.05.1<a class="headerlink" href="#v23-05-1" title="Link to this heading">¶</a></h2>
+<span id="id43"></span><h2>23.05.1<a class="headerlink" href="#v23-05-1" title="Link to this heading">¶</a></h2>
 <p>Now requires <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/changes.html#v6-75-2">Hypothesis 6.75.2</a>
 or later, fixing compatibility with some unstable internals that HypoFuzz hooks into.</p>
 </section>
 <section id="v23-04-1">
-<span id="id43"></span><h2>23.04.1<a class="headerlink" href="#v23-04-1" title="Link to this heading">¶</a></h2>
+<span id="id44"></span><h2>23.04.1<a class="headerlink" href="#v23-04-1" title="Link to this heading">¶</a></h2>
 <p>Fixed a bug affecting traceback reporting on Python 3.10+ (#16).</p>
 </section>
 <section id="v22-12-1">
-<span id="id44"></span><h2>22.12.1<a class="headerlink" href="#v22-12-1" title="Link to this heading">¶</a></h2>
+<span id="id45"></span><h2>22.12.1<a class="headerlink" href="#v22-12-1" title="Link to this heading">¶</a></h2>
 <p>Fixed a <code class="docutils literal notranslate"><span class="pre">NotImplementedError</span></code> when HypoFuzz had found a failing input for <em>every</em>
 test running in some process.  Now, we cleanly <code class="docutils literal notranslate"><span class="pre">sys.exit(1)</span></code> instead.</p>
 </section>
 <section id="v22-10-1">
-<span id="id45"></span><h2>22.10.1<a class="headerlink" href="#v22-10-1" title="Link to this heading">¶</a></h2>
+<span id="id46"></span><h2>22.10.1<a class="headerlink" href="#v22-10-1" title="Link to this heading">¶</a></h2>
 <p>First open-source release!  Also improves database handling and adds
 a timelimit to shrinking to better handle pathological cases.</p>
 </section>
 <section id="v22-07-1">
-<span id="id46"></span><h2>22.07.1<a class="headerlink" href="#v22-07-1" title="Link to this heading">¶</a></h2>
+<span id="id47"></span><h2>22.07.1<a class="headerlink" href="#v22-07-1" title="Link to this heading">¶</a></h2>
 <p>Fixes compatibility with <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/changes.html#v6-49-1">Hypothesis 6.49.1</a>
 and later (released July 5th).</p>
 </section>
 <section id="v21-12-2">
-<span id="id47"></span><h2>21.12.2<a class="headerlink" href="#v21-12-2" title="Link to this heading">¶</a></h2>
+<span id="id48"></span><h2>21.12.2<a class="headerlink" href="#v21-12-2" title="Link to this heading">¶</a></h2>
 <p>Web-based time-travel debugging with <a class="reference external" href="https://pytrace.com/">PyTrace</a> - just
 <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">hypofuzz[pytrace]</span></code> and click the link on any failing test!</p>
 </section>
 <section id="v21-12-1">
-<span id="id48"></span><h2>21.12.1<a class="headerlink" href="#v21-12-1" title="Link to this heading">¶</a></h2>
+<span id="id49"></span><h2>21.12.1<a class="headerlink" href="#v21-12-1" title="Link to this heading">¶</a></h2>
 <p>Improved dashboard (again!), better generation/mutation heuristics,
 basic residual-risk estimation, free-for-noncommercial-use on PyPI.</p>
 </section>
 <section id="v21-05-1">
-<span id="id49"></span><h2>21.05.1<a class="headerlink" href="#v21-05-1" title="Link to this heading">¶</a></h2>
+<span id="id50"></span><h2>21.05.1<a class="headerlink" href="#v21-05-1" title="Link to this heading">¶</a></h2>
 <p>Improved dashboard, fixed memory leaks, support arbitary <code class="docutils literal notranslate"><span class="pre">hypothesis.event()</span></code>
 calls as coverage, performance improvements.</p>
 </section>
 <section id="v20-09-1">
-<span id="id50"></span><h2>20.09.1<a class="headerlink" href="#v20-09-1" title="Link to this heading">¶</a></h2>
+<span id="id51"></span><h2>20.09.1<a class="headerlink" href="#v20-09-1" title="Link to this heading">¶</a></h2>
 <p>Multiprocess fuzzing with seed sharing and corpus distillation,
 and basic prioritisation of seeds covering rare branches.</p>
 <p>Still very much in alpha, but the fundamentals all work now.</p>
 </section>
 <section id="v20-08-1">
-<span id="id51"></span><h2>20.08.1<a class="headerlink" href="#v20-08-1" title="Link to this heading">¶</a></h2>
+<span id="id52"></span><h2>20.08.1<a class="headerlink" href="#v20-08-1" title="Link to this heading">¶</a></h2>
 <p>First packaged version of HypoFuzz</p>
 </section>
 </section>
@@ -573,6 +586,7 @@ and basic prioritisation of seeds covering rare branches.</p>
           <div class="toc-tree">
             <ul>
 <li><a class="reference internal" href="#">Changelog</a><ul>
+<li><a class="reference internal" href="#v25-08-01">25.08.01</a></li>
 <li><a class="reference internal" href="#v25-07-02">25.07.02</a></li>
 <li><a class="reference internal" href="#v25-07-01">25.07.01</a></li>
 <li><a class="reference internal" href="#v25-06-04">25.06.04</a></li>
