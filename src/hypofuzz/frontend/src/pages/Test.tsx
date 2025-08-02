@@ -6,7 +6,7 @@ import {
   faCodeBranch,
   faFingerprint,
   faHashtag,
-  faScaleBalanced,
+  faLocationPinLock,
   faSeedling,
   faTachometerAlt,
 } from "@fortawesome/free-solid-svg-icons"
@@ -217,7 +217,7 @@ export function TestPage() {
         <Tooltip
           content={
             <div className="table__header__icon">
-              <FontAwesomeIcon icon={faScaleBalanced} />
+              <FontAwesomeIcon icon={faLocationPinLock} />
             </div>
           }
           tooltip="Coverage stability (percentage of inputs with deterministic coverage when replayed)"

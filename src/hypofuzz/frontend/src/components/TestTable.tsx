@@ -4,7 +4,7 @@ import {
   faCodeBranch,
   faFingerprint,
   faHashtag,
-  faScaleBalanced,
+  faLocationPinLock,
   faSeedling,
   faTachometerAlt,
 } from "@fortawesome/free-solid-svg-icons"
@@ -77,7 +77,7 @@ export function TestTable({ tests, onFilterChange }: Props) {
   const iconTimeSpent = <Icon icon={faClock} tooltip="Total time spent running" />
   const iconStability = (
     <Icon
-      icon={faScaleBalanced}
+      icon={faLocationPinLock}
       tooltip="Coverage stability (percentage of inputs with deterministic coverage when replayed)"
     />
   )
@@ -161,7 +161,7 @@ export function TestTable({ tests, onFilterChange }: Props) {
       <div style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
         {stats.timeSpent}
       </div>,
-      <div style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+      <div style={{ textAlign: "center", fontVariantNumeric: "tabular-nums" }}>
         {stats.stability}
       </div>,
     ]
