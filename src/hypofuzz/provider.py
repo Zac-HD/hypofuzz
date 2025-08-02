@@ -125,6 +125,10 @@ class State:
     priority: Optional[QueuePriority]
     start_time: float
     save_rolling_observation: bool
+    # whether to re-execute this observation for stability, or save it with
+    # stability=None
+    rolling_observation_stability: bool
+
     choice_index: int = 0
     branches: Optional[frozenset[Branch]] = None
     observation: Optional[Observation] = None
@@ -499,10 +503,6 @@ class HypofuzzProvider(PrimitiveProvider):
             # input was generated via mutation. This prevents biasing towards replayed
             # choice sequences.
             and priority is None
-            # Limit observations to 1% of total time. If test only gets 1 exec/s, we
-            # could otherwise spend 50% of our time in replay.
-            and self._time_in_observation_stability
-            < (self.elapsed_time * self.OBSERVATION_REEXECUTION_LIMIT)
         )
 
     def before_test_case(self) -> None:
@@ -517,6 +517,11 @@ class HypofuzzProvider(PrimitiveProvider):
         save_rolling_observation = self._should_save_rolling_observation(
             priority=priority
         )
+        # Limit observations to a percentage of total runtime. If a test only
+        # gets 1 exec/s, we could otherwise spend 50% of our time in replay.
+        rolling_observation_stability = self._time_in_observation_stability < (
+            self.elapsed_time * self.OBSERVATION_REEXECUTION_LIMIT
+        )
         start = time.perf_counter()
 
         self._state = State(
@@ -525,6 +530,7 @@ class HypofuzzProvider(PrimitiveProvider):
             start_time=start,
             extra_queue_data=extra_queue_data,
             save_rolling_observation=save_rolling_observation,
+            rolling_observation_stability=rolling_observation_stability,
         )
 
     def on_observation(
@@ -591,6 +597,18 @@ class HypofuzzProvider(PrimitiveProvider):
                 choices,
                 state=FailureState.SHRUNK,
             )
+
+    def _save_obsevation(
+        self, observation: TestCaseObservation, *, stability: Optional[Stability]
+    ) -> None:
+        assert self.db is not None
+        assert self.database_key is not None
+        self.db.save_observation(
+            self.database_key,
+            Observation.from_hypothesis(observation, stability=stability),
+            discard_over=300,
+        )
+        self._last_observed = self.elapsed_time
 
     def after_test_case(self, observation: TestCaseObservation) -> None:
         assert self._state is not None
@@ -664,22 +682,18 @@ class HypofuzzProvider(PrimitiveProvider):
                     coverage_observation = self._state.extra_queue_data["observation"]
                     consider_corpus_coverage = True
             if "observation" in self._state.extra_queue_data["reasons"]:
-                self._time_in_observation_stability += elapsed_time
-                stability = (
-                    Stability.STABLE
-                    if behaviors == self._state.extra_queue_data["behaviors"]
-                    else Stability.UNSTABLE
-                )
-                self.db.save_observation(
-                    self.database_key,
+                self._save_obsevation(
                     # Use the observation from the original execution, not this
                     # re-execution. The re-execution is just to check for stability.
-                    Observation.from_hypothesis(
-                        self._state.extra_queue_data["observation"], stability=stability
+                    self._state.extra_queue_data["observation"],
+                    stability=(
+                        Stability.STABLE
+                        if behaviors == self._state.extra_queue_data["behaviors"]
+                        else Stability.UNSTABLE
                     ),
-                    discard_over=300,
                 )
-                self._last_observed = self.elapsed_time
+                self._time_in_observation_stability += elapsed_time
+
         elif self.corpus.would_change_coverage(behaviors, observation=observation):
             # if the replay has the same behaviors and fingerprint,
             # add to corpus on that iteration. if unstable, enqueue again to determine
@@ -755,9 +769,16 @@ class HypofuzzProvider(PrimitiveProvider):
             self._last_timed_report = report
 
         if self._state.save_rolling_observation:
-            # we don't save the observation yet. we do that once we know whether
-            # it's stable or not on the reexecution.
-            queue_for_stability.add("observation")
+            if self._state.rolling_observation_stability:
+                # we don't save the observation yet. we do that once we know whether
+                # it's stable or not on the reexecution.
+                queue_for_stability.add("observation")
+            else:
+                # if we aren't re-executing for stability, for instance because
+                # we've gone over overhead cap for observation stability, we
+                # instead save an observation without re-executing, with an
+                # unknown stability status.
+                self._save_obsevation(observation, stability=None)
 
         if queue_for_stability:
             self._enqueue(
