@@ -298,6 +298,12 @@ class FuzzTarget:
             )
         return ConjectureData(provider=self.provider, random=self.random)
 
+    def save_report(self) -> None:
+        """
+        Tell the provider to save a report, of its current state.
+        """
+        self.provider._save_report(self.provider._report)
+
     def run_one(self) -> None:
         """Run a single input through the fuzz target, or maybe more.
 
@@ -348,7 +354,7 @@ class FuzzTarget:
             # re-execute the final shrunk failing example under observability,
             # so we get the shrunk observation to save
             self._execute_once(data, observability_callback=on_observation)
-            self.provider._save_report(self.provider._report)
+            self.save_report()
 
             # move this failure from the unshrunk to the shrunk key.
             assert observation is not None
@@ -554,6 +560,7 @@ class FuzzWorker:
         if self._current_target is not None:
             # first, clean up any fixtures from the old target.
             self._current_target._exit_fixtures()
+            self._current_target.save_report()
 
         # then, set up any fixtures for the new target.
         target._enter_fixtures()
@@ -603,6 +610,7 @@ class FuzzWorker:
                     # TODO we should scale this n up if our estimator expects that it will
                     # take a long time to discover a new behavior, to reduce the overhead
                     # of switching targets.
+                    # (possibly also scale with runtime?)
                     for _ in range(100):
                         if target.has_found_failure:
                             # stop as soon as we find a failure. We don't need to
