@@ -214,7 +214,7 @@ export function WorkersPage() {
   const navigate = useNavigate()
   const { showTooltip, hideTooltip, moveTooltip } = useTooltip()
   const [expandedWorkers, setExpandedWorkers] = useState<Set<string>>(new Set())
-  const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>(TIME_PERIODS[0]) // Default to "Latest"
+  const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>(TIME_PERIODS[0])
   const [userRange, setUserRange] = useState<[number, number] | null>(null)
 
   const workerUuids = OrderedSet(
@@ -338,8 +338,6 @@ export function WorkersPage() {
   const visibleRange = userRange ?? sliderRange
 
   useEffect(() => {
-    // reset the range when clicking on a period, even if it's the same period. This gives a
-    // nice "reset button" ux to users.
     setUserRange(null)
   }, [selectedPeriod])
 
@@ -405,7 +403,15 @@ export function WorkersPage() {
                         ? "workers__durations__button--active"
                         : ""
                     } ${!available ? "workers__durations__button--disabled" : ""}`}
-                    onClick={() => available && setSelectedPeriod(period)}
+                    onClick={() => {
+                      if (!available) {
+                        return
+                      }
+                      setSelectedPeriod(period)
+                      // reset the range when clicking on a period, even if it's the same period. This gives a
+                      // nice "reset button" ux to users.
+                      setUserRange(null)
+                    }}
                   >
                     {period.label}
                   </div>
