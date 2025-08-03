@@ -145,7 +145,7 @@ const WorkerBar = ({
   return (
     <div
       key={worker.uuid}
-      className={`workers__worker ${expandedWorkers.has(worker.uuid) ? "workers__worker--expanded" : ""}`}
+      className={`workers__worker${expandedWorkers.has(worker.uuid) ? " workers__worker--expanded" : ""}`}
       onClick={() => onWorkerClick(worker.uuid)}
       // these extra onMouseLeave calls shouldn't be necessary, but I've had trouble
       // with the workers__timeline__segment mouse leave handler not firing consistently
