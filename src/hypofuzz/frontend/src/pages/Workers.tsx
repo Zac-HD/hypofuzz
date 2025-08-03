@@ -357,6 +357,9 @@ export function WorkersPage() {
       width = ((segment.end - segment.start) / visibleDuration) * 100
     }
 
+    // TODO we should compute a min in pixels, not percentage.
+    width = Math.max(width, 0.1)
+
     return {
       left: `${left}%`,
       width: `${width}%`,
