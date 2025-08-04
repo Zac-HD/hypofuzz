@@ -97,6 +97,10 @@ export function NominalChart({ feature, observations }: NominalChartProps) {
   }
 
   useEffect(() => {
+    if (filteredObservations.filtered.length == 0) {
+      return
+    }
+
     const distinctRawValues = Set<string>(
       filteredObservations.raw.map(obs => obs.features.get(feature)),
     )
@@ -328,6 +332,10 @@ export function NominalChart({ feature, observations }: NominalChartProps) {
     selectedValues,
     showTooltip,
   ])
+
+  if (filteredObservations.filtered.length == 0) {
+    return null
+  }
 
   return (
     <div>
