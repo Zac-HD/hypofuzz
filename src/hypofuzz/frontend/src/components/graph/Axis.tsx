@@ -7,19 +7,20 @@ interface ZoomState {
 }
 
 interface AxisProps {
-  // original scale, not zoomed
+  // viewport scale with zoom transformations applied
+  viewportScale: ScaleContinuousNumeric<number, number>
+  // original scale
   baseScale: ScaleContinuousNumeric<number, number>
   orientation: "bottom" | "left"
   tickCount?: number
   transform?: string
   isLogScale?: boolean
-  zoomTransform?: ZoomState
+  zoomState: ZoomState
 }
 
-interface TickData {
-  value: number
+interface Tick {
   offset: number
-  formatted: string
+  name: string
 }
 
 function formatTick(value: number): string {
@@ -34,108 +35,60 @@ function formatTick(value: number): string {
   }
 }
 
-function getLogTickValues(maxValue: number): number[] {
-  const tickValues = [0]
-  let power = 1
-  while (power <= maxValue) {
-    tickValues.push(power)
-    power *= 10
-  }
-  return tickValues
-}
-
 function getTicks({
   baseScale,
+  viewportScale,
   tickCount,
-  isLogScale,
-  zoomTransform,
+  zoomState,
   orientation,
 }: {
   baseScale: ScaleContinuousNumeric<number, number>
+  viewportScale: ScaleContinuousNumeric<number, number>
   tickCount: number
-  isLogScale: boolean
-  zoomTransform: ZoomState | undefined
+  zoomState: ZoomState
   orientation: "bottom" | "left"
-}) {
-  const baseDomain = baseScale.domain()
-  const baseRange = baseScale.range()
-
-  // Calculate visible domain based on zoom transform
+}): Tick[] {
+  const range = baseScale.range()
   let visibleDomain: [number, number]
 
-  if (zoomTransform) {
-    const isHorizontal = orientation === "bottom"
-    // only apply zoom horizontally
-    const scale = isHorizontal ? zoomTransform.scaleX : 1
-    const translation = isHorizontal ? zoomTransform.x : zoomTransform.y
-
-    // Apply inverse transform to range endpoints to get visible domain
-    const rangeStart = baseRange[0]
-    const rangeEnd = baseRange[baseRange.length - 1]
-
-    const visibleStart = baseScale.invert((rangeStart - translation) / scale)
-    const visibleEnd = baseScale.invert((rangeEnd - translation) / scale)
-
+  if (orientation === "bottom") {
     visibleDomain = [
-      Math.min(visibleStart, visibleEnd),
-      Math.max(visibleStart, visibleEnd),
+      baseScale.invert((range[0] - zoomState.x) / zoomState.scaleX),
+      baseScale.invert((range[1] - zoomState.x) / zoomState.scaleX),
     ]
   } else {
-    visibleDomain = [baseDomain[0], baseDomain[1]]
+    visibleDomain = [
+      baseScale.invert(range[0] - zoomState.y),
+      baseScale.invert(range[1] - zoomState.y),
+    ]
   }
 
-  // Generate tick values for the visible domain
-  let tickValues: number[]
+  let tickValues = baseScale
+    .domain(visibleDomain)
+    .range(range)
+    .ticks(tickCount)
+    // don't show negative tick values
+    .filter(value => value >= 0)
 
-  if (isLogScale) {
-    // For log scale, get all powers of 10 within visible range
-    tickValues = getLogTickValues(visibleDomain[1]).filter(
-      val => val >= visibleDomain[0] && val <= visibleDomain[1],
-    )
-  } else {
-    // Create a temporary scale for the visible domain to generate nice ticks
-    const tempScale = isLogScale ? scaleSymlog() : scaleLinear()
-    tempScale.domain(visibleDomain).range(baseRange)
-    tickValues = tempScale.ticks(tickCount)
-  }
-
-  // Position ticks using the base scale and apply zoom transform
-  const ticks: TickData[] = tickValues.map(value => {
-    const baseOffset = baseScale(value)
-    let transformedOffset = baseOffset
-
-    // Apply zoom transform to the tick position
-    if (zoomTransform) {
-      const isHorizontal = orientation === "bottom"
-      if (isHorizontal) {
-        // For horizontal axis, apply horizontal zoom transform
-        transformedOffset = baseOffset * zoomTransform.scaleX + zoomTransform.x
-      }
-    }
-
-    return {
-      value,
-      offset: transformedOffset,
-      formatted: isLogScale ? formatTick(value) : value.toLocaleString(),
-    }
-  })
-
-  return ticks
+  return tickValues.map(value => ({
+    offset: viewportScale(value),
+    name: formatTick(value),
+  }))
 }
 
 export function Axis({
   baseScale,
+  viewportScale,
   orientation,
   tickCount = 5,
   transform,
-  isLogScale = false,
-  zoomTransform,
+  zoomState,
 }: AxisProps) {
   const ticks = getTicks({
     baseScale,
+    viewportScale,
     tickCount,
-    isLogScale,
-    zoomTransform,
+    zoomState,
     orientation,
   })
 
@@ -205,7 +158,7 @@ export function Axis({
               fontSize="12"
               fill="currentColor"
             >
-              {tick.formatted}
+              {tick.name}
             </text>
           </g>
         )

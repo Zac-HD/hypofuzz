@@ -17,22 +17,22 @@ export interface ScaleBounds {
   yMax?: number
 }
 
-const defaultZoomState: ZoomState = { x: 0, y: 0, scaleX: 1 }
+const identityZoomState: ZoomState = { x: 0, y: 0, scaleX: 1 }
 
 function getConstrainedTransform({
-  zoomTransform,
+  zoomState,
   bounds,
   baseX,
   baseY,
 }: {
-  zoomTransform: ZoomState
+  zoomState: ZoomState
   bounds: ScaleBounds
   baseX: ScaleContinuousNumeric<number, number>
   baseY: ScaleContinuousNumeric<number, number>
 }) {
-  if (!bounds) return zoomTransform
+  if (!bounds) return zoomState
 
-  let constrained = { ...zoomTransform }
+  let constrained = { ...zoomState }
 
   // Check horizontal bounds
   if (bounds.xMin !== undefined || bounds.xMax !== undefined) {
@@ -86,7 +86,7 @@ export function useScales(
   axisSettingY: string,
   width: number,
   height: number,
-  zoomTransform: ZoomState = defaultZoomState,
+  zoomState: ZoomState = identityZoomState,
   bounds: ScaleBounds,
 ) {
   const xValue = (report: GraphReport) =>
@@ -106,7 +106,7 @@ export function useScales(
     .range([height, 0])
 
   const constrainedTransform = getConstrainedTransform({
-    zoomTransform,
+    zoomState,
     bounds,
     baseX,
     baseY,

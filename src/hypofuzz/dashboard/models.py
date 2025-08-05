@@ -5,6 +5,7 @@ from typing import Any, ClassVar, Literal, Optional, TypedDict, Union
 from hypofuzz.dashboard.test import Test
 from hypofuzz.database import (
     FailureState,
+    FatalFailure,
     Observation,
     ObservationStatus,
     Phase,
@@ -34,9 +35,13 @@ class DashboardObservation(TypedDict):
     stability: Optional[Stability]
 
 
-class Failure(TypedDict):
+class DashboardFailure(TypedDict):
     state: FailureState
     observation: DashboardObservation
+
+
+class DashboardFatalFailure(TypedDict):
+    traceback: str
 
 
 class DashboardReport(TypedDict):
@@ -56,8 +61,8 @@ class DashboardTest(TypedDict):
     nodeid: str
     rolling_observations: list[DashboardObservation]
     corpus_observations: list[DashboardObservation]
-    failures: dict[str, Failure]
-    fatal_failure: Optional[str]
+    failures: dict[str, DashboardFailure]
+    fatal_failure: Optional[DashboardFatalFailure]
     reports_by_worker: dict[str, list[DashboardReport]]
     stability: Optional[float]
 
@@ -73,6 +78,7 @@ class DashboardEventType(IntEnum):
     ADD_FAILURES = 5
     SET_FAILURES = 6
     TEST_LOAD_FINISHED = 7
+    SET_FATAL_FAILURE = 8
 
 
 ObservationType = Literal["rolling", "corpus"]
@@ -87,8 +93,8 @@ class DashboardEvent:
 class AddTestsTest(TypedDict):
     database_key: str
     nodeid: str
-    failures: dict[str, Failure]
-    fatal_failure: Optional[str]
+    failures: dict[str, DashboardFailure]
+    fatal_failure: Optional[DashboardFatalFailure]
     stability: Optional[float]
 
 
@@ -118,14 +124,14 @@ class AddObservationsEvent(DashboardEvent):
 class AddFailuresEvent(DashboardEvent):
     type = DashboardEventType.ADD_FAILURES
     nodeid: str
-    failures: dict[str, Failure]
+    failures: dict[str, DashboardFailure]
 
 
 @dataclass
 class SetFailuresEvent(DashboardEvent):
     type = DashboardEventType.SET_FAILURES
     nodeid: str
-    failures: dict[str, Failure]
+    failures: dict[str, DashboardFailure]
 
 
 @dataclass
@@ -141,6 +147,13 @@ class TestLoadFinishedEvent(DashboardEvent):
     nodeid: str
 
 
+@dataclass
+class SetFatalFailureEvent(DashboardEvent):
+    type = DashboardEventType.SET_FATAL_FAILURE
+    nodeid: str
+    fatal_failure: Optional[DashboardFatalFailure]
+
+
 DashboardEventT = Union[
     AddTestsEvent,
     AddReportsEvent,
@@ -149,6 +162,7 @@ DashboardEventT = Union[
     SetFailuresEvent,
     SetStatusEvent,
     TestLoadFinishedEvent,
+    SetFatalFailureEvent,
 ]
 
 
@@ -195,7 +209,11 @@ def dashboard_test(test: Test) -> DashboardTest:
             dashboard_observation(obs) for obs in test.corpus_observations
         ],
         "failures": dashboard_failures(test.failures),
-        "fatal_failure": test.fatal_failure,
+        "fatal_failure": (
+            None
+            if test.fatal_failure is None
+            else dashboard_fatal_failure(test.fatal_failure)
+        ),
         "reports_by_worker": {
             worker_uuid: [dashboard_report(report) for report in reports]
             for worker_uuid, reports in test.reports_by_worker.items()
@@ -206,10 +224,16 @@ def dashboard_test(test: Test) -> DashboardTest:
 
 def dashboard_failures(
     failures: dict[str, tuple[FailureState, Observation]],
-) -> dict[str, Failure]:
+) -> dict[str, DashboardFailure]:
     return {
-        interesting_origin: Failure(
+        interesting_origin: DashboardFailure(
             state=state, observation=dashboard_observation(failure)
         )
         for interesting_origin, (state, failure) in failures.items()
+    }
+
+
+def dashboard_fatal_failure(failure: FatalFailure) -> DashboardFatalFailure:
+    return {
+        "traceback": failure.traceback,
     }

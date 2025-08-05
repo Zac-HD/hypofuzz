@@ -1,6 +1,7 @@
 import {
   Dataclass,
   Failure,
+  FatalFailure,
   Observation,
   Phase,
   Report,
@@ -54,7 +55,7 @@ export class Test extends Dataclass<Test> {
     public rolling_observations: Observation[],
     public corpus_observations: Observation[],
     public failures: Map<string, Failure>,
-    public fatal_failure: string | null,
+    public fatal_failure: FatalFailure | null,
     public reports_by_worker: Map<string, Report[]>,
     public stability: number | null,
   ) {

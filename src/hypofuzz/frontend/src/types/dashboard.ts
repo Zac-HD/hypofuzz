@@ -27,6 +27,12 @@ export class Failure extends Dataclass<Failure> {
   }
 }
 
+export class FatalFailure extends Dataclass<FatalFailure> {
+  constructor(public traceback: string) {
+    super()
+  }
+}
+
 export class StatusCounts extends Dataclass<StatusCounts> {
   constructor(
     public counts: Map<Status, number> = new Map([

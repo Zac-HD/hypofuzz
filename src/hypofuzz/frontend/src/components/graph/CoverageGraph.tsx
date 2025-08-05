@@ -506,7 +506,6 @@ export function GraphComponent({
           graphQuadtree.find(mouseX, mouseY, DISTANCE_THRESHOLD) || null
 
         if (closestPoint) {
-          console.log("set active line", closestPoint.line)
           setActiveNodeid(closestPoint.line.nodeid)
           const reports = closestPoint.line.reports
 
@@ -583,17 +582,19 @@ export function GraphComponent({
 
           <Axis
             baseScale={scales.baseX}
+            viewportScale={scales.viewportX}
             orientation="bottom"
             transform={`translate(0, ${scales.baseY.range()[0]})`}
             isLogScale={scaleSettingX === "log"}
-            zoomTransform={scales.constrainedTransform}
+            zoomState={scales.constrainedTransform}
           />
 
           <Axis
             baseScale={scales.baseY}
+            viewportScale={scales.viewportY}
             orientation="left"
             isLogScale={scaleSettingY === "log"}
-            zoomTransform={scales.constrainedTransform}
+            zoomState={scales.constrainedTransform}
           />
         </g>
       </svg>
