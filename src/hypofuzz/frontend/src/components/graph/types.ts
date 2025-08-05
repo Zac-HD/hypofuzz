@@ -21,7 +21,9 @@ export class GraphReport {
 }
 
 export interface GraphLine {
+  nodeid: string
   url: string | null
   reports: GraphReport[]
   color: string
+  isActive: boolean
 }

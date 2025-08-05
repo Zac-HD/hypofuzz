@@ -1,5 +1,3 @@
-import "d3-transition"
-
 import {
   faCircleDot,
   faClock,
@@ -241,6 +239,72 @@ const GRAPH_MARGIN = {
   left: 40,
 }
 
+// Number of sample points per unit of display length for quadtree line sampling
+const QUADTREE_SAMPLE_INTERVAL = 10
+const DISTANCE_THRESHOLD = 10
+
+interface SampledPoint {
+  x: number
+  y: number
+  line: GraphLine
+}
+
+// Function to sample points along a line proportional to its display length
+function sampleLinePoints(scales: any, line: GraphLine): SampledPoint[] {
+  const points: SampledPoint[] = []
+  const reports = line.reports
+
+  if (reports.length < 2) return points
+
+  // Calculate total display length of the line
+  let totalLength = 0
+  for (let i = 1; i < reports.length; i++) {
+    const x1 = scales.viewportX(scales.xValue(reports[i - 1]))
+    const y1 = scales.viewportY(scales.yValue(reports[i - 1]))
+    const x2 = scales.viewportX(scales.xValue(reports[i]))
+    const y2 = scales.viewportY(scales.yValue(reports[i]))
+
+    const segmentLength = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
+    totalLength += segmentLength
+  }
+
+  // Calculate number of sample points based on display length
+  const numSamples = Math.max(2, Math.floor(totalLength / QUADTREE_SAMPLE_INTERVAL))
+
+  for (let i = 0; i < numSamples; i++) {
+    const t = i / (numSamples - 1)
+    const targetDistance = t * totalLength
+
+    let currentDistance = 0
+    for (let j = 1; j < reports.length; j++) {
+      const x1 = scales.viewportX(scales.xValue(reports[j - 1]))
+      const y1 = scales.viewportY(scales.yValue(reports[j - 1]))
+      const x2 = scales.viewportX(scales.xValue(reports[j]))
+      const y2 = scales.viewportY(scales.yValue(reports[j]))
+
+      const segmentLength = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
+
+      if (
+        currentDistance + segmentLength >= targetDistance ||
+        j === reports.length - 1
+      ) {
+        // interpolate within this segment
+        const segmentT =
+          segmentLength > 0 ? (targetDistance - currentDistance) / segmentLength : 0
+        const x = x1 + (x2 - x1) * segmentT
+        const y = y1 + (y2 - y1) * segmentT
+
+        points.push({ x, y, line })
+        break
+      }
+
+      currentDistance += segmentLength
+    }
+  }
+
+  return points
+}
+
 export function GraphComponent({
   tests,
   filterString = "",
@@ -275,6 +339,7 @@ export function GraphComponent({
   const isMobile = useIsMobile()
   const tooltip = useTooltip()
   const [containerWidth, setContainerWidth] = useState(800)
+  const [activeNodeid, setActiveNodeid] = useState<string | null>(null)
 
   // use the unfiltered reports as the domain so colors are stable across filtering.
   const reportsColor = d3
@@ -287,9 +352,11 @@ export function GraphComponent({
       lines = Array.from(tests.entries())
         .sortKey(([nodeid, test]) => nodeid)
         .map(([nodeid, test]) => ({
+          nodeid: nodeid,
           url: `/tests/${encodeURIComponent(nodeid)}`,
           reports: graphReports(test, workers_after),
           color: reportsColor(nodeid),
+          isActive: false,
         }))
     } else if (viewSetting === WorkerView.SEPARATE) {
       const timestamps: number[] = []
@@ -316,11 +383,13 @@ export function GraphComponent({
         for (const workerReports of test.reports_by_worker.values()) {
           if (workerReports.length > 0) {
             lines.push({
+              nodeid: nodeid,
               url: `/tests/${encodeURIComponent(nodeid)}`,
               reports: workerReports.map(report =>
                 GraphReport.fromReport(nodeid, report),
               ),
               color: timeColor(workerReports[0].timestamp),
+              isActive: false,
             })
           }
         }
@@ -334,12 +403,14 @@ export function GraphComponent({
 
         if (recentReports) {
           lines.push({
+            nodeid: nodeid,
             url: `/tests/${encodeURIComponent(nodeid)}`,
             reports: recentReports.map(report =>
               GraphReport.fromReport(nodeid, report),
             ),
             // use the same color as the linearized view
             color: reportsColor(nodeid),
+            isActive: false,
           })
         }
       }
@@ -354,6 +425,14 @@ export function GraphComponent({
       line.url?.toLowerCase().includes(filterString.toLowerCase()),
     )
   }
+
+  let activeLine: GraphLine | null = null
+  filteredLines.forEach(line => {
+    if (line.nodeid === activeNodeid) {
+      line.isActive = true
+      activeLine = line
+    }
+  })
 
   useEffect(() => {
     if (containerRef.current) {
@@ -386,16 +465,16 @@ export function GraphComponent({
     { yMin: 0 },
   )
 
-  const distanceThreshold = 10
-
-  const graphQuadtree = quadtree<GraphReport>()
-    .x(d => scales.viewportX(scales.xValue(d)))
-    .y(d => scales.viewportY(scales.yValue(d)))
-    .addAll(allReports)
-
-  const findClosestReport = (chartX: number, chartY: number): GraphReport | null => {
-    return graphQuadtree.find(chartX, chartY, distanceThreshold) || null
-  }
+  // for each line, we sample points from it proportional to its current display length,
+  // and track them in a quadtree. This lets us find the line closest to the cursor
+  // (up to some sampling error; increase QUADTREE_SAMPLE_INTERVAL to improve this).
+  // Once we have the closest line, it's cheap to find the closest report on that line for
+  // the actual tooltip contents.
+  const sampledPoints = filteredLines.flatMap(line => sampleLinePoints(scales, line))
+  const graphQuadtree = quadtree<SampledPoint>()
+    .x(d => d.x)
+    .y(d => d.y)
+    .addAll(sampledPoints)
 
   return (
     <div
@@ -409,17 +488,46 @@ export function GraphComponent({
         width: "100%",
         height: `${GRAPH_HEIGHT}px`,
         userSelect: "none",
+        cursor: activeLine ? "pointer" : "default",
       }}
       onMouseDown={zoom.onMouseDown}
       onDoubleClick={zoom.onDoubleClick}
+      onClick={() => {
+        if (activeLine && activeLine.url) {
+          navigate(activeLine.url)
+        }
+      }}
       onMouseMove={event => {
         const rect = event.currentTarget.getBoundingClientRect()
         const mouseX = event.clientX - rect.left - GRAPH_MARGIN.left
         const mouseY = event.clientY - rect.top - GRAPH_MARGIN.top
 
-        const closestReport = findClosestReport(mouseX, mouseY)
+        const closestPoint =
+          graphQuadtree.find(mouseX, mouseY, DISTANCE_THRESHOLD) || null
 
-        if (closestReport) {
+        if (closestPoint) {
+          console.log("set active line", closestPoint.line)
+          setActiveNodeid(closestPoint.line.nodeid)
+          const reports = closestPoint.line.reports
+
+          // find the closest actual report on this line. We know the closest sampled point
+          // and therefore the closest line, but not the closest report on that line.
+          let closestReport = reports[0]
+          let minDistance = Infinity
+
+          reports.forEach(report => {
+            const reportX = scales.viewportX(scales.xValue(report))
+            const reportY = scales.viewportY(scales.yValue(report))
+            const distance = Math.sqrt(
+              (mouseX - reportX) ** 2 + (mouseY - reportY) ** 2,
+            )
+
+            if (distance < minDistance) {
+              minDistance = distance
+              closestReport = report
+            }
+          })
+
           const behaviors_s = closestReport.behaviors === 1 ? "" : "s"
           const fingerprints_s = closestReport.fingerprints === 1 ? "" : "s"
           const inputs_s = closestReport.linear_status_counts.sum() === 1 ? "" : "s"
@@ -433,10 +541,12 @@ export function GraphComponent({
 
           tooltip.showTooltip(content, event.clientX, event.clientY, "coverage-graph")
         } else {
+          setActiveNodeid(null)
           tooltip.hideTooltip("coverage-graph")
         }
       }}
       onMouseLeave={() => {
+        setActiveNodeid(null)
         tooltip.hideTooltip("coverage-graph")
       }}
     >

@@ -1,6 +1,5 @@
 import { ScaleContinuousNumeric } from "d3-scale"
 import { line as d3_line } from "d3-shape"
-import { useState } from "react"
 import { navigateOnClick } from "src/utils/utils"
 
 import { GraphLine, GraphReport } from "./types"
@@ -23,45 +22,33 @@ export function DataLines({
   yValue,
   navigate,
 }: DataLinesProps) {
-  const [hoveredLineKey, setHoveredLineKey] = useState<string | null>(null)
-
   // Calculate path data using D3 with viewport scales (zoom already applied)
   const lineGenerator = d3_line<GraphReport>()
     .x(d => viewportXScale(xValue(d)))
     .y(d => viewportYScale(yValue(d)))
-
-  const lineData = lines.map((line, index) => {
-    const pathData = lineGenerator(line.reports) || ""
-
-    return {
-      pathData,
-      color: line.color,
-      url: line.url,
-      key: `line-${index}-${line.url || "no-url"}`, // Stable key for React
-    }
-  })
-
   return (
     <g style={{ pointerEvents: "auto" }}>
-      {lineData.map(line => (
-        <path
-          key={line.key}
-          d={line.pathData}
-          fill="none"
-          stroke={line.color}
-          className={`coverage-line ${hoveredLineKey === line.key ? "coverage-line__selected" : ""}`}
-          style={{
-            cursor: line.url ? "pointer" : "default",
-          }}
-          onMouseEnter={() => setHoveredLineKey(line.key)}
-          onMouseLeave={() => setHoveredLineKey(null)}
-          onClick={event => {
-            if (line.url) {
-              navigateOnClick(event as any, line.url, navigate)
-            }
-          }}
-        />
-      ))}
+      {lines.map(line => {
+        const pathData = lineGenerator(line.reports) || ""
+
+        return (
+          <path
+            key={`line-${line.url || "no-url"}`}
+            d={pathData}
+            fill="none"
+            stroke={line.color}
+            className={`coverage-line ${line.isActive ? "coverage-line__selected" : ""}`}
+            style={{
+              cursor: line.url ? "pointer" : "default",
+            }}
+            onClick={event => {
+              if (line.url) {
+                navigateOnClick(event as any, line.url, navigate)
+              }
+            }}
+          />
+        )
+      })}
     </g>
   )
 }
