@@ -145,7 +145,7 @@ const WorkerBar = ({
   return (
     <div
       key={worker.uuid}
-      className={`workers__worker ${expandedWorkers.has(worker.uuid) ? "workers__worker--expanded" : ""}`}
+      className={`workers__worker${expandedWorkers.has(worker.uuid) ? " workers__worker--expanded" : ""}`}
       onClick={() => onWorkerClick(worker.uuid)}
       // these extra onMouseLeave calls shouldn't be necessary, but I've had trouble
       // with the workers__timeline__segment mouse leave handler not firing consistently
@@ -214,7 +214,7 @@ export function WorkersPage() {
   const navigate = useNavigate()
   const { showTooltip, hideTooltip, moveTooltip } = useTooltip()
   const [expandedWorkers, setExpandedWorkers] = useState<Set<string>>(new Set())
-  const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>(TIME_PERIODS[0]) // Default to "Latest"
+  const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>(TIME_PERIODS[0])
   const [userRange, setUserRange] = useState<[number, number] | null>(null)
 
   const workerUuids = OrderedSet(
@@ -338,8 +338,6 @@ export function WorkersPage() {
   const visibleRange = userRange ?? sliderRange
 
   useEffect(() => {
-    // reset the range when clicking on a period, even if it's the same period. This gives a
-    // nice "reset button" ux to users.
     setUserRange(null)
   }, [selectedPeriod])
 
@@ -356,6 +354,9 @@ export function WorkersPage() {
       left = ((segment.start - visibleMin) / visibleDuration) * 100
       width = ((segment.end - segment.start) / visibleDuration) * 100
     }
+
+    // TODO we should compute a min in pixels, not percentage.
+    width = Math.max(width, 0.1)
 
     return {
       left: `${left}%`,
@@ -402,7 +403,15 @@ export function WorkersPage() {
                         ? "workers__durations__button--active"
                         : ""
                     } ${!available ? "workers__durations__button--disabled" : ""}`}
-                    onClick={() => available && setSelectedPeriod(period)}
+                    onClick={() => {
+                      if (!available) {
+                        return
+                      }
+                      setSelectedPeriod(period)
+                      // reset the range when clicking on a period, even if it's the same period. This gives a
+                      // nice "reset button" ux to users.
+                      setUserRange(null)
+                    }}
                   >
                     {period.label}
                   </div>

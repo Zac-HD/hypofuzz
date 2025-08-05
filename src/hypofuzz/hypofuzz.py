@@ -35,7 +35,6 @@ from hypothesis.internal.escalation import InterestingOrigin, current_pytest_ite
 from hypothesis.internal.observability import (
     InfoObservation,
     TestCaseObservation,
-    with_observation_callback,
 )
 from hypothesis.internal.reflection import (
     function_digest,
@@ -59,6 +58,17 @@ from hypofuzz.database import (
     convert_db_key,
 )
 from hypofuzz.provider import HypofuzzProvider
+
+try:
+    # compatibility with older hypothesis versions. can remove the next time
+    # we bump hypothesis
+    from hypothesis.internal.observability import (
+        with_observation_callback as with_observability_callback,
+    )
+except ImportError:
+    from hypothesis.internal.observability import (  # type: ignore
+        with_observability_callback,
+    )
 
 # 1 hour
 SHRINK_TIMEOUT = 60 * 60
@@ -290,6 +300,12 @@ class FuzzTarget:
             )
         return ConjectureData(provider=self.provider, random=self.random)
 
+    def save_report(self) -> None:
+        """
+        Tell the provider to save a report, of its current state.
+        """
+        self.provider._save_report(self.provider._report)
+
     def run_one(self) -> None:
         """Run a single input through the fuzz target, or maybe more.
 
@@ -298,7 +314,7 @@ class FuzzTarget:
         """
         data = self.new_conjecture_data()
         # seen_count = len(self.provider.corpus.branch_counts)
-        self._execute_once(data, observation_callback=self.provider.on_observation)
+        self._execute_once(data, observability_callback=self.provider.on_observation)
 
         data.freeze()
         result = data.as_result()
@@ -312,7 +328,7 @@ class FuzzTarget:
             # logic needs to be extracted / unified somehow
             self.provider._start_phase(Phase.SHRINK)
             shrinker = get_shrinker(
-                partial(self._execute_once, observation_callback=None),
+                partial(self._execute_once, observability_callback=None),
                 initial=result,
                 predicate=lambda d: d.status is Status.INTERESTING,
                 random=self.random,
@@ -339,8 +355,8 @@ class FuzzTarget:
 
             # re-execute the final shrunk failing example under observability,
             # so we get the shrunk observation to save
-            self._execute_once(data, observation_callback=on_observation)
-            self.provider._save_report(self.provider._report)
+            self._execute_once(data, observability_callback=on_observation)
+            self.save_report()
 
             # move this failure from the unshrunk to the shrunk key.
             assert observation is not None
@@ -366,7 +382,7 @@ class FuzzTarget:
         self,
         data: ConjectureData,
         *,
-        observation_callback: Union[
+        observability_callback: Union[
             Callable[[Union[InfoObservation, TestCaseObservation]], None],
             Literal["provider"],
             None,
@@ -376,13 +392,13 @@ class FuzzTarget:
         # setting current_pytest_item lets us access it in HypofuzzProvider,
         # and lets observability's "property" attribute be the proper nodeid,
         # instead of just the function name
-        if observation_callback == "provider":
-            observation_callback = self.provider.on_observation
+        if observability_callback == "provider":
+            observability_callback = self.provider.on_observation
 
         with (
             (
-                with_observation_callback(observation_callback)
-                if observation_callback is not None
+                with_observability_callback(observability_callback)
+                if observability_callback is not None
                 else nullcontext()
             ),
             (
@@ -546,6 +562,7 @@ class FuzzWorker:
         if self._current_target is not None:
             # first, clean up any fixtures from the old target.
             self._current_target._exit_fixtures()
+            self._current_target.save_report()
 
         # then, set up any fixtures for the new target.
         target._enter_fixtures()
@@ -595,6 +612,7 @@ class FuzzWorker:
                     # TODO we should scale this n up if our estimator expects that it will
                     # take a long time to discover a new behavior, to reduce the overhead
                     # of switching targets.
+                    # (possibly also scale with runtime?)
                     for _ in range(100):
                         if target.has_found_failure:
                             # stop as soon as we find a failure. We don't need to

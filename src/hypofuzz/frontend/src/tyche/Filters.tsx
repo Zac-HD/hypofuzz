@@ -17,20 +17,17 @@ export function Filters() {
     <div className="tyche__filters">
       <div className="tyche__filters__title">Current Filters</div>
       {allFilters.map(filter => (
-        <div
-          key={`${filter.component}-${filter.name}`}
-          className="tyche__filters__filter"
-        >
-          <div className="tyche__filters__filter__component">
+        <div key={filter.key} className="tyche__filters__filter">
+          <div className="tyche__filters__filter__name">
             <div
               className="tyche__filters__filter__remove"
-              onClick={() => removeFilter(filter.component, filter.name)}
+              onClick={() => removeFilter(filter.key)}
             >
               <FontAwesomeIcon icon={faXmark} />
             </div>
-            {filter.component}
+            {filter.name}
           </div>
-          <div className="tyche__filters__filter__name">{filter.name}</div>
+          <div className="tyche__filters__filter__value-name">{filter.valueName}</div>
         </div>
       ))}
     </div>
