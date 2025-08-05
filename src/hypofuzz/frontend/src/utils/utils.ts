@@ -191,7 +191,6 @@ export function navigateOnClick(
       ? `${location.origin}${location.pathname}#${url}`
       : `${location.origin}${url}`
 
-    console.log(location.origin, location.pathname, url, resolvedUrl)
     window.open(resolvedUrl, "_blank")
   } else {
     navigate(url)
