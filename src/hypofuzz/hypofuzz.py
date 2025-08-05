@@ -66,7 +66,9 @@ try:
         with_observation_callback as with_observability_callback,
     )
 except ImportError:
-    from hypothesis.internal.observability import with_observability_callback
+    from hypothesis.internal.observability import (
+        with_observability_callback,  # type: ignore
+    )
 
 # 1 hour
 SHRINK_TIMEOUT = 60 * 60
