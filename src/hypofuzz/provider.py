@@ -604,7 +604,7 @@ class HypofuzzProvider(PrimitiveProvider):
                 state=FailureState.SHRUNK,
             )
 
-    def _save_obsevation(
+    def _save_observation(
         self, observation: TestCaseObservation, *, stability: Optional[Stability]
     ) -> None:
         assert self.db is not None
@@ -688,7 +688,7 @@ class HypofuzzProvider(PrimitiveProvider):
                     coverage_observation = self._state.extra_queue_data["observation"]
                     consider_corpus_coverage = True
             if "observation" in self._state.extra_queue_data["reasons"]:
-                self._save_obsevation(
+                self._save_observation(
                     # Use the observation from the original execution, not this
                     # re-execution. The re-execution is just to check for stability.
                     self._state.extra_queue_data["observation"],
@@ -784,7 +784,7 @@ class HypofuzzProvider(PrimitiveProvider):
                 # we've gone over overhead cap for observation stability, we
                 # instead save an observation without re-executing, with an
                 # unknown stability status.
-                self._save_obsevation(observation, stability=None)
+                self._save_observation(observation, stability=None)
 
         if queue_for_stability:
             self._enqueue(
