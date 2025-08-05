@@ -215,11 +215,19 @@ class Test:
         if not self.rolling_observations:
             return None
 
+        # not that we do not compute stability as
+        # count_stable / len(self.rolling_observations), because we want to avoid
+        # counting observations with unknown stability against the overall stability.
         count_stable = sum(
             observation.stability is Stability.STABLE
             for observation in self.rolling_observations
         )
-        return count_stable / len(self.rolling_observations)
+        count_unstable = sum(
+            observation.stability is Stability.UNSTABLE
+            for observation in self.rolling_observations
+        )
+
+        return count_stable / (count_stable + count_unstable)
 
     @property
     def phase(self) -> Optional[Phase]:
