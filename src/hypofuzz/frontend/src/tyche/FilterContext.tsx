@@ -16,9 +16,11 @@ export class Filter {
   }
 }
 
+type Filters = Map<string, Filter[]>
+
 interface FilterContextType {
-  filters: Map<string, Filter[]>
-  setFilters: (filters: Map<string, Filter[]>) => void
+  filters: Filters
+  setFilters: (filters: Filters) => void
   removeFilter: (component: string, name: string) => void
   observationCategory: ObservationCategory
   setObservationCategory: (observationCategory: ObservationCategory) => void
@@ -28,7 +30,7 @@ const FilterContext = createContext<FilterContextType | undefined>(undefined)
 
 export function FilterProvider({ children }: { children: ReactNode }) {
   const [filtersByObsType, setFiltersByCategory] = useState<
-    Map<ObservationCategory, Map<string, Filter[]>>
+    Map<ObservationCategory, Filters>
   >(
     new Map([
       ["covering", new Map()],
@@ -40,7 +42,7 @@ export function FilterProvider({ children }: { children: ReactNode }) {
 
   const filters =
     filtersByObsType.get(observationCategory) || new Map<string, Filter[]>()
-  const setFilters = (newFilters: Map<string, Filter[]>) => {
+  const setFilters = (newFilters: Filters) => {
     setFiltersByCategory(prev => {
       const newMap = new Map(prev)
       newMap.set(observationCategory, newFilters)

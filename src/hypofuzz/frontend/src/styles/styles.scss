@@ -1026,21 +1026,24 @@ pre code.hljs {
     &__nominal {
         &__chart {
             max-width: $max-nominal-width;
-            margin-left: 1.75rem;
-            margin-bottom: 0.75rem;
-
-            @media (max-width: $mobile-breakpoint) {
-                margin-left: 0;
-            }
         }
 
         &__feature {
-            font-family: monospace;
-            font-size: 1rem;
-            font-weight: 600;
             margin-bottom: 0.5rem;
             padding: 10px 0;
-            line-height: 1.3;
+
+            &__icon {
+                color: #666;
+                margin-right: 5px;
+                font-size: 0.9em;
+            }
+
+            &__text {
+                font-family: monospace;
+                font-size: 1rem;
+                font-weight: 600;
+                line-height: 1.3;
+            }
         }
     }
 

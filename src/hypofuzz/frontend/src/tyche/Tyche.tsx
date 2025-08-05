@@ -76,7 +76,10 @@ function TycheInner({ test }: { test: Test }) {
       {observations.raw.length > 0 ? (
         <>
           <Samples observations={observations} />
-          <Features observations={observations} />
+          <Features
+            observations={observations}
+            observationCategory={observationCategory}
+          />
           <Representation
             observations={observations}
             observationCategory={observationCategory}

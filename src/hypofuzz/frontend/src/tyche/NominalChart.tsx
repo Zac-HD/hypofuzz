@@ -1,3 +1,5 @@
+import { faGear } from "@fortawesome/free-solid-svg-icons"
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
 import { axisBottom as d3_axisBottom, axisLeft as d3_axisLeft } from "d3-axis"
 import {
   scaleBand as d3_scaleBand,
@@ -23,13 +25,45 @@ const d3 = {
   axisLeft: d3_axisLeft,
 }
 
+export abstract class Feature {
+  abstract isSystem: boolean
+
+  constructor(
+    public key: string,
+    public name: string,
+  ) {}
+
+  getValue(observation: Observation): any {
+    return observation.features.get(this.name)
+  }
+}
+
+export class UserFeature extends Feature {
+  isSystem = false
+}
+
+export class SystemFeature extends Feature {
+  isSystem = true
+
+  constructor(
+    public override key: string,
+    public override name: string,
+    public value: (observation: Observation) => any,
+  ) {
+    super(key, name)
+  }
+
+  override getValue(observation: Observation): any {
+    return this.value(observation)
+  }
+}
+
 type NominalChartProps = {
-  feature: string
+  feature: Feature
   observations: { raw: Observation[]; filtered: Observation[] }
 }
 
 const HORIZONTAL_BAR_FEATURE_CUTOFF = 5
-
 const SELECTION_STROKE_WIDTH = 2.5
 
 export function NominalChart({ feature, observations }: NominalChartProps) {
@@ -39,7 +73,7 @@ export function NominalChart({ feature, observations }: NominalChartProps) {
   const { showTooltip, hideTooltip, moveTooltip } = useTooltip()
 
   function getSelectedValues() {
-    const nominalFilters = filters.get(feature) || []
+    const nominalFilters = filters.get(feature.key) || []
     if (nominalFilters.length === 0) {
       return Set<string>()
     }
@@ -80,10 +114,10 @@ export function NominalChart({ feature, observations }: NominalChartProps) {
           name,
           (obs: Observation) => {
             return newSelection.some(value => {
-              return obs.features.get(feature) === value
+              return value === feature.getValue(obs)
             })
           },
-          feature,
+          feature.key,
           {
             selectedValues: newSelection,
           },
@@ -92,7 +126,7 @@ export function NominalChart({ feature, observations }: NominalChartProps) {
     }
 
     const newFilters = new Map(filters)
-    newFilters.set(feature, nominalFilters)
+    newFilters.set(feature.key, nominalFilters)
     setFilters(newFilters)
   }
 
@@ -102,13 +136,13 @@ export function NominalChart({ feature, observations }: NominalChartProps) {
     }
 
     const distinctRawValues = Set<string>(
-      filteredObservations.raw.map(obs => obs.features.get(feature)),
+      filteredObservations.raw.map(obs => feature.getValue(obs)),
     )
     // value: count
     let data = new Map<string, number>()
 
     for (const observation of filteredObservations.filtered) {
-      const value = observation.features.get(feature)
+      const value = feature.getValue(observation)
       data.set(value, (data.get(value) || 0) + 1)
     }
     const total = sum(Array.from(data.values()))
@@ -135,7 +169,7 @@ export function NominalChart({ feature, observations }: NominalChartProps) {
     const showTooltipHandler = function (event: MouseEvent, d: [string, number]) {
       const [label, count] = d
       showTooltip(
-        `${feature}<br>${label}: ${count}`,
+        `${feature.name}<br>${label}: ${count}`,
         event.clientX,
         event.clientY,
         "tyche-nominal",
@@ -148,7 +182,7 @@ export function NominalChart({ feature, observations }: NominalChartProps) {
     // use the number of distinct values in the unfiltered observations, so we
     // don't change up the display type on the user when they're drilling down.
     if (distinctRawValues.size < HORIZONTAL_BAR_FEATURE_CUTOFF) {
-      const margin = { top: 0, right: 15, bottom: 20, left: 15 }
+      const margin = { top: 0, right: 15, bottom: 20, left: 10 }
       const innerWidth = width - margin.left - margin.right
       const innerHeight = height - margin.top - margin.bottom
 
@@ -222,8 +256,8 @@ export function NominalChart({ feature, observations }: NominalChartProps) {
           .attr("dominant-baseline", "central")
           .attr("fill", "white")
           .text(value)
-          .style("font-size", "12px")
-
+          .style("font-size", "14px")
+          .style("font-weight", "bold")
         xAccumulator += barWidth
       })
 
@@ -233,13 +267,13 @@ export function NominalChart({ feature, observations }: NominalChartProps) {
 
       g.append("text")
         .attr("x", innerWidth / 2)
-        .attr("y", barHeight + 30)
+        .attr("y", barHeight + 35)
         .attr("text-anchor", "middle")
         .text("% of observations")
-        .style("font-size", "12px")
+        .style("font-size", "13px")
     } else {
       // add some margin inset for the graph proper so the axes don't get cut off
-      const margin = { top: 5, right: 5, bottom: 30, left: 30 }
+      const margin = { top: 5, right: 5, bottom: 30, left: 10 }
       const innerWidth = width - margin.left - margin.right
       const innerHeight = height - margin.top - margin.bottom
 
@@ -339,7 +373,17 @@ export function NominalChart({ feature, observations }: NominalChartProps) {
 
   return (
     <div>
-      <div className="tyche__nominal__feature">{feature}</div>
+      <div className="tyche__nominal__feature">
+        {feature.isSystem && (
+          <span className="tooltip">
+            <FontAwesomeIcon icon={faGear} className="tyche__nominal__feature__icon" />
+            <span className="tooltip__text">
+              This feature is generated automatically for all tests
+            </span>
+          </span>
+        )}
+        <span className="tyche__nominal__feature__text">{feature.name}</span>
+      </div>
       <div ref={parentRef} className="tyche__nominal__chart">
         <svg ref={svgRef} style={{ width: "100%" }}></svg>
       </div>
