@@ -52,6 +52,7 @@ from hypofuzz.database import (
     ChoicesT,
     DatabaseEvent,
     FailureState,
+    FatalFailure,
     HypofuzzDatabase,
     Observation,
     Phase,
@@ -162,7 +163,8 @@ class FuzzTarget:
             type(exception), exception, exception.__traceback__
         )
         tb = "".join(tb)
-        self.database.save_fatal_failure(self.database_key, tb)
+        failure = FatalFailure(nodeid=self.nodeid, traceback=tb)
+        self.database.save_fatal_failure(self.database_key, failure)
         raise FailedFatally
 
     def _new_state(

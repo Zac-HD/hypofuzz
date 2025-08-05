@@ -15,6 +15,7 @@ from hypofuzz.dashboard.models import (
     SetStatusEvent,
     TestLoadFinishedEvent,
     dashboard_failures,
+    dashboard_fatal_failure,
     dashboard_observation,
     dashboard_report,
 )
@@ -116,7 +117,11 @@ class OverviewWebsocket(HypofuzzWebsocket):
                     "database_key": test.database_key,
                     "nodeid": test.nodeid,
                     "failures": dashboard_failures(test.failures),
-                    "fatal_failure": test.fatal_failure,
+                    "fatal_failure": (
+                        None
+                        if test.fatal_failure is None
+                        else dashboard_fatal_failure(test.fatal_failure)
+                    ),
                     "stability": test.stability,
                 }
                 for test in tests.copy().values()
@@ -161,7 +166,11 @@ class TestWebsocket(HypofuzzWebsocket):
                     "database_key": test.database_key,
                     "nodeid": test.nodeid,
                     "failures": dashboard_failures(test.failures),
-                    "fatal_failure": test.fatal_failure,
+                    "fatal_failure": (
+                        None
+                        if test.fatal_failure is None
+                        else dashboard_fatal_failure(test.fatal_failure)
+                    ),
                     "stability": test.stability,
                 }
             ],

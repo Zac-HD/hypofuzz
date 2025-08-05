@@ -187,6 +187,19 @@ class Observation:
             return None
 
 
+@dataclass(frozen=True)
+class FatalFailure:
+    nodeid: str
+    traceback: str
+
+    @staticmethod
+    def from_json(data: bytes) -> Optional["FatalFailure"]:
+        try:
+            return FatalFailure(**json.loads(data))
+        except Exception:
+            return None
+
+
 class Phase(Enum):
     GENERATE = "generate"
     REPLAY = "replay"
@@ -272,7 +285,7 @@ class DatabaseEvent:
             (
                 lambda: full_key.endswith(fatal_failure_key),
                 DatabaseEventKey.FAILURE_FATAL,
-                json.loads,
+                FatalFailure.from_json,
             ),
             (
                 lambda: is_corpus_observation_key(full_key),
@@ -764,21 +777,22 @@ class HypofuzzDatabase:
 
     # fatal failures (fatal_failure_key)
 
-    def save_fatal_failure(self, key: bytes, traceback: str) -> None:
+    def save_fatal_failure(self, key: bytes, failure: FatalFailure) -> None:
         # we don't want to accumulate multiple fatal failures, so replace any
         # existing ones with the new one.
         self.delete_fatal_failures(key)
-        self.save(key + fatal_failure_key, self._encode(traceback))
+        self.save(key + fatal_failure_key, self._encode(failure))
 
     def delete_fatal_failures(self, key: bytes) -> None:
         for failure in self.fetch_fatal_failures(key):
             self.delete(key + fatal_failure_key, self._encode(failure))
 
-    def fetch_fatal_failures(self, key: bytes) -> Iterable[str]:
+    def fetch_fatal_failures(self, key: bytes) -> Iterable[FatalFailure]:
         for value in self.fetch(key + fatal_failure_key):
-            yield json.loads(value.decode("ascii"))
+            if failure := FatalFailure.from_json(value):
+                yield failure
 
-    def fetch_fatal_failure(self, key: bytes) -> Optional[str]:
+    def fetch_fatal_failure(self, key: bytes) -> Optional[FatalFailure]:
         try:
             return next(iter(self.fetch_fatal_failures(key)))
         except StopIteration:

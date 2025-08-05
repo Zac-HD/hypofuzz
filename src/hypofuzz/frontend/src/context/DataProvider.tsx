@@ -9,7 +9,7 @@ import React, {
 import { ProgressBar } from "src/components/ProgressBar"
 import { useNotification } from "src/context/NotificationProvider"
 import { NOT_PRESENT_STRING, PRESENT_STRING } from "src/tyche/Tyche"
-import { Failure, Observation, Report } from "src/types/dashboard"
+import { Failure, FatalFailure, Observation, Report } from "src/types/dashboard"
 import { Test } from "src/types/test"
 
 interface DataContextType {
@@ -40,6 +40,7 @@ enum DashboardEventType {
   ADD_FAILURES = 5,
   SET_FAILURES = 6,
   TEST_LOAD_FINISHED = 7,
+  SET_FATAL_FAILURE = 8,
 }
 
 type TestsAction =
@@ -53,7 +54,7 @@ type TestsAction =
         database_key: string
         nodeid: string
         failures: Map<string, Failure>
-        fatal_failure: string | null
+        fatal_failure: FatalFailure | null
         stability: number | null
       }[]
     }
@@ -78,7 +79,11 @@ type TestsAction =
       type: DashboardEventType.TEST_LOAD_FINISHED
       nodeid: string
     }
-
+  | {
+      type: DashboardEventType.SET_FATAL_FAILURE
+      nodeid: string
+      fatal_failure: FatalFailure | null
+    }
 function prepareObservations(observations: Observation[]) {
   // compute uniqueness
   const reprCounts = new Map<string, number>()
@@ -204,6 +209,13 @@ function testsReducer(
       const { nodeid } = action
       const test = getOrCreateTest(nodeid)
       test.load_finished_at = Date.now()
+      return newState
+    }
+
+    case DashboardEventType.SET_FATAL_FAILURE: {
+      const { nodeid, fatal_failure } = action
+      const test = getOrCreateTest(nodeid)
+      test.fatal_failure = fatal_failure
       return newState
     }
 

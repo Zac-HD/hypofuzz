@@ -26,7 +26,11 @@ from hypofuzz.dashboard.models import (
     AddObservationsEvent,
     AddReportsEvent,
     DashboardEventT,
-    Failure,
+    DashboardFailure,
+    SetFailuresEvent,
+    SetFatalFailureEvent,
+    dashboard_failures,
+    dashboard_fatal_failure,
     dashboard_observation,
     dashboard_report,
 )
@@ -40,6 +44,7 @@ from hypofuzz.database import (
     DatabaseEvent,
     DatabaseEventKey,
     FailureState,
+    FatalFailure,
     HypofuzzDatabase,
     Observation,
     ObservationStatus,
@@ -104,6 +109,7 @@ def _dashboard_event(db_event: DatabaseEvent) -> Optional[DashboardEventT]:
             assert isinstance(value, Report)
             if value.nodeid not in TESTS:
                 return None
+
             TESTS[value.nodeid].add_report(value)
             event = AddReportsEvent(
                 nodeid=value.nodeid,
@@ -117,6 +123,7 @@ def _dashboard_event(db_event: DatabaseEvent) -> Optional[DashboardEventT]:
             assert isinstance(value, Observation)
             if value.property not in TESTS:
                 return None
+
             nodeid = value.property
             state = (
                 FailureState.UNSHRUNK
@@ -126,7 +133,7 @@ def _dashboard_event(db_event: DatabaseEvent) -> Optional[DashboardEventT]:
             event = AddFailuresEvent(
                 nodeid=nodeid,
                 failures={
-                    value.status_reason: Failure(
+                    value.status_reason: DashboardFailure(
                         state=state, observation=dashboard_observation(value)
                     )
                 },
@@ -137,6 +144,7 @@ def _dashboard_event(db_event: DatabaseEvent) -> Optional[DashboardEventT]:
             assert isinstance(value, Observation)
             if value.property not in TESTS:
                 return None
+
             observations = TESTS[value.property].rolling_observations
             # TODO store rolling_observationas as a proper logn sortedlist,
             # probably requires refactoring Test to be a proper class (not a
@@ -153,6 +161,7 @@ def _dashboard_event(db_event: DatabaseEvent) -> Optional[DashboardEventT]:
             assert isinstance(value, Observation)
             if value.property not in TESTS:
                 return None
+
             nodeid = value.property
             TESTS[nodeid].corpus_observations.append(value)
             _add_patch(nodeid, value, "covering")
@@ -160,6 +169,16 @@ def _dashboard_event(db_event: DatabaseEvent) -> Optional[DashboardEventT]:
                 nodeid=nodeid,
                 observation_type="corpus",
                 observations=[dashboard_observation(value)],
+            )
+        elif db_event.key is DatabaseEventKey.FAILURE_FATAL:
+            assert isinstance(value, FatalFailure)
+            if value.nodeid not in TESTS:
+                return None
+
+            TESTS[value.nodeid].fatal_failure = value
+            event = SetFatalFailureEvent(
+                nodeid=value.nodeid,
+                fatal_failure=dashboard_fatal_failure(value),
             )
         else:
             return None
@@ -177,6 +196,16 @@ def _dashboard_event(db_event: DatabaseEvent) -> Optional[DashboardEventT]:
             assert test.database_key_bytes == db_event.database_key
             failure_observations = get_failures(db_event.database_key)
             test.failures = failure_observations
+            event = SetFailuresEvent(
+                nodeid=test.nodeid, failures=dashboard_failures(failure_observations)
+            )
+        elif db_event.key is DatabaseEventKey.FAILURE_FATAL:
+            test = TESTS_BY_KEY[db_event.database_key]
+            test.fatal_failure = None
+            event = SetFatalFailureEvent(
+                nodeid=test.nodeid,
+                fatal_failure=None,
+            )
         else:
             return None
     else:

@@ -23,7 +23,7 @@ import { TestStatusPill } from "src/components/TestStatusPill"
 import { Tooltip } from "src/components/Tooltip"
 import { useData } from "src/context/DataProvider"
 import { Tyche } from "src/tyche/Tyche"
-import { Failure } from "src/types/dashboard"
+import { Failure, FatalFailure } from "src/types/dashboard"
 import { Test } from "src/types/test"
 import { fetchAvailablePatches } from "src/utils/api"
 import { getTestStats } from "src/utils/testStats"
@@ -80,7 +80,7 @@ function FailureCard({ failure }: { failure: Failure }) {
   )
 }
 
-function FatalFailureCard({ failure }: { failure: string }) {
+function FatalFailureCard({ failure }: { failure: FatalFailure }) {
   return (
     <div className="card">
       <div className="failure__title">Fatal failure</div>
@@ -88,7 +88,7 @@ function FatalFailureCard({ failure }: { failure: string }) {
         <div className="failure__item__subtitle">Traceback</div>
         <pre>
           <code className="language-python" style={{ whiteSpace: "pre-wrap" }}>
-            {failure}
+            {failure.traceback}
           </code>
         </pre>
       </div>
