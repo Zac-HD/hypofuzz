@@ -198,7 +198,8 @@ export function NominalChart({ feature, observations }: NominalChartProps) {
       } else {
         colorScale = d3
           .scaleOrdinal<string>()
-          .domain(Array.from(data.keys()))
+          // use raw values so the coloring doesn't change as we drill down
+          .domain(distinctRawValues)
           .range([
             TYCHE_COLOR.PRIMARY,
             TYCHE_COLOR.ACCENT,
