@@ -7,9 +7,12 @@ export class Filter {
   createdAt: number
 
   constructor(
+    // display value for the left half (key) of a "current filters" tag
     public readonly name: string,
+    // display value for the right half (value) of a "current filters" tag
+    public readonly valueName: string,
     public readonly predicate: (observation: Observation) => boolean,
-    public readonly component: string,
+    public readonly key: string,
     public readonly extraData?: any,
   ) {
     this.createdAt = Date.now()
@@ -21,7 +24,7 @@ type Filters = Map<string, Filter[]>
 interface FilterContextType {
   filters: Filters
   setFilters: (filters: Filters) => void
-  removeFilter: (component: string, name: string) => void
+  removeFilter: (key: string) => void
   observationCategory: ObservationCategory
   setObservationCategory: (observationCategory: ObservationCategory) => void
 }
@@ -29,7 +32,7 @@ interface FilterContextType {
 const FilterContext = createContext<FilterContextType | undefined>(undefined)
 
 export function FilterProvider({ children }: { children: ReactNode }) {
-  const [filtersByObsType, setFiltersByCategory] = useState<
+  const [filtersByObsType, setFiltersByKey] = useState<
     Map<ObservationCategory, Filters>
   >(
     new Map([
@@ -43,22 +46,22 @@ export function FilterProvider({ children }: { children: ReactNode }) {
   const filters =
     filtersByObsType.get(observationCategory) || new Map<string, Filter[]>()
   const setFilters = (newFilters: Filters) => {
-    setFiltersByCategory(prev => {
+    setFiltersByKey(prev => {
       const newMap = new Map(prev)
       newMap.set(observationCategory, newFilters)
       return newMap
     })
   }
 
-  const removeFilter = (component: string, name: string) => {
+  const removeFilter = (key: string) => {
     const newFilters = new Map(filters)
-    const componentFilters = newFilters.get(component) || []
-    const filteredFilters = componentFilters.filter(f => f.name !== name)
+    const keyFilters = newFilters.get(key) || []
+    const filteredFilters = keyFilters.filter(f => f.key !== key)
 
     if (filteredFilters.length === 0) {
-      newFilters.delete(component)
+      newFilters.delete(key)
     } else {
-      newFilters.set(component, filteredFilters)
+      newFilters.set(key, filteredFilters)
     }
 
     setFilters(newFilters)

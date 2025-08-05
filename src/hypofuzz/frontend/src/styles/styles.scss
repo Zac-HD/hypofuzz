@@ -985,7 +985,8 @@ pre code.hljs {
             color: #374151;
             overflow: hidden;
 
-            &__component {
+            // left half of the pill
+            &__name {
                 display: flex;
                 align-items: center;
                 background: rgba(108, 117, 125, 0.12);
@@ -996,7 +997,8 @@ pre code.hljs {
                 font-weight: 500;
             }
 
-            &__name {
+            // right half of the pill
+            &__value-name {
                 display: flex;
                 align-items: center;
                 background: white;

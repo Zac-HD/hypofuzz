@@ -164,6 +164,7 @@ export function MosaicChart({
     if (newSelection.size > 0) {
       mosaicFilters.push(
         new Filter(
+          name,
           filterName(),
           (obs: Observation) => {
             return newSelection.some(cell => {

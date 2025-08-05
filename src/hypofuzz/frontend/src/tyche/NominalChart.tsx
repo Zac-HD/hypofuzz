@@ -100,24 +100,25 @@ export function NominalChart({ feature, observations }: NominalChartProps) {
       newSelection = Set([value])
     }
 
-    let name
+    let valueName
     if (newSelection.size === 1) {
-      name = newSelection.first()!
+      valueName = newSelection.first()!
     } else {
-      name = newSelection.map(value => `${value}`).join(" or ")
+      valueName = newSelection.map(value => `${value}`).join(" or ")
     }
 
     const nominalFilters = []
     if (newSelection.size > 0) {
       nominalFilters.push(
         new Filter(
-          name,
+          feature.name,
+          valueName,
           (obs: Observation) => {
             return newSelection.some(value => {
               return value === feature.getValue(obs)
             })
           },
-          feature.key,
+          `nominal-${feature.key}`,
           {
             selectedValues: newSelection,
           },
