@@ -66,8 +66,8 @@ try:
         with_observation_callback as with_observability_callback,
     )
 except ImportError:
-    from hypothesis.internal.observability import (
-        with_observability_callback,  # type: ignore
+    from hypothesis.internal.observability import (  # type: ignore
+        with_observability_callback,
     )
 
 # 1 hour
