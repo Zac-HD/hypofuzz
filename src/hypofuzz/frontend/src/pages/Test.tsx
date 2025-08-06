@@ -98,7 +98,7 @@ function FatalFailureCard({ failure }: { failure: FatalFailure }) {
 
 export function TestPage() {
   const { nodeid } = useParams<{ nodeid: string }>()
-  const { tests, testsLoaded } = useData(nodeid)
+  const { tests } = useData(nodeid)
   const containerRef = useRef<HTMLDivElement>(null)
   const [nodeidsWithPatches, setNodeidsWithPatches] = useState<string[] | null>(null)
 
@@ -274,7 +274,6 @@ export function TestPage() {
       </div>
       <CoverageGraph
         tests={new Map([[nodeid, test]])}
-        testsLoaded={testsLoaded}
         workerViewSetting="graph_worker_view_test"
       />
       {test.normalFailures.map(failure => (

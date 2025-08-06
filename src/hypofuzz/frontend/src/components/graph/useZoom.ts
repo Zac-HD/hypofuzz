@@ -12,6 +12,8 @@ interface UseZoomOptions {
   maxScale?: number
   wheelSensitivity?: number
   containerRef: React.RefObject<HTMLElement | null>
+  onZoomEnd: () => void
+  onDragEnd: () => void
 }
 
 interface UseZoomReturn {
@@ -29,6 +31,8 @@ export function useZoom({
   maxScale = 50,
   wheelSensitivity = 0.0013,
   containerRef,
+  onZoomEnd = () => {},
+  onDragEnd = () => {},
 }: UseZoomOptions): UseZoomReturn {
   const [transform, setTransformState] = useState<ZoomState>(defaultZoomState)
   const isDragging = useRef(false)
@@ -147,6 +151,7 @@ export function useZoom({
         // If wheel event counter is still 0, no new wheel events came in
         if (wheelEventCount.current === 0) {
           isZooming.current = false
+          onZoomEnd()
         }
         wheelTimeoutRef.current = null
       }, 150)
@@ -188,6 +193,7 @@ export function useZoom({
       isDragging.current = false
       document.removeEventListener("mousemove", handleMouseMove)
       document.removeEventListener("mouseup", handleMouseUp)
+      onDragEnd()
     }
 
     document.addEventListener("mousemove", handleMouseMove)

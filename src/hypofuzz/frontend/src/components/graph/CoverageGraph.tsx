@@ -9,7 +9,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
 import { interpolateRgb as d3_interpolateRgb } from "d3-interpolate"
-import { quadtree } from "d3-quadtree"
+import { Quadtree, quadtree } from "d3-quadtree"
 import {
   scaleLinear as d3_scaleLinear,
   scaleOrdinal as d3_scaleOrdinal,
@@ -21,7 +21,7 @@ import {
 import { select as d3_select } from "d3-selection"
 import { zoomIdentity as d3_zoomIdentity } from "d3-zoom"
 import { Set } from "immutable"
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Axis } from "src/components/graph/Axis"
 import { DataLines } from "src/components/graph/DataLines"
@@ -46,6 +46,84 @@ const d3 = {
   interpolateViridis: d3_interpolateViridis,
   interpolateRgb: d3_interpolateRgb,
   schemeCategory10: d3_schemeCategory10,
+}
+
+function graphLines(
+  tests: Map<string, Test>,
+  viewSetting: WorkerView,
+  workers_after: number | null,
+  reportsColor: (nodeid: string) => string,
+): GraphLine[] {
+  console.log("graphLines called")
+  let lines: GraphLine[] = []
+
+  if (viewSetting === WorkerView.TOGETHER) {
+    lines = Array.from(tests.entries())
+      .sortKey(([nodeid, test]) => nodeid)
+      .map(([nodeid, test]) => ({
+        nodeid: nodeid,
+        url: `/tests/${encodeURIComponent(nodeid)}`,
+        reports: graphReports(test, workers_after),
+        color: reportsColor(nodeid),
+        isActive: false,
+      }))
+  } else if (viewSetting === WorkerView.SEPARATE) {
+    const timestamps: number[] = []
+    for (const test of tests.values()) {
+      for (const workerReports of test.reports_by_worker.values()) {
+        if (workerReports.length > 0) {
+          timestamps.push(workerReports[0].timestamp)
+        }
+      }
+    }
+
+    const minTimestamp = min(timestamps) ?? 0
+    const maxTimestamp = max(timestamps) ?? 0
+
+    function timeColor(timestamp: number) {
+      if (timestamps.length <= 1) {
+        return timeColorScale(0.5) // Use middle color if only one worker
+      }
+      const normalized = (timestamp - minTimestamp) / (maxTimestamp - minTimestamp)
+      return timeColorScale(normalized)
+    }
+
+    for (const [nodeid, test] of tests.entries()) {
+      for (const workerReports of test.reports_by_worker.values()) {
+        if (workerReports.length > 0) {
+          lines.push({
+            nodeid: nodeid,
+            url: `/tests/${encodeURIComponent(nodeid)}`,
+            reports: workerReports.map(report =>
+              GraphReport.fromReport(nodeid, report),
+            ),
+            color: timeColor(workerReports[0].timestamp),
+            isActive: false,
+          })
+        }
+      }
+    }
+  } else if (viewSetting === WorkerView.LATEST) {
+    for (const [nodeid, test] of tests.entries()) {
+      const recentReports = max(
+        Array.from(test.reports_by_worker.values()),
+        reports => reports[0].elapsed_time,
+      )
+
+      if (recentReports) {
+        lines.push({
+          nodeid: nodeid,
+          url: `/tests/${encodeURIComponent(nodeid)}`,
+          reports: recentReports.map(report => GraphReport.fromReport(nodeid, report)),
+          // use the same color as the linearized view
+          color: reportsColor(nodeid),
+          isActive: false,
+        })
+      }
+    }
+  }
+
+  return lines
 }
 
 // lifted from github's "blame" color scale for "time since now".
@@ -76,7 +154,6 @@ export enum WorkerView {
 interface Props {
   tests: Map<string, Test>
   filterString?: string
-  testsLoaded: () => boolean
   workers_after?: number | null
   workerViews?: WorkerView[]
   workerViewSetting: string
@@ -249,8 +326,9 @@ interface SampledPoint {
   line: GraphLine
 }
 
-// Function to sample points along a line proportional to its display length
 function sampleLinePoints(scales: any, line: GraphLine): SampledPoint[] {
+  // TODO: when we're zoomed in, we have many many more sampled points than when
+  // we're zoomed out (eg 800 vs 40k). this is a very bad performance bug.
   const points: SampledPoint[] = []
   const reports = line.reports
 
@@ -268,7 +346,6 @@ function sampleLinePoints(scales: any, line: GraphLine): SampledPoint[] {
     totalLength += segmentLength
   }
 
-  // Calculate number of sample points based on display length
   const numSamples = Math.max(2, Math.floor(totalLength / QUADTREE_SAMPLE_INTERVAL))
 
   for (let i = 0; i < numSamples; i++) {
@@ -308,17 +385,16 @@ function sampleLinePoints(scales: any, line: GraphLine): SampledPoint[] {
 export function GraphComponent({
   tests,
   filterString = "",
-  testsLoaded,
   workers_after = null,
   viewSetting,
 }: {
   tests: Map<string, Test>
   filterString?: string
-  testsLoaded: () => boolean
   workers_after?: number | null
   viewSetting: WorkerView
 }) {
   const containerRef = useRef<HTMLDivElement>(null)
+  const quadtreeRef = useRef<Quadtree<SampledPoint> | null>(null)
   const [scaleSettingX, setScaleSettingX] = useSetting<"log" | "linear">(
     "graph_scale_x",
     "log",
@@ -340,85 +416,19 @@ export function GraphComponent({
   const tooltip = useTooltip()
   const [containerWidth, setContainerWidth] = useState(800)
   const [activeNodeid, setActiveNodeid] = useState<string | null>(null)
+  const scalesRef = useRef<typeof scales | null>(null)
 
   // use the unfiltered reports as the domain so colors are stable across filtering.
   const reportsColor = d3
     .scaleOrdinal(d3.schemeCategory10)
     .domain(Array.from(tests.keys()))
 
-  function getLines() {
-    let lines: GraphLine[] = []
-    if (viewSetting === WorkerView.TOGETHER) {
-      lines = Array.from(tests.entries())
-        .sortKey(([nodeid, test]) => nodeid)
-        .map(([nodeid, test]) => ({
-          nodeid: nodeid,
-          url: `/tests/${encodeURIComponent(nodeid)}`,
-          reports: graphReports(test, workers_after),
-          color: reportsColor(nodeid),
-          isActive: false,
-        }))
-    } else if (viewSetting === WorkerView.SEPARATE) {
-      const timestamps: number[] = []
-      for (const test of tests.values()) {
-        for (const workerReports of test.reports_by_worker.values()) {
-          if (workerReports.length > 0) {
-            timestamps.push(workerReports[0].timestamp)
-          }
-        }
-      }
-
-      const minTimestamp = min(timestamps) ?? 0
-      const maxTimestamp = max(timestamps) ?? 0
-
-      function timeColor(timestamp: number) {
-        if (timestamps.length <= 1) {
-          return timeColorScale(0.5) // Use middle color if only one worker
-        }
-        const normalized = (timestamp - minTimestamp) / (maxTimestamp - minTimestamp)
-        return timeColorScale(normalized)
-      }
-
-      for (const [nodeid, test] of tests.entries()) {
-        for (const workerReports of test.reports_by_worker.values()) {
-          if (workerReports.length > 0) {
-            lines.push({
-              nodeid: nodeid,
-              url: `/tests/${encodeURIComponent(nodeid)}`,
-              reports: workerReports.map(report =>
-                GraphReport.fromReport(nodeid, report),
-              ),
-              color: timeColor(workerReports[0].timestamp),
-              isActive: false,
-            })
-          }
-        }
-      }
-    } else if (viewSetting === WorkerView.LATEST) {
-      for (const [nodeid, test] of tests.entries()) {
-        const recentReports = max(
-          Array.from(test.reports_by_worker.values()),
-          reports => reports[0].elapsed_time,
-        )
-
-        if (recentReports) {
-          lines.push({
-            nodeid: nodeid,
-            url: `/tests/${encodeURIComponent(nodeid)}`,
-            reports: recentReports.map(report =>
-              GraphReport.fromReport(nodeid, report),
-            ),
-            // use the same color as the linearized view
-            color: reportsColor(nodeid),
-            isActive: false,
-          })
-        }
-      }
-    }
-    return lines
-  }
-
-  const lines = getLines()
+  // pretty sure this is a react compiler bug, because this useMemo is necessary to avoid graphLines
+  // being called on every render.
+  const lines = useMemo(
+    () => graphLines(tests, viewSetting, workers_after, reportsColor),
+    [tests, viewSetting, workers_after],
+  )
   let filteredLines = lines
   if (filterString) {
     filteredLines = lines.filter(line =>
@@ -428,6 +438,7 @@ export function GraphComponent({
 
   let activeLine: GraphLine | null = null
   filteredLines.forEach(line => {
+    line.isActive = false
     if (line.nodeid === activeNodeid) {
       line.isActive = true
       activeLine = line
@@ -449,10 +460,30 @@ export function GraphComponent({
 
   const graphWidth = containerWidth - GRAPH_MARGIN.left - GRAPH_MARGIN.right
   const graphHeight = GRAPH_HEIGHT - GRAPH_MARGIN.top - GRAPH_MARGIN.bottom
-  // Flatten all reports for scale domain calculation
   const allReports = filteredLines.flatMap(line => line.reports)
 
-  const zoom = useZoom({ minScale: 1, maxScale: 50, containerRef })
+  function rebuildQuadtree() {
+    // for each line, we sample points from it proportional to its current display length,
+    // and track them in a quadtree. This lets us find the line closest to the cursor
+    // (up to some sampling error; increase QUADTREE_SAMPLE_INTERVAL to improve this).
+    // Once we have the closest line, it's cheap to find the closest report on that line for
+    // the actual tooltip contents.
+    const sampledPoints = filteredLines.flatMap(line =>
+      sampleLinePoints(scalesRef.current!, line),
+    )
+    quadtreeRef.current = quadtree<SampledPoint>()
+      .x(d => d.x)
+      .y(d => d.y)
+      .addAll(sampledPoints)
+  }
+
+  const zoom = useZoom({
+    minScale: 1,
+    maxScale: 50,
+    containerRef,
+    onZoomEnd: rebuildQuadtree,
+    onDragEnd: rebuildQuadtree,
+  })
   const scales = useScales(
     allReports,
     scaleSettingX,
@@ -465,16 +496,13 @@ export function GraphComponent({
     { yMin: 0 },
   )
 
-  // for each line, we sample points from it proportional to its current display length,
-  // and track them in a quadtree. This lets us find the line closest to the cursor
-  // (up to some sampling error; increase QUADTREE_SAMPLE_INTERVAL to improve this).
-  // Once we have the closest line, it's cheap to find the closest report on that line for
-  // the actual tooltip contents.
-  const sampledPoints = filteredLines.flatMap(line => sampleLinePoints(scales, line))
-  const graphQuadtree = quadtree<SampledPoint>()
-    .x(d => d.x)
-    .y(d => d.y)
-    .addAll(sampledPoints)
+  // if we don't do this, onDragEnd (but not onZoomEnd?!) refers to the `scales` from the previous
+  // render, and our quadtree updates incorrectly.
+  scalesRef.current = scales
+
+  useEffect(() => {
+    rebuildQuadtree()
+  }, [filteredLines])
 
   return (
     <div
@@ -503,7 +531,7 @@ export function GraphComponent({
         const mouseY = event.clientY - rect.top - GRAPH_MARGIN.top
 
         const closestPoint =
-          graphQuadtree.find(mouseX, mouseY, DISTANCE_THRESHOLD) || null
+          quadtreeRef.current!.find(mouseX, mouseY, DISTANCE_THRESHOLD) || null
 
         if (closestPoint) {
           setActiveNodeid(closestPoint.line.nodeid)
@@ -633,7 +661,6 @@ function ColorLegend() {
 export function CoverageGraph({
   tests,
   filterString = "",
-  testsLoaded,
   workers_after = null,
   workerViews = [WorkerView.TOGETHER, WorkerView.SEPARATE, WorkerView.LATEST],
   workerViewSetting,
@@ -698,7 +725,6 @@ export function CoverageGraph({
           {/* top right */}
           <GraphComponent
             tests={tests}
-            testsLoaded={testsLoaded}
             viewSetting={viewSetting}
             workers_after={workers_after}
             filterString={filterString}

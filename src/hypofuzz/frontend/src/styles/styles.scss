@@ -643,7 +643,11 @@ $mobile-breakpoint: 768px;
         }
 
         .coverage-line {
-            transition: stroke-width 0.2s ease;
+            // this transition is *very* expensive when we have a lot of lines,
+            // in the pre-paint phase in chrome profiling. I'm not sure exactly
+            // why. But we should try to fix this by adding a class which adds
+            // the transition only when not actively zooming / panning.
+            // transition: stroke-width 0.2s ease;
             stroke-width: 2;
 
             &__selected {
