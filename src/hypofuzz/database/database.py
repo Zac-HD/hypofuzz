@@ -133,7 +133,7 @@ class DatabaseEntry:
 
 
 class ReportEntry(DatabaseEntry):
-    parse = Report.from_json  # type: ignore
+    parse: Any = Report.from_json
     key = DatabaseEventKey.REPORT
 
     @staticmethod
@@ -395,7 +395,7 @@ class FailureObservationUnshrunkEntry(FailureObservationEntry):
 
 
 class FatalFailureEntry(DatabaseEntry):
-    parse = FatalFailure.from_json  # type: ignore
+    parse: Any = FatalFailure.from_json
     key = DatabaseEventKey.FAILURE_FATAL
 
     @staticmethod
@@ -425,7 +425,7 @@ class FatalFailureEntry(DatabaseEntry):
 
 
 class WorkerIdentityEntry(DatabaseEntry):
-    parse = WorkerIdentity.from_json  # type: ignore
+    parse: Any = WorkerIdentity.from_json
     key = DatabaseEventKey.WORKER_IDENTITY
 
     @staticmethod
