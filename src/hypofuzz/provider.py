@@ -311,9 +311,9 @@ class HypofuzzProvider(PrimitiveProvider):
                 FailureState.UNSHRUNK: QueuePriority.FAILURE_UNSHRUNK,
                 FailureState.FIXED: QueuePriority.FAILURE_FIXED,
             }[state]
-            for choices in self.db.fetch_failures(self.database_key, state=state):
-                observation = self.db.fetch_failure_observation(
-                    self.database_key, choices, state=state
+            for choices in self.db.failures(state=state).fetch(self.database_key):
+                observation = self.db.failure_observations(state=state).fetch(
+                    self.database_key, choices
                 )
                 if observation is None:
                     continue
@@ -325,17 +325,17 @@ class HypofuzzProvider(PrimitiveProvider):
         #     ReplayPriority.COVERING,
         #     (ChoiceTemplate(type="simplest", count=None),),
         # )
-        for choices in self.db.fetch_corpus(self.database_key):
+        for choices in self.db.corpus.fetch(self.database_key):
             self._enqueue(QueuePriority.COVERING_REPLAY, choices)
             self._loaded_for_replay.add(Choices(choices))
 
         # Report that we've started this fuzz target
         self.db.save(test_keys_key, self.database_key)
         # save the worker identity once at startup
-        self.db.save_worker_identity(self.database_key, self.worker_identity)
+        self.db.worker_identities.save(self.database_key, self.worker_identity)
         # clear out any fatal failures now that we've successfully started this
         # test
-        self.db.delete_fatal_failures(self.database_key)
+        self.db.fatal_failures.delete(self.database_key)
 
         if not self._loaded_for_replay:
             # if no worker has ever worked on this test before, save an initial
@@ -390,7 +390,7 @@ class HypofuzzProvider(PrimitiveProvider):
         assert self.corpus is not None
         assert self.db is not None
 
-        self.db.save_report(self.database_key, report)
+        self.db.reports.save(self.database_key, report)
         self._last_saved_report_at = self.elapsed_time
 
         # A timed report is just a marker of the latest status of the test. It
@@ -399,7 +399,7 @@ class HypofuzzProvider(PrimitiveProvider):
         # If a timed report is no longer the latest report (because we just saved
         # a new report), it's no longer useful, so delete it from the db.
         if self._last_timed_report:
-            self.db.delete_report(self.database_key, self._last_timed_report)
+            self.db.reports.delete(self.database_key, self._last_timed_report)
             self._last_timed_report = None
 
     @property
@@ -579,15 +579,14 @@ class HypofuzzProvider(PrimitiveProvider):
             # sequence from unshrunk to shrunk - and failures are rare +
             # deletions cheap. Just try deleting from both.
             for failure_state in [FailureState.SHRUNK, FailureState.UNSHRUNK]:
-                self.db.delete_failure(
+                self.db.failures(state=failure_state).delete(
                     self.database_key,
                     choices,
-                    state=failure_state,
                 )
 
             # move it to the FIXED key so we still try it in the future
-            self.db.save_failure(
-                self.database_key, choices, observation, state=FailureState.FIXED
+            self.db.failures(state=FailureState.FIXED).save(
+                self.database_key, choices, observation
             )
 
         if (
@@ -598,10 +597,9 @@ class HypofuzzProvider(PrimitiveProvider):
             # failures are hard to find, and shrunk ones even more so. If a failure
             # does not reproduce, only delete it if it's been more than 8 days,
             # so we don't accidentally delete a useful failure.
-            self.db.delete_failure(
+            self.db.failures(state=FailureState.SHRUNK).delete(
                 self.database_key,
                 choices,
-                state=FailureState.SHRUNK,
             )
 
     def _save_observation(
@@ -609,7 +607,7 @@ class HypofuzzProvider(PrimitiveProvider):
     ) -> None:
         assert self.db is not None
         assert self.database_key is not None
-        self.db.save_observation(
+        self.db.rolling_observations.save(
             self.database_key,
             Observation.from_hypothesis(observation, stability=stability),
             discard_over=300,

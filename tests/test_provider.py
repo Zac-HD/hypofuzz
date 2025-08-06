@@ -158,7 +158,7 @@ def test_provider_loads_from_database():
     def f(n):
         values.add(n)
 
-    hypofuzz_db.save_corpus(function_digest(f.hypothesis.inner_test), (n,))
+    hypofuzz_db.corpus.save(function_digest(f.hypothesis.inner_test), (n,))
     f()
     assert n in values
 
@@ -183,7 +183,7 @@ def test_provider_deletes_old_timed_reports(monkeypatch):
             pass
 
     f()
-    reports = hypofuzz_db.fetch_reports(function_digest(f.hypothesis.inner_test))
+    reports = hypofuzz_db.reports.fetch(function_digest(f.hypothesis.inner_test))
     reports = sorted(reports, key=lambda r: r.elapsed_time)
 
     # explicitly use `- 2` instead of `- 1` here. We do not want to compare
@@ -295,8 +295,8 @@ def test_backend_setting_can_fail():
     key = list(db.data[test_keys_key])[0]
     hypofuzz_db = HypofuzzDatabase(db)
     failures = list(
-        hypofuzz_db.fetch_failures(key, state=FailureState.UNSHRUNK)
-    ) + list(hypofuzz_db.fetch_failures(key, state=FailureState.SHRUNK))
+        hypofuzz_db.failures(state=FailureState.UNSHRUNK).fetch(key)
+    ) + list(hypofuzz_db.failures(state=FailureState.SHRUNK).fetch(key))
     assert failures
 
 
@@ -328,8 +328,8 @@ def test_does_not_switch_to_generate_when_replaying(monkeypatch):
         target.provider, "_should_save_rolling_observation", lambda priority: False
     )
 
-    db.save_corpus(target.database_key, [2])
-    db.save_corpus(target.database_key, [10])
+    db.corpus.save(target.database_key, [2])
+    db.corpus.save(target.database_key, [10])
     target._enter_fixtures()
 
     # we start in this state conceptually, except the provider hasn't loaded from

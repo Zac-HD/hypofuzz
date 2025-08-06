@@ -178,9 +178,9 @@ class Corpus:
         self.fingerprints[fingerprint] = observation.metadata.choice_nodes
         choices = Choices(tuple(n.value for n in observation.metadata.choice_nodes))
         if choices not in self.corpus:
-            self._db.save_corpus(self.database_key, choices)
+            self._db.corpus.save(self.database_key, choices)
             if save_observation:
-                self._db.save_corpus_observation(
+                self._db.corpus_observations.save(
                     self.database_key, choices, Observation.from_hypothesis(observation)
                 )
         self.corpus.add(choices)
@@ -197,11 +197,11 @@ class Corpus:
         assert self._count_fingerprints[choices] == 0
         del self._count_fingerprints[choices]
         self.corpus.remove(choices)
-        self._db.delete_corpus(self.database_key, choices)
+        self._db.corpus.delete(self.database_key, choices)
         for observation in list(
-            self._db.fetch_corpus_observations(self.database_key, choices)
+            self._db.corpus_observations.fetch_all(self.database_key, choices)
         ):
-            self._db.delete_corpus_observation(self.database_key, choices, observation)
+            self._db.corpus_observations.delete(self.database_key, choices, observation)
 
     def would_change_coverage(
         self, fingerprint: Fingerprint, *, observation: TestCaseObservation
@@ -282,21 +282,19 @@ class Corpus:
         # We save interesting examples to the unshrunk/secondary database
         # so they can appear immediately without waiting for shrinking to
         # finish. (also in case of a fatal hypofuzz error etc).
-        self._db.save_failure(
+        self._db.failures(state=FailureState.UNSHRUNK).save(
             self.database_key,
             choices,
             Observation.from_hypothesis(observation),
-            state=FailureState.UNSHRUNK,
         )
 
         if previous is not None:
             assert previous.metadata.choice_nodes is not None
             previous_choices = tuple(n.value for n in previous.metadata.choice_nodes)
             # remove the now-redundant failure we had previously saved.
-            self._db.delete_failure(
+            self._db.failures(state=FailureState.UNSHRUNK).delete(
                 self.database_key,
                 previous_choices,
-                state=FailureState.UNSHRUNK,
             )
 
     def distill(self, fn: Callable[[ConjectureData], None], random: Random) -> None:

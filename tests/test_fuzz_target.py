@@ -52,10 +52,10 @@ def test_fuzz_one_process_explain_mode():
         fp.run_one()
 
     assert fp.provider.status_counts_mutated[Status.INTERESTING] == 1
-    failures = list(db.fetch_failures(fp.database_key, state=FailureState.SHRUNK))
+    failures = list(db.failures(state=FailureState.SHRUNK).fetch(fp.database_key))
     assert len(failures) == 1
-    observation = db.fetch_failure_observation(
-        fp.database_key, failures[0], state=FailureState.SHRUNK
+    observation = db.failure_observations(state=FailureState.SHRUNK).fetch(
+        fp.database_key, failures[0]
     )
     assert "CustomError" in observation.metadata.traceback
     expected = textwrap.dedent(
@@ -80,11 +80,13 @@ def test_observations_use_pytest_nodeid(tmp_path):
 
     with fuzz(test_path):
         key = wait_for_test_key(db)
-        wait_for(lambda: len(list(db.fetch_observations(key))) > 0, interval=0.1)
+        wait_for(
+            lambda: len(list(db.rolling_observations.fetch(key))) > 0, interval=0.1
+        )
         assert all(
             observation.property == "test_a.py::test_abcd"
-            for observation in db.fetch_observations(key)
-        ), [obs.property for obs in db.fetch_observations(key)]
+            for observation in db.rolling_observations.fetch(key)
+        ), [obs.property for obs in db.rolling_observations.fetch(key)]
 
 
 def test_raises_failed_fatally_in_enter_fixtures():
