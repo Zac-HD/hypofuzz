@@ -252,10 +252,10 @@ def get_failures(
     ) -> dict[str, tuple[FailureState, Observation]]:
         failure_observations: dict[str, tuple[FailureState, Observation]] = {}
         for maybe_observed_choices in sorted(
-            db.fetch_failures(database_key, state=state), key=len
+            db.failures(state=state).fetch(database_key), key=len
         ):
-            if observation := db.fetch_failure_observation(
-                database_key, maybe_observed_choices, state=state
+            if observation := db.failure_observations(state=state).fetch(
+                database_key, maybe_observed_choices
             ):
                 if observation.status is not ObservationStatus.FAILED:
                     # This should never happen, but database corruption *can*.
@@ -291,21 +291,21 @@ def _load_initial_state(fuzz_target: FuzzTarget) -> None:
     # (maybe use test_keys_key for this?)
     key = fuzz_target.database_key
 
-    rolling_observations = list(db.fetch_observations(key))
+    rolling_observations = list(db.rolling_observations.fetch(key))
     corpus_observations = [
-        db.fetch_corpus_observation(key, choices)
-        for choices in db.fetch_corpus(key, as_bytes=True)
+        db.corpus_observations.fetch(key, choices)
+        for choices in db.corpus.fetch(key, as_bytes=True)
     ]
     corpus_observations = [
         observation for observation in corpus_observations if observation is not None
     ]
 
     reports_by_worker = defaultdict(list)
-    for report in sorted(db.fetch_reports(key), key=lambda r: r.elapsed_time):
+    for report in sorted(db.reports.fetch(key), key=lambda r: r.elapsed_time):
         reports_by_worker[report.worker_uuid].append(report)
 
     failures = get_failures(key)
-    fatal_failure = db.fetch_fatal_failure(key)
+    fatal_failure = db.fatal_failures.fetch(key)
 
     # backfill our patches for our worker thread to take care of computing
     for _state, observation in failures.values():

@@ -164,7 +164,7 @@ class FuzzTarget:
         )
         tb = "".join(tb)
         failure = FatalFailure(nodeid=self.nodeid, traceback=tb)
-        self.database.save_fatal_failure(self.database_key, failure)
+        self.database.fatal_failures.save(self.database_key, failure)
         raise FailedFatally
 
     def _new_state(
@@ -362,16 +362,14 @@ class FuzzTarget:
 
             # move this failure from the unshrunk to the shrunk key.
             assert observation is not None
-            self.database.delete_failure(
+            self.database.failures(state=FailureState.UNSHRUNK).delete(
                 self.database_key,
                 data.choices,
-                state=FailureState.UNSHRUNK,
             )
-            self.database.save_failure(
+            self.database.failures(state=FailureState.SHRUNK).save(
                 self.database_key,
                 data.choices,
                 Observation.from_hypothesis(observation),
-                state=FailureState.SHRUNK,
             )
 
         # NOTE: this distillation logic works fine, it's just discovering new coverage
@@ -645,11 +643,10 @@ class FuzzWorker:
                     observation.metadata.traceback = "".join(
                         traceback.format_exception(e)
                     )
-                    target.database.save_failure(
+                    target.database.failures(state=FailureState.SHRUNK).save(
                         target.database_key,
                         tuple(n.value for n in observation.metadata.choice_nodes),
                         Observation.from_hypothesis(observation),
-                        state=FailureState.SHRUNK,
                     )
                     target.skipped_dynamically = True
 

@@ -353,13 +353,13 @@ def collect_names(code: str) -> set[str]:
 
 
 def assert_no_failures(db, key):
-    fatal_failure = db.fetch_fatal_failure(key)
+    fatal_failure = db.fatal_failures.fetch(key)
     assert not fatal_failure, fatal_failure
 
     for state in [FailureState.SHRUNK, FailureState.UNSHRUNK, FailureState.FIXED]:
-        failures = list(db.fetch_failures(key, state=state))
+        failures = list(db.failures(state=state).fetch(key))
         assert not failures, [
-            db.fetch_failure_observation(key, choices, state=state)
+            db.failure_observations(state=state).fetch(key, choices)
             for choices in failures
         ]
 
@@ -372,7 +372,7 @@ def fuzz_with_no_error(tmp_path, code):
         key = wait_for_test_key(db)
         start = time.time()
         wait_for(
-            lambda: len(list(db.fetch_observations(key))) > 5
+            lambda: len(list(db.rolling_observations.fetch(key))) > 5
             or time.time() - start > 2,
             interval=0.1,
         )

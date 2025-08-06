@@ -20,11 +20,11 @@ def test_patches(tmp_path):
         key = wait_for_test_key(db)
 
         def has_corpus_with_observation():
-            choices = list(db.fetch_corpus(key))
+            choices = list(db.corpus.fetch(key))
             if not choices:
                 return False
-            for choices in db.fetch_corpus(key):
-                observation = db.fetch_corpus_observation(key, choices)
+            for choices in db.corpus.fetch(key):
+                observation = db.corpus_observations.fetch(key, choices)
                 if observation is not None:
                     return True
             return False
@@ -36,8 +36,8 @@ def test_patches(tmp_path):
     # these.
     observations = [
         observation
-        for choices in db.fetch_corpus(key)
-        if (observation := db.fetch_corpus_observation(key, choices)) is not None
+        for choices in db.corpus.fetch(key)
+        if (observation := db.corpus_observations.fetch(key, choices)) is not None
     ]
     assert observations
     for observation in observations:

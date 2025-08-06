@@ -18,7 +18,7 @@ def _assert_fixtures(test_dir, db_dir):
     db = HypofuzzDatabase(DirectoryBasedExampleDatabase(db_dir))
     with fuzz(test_dir):
         key = wait_for_test_key(db, timeout=2)
-        wait_for(lambda: len(db.fetch_reports(key)) > 0, interval=0.1)
+        wait_for(lambda: len(db.reports.fetch(key)) > 0, interval=0.1)
         assert_no_failures(db, key)
 
     # we also check the test passes under normal pytest, to ensure we stay in sync
@@ -121,7 +121,7 @@ def test_fixture_teardown(tmp_path):
         assert len(keys) == 2
 
         for key in keys:
-            wait_for(lambda: len(db.fetch_reports(key)) > 0, interval=0.1)
+            wait_for(lambda: len(db.reports.fetch(key)) > 0, interval=0.1)
         for key in keys:
             assert_no_failures(db, key)
 
