@@ -54,7 +54,6 @@ function graphLines(
   workers_after: number | null,
   reportsColor: (nodeid: string) => string,
 ): GraphLine[] {
-  console.log("graphLines called")
   let lines: GraphLine[] = []
 
   if (viewSetting === WorkerView.TOGETHER) {
