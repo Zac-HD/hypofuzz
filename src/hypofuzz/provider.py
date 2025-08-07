@@ -1,11 +1,4 @@
-import contextlib
-import inspect
 import math
-import os
-import platform
-import socket
-import subprocess
-import sys
 import time
 from base64 import b64encode
 from collections.abc import Generator, Set
@@ -13,11 +6,8 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import date, timedelta
 from enum import IntEnum
-from functools import cache
-from pathlib import Path
 from random import Random
 from typing import Any, ClassVar, Optional, TypeVar, Union, cast
-from uuid import uuid4
 
 import hypothesis
 import hypothesis.internal.observability
@@ -46,7 +36,6 @@ from hypothesis.internal.reflection import (
 )
 from sortedcontainers import SortedList
 
-import hypofuzz
 from hypofuzz.corpus import Behavior, Choices, Corpus
 from hypofuzz.coverage import Branch, CoverageCollector
 from hypofuzz.database import (
@@ -60,15 +49,13 @@ from hypofuzz.database import (
     Report,
     Stability,
     StatusCounts,
-    WorkerIdentity,
     test_keys_key,
 )
 from hypofuzz.detection import in_hypofuzz_run
 from hypofuzz.mutator import BlackBoxMutator, CrossOverMutator
-from hypofuzz.utils import lerp
+from hypofuzz.utils import lerp, process_uuid
 
 T = TypeVar("T")
-process_uuid = uuid4().hex
 
 assert time.get_clock_info("perf_counter").monotonic, (
     "HypoFuzz relies on perf_counter being monotonic. This is guaranteed on "
@@ -209,7 +196,6 @@ class HypofuzzProvider(PrimitiveProvider):
 
         self.random = Random()
         self.phase: Optional[Phase] = None
-        self.worker_identity: Optional[WorkerIdentity] = None
         # there's a subtle bug here: we don't want to defer computation of
         # database_key until _startup, because by then the _hypothesis_internal_add_digest
         # added to the shared inner_test function may have been changed to a
@@ -298,9 +284,6 @@ class HypofuzzProvider(PrimitiveProvider):
             current_pytest_item.value, "nodeid", None
         ) or get_pretty_function_description(wrapped_test)
 
-        self.worker_identity = worker_identity(
-            in_directory=Path(inspect.getfile(wrapped_test)).parent
-        )
         self.corpus = Corpus(self.db, self.database_key)
 
         # restore our saved minimal covering corpus, as well as any failures to
@@ -331,8 +314,6 @@ class HypofuzzProvider(PrimitiveProvider):
 
         # Report that we've started this fuzz target
         self.db.save(test_keys_key, self.database_key)
-        # save the worker identity once at startup
-        self.db.worker_identities.save(self.database_key, self.worker_identity)
         # clear out any fatal failures now that we've successfully started this
         # test
         self.db.fatal_failures.delete(self.database_key)
@@ -407,7 +388,6 @@ class HypofuzzProvider(PrimitiveProvider):
         assert self.phase is not None
         assert self.database_key is not None
         assert self.corpus is not None
-        assert self.worker_identity is not None
         assert self.nodeid is not None
 
         return Report(
@@ -415,7 +395,7 @@ class HypofuzzProvider(PrimitiveProvider):
             nodeid=self.nodeid,
             elapsed_time=self.elapsed_time,
             timestamp=time.time(),
-            worker_uuid=self.worker_identity.uuid,
+            worker_uuid=process_uuid,
             status_counts=StatusCounts(self.status_counts),
             behaviors=len(self.corpus.behavior_counts),
             fingerprints=len(self.corpus.fingerprints),
@@ -898,61 +878,3 @@ class HypofuzzProvider(PrimitiveProvider):
         choice = self._pop_choice("bytes", {"min_size": min_size, "max_size": max_size})
         assert isinstance(choice, bytes)
         return choice
-
-
-@cache
-def _git_head(*, in_directory: Optional[Path] = None) -> Optional[str]:
-    if in_directory is not None:
-        assert in_directory.is_dir()
-
-    try:
-        return subprocess.check_output(
-            ["git", "rev-parse", "HEAD"],
-            timeout=10,
-            text=True,
-            cwd=in_directory,
-            # stdout is captured by default; hide stderr too
-            stderr=subprocess.PIPE,
-        ).strip()
-    except Exception:
-        return None
-
-
-@cache
-def worker_identity(*, in_directory: Optional[Path] = None) -> WorkerIdentity:
-    """Returns a class identifying the machine running this code.
-
-    This is intended to roughly represent the "unit of fuzz worker", so it includes
-    the PID as well as hostname and (if in kubernetes) some pod identifiers.
-
-    Tagging reports with this information makes it possible to tell when multiple
-    runners have each contributed to a fuzzing campaign, more accurately count the
-    total number of inputs, and so on.  In practice we don't care that much about
-    precision here, because the code under test is likely to be changing too.
-    """
-    container_id = None
-    with contextlib.suppress(Exception), open("/proc/self/cgroup") as f:
-        for line in f:
-            if "kubepods" in line:
-                container_id = line.split("/")[-1].strip()
-
-    python_version: Any = sys.version_info
-    if python_version.releaselevel == "final":
-        # drop releaselevel and serial for standard releases
-        python_version = python_version[:3]
-
-    return WorkerIdentity(
-        uuid=process_uuid,
-        operating_system=platform.system(),
-        python_version=".".join(map(str, python_version)),
-        hypothesis_version=hypothesis.__version__,
-        hypofuzz_version=hypofuzz.__version__,
-        pid=os.getpid(),
-        hostname=socket.gethostname(),  # In K8s, this is typically the pod name
-        pod_name=os.getenv("HOSTNAME"),
-        pod_namespace=os.getenv("POD_NAMESPACE"),
-        node_name=os.getenv("NODE_NAME"),
-        pod_ip=os.getenv("POD_IP"),
-        container_id=container_id,
-        git_hash=_git_head(in_directory=in_directory),
-    )

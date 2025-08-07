@@ -1,17 +1,25 @@
 """Adaptive fuzzing for property-based tests using Hypothesis."""
 
 import contextlib
+import inspect
 import math
+import os
+import platform
+import socket
+import subprocess
+import sys
 import time
 import traceback
 from collections import defaultdict
 from collections.abc import Callable, Mapping, Sequence
 from contextlib import nullcontext
-from functools import partial
+from functools import cache, partial
 from multiprocessing import Manager, Process
+from pathlib import Path
 from random import Random
 from typing import Any, Literal, NoReturn, Optional, Union
 
+import hypothesis
 import pytest
 from _pytest.fixtures import FixtureRequest, FuncFixtureInfo
 from _pytest.nodes import Item
@@ -42,6 +50,7 @@ from hypothesis.internal.reflection import (
     get_signature,
 )
 
+import hypofuzz
 from hypofuzz import detection
 from hypofuzz.bayes import behaviors_per_second, softmax
 from hypofuzz.collection import collect_tests
@@ -56,9 +65,11 @@ from hypofuzz.database import (
     HypofuzzDatabase,
     Observation,
     Phase,
+    WorkerIdentity,
     convert_db_key,
 )
 from hypofuzz.provider import HypofuzzProvider
+from hypofuzz.utils import process_uuid
 
 try:
     # compatibility with older hypothesis versions. can remove the next time
@@ -94,6 +105,7 @@ class FailedFatally(Exception):
     pass
 
 
+# TODO move to target.py or core/target.py? (+ core/worker.py and core/hub.py)
 class FuzzTarget:
     """
     FuzzTarget is a thin wrapper around HypofuzzProvider, which also handles
@@ -469,6 +481,8 @@ class FuzzWorker:
         self.dropped_targets: dict[str, FuzzTarget] = {}
 
         self._current_target: Optional[FuzzTarget] = None
+        self.db: Optional[HypofuzzDatabase] = None
+        self.worker_identity: Optional[WorkerIdentity] = None
         self.event_dispatch: dict[bytes, list[FuzzTarget]] = defaultdict(list)
 
     def _add_target(self, nodeid: str) -> None:
@@ -576,7 +590,23 @@ class FuzzWorker:
             target.nodeid: target for target in collected.fuzz_targets
         }
 
+        # wait until after collect_tests to create the db, to pick up on any
+        # setting profiles
         settings().database.add_listener(self.on_event)
+        self.db = HypofuzzDatabase(settings().database)
+
+        # we want to save one worker identity for the entire worker. We have to
+        # pick a directory to start the search for the git repository from.
+        # We'll arbitrarily pick the directory of one of the collected targets.
+        #
+        # If there are git submodules or other weird things then it matters which
+        # target we pick here. I'm not going to worry too much about it yet.
+        dir_target = list(self.collected_targets.values())[0]
+        self.worker_identity = worker_identity(
+            in_directory=Path(inspect.getfile(dir_target.wrapped_test)).parent
+        )
+        self.db.worker_uuids.save(process_uuid.encode("ascii"))
+        self.db.worker_identities.save(self.worker_identity)
 
         while True:
             self._update_targets(self.shared_state["hub_state"]["nodeids"])
@@ -747,6 +777,64 @@ class FuzzWorkerHub:
 
         for state, nodeids in zip(self.shared_states, partitions):
             state["hub_state"]["nodeids"] = nodeids
+
+
+@cache
+def _git_head(*, in_directory: Optional[Path] = None) -> Optional[str]:
+    if in_directory is not None:
+        assert in_directory.is_dir()
+
+    try:
+        return subprocess.check_output(
+            ["git", "rev-parse", "HEAD"],
+            timeout=10,
+            text=True,
+            cwd=in_directory,
+            # stdout is captured by default; hide stderr too
+            stderr=subprocess.PIPE,
+        ).strip()
+    except Exception:
+        return None
+
+
+@cache
+def worker_identity(*, in_directory: Optional[Path] = None) -> WorkerIdentity:
+    """Returns a class identifying the machine running this code.
+
+    This is intended to roughly represent the "unit of fuzz worker", so it includes
+    the PID as well as hostname and (if in kubernetes) some pod identifiers.
+
+    Tagging reports with this information makes it possible to tell when multiple
+    runners have each contributed to a fuzzing campaign, more accurately count the
+    total number of inputs, and so on.  In practice we don't care that much about
+    precision here, because the code under test is likely to be changing too.
+    """
+    container_id = None
+    with contextlib.suppress(Exception), open("/proc/self/cgroup") as f:
+        for line in f:
+            if "kubepods" in line:
+                container_id = line.split("/")[-1].strip()
+
+    python_version: Any = sys.version_info
+    if python_version.releaselevel == "final":
+        # drop releaselevel and serial for standard releases
+        python_version = python_version[:3]
+
+    return WorkerIdentity(
+        uuid=process_uuid,
+        operating_system=platform.system(),
+        python_version=".".join(map(str, python_version)),
+        hypothesis_version=hypothesis.__version__,
+        hypofuzz_version=hypofuzz.__version__,
+        pid=os.getpid(),
+        hostname=socket.gethostname(),  # In K8s, this is typically the pod name
+        pod_name=os.getenv("HOSTNAME"),
+        pod_namespace=os.getenv("POD_NAMESPACE"),
+        node_name=os.getenv("NODE_NAME"),
+        pod_ip=os.getenv("POD_IP"),
+        container_id=container_id,
+        git_hash=_git_head(in_directory=in_directory),
+    )
 
 
 def _start_worker(
