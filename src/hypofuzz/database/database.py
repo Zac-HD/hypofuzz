@@ -36,10 +36,14 @@ from hypofuzz.database.models import (
 from hypofuzz.database.utils import ChoicesT, HashableIterable
 
 test_keys_key = b"hypofuzz.test_keys"
+# a set of all known worker_uuids
+worker_uuids_key = b"hypofuzz.worker_uuids"
+# maps worker_uuid to a singleton worker identity
+worker_identity_key = b"hypofuzz.worker_identity"
+
 reports_key = b".hypofuzz.reports"
 rolling_observations_key = b".hypofuzz.observations"
 corpus_key = b".hypofuzz.corpus"
-worker_identity_key = b".hypofuzz.worker_identity"
 failures_key = b".hypofuzz.failures"
 fatal_failure_key = b".hypofuzz.fatal_failure"
 
@@ -116,7 +120,13 @@ class DatabaseEventKey(Enum):
     FAILURE_UNSHRUNK_OBSERVATION = "failure_unshrunk_observation"
     FAILURE_FIXED_OBSERVATION = "failure_fixed_observation"
 
+    # TODO these two won't ever actually parse, because DatabaseEvent assumes
+    # the database_key is the first 48 characters of the key. But workers don't
+    # have an associated database key. We will need to refactor event parsing
+    # to support database entries without a corresponding test key. We don't
+    # rely on this functionality yet, though.
     WORKER_IDENTITY = "worker_identity"
+    WORKER_UUID = "worker_uuid"
 
 
 class DatabaseEntry:
@@ -430,28 +440,49 @@ class WorkerIdentityEntry(DatabaseEntry):
 
     @staticmethod
     def matches(full_key: bytes) -> bool:
-        return full_key.endswith(worker_identity_key)
+        return full_key.startswith(worker_identity_key)
 
     @staticmethod
-    def _key(key: bytes, uuid: str) -> bytes:
-        return key + worker_identity_key + b"." + uuid.encode("ascii")
+    def _key(uuid: bytes) -> bytes:
+        return worker_identity_key + b"." + uuid
 
-    def save(self, key: bytes, worker: WorkerIdentity) -> None:
-        self.db.save(self._key(key, worker.uuid), _encode(worker))
+    def save(self, worker_identity: WorkerIdentity) -> None:
+        uuid = worker_identity.uuid.encode("ascii")
+        self.delete(uuid)
+        self.db.save(self._key(uuid), _encode(worker_identity))
 
-    def delete(self, key: bytes, worker: WorkerIdentity) -> None:
-        self.db.delete(self._key(key, worker.uuid), _encode(worker))
+    def delete(self, uuid: bytes) -> None:
+        for worker_identity in self.fetch_all(uuid):
+            self.db.delete(self._key(uuid), _encode(worker_identity))
 
-    def fetch_all(self, key: bytes, worker: WorkerIdentity) -> Iterable[WorkerIdentity]:
-        for value in self.db.fetch(self._key(key, worker.uuid)):
+    def fetch(self, uuid: bytes) -> Optional[WorkerIdentity]:
+        try:
+            return next(iter(self.fetch_all(uuid)))
+        except StopIteration:
+            return None
+
+    def fetch_all(self, uuid: bytes) -> Iterable[WorkerIdentity]:
+        for value in self.db.fetch(self._key(uuid)):
             if worker_identity := WorkerIdentity.from_json(value):
                 yield worker_identity
 
-    def fetch(self, key: bytes, worker: WorkerIdentity) -> Optional[WorkerIdentity]:
-        try:
-            return next(iter(self.fetch_all(key, worker)))
-        except StopIteration:
-            return None
+
+class WorkerUUIDEntry(DatabaseEntry):
+    parse: Any = lambda x: x
+    key = DatabaseEventKey.WORKER_UUID
+
+    @staticmethod
+    def matches(full_key: bytes) -> bool:
+        return full_key == worker_uuids_key
+
+    def fetch(self) -> Iterable[bytes]:
+        yield from self.db.fetch(worker_uuids_key)
+
+    def save(self, uuid: bytes) -> None:
+        self.db.save(worker_uuids_key, uuid)
+
+    def delete(self, uuid: bytes) -> None:
+        self.db.delete(worker_uuids_key, uuid)
 
 
 ALL_ENTRIES: list[type[DatabaseEntry]] = [
@@ -502,13 +533,12 @@ class DatabaseEvent:
         # is valid, and we can't adjust that, because that's the database key
         # hypothesis uses for failures.
         if len(full_key) < cls.DATABASE_KEY_LENGTH or (
-            len(full_key) > cls.DATABASE_KEY_LENGTH and b"." not in full_key
+            len(full_key) > cls.DATABASE_KEY_LENGTH
+            # ord because indexing into bytes converts to int
+            and full_key[cls.DATABASE_KEY_LENGTH] != ord(".")
         ):
             return None
 
-        if len(full_key) > cls.DATABASE_KEY_LENGTH:
-            # ord because indexing into bytes converts to int
-            assert full_key[cls.DATABASE_KEY_LENGTH] == ord("."), full_key
         database_key = full_key[: cls.DATABASE_KEY_LENGTH]
 
         matched_entry = None
@@ -547,6 +577,7 @@ class HypofuzzDatabase:
         self.corpus_observations = CorpusObservationEntry(self)
         self.fatal_failures = FatalFailureEntry(self)
         self.worker_identities = WorkerIdentityEntry(self)
+        self.worker_uuids = WorkerUUIDEntry(self)
 
         # access via .failures(state=...) and .failure_observations(state=...)
         # instead

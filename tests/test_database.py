@@ -76,12 +76,11 @@ def test_database_state():
 
     # the database state should be:
     # * database_key.hypofuzz.test_keys                 (1 element)
-    # * database_key.hypofuzz.worker_identity           (1 element)
     # * database_key.hypofuzz.observations              (1 element)
     # * database_key.hypofuzz.corpus                    (1 element)
     # * database_key.hypofuzz.corpus.<hash>.observation (1 element)
     # * database_key.hypofuzz.reports                   (1 element)
-    assert len(db._db.data.keys()) == 6, list(db._db.data.keys())
+    assert len(db._db.data.keys()) == 5, list(db._db.data.keys())
     assert list(db.corpus.fetch(key)) == [(2,)]
 
     observations = list(db.corpus_observations.fetch_all(key, (2,)))
@@ -96,7 +95,6 @@ def test_database_state():
     # input.
     # The database state should be:
     # * database_key.hypofuzz.test_keys                 (1 element)
-    # * database_key.hypofuzz.worker_identity           (1 element)
     # * database_key.hypofuzz.observations              (maybe 2 elements, if > 1 second)
     # * database_key.hypofuzz.corpus                    (1 element) (a new one)
     # * database_key.hypofuzz.corpus.<hash>.observation (1 element) (a new one)
@@ -107,7 +105,7 @@ def test_database_state():
 
     # the key for the deleted observation sticks around in the database, it's
     # just an empty mapping.
-    assert len([k for k, v in db._db.data.items() if v]) == 6
+    assert len([k for k, v in db._db.data.items() if v]) == 5
     assert list(db.corpus.fetch(key)) == [(1,)]
 
     observations = list(db.corpus_observations.fetch_all(key, (1,)))

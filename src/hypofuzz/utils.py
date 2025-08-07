@@ -4,10 +4,13 @@ import threading
 from collections.abc import Sequence
 from enum import Enum
 from typing import Any, Callable, Generic, Optional, TypeVar
+from uuid import uuid4
 
 from hypofuzz.compat import bisect_right
 
 T = TypeVar("T")
+
+process_uuid = uuid4().hex
 
 FUZZJSON_INF = "hypofuzz-inf-a928fa52b3ea4a9a9af36ccef7c6cf93"
 FUZZJSON_NINF = "hypofuzz-ninf-a928fa52b3ea4a9a9af36ccef7c6cf93"
