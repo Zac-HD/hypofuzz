@@ -13,7 +13,7 @@ import hypothesis
 import hypothesis.internal.observability
 from hypothesis import settings
 from hypothesis.control import current_build_context
-from hypothesis.database import BackgroundWriteDatabase, InMemoryExampleDatabase
+from hypothesis.database import BackgroundWriteDatabase
 from hypothesis.internal.conjecture.choice import (
     ChoiceConstraintsT,
     ChoiceT,
@@ -254,12 +254,6 @@ class HypofuzzProvider(PrimitiveProvider):
             # we wouldn't have collected this test otherwise
             assert db is not None
             db = BackgroundWriteDatabase(db)
-        elif db is None:
-            # if we're being run with @settings(database=None, backend="hypofuzz"),
-            # use an in-memory database. We don't rely on this anywhere, but it
-            # does substantially simplify logic by letting other components assume
-            # they have a non-None database. Conceptually this is a "no-op" db.
-            db = InMemoryExampleDatabase()
 
         self.db = HypofuzzDatabase(db)
 

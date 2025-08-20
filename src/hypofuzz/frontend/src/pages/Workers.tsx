@@ -215,7 +215,17 @@ export function WorkersPage() {
   const { showTooltip, hideTooltip, moveTooltip } = useTooltip()
   const [expandedWorkers, setExpandedWorkers] = useState<Set<string>>(new Set())
   const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>(TIME_PERIODS[0])
-  const [userRange, setUserRange] = useState<[number, number] | null>(null)
+  const [userRange, _setUserRange] = useState<[number, number] | null>(null)
+  const [rightSticky, setRightSticky] = useState<boolean>(false)
+
+  function setUserRange(range: [number, number] | null) {
+    _setUserRange(range)
+    // if a user sets the slider all the way to the right, consider it "stickied": future
+    // events which change the maximum range should also implicitly change the user range,
+    // because when a user sets the slider to the right, the want "the most recent timestamp
+    // as of anytime", not "the most recent timestamp as of now".
+    setRightSticky(range?.[1] == maxTimestamp)
+  }
 
   const workerUuids = OrderedSet(
     Array.from(tests.values())
@@ -334,8 +344,13 @@ export function WorkersPage() {
 
     return [trimmedMin ?? range[0], trimmedMax ?? range[1]]
   }
+
   const sliderRange = getSliderRange()
-  const visibleRange = userRange ?? sliderRange
+  // create a new ref to avoid a lint warning about mutating a useState value
+  let visibleRange: [number, number] = [...(userRange ?? sliderRange)]
+  if (rightSticky && userRange) {
+    visibleRange[1] = maxTimestamp
+  }
 
   useEffect(() => {
     setUserRange(null)

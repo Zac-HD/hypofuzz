@@ -5,6 +5,7 @@ from typing import Optional
 
 import pytest
 from hypothesis import assume, given, settings, strategies as st
+from hypothesis._settings import local_settings
 from hypothesis.control import BuildContext
 from hypothesis.database import InMemoryExampleDatabase
 from hypothesis.errors import FlakyBackendFailure
@@ -71,7 +72,14 @@ def _data(
     # force HypofuzzProvider to load from the db now, so we can control the
     # queue for tests
 
-    with BuildContext(ConjectureData.for_choices([]), wrapped_test=_wrapped_test):
+    with (
+        BuildContext(ConjectureData.for_choices([]), wrapped_test=_wrapped_test),
+        # not actually relied upon by any of our tests, but if we don't set this
+        # then hypofuzz spawns a thread for each Provider instance, which eventually
+        # reaches the per-process thread limit and crashes with
+        # "RuntimeError: can't start new thread".
+        local_settings(settings(database=InMemoryExampleDatabase())),
+    ):
         data.provider._startup()
     # remove the initial ChoiceTemplate(type="simplest") queue
     data.provider._choices_queue.clear()
