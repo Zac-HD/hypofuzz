@@ -965,6 +965,7 @@ pre code.hljs {
             color: white;
             font-weight: 600;
             font-size: 1rem;
+            user-select: none;
         }
 
         &__column-totals-row {

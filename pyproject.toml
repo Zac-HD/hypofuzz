@@ -37,7 +37,7 @@ dependencies = [
 ]
 
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 5 - Production/Stable",
     "Framework :: Hypothesis",
     "Intended Audience :: Developers",
     "License :: Other/Proprietary License",
