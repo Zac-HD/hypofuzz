@@ -216,7 +216,7 @@ def collect_tests(args: Iterable[str], *, debug: bool = False) -> CollectionResu
         print(out.getvalue())
         if exit_code == 5:
             # nice error message for the common case
-            print(f"Exiting because pytest didn't collect any tests")
+            print("Exiting because pytest didn't collect any tests")
         else:
             print(f"Exiting because pytest returned exit code {exit_code}")
         sys.exit(exit_code)
