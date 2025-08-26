@@ -20,10 +20,8 @@ from hypofuzz.dashboard.models import (
     dashboard_report,
 )
 from hypofuzz.dashboard.test import Test
-from hypofuzz.database import (
-    HypofuzzEncoder,
-    ReportWithDiff,
-)
+from hypofuzz.database import HypofuzzEncoder, ReportWithDiff
+from hypofuzz.utils import convert_to_fuzzjson
 
 websockets: set["HypofuzzWebsocket"] = set()
 
@@ -75,7 +73,9 @@ class HypofuzzWebsocket(abc.ABC):
         await self.websocket.receive_json()
 
     async def send_json(self, data: Any) -> None:
-        await self.websocket.send_text(json.dumps(data, cls=HypofuzzEncoder))
+        await self.websocket.send_text(
+            json.dumps(convert_to_fuzzjson(data), cls=HypofuzzEncoder)
+        )
 
     async def send_event(self, event: DashboardEventT) -> None:
         data = {

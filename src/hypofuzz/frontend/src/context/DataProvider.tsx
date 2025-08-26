@@ -11,6 +11,7 @@ import { useNotification } from "src/context/NotificationProvider"
 import { NOT_PRESENT_STRING, PRESENT_STRING } from "src/tyche/Tyche"
 import { Failure, FatalFailure, Observation, Report } from "src/types/dashboard"
 import { Test } from "src/types/test"
+import { fuzzjsonReviver } from "src/utils/fuzzjson"
 
 interface DataContextType {
   tests: Map<string, Test>
@@ -369,7 +370,7 @@ export function DataProvider({ children }: DataProviderProps) {
       const ws = new WebSocket(url)
 
       ws.onmessage = event => {
-        const data = JSON.parse(event.data)
+        const data = JSON.parse(event.data, fuzzjsonReviver)
         const type = Number(data.type)
         const count_tests = Number(data.count_tests)
         const count_tests_loaded = Number(data.count_tests_loaded)
