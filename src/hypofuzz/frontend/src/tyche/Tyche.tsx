@@ -59,6 +59,9 @@ function TycheInner({ test }: { test: Test }) {
           paddingTop: "10px",
           paddingBottom: "10px",
           display: "flex",
+          alignItems: "center",
+          justifyContent: "flex-start",
+          gap: "20px",
           fontSize: "1.05rem",
           fontWeight: "500",
         }}
@@ -71,8 +74,8 @@ function TycheInner({ test }: { test: Test }) {
             { value: "rolling", content: "Rolling" },
           ]}
         />
+        <Filters />
       </div>
-      <Filters />
       {observations.raw.length > 0 ? (
         <>
           <Samples observations={observations} />

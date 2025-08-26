@@ -15,7 +15,7 @@ export function Filters() {
 
   return (
     <div className="tyche__filters">
-      <div className="tyche__filters__title">Current Filters</div>
+      <div className="tyche__filters__title">Filters</div>
       {allFilters.map(filter => (
         <div key={filter.key} className="tyche__filters__filter">
           <div className="tyche__filters__filter__name">

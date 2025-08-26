@@ -212,6 +212,7 @@ export function TestTable({ tests, onFilterChange }: Props) {
         getKey={test => test.database_key ?? undefined}
         filterStrings={filterStrings}
         onFilterChange={onFilterChange}
+        perPage={50}
       />
     </div>
   )

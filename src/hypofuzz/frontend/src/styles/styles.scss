@@ -45,6 +45,20 @@ select {
 $mobile-breakpoint: 768px;
 
 .table {
+    &__controls {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 5px;
+        justify-content: flex-end;
+
+        @media (max-width: $mobile-breakpoint) {
+            flex-direction: column-reverse; // filter below pagination
+            align-items: stretch;
+            gap: 8px;
+        }
+    }
+
     &__table {
         border-collapse: collapse;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -95,15 +109,9 @@ $mobile-breakpoint: 768px;
     }
 
     &__filter {
-        margin-bottom: 5px;
         width: min(100%, 20rem);
-        margin-left: auto;
-        position: relative;
-
-        margin-top: -13px;
-        @media (max-width: 1200px) {
-            padding-top: 2px;
-            margin-top: unset;
+        @media (max-width: $mobile-breakpoint) {
+            align-self: flex-end;
         }
 
         &__input {
@@ -137,6 +145,24 @@ $mobile-breakpoint: 768px;
             &:hover {
                 color: #333;
             }
+        }
+    }
+
+    &__pagination {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+
+        &--top {
+            margin-bottom: 5px;
+        }
+
+        &--bottom {
+            margin-top: 12px;
+        }
+
+        @media (max-width: $mobile-breakpoint) {
+            align-self: flex-end;
         }
     }
 
@@ -972,7 +998,6 @@ pre code.hljs {
         flex-wrap: wrap;
         align-items: center;
         gap: 8px;
-        margin: 10px 0;
 
         &__title {
             font-size: 1rem;

@@ -79,7 +79,12 @@ def fuzz(
 
         dash_proc = Process(
             target=start_dashboard_process,
-            kwargs={"host": host, "port": port, "pytest_args": pytest_args},
+            kwargs={
+                "host": host,
+                "port": port,
+                "pytest_args": pytest_args,
+                "print_status": dashboard_only,
+            },
         )
         dash_proc.start()
 
@@ -140,7 +145,9 @@ def _fuzz_impl(n_processes: int, pytest_args: tuple[str, ...]) -> None:
     from hypofuzz.collection import collect_tests
 
     # With our arguments validated, it's time to actually do the work.
+    print("collecting tests... ", end="", flush=True)
     collection = collect_tests(pytest_args)
+    print("done")
     tests = collection.fuzz_targets
     if not tests:
         raise click.UsageError(

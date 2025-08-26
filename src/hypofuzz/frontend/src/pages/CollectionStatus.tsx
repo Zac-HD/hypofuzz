@@ -95,6 +95,7 @@ export function CollectionStatusPage() {
             ? "Collected"
             : `Not collected (${item.status_reason})`,
         ]}
+        perPage={100}
       />
     </div>
   )

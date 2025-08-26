@@ -66,8 +66,15 @@ def wait_for_test_key(db, *, timeout=10):
 
 
 def _enqueue_output(stream, queue):
-    for line in iter(stream.readline, ""):
-        queue.put((stream, line))
+    try:
+        for line in iter(stream.readline, ""):
+            queue.put((stream, line))
+    except (ValueError, OSError):
+        # I'm not sure why this can occur, but it happens after I added a
+        # `print("collecting results...", end="", flush=True)`. Something about
+        # the end being an empty string, or flush=True.
+        pass
+
     stream.close()
 
 

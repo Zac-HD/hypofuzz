@@ -46,6 +46,14 @@ export function Features({
     return null
   }
 
+  // if all the nominal charts would be empty, don't show the Features header.
+  // we'll probably want to refactor this (and the entire tyche setup) to make
+  // nominal charts etc first-class classes which expose "filtered observations",
+  // so we can have a single source of truth for stuff like this.
+  if (!observations.filtered.some(obs => obs.status !== "gave_up")) {
+    return null
+  }
+
   return (
     <TycheSection title="Features">
       {/* sort for stable display order */}
