@@ -58,10 +58,7 @@ export function formatNumber(value: number): string {
   }
 
   const suffixes = ["k", "M", "B"]
-  const magnitude = Math.min(
-    Math.floor(Math.log10(abs) / 3),
-    suffixes.length,
-  )
+  const magnitude = Math.min(Math.floor(Math.log10(abs) / 3), suffixes.length)
   const divisor = 1000 ** magnitude
   const scaled = abs / divisor
 
@@ -90,7 +87,9 @@ export function getTestStats(test: Test): TestStats {
     behaviors: formatNumber(test.behaviors),
     fingerprints: formatNumber(test.fingerprints),
     executions: perSecond === null ? "—" : `${formatInputsPerSecond(perSecond)}/s`,
-    inputsSinceBranch: test.since_new_behavior ? formatNumber(test.since_new_behavior) : "—",
+    inputsSinceBranch: test.since_new_behavior
+      ? formatNumber(test.since_new_behavior)
+      : "—",
     timeSpent: formatTime(test.elapsed_time(null)),
     stability:
       test.stability === null ? (
