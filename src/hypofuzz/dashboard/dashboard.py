@@ -382,7 +382,11 @@ async def run_dashboard(port: int, host: str) -> None:
 
 
 def start_dashboard_process(
-    port: int, *, pytest_args: list, host: str = "localhost"
+    port: int,
+    *,
+    pytest_args: list,
+    host: str = "localhost",
+    print_status: bool = False,
 ) -> None:
     from hypofuzz.collection import collect_tests
 
@@ -391,7 +395,11 @@ def start_dashboard_process(
 
     # we run a pytest collection step for the dashboard to pick up on the database
     # from any custom profiles, and as a ground truth for what tests to display.
+    if print_status:
+        print("collecting tests... ", end="", flush=True)
     COLLECTION_RESULT = collect_tests(pytest_args)
+    if print_status:
+        print("done")
     db = HypofuzzDatabase(settings().database)
 
     start_patching_thread()
