@@ -37,12 +37,38 @@ export function inputsPerSecond(test: Test): number | null {
 function formatInputsPerSecond(perSecond: number): string {
   // toPrecision converts to exponential notation sometimes.
   // parseFloat gets rid of that.
-  return parseFloat(perSecond.toPrecision(3)).toLocaleString()
+  return formatNumber(parseFloat(perSecond.toPrecision(3)))
 }
 
 function formatStability(value: number): string {
   // we don't have enough confidence for anything beyond the decimal place
   return (value * 100).toFixed(0)
+}
+
+export function formatNumber(value: number): string {
+  if (!Number.isFinite(value)) {
+    return String(value)
+  }
+
+  const sign = value < 0 ? "-" : ""
+  const abs = Math.abs(value)
+
+  if (abs < 1000) {
+    return `${sign}${abs.toLocaleString()}`
+  }
+
+  const suffixes = ["k", "M", "B"]
+  const magnitude = Math.min(
+    Math.floor(Math.log10(abs) / 3),
+    suffixes.length,
+  )
+  const divisor = 1000 ** magnitude
+  const scaled = abs / divisor
+
+  const decimals = scaled < 100 ? 1 : 0
+  const rounded = scaled.toFixed(decimals)
+
+  return `${sign}${rounded}${suffixes[magnitude - 1]}`
 }
 
 export function getTestStats(test: Test): TestStats {
@@ -60,11 +86,11 @@ export function getTestStats(test: Test): TestStats {
 
   const perSecond = inputsPerSecond(test)
   return {
-    inputs: test.ninputs(null).toLocaleString(),
-    behaviors: test.behaviors.toLocaleString(),
-    fingerprints: test.fingerprints.toLocaleString(),
+    inputs: formatNumber(test.ninputs(null)),
+    behaviors: formatNumber(test.behaviors),
+    fingerprints: formatNumber(test.fingerprints),
     executions: perSecond === null ? "—" : `${formatInputsPerSecond(perSecond)}/s`,
-    inputsSinceBranch: test.since_new_behavior?.toLocaleString() ?? "—",
+    inputsSinceBranch: test.since_new_behavior ? formatNumber(test.since_new_behavior) : "—",
     timeSpent: formatTime(test.elapsed_time(null)),
     stability:
       test.stability === null ? (
