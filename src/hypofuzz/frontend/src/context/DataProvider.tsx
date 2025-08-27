@@ -71,6 +71,11 @@ type TestsAction =
       failures: Map<string, Failure>
     }
   | {
+      type: DashboardEventType.SET_FAILURES
+      nodeid: string
+      failures: Map<string, Failure>
+    }
+  | {
       type: DashboardEventType.ADD_OBSERVATIONS
       nodeid: string
       observation_type: "rolling" | "corpus"
@@ -185,6 +190,13 @@ function testsReducer(
       return newState
     }
 
+    case DashboardEventType.SET_FAILURES: {
+      const { nodeid, failures } = action
+      const test = getOrCreateTest(nodeid)
+      test.failures = failures
+      return newState
+    }
+
     case DashboardEventType.ADD_OBSERVATIONS: {
       const { nodeid, observation_type, observations } = action
       const test = getOrCreateTest(nodeid)
@@ -207,9 +219,11 @@ function testsReducer(
     }
 
     case DashboardEventType.TEST_LOAD_FINISHED: {
-      const { nodeid } = action
-      const test = getOrCreateTest(nodeid)
-      test.load_finished_at = Date.now()
+      const { nodeids } = action
+      for (const nodeid of nodeids) {
+        const test = getOrCreateTest(nodeid)
+        test.load_finished_at = Date.now()
+      }
       return newState
     }
 
@@ -286,7 +300,7 @@ export function DataProvider({ children }: DataProviderProps) {
       if (import.meta.env.VITE_USE_DASHBOARD_STATE === "1") {
         fetch(new URL(/* @vite-ignore */ "dashboard_state/tests.json", import.meta.url))
           .then(response => response.text())
-          .then(text => JSON.parse(text) as Record<string, any>)
+          .then(text => JSON.parse(text, fuzzjsonReviver) as Record<string, any>)
           .then(data => {
             Object.entries(data).forEach(([nodeid, testData]) => {
               dispatch({
@@ -317,7 +331,7 @@ export function DataProvider({ children }: DataProviderProps) {
 
               dispatch({
                 type: DashboardEventType.TEST_LOAD_FINISHED,
-                nodeid: nodeid,
+                nodeids: [nodeid],
               })
             })
           })
@@ -466,10 +480,24 @@ export function DataProvider({ children }: DataProviderProps) {
             break
           }
 
+          case DashboardEventType.SET_FAILURES: {
+            dispatch({
+              type: DashboardEventType.SET_FAILURES,
+              nodeid: data.nodeid,
+              failures: new Map(
+                Object.entries(data.failures).map(([key, value]) => [
+                  key,
+                  Failure.fromJson(value),
+                ]),
+              ),
+            })
+            break
+          }
+
           case DashboardEventType.TEST_LOAD_FINISHED: {
             dispatch({
               type: DashboardEventType.TEST_LOAD_FINISHED,
-              nodeid: data.nodeid,
+              nodeids: data.nodeids,
             })
             break
           }
