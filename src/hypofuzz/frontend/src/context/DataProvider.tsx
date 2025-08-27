@@ -309,7 +309,12 @@ export function DataProvider({ children }: DataProviderProps) {
                   {
                     database_key: testData.database_key,
                     nodeid: nodeid,
-                    failures: testData.failures,
+                    failures: new Map(
+                      Object.entries(testData.failures).map(([key, value]) => [
+                        key,
+                        Failure.fromJson(value),
+                      ]),
+                    ),
                     fatal_failure: testData.fatal_failure,
                     stability: testData.stability,
                   },

@@ -131,6 +131,7 @@ async def api_backing_state_tests(request: Request) -> Response:
                 worker_uuid: [dashboard_report(report) for report in reports]
                 for worker_uuid, reports in test.reports_by_worker.items()
             },
+            "stability": test.stability,
         }
         for nodeid, test in TESTS.items()
     }
