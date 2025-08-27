@@ -174,9 +174,10 @@ class TestWebsocket(HypofuzzWebsocket):
         )
         await self.send_event(test_data)
 
-        # then its reports. Note we don't currently downsample with _sample_reports
-        # on individual test pages, unlike the overview page.
-        for worker_uuid, reports in test.reports_by_worker.items():
+        # then its reports. Note we still downsample reports_by_worker, but with
+        # a higher limit than the overview page.
+        reports_by_worker = _sample_reports(test.reports_by_worker, soft_limit=5_000)
+        for worker_uuid, reports in reports_by_worker.items():
             report_event = AddReportsEvent(
                 nodeid=test.nodeid,
                 worker_uuid=worker_uuid,
