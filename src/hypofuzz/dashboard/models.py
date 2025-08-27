@@ -144,7 +144,7 @@ class SetStatusEvent(DashboardEvent):
 @dataclass
 class TestLoadFinishedEvent(DashboardEvent):
     type = DashboardEventType.TEST_LOAD_FINISHED
-    nodeid: str
+    nodeids: list[str]
 
 
 @dataclass

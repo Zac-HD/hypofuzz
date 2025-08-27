@@ -17,13 +17,12 @@ from hypofuzz.dashboard.patching import (
     failing_patch,
 )
 from hypofuzz.database import HypofuzzEncoder
-from hypofuzz.utils import convert_to_fuzzjson
 
 
 class HypofuzzJSONResponse(JSONResponse):
     def render(self, content: Any) -> bytes:
         data = json.dumps(
-            convert_to_fuzzjson(content),
+            content,
             ensure_ascii=False,
             separators=(",", ":"),
             cls=HypofuzzEncoder,
