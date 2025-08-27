@@ -12,7 +12,7 @@ import time
 import traceback
 from collections import defaultdict
 from collections.abc import Callable, Mapping, Sequence
-from contextlib import nullcontext
+from contextlib import nullcontext, redirect_stdout
 from functools import cache, partial
 from multiprocessing import Manager, Process
 from pathlib import Path
@@ -418,6 +418,9 @@ class FuzzTarget:
                 if self.pytest_item is not None
                 else nullcontext()
             ),
+            # silence stdout from tests
+            open(os.devnull, "w") as null,
+            redirect_stdout(null),
         ):
             try:
                 self.state._execute_once_for_engine(data)
