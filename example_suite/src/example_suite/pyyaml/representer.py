@@ -1,4 +1,4 @@
-__all__ = ["BaseRepresenter", "SafeRepresenter", "Representer", "RepresenterError"]
+__all__ = ["BaseRepresenter", "Representer", "RepresenterError", "SafeRepresenter"]
 
 import base64
 import collections

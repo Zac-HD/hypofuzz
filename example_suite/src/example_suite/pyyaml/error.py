@@ -1,4 +1,4 @@
-__all__ = ["Mark", "YAMLError", "MarkedYAMLError"]
+__all__ = ["Mark", "MarkedYAMLError", "YAMLError"]
 
 
 class Mark:

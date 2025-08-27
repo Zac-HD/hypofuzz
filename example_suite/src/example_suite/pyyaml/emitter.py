@@ -546,8 +546,7 @@ class Emitter:
                 self.simple_key_context
                 and (self.analysis.empty or self.analysis.multiline)
             ) and (
-                self.flow_level
-                and self.analysis.allow_flow_plain
+                (self.flow_level and self.analysis.allow_flow_plain)
                 or (not self.flow_level and self.analysis.allow_block_plain)
             ):
                 return ""
