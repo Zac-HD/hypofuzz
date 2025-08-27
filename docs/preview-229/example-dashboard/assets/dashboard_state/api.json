@@ -1,0 +1,56 @@
+{
+  "collection_status": [
+    {
+      "nodeid": "example_suite/tests/test_bst.py::test_finds_bst_bug",
+      "status": "collected"
+    },
+    {
+      "nodeid": "example_suite/tests/test_json.py::test_json_roundtrip_fails_on_inf",
+      "status": "collected"
+    },
+    {
+      "nodeid": "example_suite/tests/test_observability.py::test_many_observability_features",
+      "status": "collected"
+    },
+    {
+      "nodeid": "example_suite/tests/test_timsort.py::test_timsort_matches_builtin",
+      "status": "collected"
+    },
+    {
+      "nodeid": "example_suite/tests/test_yaml.py::test_yaml_roundtrip",
+      "status": "collected"
+    },
+    {
+      "nodeid": "example_suite/tests/test_no_collection.py::test_pytest_skip_is_not_collected",
+      "status": "not_collected",
+      "status_reason": "skip"
+    },
+    {
+      "nodeid": "example_suite/tests/test_no_collection.py::test_pytest_true_skipif_is_not_collect",
+      "status": "not_collected",
+      "status_reason": "skipif"
+    }
+  ],
+  "patches": {
+    "example_suite/tests/test_bst.py::test_finds_bst_bug": {
+      "failing": "From HEAD Mon Sep 17 00:00:00 2001\nFrom: HypoFuzz 25.08.02 <no-reply@hypofuzz.com>\nDate: Wed, 27 Aug 2025 06:06:16\nSubject: [PATCH] add failing examples\n\n---\n--- ./example_suite/tests/test_bst.py\n+++ ./example_suite/tests/test_bst.py\n@@ -49,6 +49,7 @@\n \n \n @given(st.lists(st.integers()))\n+@example(xs=[0, 0, -1, 0]).via(\"discovered failure\")\n def test_finds_bst_bug(xs):\n     tree = BST()\n     for x in xs:\n",
+      "covering": "From HEAD Mon Sep 17 00:00:00 2001\nFrom: HypoFuzz 25.08.02 <no-reply@hypofuzz.com>\nDate: Wed, 27 Aug 2025 06:06:16\nSubject: [PATCH] add covering examples\n\n---\n--- ./example_suite/tests/test_bst.py\n+++ ./example_suite/tests/test_bst.py\n@@ -49,6 +49,7 @@\n \n \n @given(st.lists(st.integers()))\n+@example(xs=[]).via(\"covering example\")\n def test_finds_bst_bug(xs):\n     tree = BST()\n     for x in xs:\n"
+    },
+    "example_suite/tests/test_json.py::test_json_roundtrip_fails_on_inf": {
+      "failing": "From HEAD Mon Sep 17 00:00:00 2001\nFrom: HypoFuzz 25.08.02 <no-reply@hypofuzz.com>\nDate: Wed, 27 Aug 2025 06:06:16\nSubject: [PATCH] add failing examples\n\n---\n--- ./example_suite/tests/test_json.py\n+++ ./example_suite/tests/test_json.py\n@@ -10,5 +10,6 @@\n \n \n @given(json_strategy)\n+@example(json_value=inf).via(\"discovered failure\")\n def test_json_roundtrip_fails_on_inf(json_value):\n     assert json.loads(json.dumps(json_value)) == json_value\n",
+      "covering": null
+    },
+    "example_suite/tests/test_observability.py::test_many_observability_features": {
+      "failing": null,
+      "covering": null
+    },
+    "example_suite/tests/test_timsort.py::test_timsort_matches_builtin": {
+      "failing": null,
+      "covering": "From HEAD Mon Sep 17 00:00:00 2001\nFrom: HypoFuzz 25.08.02 <no-reply@hypofuzz.com>\nDate: Wed, 27 Aug 2025 06:06:16\nSubject: [PATCH] add covering examples\n\n---\n--- ./example_suite/tests/test_timsort.py\n+++ ./example_suite/tests/test_timsort.py\n@@ -23,6 +23,26 @@\n \n \n @given(st.lists(st.integers()))\n+@example(\n+    l=[\n+        -73,\n+        5463,\n+        -1_922_718_495,\n+        4333,\n+        18972,\n+        -4,\n+        -9,\n+        22530,\n+        -17245,\n+        128,\n+        92,\n+        -58,\n+        -31121,\n+        6607882,\n+        100,\n+        -125,\n+    ]\n+).via(\"covering example\")\n def test_timsort_matches_builtin(l):\n     _emit_run_events(l)\n     assert timsort(l) == sorted(l)\n"
+    },
+    "example_suite/tests/test_yaml.py::test_yaml_roundtrip": {
+      "failing": null,
+      "covering": "From HEAD Mon Sep 17 00:00:00 2001\nFrom: HypoFuzz 25.08.02 <no-reply@hypofuzz.com>\nDate: Wed, 27 Aug 2025 06:06:16\nSubject: [PATCH] add covering examples\n\n---\n--- ./example_suite/tests/test_yaml.py\n+++ ./example_suite/tests/test_yaml.py\n@@ -4,5 +4,6 @@\n \n \n @given(st.text())\n+@example(s=\"\u00cb\u0547|Ai\").via(\"covering example\")\n def test_yaml_roundtrip(s):\n     assert yaml.safe_load(yaml.dump(s)) == s\n"
+    }
+  }
+}
