@@ -413,7 +413,7 @@ export function DataProvider({ children }: DataProviderProps) {
             const progressContent = React.createElement(ProgressBar, {
               current: count_tests_loaded,
               total: count_tests,
-              message: `Note: dashboard is still starting up (${count_tests_loaded}/${count_tests} tests loaded)`,
+              message: `Dashboard is still starting up (${count_tests_loaded}/${count_tests} tests loaded)`,
             })
 
             if (!statusNotification.current) {
