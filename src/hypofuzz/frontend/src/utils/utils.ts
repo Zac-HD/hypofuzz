@@ -200,3 +200,33 @@ export function navigateOnClick(
 export function readableNodeid(nodeid: string): string {
   return nodeid.split("::").pop() || nodeid
 }
+
+export function commonPrefix(strings: string[], delimiter: string = "/"): string {
+  if (!strings || strings.length < 2) {
+    return ""
+  }
+
+  const segments = strings.map(s => s.split(delimiter))
+  const minLen = Math.min(...segments.map(s => s.length))
+
+  const prefix: string[] = []
+  for (let i = 0; i < minLen; i++) {
+    const seg = segments[0][i]
+    const allMatch = segments.every(parts => parts[i] === seg)
+    if (!allMatch) {
+      break
+    }
+    prefix.push(seg)
+  }
+
+  if (prefix.length === 0) {
+    return ""
+  }
+
+  const joined = prefix.join(delimiter)
+  const withDelim = joined ? joined + delimiter : ""
+  if (withDelim && strings.every(s => s.startsWith(withDelim))) {
+    return withDelim
+  }
+  return ""
+}
