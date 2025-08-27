@@ -83,7 +83,7 @@ type TestsAction =
     }
   | {
       type: DashboardEventType.TEST_LOAD_FINISHED
-      nodeid: string
+      nodeids: string[]
     }
   | {
       type: DashboardEventType.SET_FATAL_FAILURE
