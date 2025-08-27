@@ -15,6 +15,8 @@ from hypothesis.internal.observability import (
     TestCaseObservation,
 )
 
+from hypofuzz.utils import convert_to_fuzzjson
+
 
 @dataclass(frozen=True)
 class WorkerIdentity:
@@ -114,9 +116,9 @@ class Observation:
             status=ObservationStatus(observation.status),
             status_reason=observation.status_reason,
             representation=observation.representation,
-            arguments=observation.arguments,
+            arguments=convert_to_fuzzjson(observation.arguments),
             how_generated=observation.how_generated,
-            features=observation.features,
+            features=convert_to_fuzzjson(observation.features),
             timing=observation.timing,
             metadata=ObservationMetadata.from_hypothesis(observation.metadata),
             property=observation.property,

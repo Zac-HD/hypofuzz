@@ -8,6 +8,7 @@
     "build": "tsc && vite build",
     "build:profiling": "tsc && vite build --mode profiling",
     "preview": "vite preview",
+    "test": "vitest run",
     "format": "eslint src --ext ts,tsx --fix && prettier --write src",
     "format:check": "prettier --check src"
   },
@@ -37,7 +38,8 @@
     "prettier": "^3.2.5",
     "sass": "^1.84.0",
     "typescript": "^5.2.2",
-    "vite": "^6.3.5"
+    "vite": "^6.3.5",
+    "vitest": "^2.1.8"
   },
   "prettier": {
     "semi": false,

@@ -12,9 +12,9 @@ T = TypeVar("T")
 
 process_uuid = uuid4().hex
 
-FUZZJSON_INF = "hypofuzz-inf-a928fa52b3ea4a9a9af36ccef7c6cf93"
-FUZZJSON_NINF = "hypofuzz-ninf-a928fa52b3ea4a9a9af36ccef7c6cf93"
-FUZZJSON_NAN = "hypofuzz-nan-a928fa52b3ea4a9a9af36ccef7c6cf93"
+FUZZJSON_INF = "hypofuzz-inf-a928fa52b3ea4a9a"
+FUZZJSON_NINF = "hypofuzz-ninf-a928fa52b3ea4a9a"
+FUZZJSON_NAN = "hypofuzz-nan-a928fa52b3ea4a9a"
 
 
 def convert_to_fuzzjson(value: Any) -> Any:

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
 import { Table } from "src/components/Table"
 import { CollectionResult, fetchCollectionStatus } from "src/utils/api"
+import { commonPrefix } from "src/utils/utils"
 
 const statusOrder = {
   not_collected: 0,
@@ -38,6 +39,8 @@ export function CollectionStatusPage() {
     result.nodeid,
   ])
 
+  const nodeidPrefix = commonPrefix(sortedResults.map(r => r.nodeid))
+
   const headers = [
     {
       content: "Test",
@@ -54,15 +57,16 @@ export function CollectionStatusPage() {
   ]
 
   const row = (item: CollectionResult): React.ReactNode[] => {
+    const nodeid = item.nodeid.slice(nodeidPrefix.length)
     const nodeidRow = (
       <div style={{ wordBreak: "break-all" }}>
         {/* don't link to a nonexistent page */}
         {item.status == "collected" ? (
           <Link to={`/tests/${encodeURIComponent(item.nodeid)}`} className="test__link">
-            {item.nodeid}
+            {nodeid}
           </Link>
         ) : (
-          item.nodeid
+          nodeid
         )}
       </div>
     )
@@ -95,6 +99,7 @@ export function CollectionStatusPage() {
             ? "Collected"
             : `Not collected (${item.status_reason})`,
         ]}
+        perPage={100}
       />
     </div>
   )

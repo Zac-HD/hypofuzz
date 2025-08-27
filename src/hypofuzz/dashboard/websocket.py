@@ -20,10 +20,7 @@ from hypofuzz.dashboard.models import (
     dashboard_report,
 )
 from hypofuzz.dashboard.test import Test
-from hypofuzz.database import (
-    HypofuzzEncoder,
-    ReportWithDiff,
-)
+from hypofuzz.database import HypofuzzEncoder, ReportWithDiff
 
 websockets: set["HypofuzzWebsocket"] = set()
 
@@ -141,7 +138,7 @@ class OverviewWebsocket(HypofuzzWebsocket):
                 )
                 await self.send_event(report_event)
 
-            await broadcast_event(TestLoadFinishedEvent(nodeid=test.nodeid))
+            await broadcast_event(TestLoadFinishedEvent(nodeids=[test.nodeid]))
 
     async def on_event(self, event: DashboardEventT) -> None:
         # skip observations to the websocket page
@@ -177,9 +174,10 @@ class TestWebsocket(HypofuzzWebsocket):
         )
         await self.send_event(test_data)
 
-        # then its reports. Note we don't currently downsample with _sample_reports
-        # on individual test pages, unlike the overview page.
-        for worker_uuid, reports in test.reports_by_worker.items():
+        # then its reports. Note we still downsample reports_by_worker, but with
+        # a higher limit than the overview page.
+        reports_by_worker = _sample_reports(test.reports_by_worker, soft_limit=5_000)
+        for worker_uuid, reports in reports_by_worker.items():
             report_event = AddReportsEvent(
                 nodeid=test.nodeid,
                 worker_uuid=worker_uuid,
@@ -200,7 +198,7 @@ class TestWebsocket(HypofuzzWebsocket):
                 )
             )
 
-        await broadcast_event(TestLoadFinishedEvent(nodeid=self.nodeid))
+        await broadcast_event(TestLoadFinishedEvent(nodeids=[self.nodeid]))
 
     async def on_event(self, event: DashboardEventT) -> None:
         # we only send these events for test websockets
@@ -213,10 +211,14 @@ class TestWebsocket(HypofuzzWebsocket):
         ]:
             return
 
-        assert hasattr(event, "nodeid")
-        # only broadcast event for this nodeid
-        if event.nodeid != self.nodeid:
-            return
+        # only broadcast events related to this nodeid
+        if isinstance(event, TestLoadFinishedEvent):
+            if self.nodeid not in event.nodeids:
+                return
+        else:
+            assert hasattr(event, "nodeid")
+            if event.nodeid != self.nodeid:
+                return
 
         await self.send_event(event)
 

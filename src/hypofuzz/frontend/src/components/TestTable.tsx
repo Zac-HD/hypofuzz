@@ -15,6 +15,7 @@ import { statusStrings, TestStatusPill } from "src/components/TestStatusPill"
 import { Tooltip } from "src/components/Tooltip"
 import { Test } from "src/types/test"
 import { getTestStats, inputsPerSecond } from "src/utils/testStats"
+import { commonPrefix } from "src/utils/utils"
 
 function Icon({ icon, tooltip }: { icon: IconDefinition; tooltip: string }) {
   return (
@@ -57,6 +58,7 @@ export function TestTable({ tests, onFilterChange }: Props) {
     })
     .map(([nodeid, test]) => test)
 
+  const nodeidPrefix = commonPrefix(sortedTests.map(t => t.nodeid))
   const iconInputs = <Icon icon={faHashtag} tooltip="Number of inputs" />
   const iconBehaviors = (
     <Icon
@@ -131,6 +133,7 @@ export function TestTable({ tests, onFilterChange }: Props) {
 
   const row = (test: Test): React.ReactNode[] => {
     const stats = getTestStats(test)
+    const nodeid = test.nodeid.slice(nodeidPrefix.length)
 
     return [
       <Link
@@ -138,7 +141,7 @@ export function TestTable({ tests, onFilterChange }: Props) {
         className="test__link"
         style={{ wordBreak: "break-all" }}
       >
-        {test.nodeid}
+        {nodeid}
       </Link>,
       <div style={{ textAlign: "center" }}>
         <TestStatusPill status={test.status} />
@@ -169,6 +172,7 @@ export function TestTable({ tests, onFilterChange }: Props) {
 
   function mobileRow(test: Test) {
     const stats = getTestStats(test)
+    const nodeid = test.nodeid.slice(nodeidPrefix.length)
 
     return (
       <div className="table__mobile-row">
@@ -178,7 +182,7 @@ export function TestTable({ tests, onFilterChange }: Props) {
             className="test__link"
             style={{ wordBreak: "break-all" }}
           >
-            {test.nodeid}
+            {nodeid}
           </Link>
           <TestStatusPill status={test.status} />
         </div>
@@ -212,6 +216,7 @@ export function TestTable({ tests, onFilterChange }: Props) {
         getKey={test => test.database_key ?? undefined}
         filterStrings={filterStrings}
         onFilterChange={onFilterChange}
+        perPage={50}
       />
     </div>
   )

@@ -203,7 +203,7 @@ def collect_tests(args: Iterable[str], *, debug: bool = False) -> CollectionResu
     collector = _ItemsCollector()
     out = io.StringIO()
     with redirect_stdout(out):
-        ret = pytest.main(
+        exit_code = pytest.main(
             args=[
                 "--collect-only",
                 "-m=hypothesis",
@@ -212,10 +212,14 @@ def collect_tests(args: Iterable[str], *, debug: bool = False) -> CollectionResu
             ],
             plugins=[collector],
         )
-    if ret:
+    if exit_code:
         print(out.getvalue())
-        print(f"Exiting because pytest returned exit code {ret}")
-        sys.exit(ret)
+        if exit_code == 5:
+            # nice error message for the common case
+            print("Exiting because pytest didn't collect any tests")
+        else:
+            print(f"Exiting because pytest returned exit code {exit_code}")
+        sys.exit(exit_code)
     elif debug or not collector.fuzz_targets:
         print("debug:" if debug else "no Hypothesis tests found:")
         print(out.getvalue())

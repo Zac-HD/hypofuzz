@@ -211,7 +211,6 @@ export function MosaicChart({
 
   const minCellWidth = 30
   const minCellHeight = 30
-  const totalHeight = 45 * visibleRows.length
 
   for (let i = 0; i < verticalAxis.length; i++) {
     for (let j = 0; j < horizontalAxis.length; j++) {
@@ -220,10 +219,12 @@ export function MosaicChart({
     }
   }
 
-  const baseRowHeights = visibleRows.map(
-    rowIndex => (rowTotals[rowIndex] / grandTotal) * totalHeight,
+  const rowHeights = visibleRows.map(rowIndex =>
+    Math.max(
+      (rowTotals[rowIndex] / grandTotal) * 45 * visibleRows.length,
+      minCellHeight,
+    ),
   )
-  const rowHeights = baseRowHeights.map(height => Math.max(height, minCellHeight))
 
   const columnHeaderPositions = visibleCols.map((colIndex, i) => {
     if (i === 0) {
@@ -269,7 +270,8 @@ export function MosaicChart({
   return (
     <div
       className="tyche__mosaic__container"
-      style={{ maxWidth: `${MAX_MOSAIC_WIDTH}px` }}
+      // constant min height so that the ui doesn't jitter when we filter down
+      style={{ maxWidth: `${MAX_MOSAIC_WIDTH}px`, minHeight: `175px` }}
     >
       <div
         className="tyche__mosaic__column-headers"

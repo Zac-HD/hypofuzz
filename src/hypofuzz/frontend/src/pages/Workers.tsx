@@ -346,10 +346,11 @@ export function WorkersPage() {
   }
 
   const sliderRange = getSliderRange()
+  // create a new ref to avoid a lint warning about mutating a useState value
+  let visibleRange: [number, number] = [...(userRange ?? sliderRange)]
   if (rightSticky && userRange) {
-    userRange[1] = maxTimestamp
+    visibleRange[1] = maxTimestamp
   }
-  let visibleRange = userRange ?? sliderRange
 
   useEffect(() => {
     setUserRange(null)

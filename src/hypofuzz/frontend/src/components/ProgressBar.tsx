@@ -5,7 +5,7 @@ interface ProgressBarProps {
 }
 
 export function ProgressBar({ current, total, message }: ProgressBarProps) {
-  const percentage = total > 0 ? Math.round((current / total) * 100) : 0
+  const percentage = total > 0 ? Math.floor((current / total) * 100) : 0
 
   return (
     <div className="progress-notification">
