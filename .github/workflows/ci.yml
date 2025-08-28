@@ -44,7 +44,7 @@ jobs:
         github.ref == 'refs/heads/master' ||
         (
           github.event_name == 'pull_request' && (
-            github.event.pull_request.user.login == 'tybug' ||
+            github.event.pull_request.user.login == 'Liam-DeVoe' ||
             github.event.pull_request.user.login == 'Zac-HD'
           )
         )
