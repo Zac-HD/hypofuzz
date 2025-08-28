@@ -7,6 +7,14 @@
     --primary-l: 30%;
     --primary: hsl(var(--primary-h), var(--primary-s), var(--primary-l));
     --primary-a1: hsla(var(--primary-h), var(--primary-s), var(--primary-l), 0.1);
+    --primary-a2: hsla(var(--primary-h), var(--primary-s), var(--primary-l), 0.2);
+    --primary-a3: hsla(var(--primary-h), var(--primary-s), var(--primary-l), 0.3);
+    --primary-a4: hsla(var(--primary-h), var(--primary-s), var(--primary-l), 0.4);
+    --primary-a5: hsla(var(--primary-h), var(--primary-s), var(--primary-l), 0.5);
+    --primary-a6: hsla(var(--primary-h), var(--primary-s), var(--primary-l), 0.6);
+    --primary-a7: hsla(var(--primary-h), var(--primary-s), var(--primary-l), 0.7);
+    --primary-a8: hsla(var(--primary-h), var(--primary-s), var(--primary-l), 0.8);
+    --primary-a9: hsla(var(--primary-h), var(--primary-s), var(--primary-l), 0.9);
 
     --secondary-h: 24;
     --secondary-s: 100%;
@@ -21,6 +29,9 @@
     --secondary-a7: hsla(var(--secondary-h), var(--secondary-s), var(--secondary-l), 0.7);
     --secondary-a8: hsla(var(--secondary-h), var(--secondary-s), var(--secondary-l), 0.8);
     --secondary-a9: hsla(var(--secondary-h), var(--secondary-s), var(--secondary-l), 0.9);
+
+    /* Subtle blue highlight for navbar hover/focus, derived from primary */
+    --navbar-hover: hsla(var(--primary-h), var(--primary-s), 60%, 0.25);
 
     --background-color: hsla(var(--primary-h), var(--primary-s), var(--primary-l), 0.08);
     --card-background-color: hsl(var(--primary-h), var(--primary-s), 99.5%);
@@ -71,7 +82,7 @@ html {
 
 .navbar {
     background-color: var(--primary);
-    padding: 1rem 0;
+    padding: 0.7rem 0;
     position: relative;
     z-index: 1003; /* keep navbar above overlay and sliding panel */
 }
@@ -82,7 +93,7 @@ html {
     align-items: center;
     max-width: 1200px;
     margin: 0 auto;
-    padding: 0 1rem;
+    padding: 0 0.4rem;
 }
 
 .navbar__brand {
@@ -90,22 +101,42 @@ html {
     text-decoration: none;
     font-size: 1.5rem;
     font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    padding: 0.3rem 0.6rem;
+    border-radius: 0.25rem;
+    transition: background-color 0.08s;
+}
+
+.navbar__brand:hover,
+.navbar__brand:focus-visible {
+    color: white;
+    background-color: var(--navbar-hover);
+    outline: none;
+    text-decoration: none;
 }
 
 .navbar__nav {
     display: flex;
     list-style: none;
-    gap: 1.5rem;
+    gap: 0.3rem;
 }
 
 .navbar__link {
     color: white;
     text-decoration: none;
-    transition: color 0.2s;
+    display: inline-flex;
+    align-items: center;
+    padding: 0.5rem 0.7rem;
+    border-radius: 0.25rem;
+    transition: background-color 0.08s;
 }
 
-.navbar__link:hover {
-    color: var(--secondary);
+.navbar__link:hover,
+.navbar__link:focus-visible {
+    color: white;
+    background-color: var(--navbar-hover);
+    outline: none;
 }
 
 .content {
