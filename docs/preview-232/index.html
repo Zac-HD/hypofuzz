@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-176879127-1"></script>
+    <meta name="google-site-verification" content="RgluU28F1sBZHjLDOGRb64L4ZlEQ-HpiY-RzPkXPg-E" />
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
+        gtag('config', 'UA-176879127-1');
+    </script>
+
+    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./assets/styles.css">
+
+    <!-- favicon -->
+    <!-- if you update the favicon of the react dashboard, update this as well -->
+    <link rel="icon" type="image/png" href="./assets/favicon/favicon-96x96.png" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="./assets/favicon/favicon.svg" />
+    <link rel="shortcut icon" href="./assets/favicon/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="./assets/favicon/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-title" content="HypoFuzz" />
+    <link rel="manifest" href="./assets/favicon/site.webmanifest" />
+
+    <title>HypoFuzz</title>
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="navbar__container">
+            <a class="navbar__brand" href="./">HypoFuzz</a>
+            <button class="navbar__toggle" type="button" aria-label="Menu" aria-expanded="false" aria-controls="navbarMenu">
+                <span class="navbar__toggle__arrow"></span>
+            </button>
+            <ul class="navbar__nav" id="navbarMenu">
+                <li><a class="navbar__link" href="./docs/features.html">Features</a></li>
+                <li><a class="navbar__link" href="./docs/">Docs</a></li>
+                <li><a class="navbar__link" href="./example-dashboard/">Demo</a></li>
+                <li><a class="navbar__link" href="./pricing/">Pricing</a></li>
+            </ul>
+        </div>
+    </nav>
+    <div class="navbar__overlay" id="navbarOverlay"></div>
+
+    <div class="content">
+        <div class="cta">
+            <div class="cta__title">HypoFuzz</div>
+            <div class="cta__subtitle">
+                An advanced fuzzing backend, and dashboard, for your Hypothesis tests.
+            </div>
+            <div class="cta__subsubtitle">
+                Built with care by the Hypothesis maintainers.
+            </div>
+            <div class="cta__buttons">
+                <a href="./example-dashboard/" class="button button--cta">Demo <img src="./assets/arrow-right-long.svg" class="button__arrow"></a>
+                <a href="./pricing/" class="button button--cta">Try HypoFuzz <img src="./assets/arrow-right-long.svg" class="button__arrow"></a>
+            </div>
+        </div>
+
+        <div class="features">
+            <div class="features__grid">
+                <div class="features__feature">
+                    <div class="features__feature__header">
+                        <div class="features__feature__title">Find more bugs, without more tests</div>
+                    </div>
+                    <div class="features__feature__body">
+                        <div class="features__feature__text">
+                            HypoFuzz uses advanced techniques inspired by the <a href="./docs/literature" class="muted-link">fuzzing literature</a> to find deeply hidden bugs—just by running your existing Hypothesis tests.
+                        </div>
+                        <div class="features__feature__text">
+                            You give HypoFuzz CPU time, and HypoFuzz gives you bugs. We think that's a pretty good trade!
+                        </div>
+                    </div>
+                </div>
+                <div class="features__feature">
+                    <div class="features__feature__header">
+                        <div class="features__feature__title">Understand your test effectiveness</div>
+                    </div>
+                    <div class="features__feature__body">
+                        <div class="features__feature__text">
+                            How confident are you in your test suite? The HypoFuzz dashboard shows you what your Hypothesis tests do—and don't—cover.
+                        </div>
+                        <div class="features__feature__text">
+                            You test your code. HypoFuzz can test your tests.
+                        </div>
+                    </div>
+                </div>
+                <div class="features__feature">
+                    <div class="features__feature__header">
+                        <div class="features__feature__title">Put your idle compute to work</div>
+                    </div>
+                    <div class="features__feature__body">
+                        <div class="features__feature__text">
+                            HypoFuzz scales efficiently with your available CPU cores.
+                        </div>
+                        <div class="features__feature__text">
+                            Workers are designed to come and go, and can be stopped or started alongside availability and demand.
+                        </div>
+                        <ul class="features__feature__list" style="margin-top: 0.75rem;">
+                            <li><div class="features__feature__text">Only have one shared CI machine? No problem; run HypoFuzz during the quieter hours.</div></li>
+                            <li><div class="features__feature__text">Have an entire fleet? Allocate idle workers as they become available.</div></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="features__feature">
+                    <div class="features__feature__header">
+                        <div class="features__feature__title">Free for non-commercial use</div>
+                    </div>
+                    <div class="features__feature__body">
+                        <div class="features__feature__text">
+                            We love (and started from) research and open source. Any non-commercial use of HypoFuzz is completely free.
+                        </div>
+                        <a href="./docs/quickstart.html" class="button button--primary" style="width: 155px; margin-top: 1rem; margin-bottom: 1rem;">Get started <img src="./assets/arrow-right-long.svg" class="button__arrow"></a>
+                        <div class="features__feature__text">
+                            Not only that, we'd be delighted to chat or offer advice – <a href="mailto:hello@hypofuzz.com" class="muted-link">reach out to us</a>!
+                        </div>
+                    </div>
+                </div>
+                <div class="features__feature">
+                    <div class="features__feature__header">
+                        <div class="features__feature__title">Built by the Hypothesis maintainers, with care</div>
+                    </div>
+                    <div class="features__feature__body">
+                        <div class="features__feature__text">
+                            We love testing. <a href="https://github.com/HypothesisWorks/hypothesis" class="muted-link">Hypothesis</a> is (and always will be) open-source, because we love making high-quality tooling available to everyone.
+                        </div>
+                        <div class="features__feature__text">
+                            We built HypoFuzz because we saw an opportunity to extend Python's world-leading property-based testing library, and provide even better testing tools for businesses.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="separator" style="margin-top: 5rem; margin-bottom: 5rem;"></div>
+
+            <div class="features__grid">
+                <div class="features__feature">
+                    <div class="features__feature__header">
+                        <div class="features__feature__title">HypoFuzz Newsletter</div>
+                    </div>
+                    <div class="features__feature__body">
+                        <div class="features__feature__text">
+                            We'll have plenty to share as we roll out new features! The first place you'll hear about them is our low-volume newsletter.
+                        </div>
+                    <form
+                    action="https://hypofuzz.us17.list-manage.com/subscribe/post?u=7c7cccd93480e9b723c4696ee&amp;id=e6284f13ed"
+                    method="post" id="mc-embedded-subscribe-form" name="mc-embedded-subscribe-form"
+                    target="_blank" style="max-width: 600px; margin-top: 1rem;">
+                    <div id="mc_embed_signup_scroll">
+                        <div class="mc-field-group" style="display: flex; gap: 0.5rem; align-items: center;">
+                            <input type="email" placeholder="me@example.com" value="" name="EMAIL"
+                                id="mce-EMAIL" required
+                                style="flex: 1; padding: 0.75rem; border: 1px solid #ccc; border-radius: 0.375rem;">
+                            <button type="submit" name="subscribe"
+                                id="mc-embedded-subscribe" class="button button--primary">Subscribe</button>
+                        </div>
+                        <div id="mce-responses" class="clear">
+                            <div class="response" id="mce-error-response" style="display:none"></div>
+                            <div class="response" id="mce-success-response" style="display:none"></div>
+                        </div>
+                        <!-- real people should not fill this in and expect good things - do not remove this or risk form bot signups-->
+                        <div style="position: absolute; left: -5000px;" aria-hidden="true"><input type="text"
+                                name="b_7c7cccd93480e9b723c4696ee_e6284f13ed" tabindex="-1" value=""></div>
+                    </div>
+                </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <hr class="footer__hr">
+        <p><a class="footer__link" href="mailto:hello@hypofuzz.com">hello@hypofuzz.com</a> &nbsp;&middot;&nbsp; &copy; HypoFuzz authors, 2025</p>
+    </div>
+
+    <script>
+        (function() {
+            var toggle = document.querySelector('.navbar__toggle');
+            var menu = document.getElementById('navbarMenu');
+            var overlay = document.getElementById('navbarOverlay');
+            if (toggle && menu) {
+                toggle.addEventListener('click', function() {
+                    if (!menu.classList.contains('navbar__nav--animate')) {
+                        menu.classList.add('navbar__nav--animate');
+                    }
+                    var isOpen = menu.classList.toggle('navbar__nav--open');
+                    toggle.classList.toggle('navbar__toggle--open', isOpen);
+                    toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+                    if (overlay) overlay.classList.toggle('navbar__overlay--visible', isOpen);
+                });
+            }
+            if (overlay && menu) {
+                overlay.addEventListener('click', function() {
+                    menu.classList.remove('navbar__nav--open');
+                    overlay.classList.remove('navbar__overlay--visible');
+                    if (toggle) {
+                        toggle.classList.remove('navbar__toggle--open');
+                        toggle.setAttribute('aria-expanded', 'false');
+                    }
+                });
+            }
+            Array.prototype.forEach.call(menu ? menu.querySelectorAll('a') : [], function(link) {
+                link.addEventListener('click', function() {
+                    menu.classList.remove('navbar__nav--open');
+                    if (overlay) overlay.classList.remove('navbar__overlay--visible');
+                    if (toggle) {
+                        toggle.classList.remove('navbar__toggle--open');
+                        toggle.setAttribute('aria-expanded', 'false');
+                    }
+                });
+            });
+
+            // Reset state and disable animation on breakpoint changes
+            var mql = window.matchMedia('(max-width: 720px)');
+            function resetMobileMenu() {
+                if (menu) {
+                    menu.classList.remove('navbar__nav--open');
+                    menu.classList.remove('navbar__nav--animate');
+                }
+                if (overlay) overlay.classList.remove('navbar__overlay--visible');
+                if (toggle) {
+                    toggle.classList.remove('navbar__toggle--open');
+                    toggle.setAttribute('aria-expanded', 'false');
+                }
+            }
+            function onMqlChange() { resetMobileMenu(); }
+            if (mql && mql.addEventListener) {
+                mql.addEventListener('change', onMqlChange);
+            } else if (mql && mql.addListener) {
+                mql.addListener(onMqlChange);
+            }
+        })();
+    </script>
+
+</body>
+
+</html>
