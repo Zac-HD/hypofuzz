@@ -240,7 +240,7 @@ function LabelY() {
   const [scale, setScale] = useSetting<"log" | "linear">("graph_scale_y", "linear")
   const [axis, setAxis] = useSetting<"behaviors" | "fingerprints">(
     "graph_axis_y",
-    "behaviors",
+    "fingerprints",
   )
   return (
     <div
