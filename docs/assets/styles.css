@@ -215,17 +215,38 @@ html {
 
 .features__feature__header {
     background-color: hsl(var(--primary-h), 8%, 96%);
-    padding: 1.5rem 1.5rem 1rem;
+    padding-top: 1.2rem;
+    padding-bottom: 1.2rem;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
     border-bottom: 1px solid hsl(var(--primary-h), 10%, 90%);
 }
 
+@media (max-width: 720px) {
+    .features__feature__header {
+        padding-top: 0.75rem;
+        padding-bottom: 0.75rem;
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+}
+
 .features__feature__body {
-    padding: 1rem 1.5rem 1.5rem;
+    padding-top: 1rem;
+    padding-bottom: 1.5rem;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
     display: flex;
     flex-direction: column;
     flex-grow: 1;
 }
 
+@media (max-width: 720px) {
+    .features__feature__body {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+}
 .features__feature__title {
     font-size: 1.8rem;
     margin-bottom: 0;
