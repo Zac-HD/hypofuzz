@@ -1,9 +1,9 @@
 import { ScaleContinuousNumeric } from "d3-scale"
 import { line as d3_line } from "d3-shape"
+import { TestStatus } from "src/types/dashboard"
 import { navigateOnClick } from "src/utils/utils"
 
 import { GraphLine, GraphReport } from "./types"
-import { TestStatus } from "src/types/dashboard"
 
 interface DataLinesProps {
   lines: GraphLine[]
@@ -39,7 +39,8 @@ export function DataLines({
             fill="none"
             stroke={line.color}
             className={`coverage-line ${line.isActive ? "coverage-line__selected" : ""} ${
-              line.status === TestStatus.FAILED || line.status === TestStatus.FAILED_FATALLY
+              line.status === TestStatus.FAILED ||
+              line.status === TestStatus.FAILED_FATALLY
                 ? "coverage-line__failing"
                 : ""
             }`}

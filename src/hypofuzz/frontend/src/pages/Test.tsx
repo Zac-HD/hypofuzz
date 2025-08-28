@@ -27,7 +27,7 @@ import { Failure, FatalFailure } from "src/types/dashboard"
 import { Test } from "src/types/test"
 import { fetchAvailablePatches } from "src/utils/api"
 import { getTestStats } from "src/utils/testStats"
-import { reHighlight, readableNodeid } from "src/utils/utils"
+import { readableNodeid, reHighlight } from "src/utils/utils"
 
 hljs.registerLanguage("python", python)
 
@@ -63,9 +63,7 @@ function FailureCard({ failure }: { failure: Failure }) {
       <div className="failure__item">
         <div className="failure__item__subtitle">Failing input</div>
         <pre>
-          <code className="language-python">
-            {failure.observation.representation}
-          </code>
+          <code className="language-python">{failure.observation.representation}</code>
         </pre>
         <div className="failure__item__subtitle">Traceback</div>
         <pre>
