@@ -356,6 +356,29 @@ html {
     text-decoration: underline;
 }
 
+.footer__content {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.footer__email,
+.footer__sep,
+.footer__copyright {
+    white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+    .footer__content {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+    }
+    .footer__sep {
+        display: none;
+    }
+}
+
 /* Mobile navbar */
 .navbar__toggle {
     display: none;
