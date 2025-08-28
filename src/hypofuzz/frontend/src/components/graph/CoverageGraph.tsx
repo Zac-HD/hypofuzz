@@ -65,6 +65,7 @@ function graphLines(
         reports: graphReports(test, workers_after),
         color: reportsColor(nodeid),
         isActive: false,
+        status: test.status,
       }))
   } else if (viewSetting === WorkerView.SEPARATE) {
     const timestamps: number[] = []
@@ -98,6 +99,7 @@ function graphLines(
             ),
             color: timeColor(workerReports[0].timestamp),
             isActive: false,
+            status: test.status,
           })
         }
       }
@@ -117,6 +119,7 @@ function graphLines(
           // use the same color as the linearized view
           color: reportsColor(nodeid),
           isActive: false,
+          status: test.status,
         })
       }
     }

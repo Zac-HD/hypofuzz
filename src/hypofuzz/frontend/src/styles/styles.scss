@@ -676,6 +676,15 @@ $mobile-breakpoint: 768px;
             // transition: stroke-width 0.2s ease;
             stroke-width: 2;
 
+            &__failing {
+                stroke-width: 2.5;
+                stroke-linecap: round;
+                stroke-dasharray: 6 5;
+                stroke-opacity: 1;
+            }
+
+            // important to keep this below __failing so it has greater specificity and overrides
+            // the stroke width for selected+failing lines
             &__selected {
                 stroke-width: 4;
             }

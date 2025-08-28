@@ -3,6 +3,7 @@ import { line as d3_line } from "d3-shape"
 import { navigateOnClick } from "src/utils/utils"
 
 import { GraphLine, GraphReport } from "./types"
+import { TestStatus } from "src/types/dashboard"
 
 interface DataLinesProps {
   lines: GraphLine[]
@@ -37,7 +38,11 @@ export function DataLines({
             d={pathData}
             fill="none"
             stroke={line.color}
-            className={`coverage-line ${line.isActive ? "coverage-line__selected" : ""}`}
+            className={`coverage-line ${line.isActive ? "coverage-line__selected" : ""} ${
+              line.status === TestStatus.FAILED || line.status === TestStatus.FAILED_FATALLY
+                ? "coverage-line__failing"
+                : ""
+            }`}
             style={{
               cursor: line.url ? "pointer" : "default",
             }}
