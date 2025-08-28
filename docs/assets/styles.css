@@ -317,6 +317,17 @@ html {
     filter: brightness(0) invert(1);
 }
 
+.mailing-button {
+    justify-content: center;
+}
+
+@media (max-width: 720px) {
+    .mailing-button {
+        padding-left: 0.9rem;
+        padding-right: 0.9rem;
+    }
+}
+
 .separator {
     border: none;
     border-top: 2px solid var(--text-a3);
