@@ -27,7 +27,7 @@ import { Failure, FatalFailure } from "src/types/dashboard"
 import { Test } from "src/types/test"
 import { fetchAvailablePatches } from "src/utils/api"
 import { getTestStats } from "src/utils/testStats"
-import { reHighlight } from "src/utils/utils"
+import { reHighlight, readableNodeid } from "src/utils/utils"
 
 hljs.registerLanguage("python", python)
 
@@ -61,18 +61,24 @@ function FailureCard({ failure }: { failure: Failure }) {
         <FailureStatusPill failure={failure} />
       </div>
       <div className="failure__item">
-        <div className="failure__item__subtitle">Call</div>
+        <div className="failure__item__subtitle">Failing input</div>
         <pre>
           <code className="language-python">
-            {failure.observation.metadata.get("reproduction_decorator") +
-              "\n" +
-              failure.observation.representation}
+            {failure.observation.representation}
           </code>
         </pre>
         <div className="failure__item__subtitle">Traceback</div>
         <pre>
           <code className="language-python">
             {failure.observation.metadata.get("traceback")}
+          </code>
+        </pre>
+        <div className="failure__item__subtitle">Explicit reproducer</div>
+        <pre>
+          <code className="language-python">
+            {failure.observation.metadata.get("reproduction_decorator") +
+              "\n" +
+              `def ${readableNodeid(failure.observation.property)}(...): ...`}
           </code>
         </pre>
       </div>
