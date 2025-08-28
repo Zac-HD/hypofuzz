@@ -22,7 +22,7 @@
     --secondary-a8: hsla(var(--secondary-h), var(--secondary-s), var(--secondary-l), 0.8);
     --secondary-a9: hsla(var(--secondary-h), var(--secondary-s), var(--secondary-l), 0.9);
 
-    --background-color: hsla(var(--primary-h), var(--primary-s), var(--primary-l), 0.06);
+    --background-color: hsla(var(--primary-h), var(--primary-s), var(--primary-l), 0.08);
     --card-background-color: hsl(var(--primary-h), var(--primary-s), 99.5%);
 
     --text-h: 0;
@@ -63,6 +63,9 @@ select {
 
 body {
     font-family: var(--font-family);
+}
+
+html {
     background-color: var(--background-color);
 }
 
