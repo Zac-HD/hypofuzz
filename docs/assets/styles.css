@@ -22,7 +22,7 @@
     --secondary-a8: hsla(var(--secondary-h), var(--secondary-s), var(--secondary-l), 0.8);
     --secondary-a9: hsla(var(--secondary-h), var(--secondary-s), var(--secondary-l), 0.9);
 
-    --background-color: hsla(var(--primary-h), var(--primary-s), var(--primary-l), 0.06);
+    --background-color: hsla(var(--primary-h), var(--primary-s), var(--primary-l), 0.08);
     --card-background-color: hsl(var(--primary-h), var(--primary-s), 99.5%);
 
     --text-h: 0;
@@ -63,12 +63,17 @@ select {
 
 body {
     font-family: var(--font-family);
+}
+
+html {
     background-color: var(--background-color);
 }
 
 .navbar {
     background-color: var(--primary);
     padding: 1rem 0;
+    position: relative;
+    z-index: 1003; /* keep navbar above overlay and sliding panel */
 }
 
 .navbar__container {
@@ -266,7 +271,7 @@ body {
 }
 
 .footer {
-    text-align: right;
+    text-align: center;
     max-width: 1200px;
     margin: 0 auto;
     padding: 1rem 0;
@@ -286,6 +291,99 @@ body {
 
 .footer__link:hover {
     text-decoration: underline;
+}
+
+/* Mobile navbar */
+.navbar__toggle {
+    display: none;
+    background: transparent;
+    border: none;
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+    cursor: pointer;
+}
+
+/* Arrow icon for mobile toggle */
+.navbar__toggle__arrow {
+    display: inline-block;
+    width: 0.75rem;
+    height: 0.75rem;
+    border-right: 2px solid white;
+    border-bottom: 2px solid white;
+    transform: rotate(45deg);
+    transition: transform 200ms ease-in-out;
+}
+
+.navbar__toggle--open .navbar__toggle__arrow {
+    transform: rotate(-135deg);
+}
+
+/* Hover/focus states for arrow toggle */
+.navbar__toggle:hover .navbar__toggle__arrow {
+    border-color: var(--secondary);
+}
+
+.navbar__toggle:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px var(--secondary-a3);
+    border-radius: 0.25rem;
+}
+
+@media (max-width: 720px) {
+    .navbar__nav {
+        position: fixed;
+        left: 0;
+        right: 0;
+        top: 56px;
+        flex-direction: column;
+        background: var(--primary);
+        border-bottom: 1px solid rgba(255,255,255,0.25);
+        border-radius: 0 0 0.5rem 0.5rem;
+        padding: 0.5rem 0;
+        gap: 0;
+        transform: translateY(-120%);
+        visibility: hidden;
+        opacity: 0;
+        pointer-events: none;
+        z-index: 1001;
+    }
+
+    /* Enable transitions only after first interaction; reset on breakpoint change to avoid resize animations */
+    .navbar__nav--animate {
+        transition: transform 200ms ease-in-out, opacity 150ms ease-in-out, visibility 150ms ease-in-out;
+    }
+
+    .navbar__nav--open {
+        transform: translateY(0);
+        visibility: visible;
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    .navbar__nav li + li { border-top: 1px solid rgba(255,255,255,0.2); }
+    .navbar__link { display: block; padding: 1rem 1.25rem; }
+
+    .navbar__toggle { display: inline-flex; align-items: center; justify-content: center; z-index: 1002; }
+}
+
+/* Overlay to dim page when mobile menu is open */
+.navbar__overlay {
+    position: fixed;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: none;
+    z-index: 1000;
+}
+
+.navbar__overlay--visible { display: block; }
+
+@media (max-width: 720px) {
+    /* Do not dim the navbar area on mobile */
+    .navbar__overlay { top: 56px; }
 }
 
 /* Pricing page styles */

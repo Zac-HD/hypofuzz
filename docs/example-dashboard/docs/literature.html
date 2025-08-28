@@ -355,7 +355,7 @@ makes using a fuzzer much more productive (and less frustrating).</p>
 to support other techniques such as targeted property-based testing
 <span id="id9">[<a class="reference internal" href="#id65" title="Andreas Löscher and Konstantinos Sagonas. Targeted property-based testing. In Proceedings of the 26th ACM SIGSOFT International Symposium on Software Testing and Analysis, ISSTA 2017, 46–56. New York, NY, USA, 2017. Association for Computing Machinery. URL: https://proper-testing.github.io/papers/issta2017.pdf, doi:10.1145/3092703.3092711.">LoscherS17</a>]</span> - we get to automate (<span id="id10">[<a class="reference internal" href="#id66" title="A. Löscher and K. Sagonas. Automating targeted property-based testing. In 2018 IEEE 11th International Conference on Software Testing, Verification and Validation (ICST), volume, 70-80. 2018. URL: https://proper-testing.github.io/papers/icst2018.pdf, doi:10.1109/ICST.2018.00017.">LoscherSagonas18</a>]</span>)
 the setup for free, and support multi-dimensional optimisation into the
-bargain.  See <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.target" title="(in Hypothesis v6.138.3)"><code class="docutils literal notranslate"><span class="pre">hypothesis.target()</span></code></a> for details.</p>
+bargain.  See <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.target" title="(in Hypothesis v6.138.6)"><code class="docutils literal notranslate"><span class="pre">hypothesis.target()</span></code></a> for details.</p>
 </section>
 <section id="fuzzer-taming-with-test-case-reduction">
 <h3>‘Fuzzer taming’ with test-case reduction<a class="headerlink" href="#fuzzer-taming-with-test-case-reduction" title="Link to this heading">¶</a></h3>
@@ -400,7 +400,7 @@ inspired by Hypothesis.  Showing the power of a good intermediate representation
 recent tools have attempted to build on top of this to provide both <a class="reference external" href="https://github.com/facebookincubator/propfuzz">fuzzing</a> and <a class="reference external" href="https://github.com/project-oak/rust-verification-tools">formal verification</a> with (almost) the same
 user-facing API.</p>
 <p>Hypothesis supports symbolic execution via the <a class="extlink-pypi reference external" href="https://pypi.org/project/hypothesis-crosshair">hypothesis-crosshair</a>
-<a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/extensions.html#alternative-backends" title="(in Hypothesis v6.138.3)"><span class="xref std std-ref">alternative backend</span></a>, and we plan to incorporate
+<a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/extensions.html#alternative-backends" title="(in Hypothesis v6.138.6)"><span class="xref std std-ref">alternative backend</span></a>, and we plan to incorporate
 this into HypoFuzz with an ensemble-style approach.</p>
 </section>
 <section id="c-c-trailofbits-deepstate-google-s-fuzztest">
@@ -566,7 +566,7 @@ single approach dominates the others.</p>
 to assist in debugging, and supported - often called <em>shrinking</em> - by all good
 property-based testing tools.  HypoFuzz uses Hypothesis’ world-class test case
 reduction to calculate the minimal example for each feature of interest - covered
-branch, high score from <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.target" title="(in Hypothesis v6.138.3)"><code class="docutils literal notranslate"><span class="pre">hypothesis.target()</span></code></a>, etc. - and uses
+branch, high score from <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.target" title="(in Hypothesis v6.138.6)"><code class="docutils literal notranslate"><span class="pre">hypothesis.target()</span></code></a>, etc. - and uses
 this as a basis for further fuzzing as well as reporting failing examples.</p>
 <p>We are unaware of previous work which uses this approach or evaluates it in
 comparison to less-intensive distillation.  We expect that it works very well
@@ -603,8 +603,8 @@ metrics independently.</p>
 <p><a class="reference external" href="https://github.com/RUB-SysSec/ijon">IJON</a> <span id="id44">[<a class="reference internal" href="#id102" title="C. Aschermann, S. Schumilo, A. Abbasi, and T. Holz. IJON: exploring deep state spaces via fuzzing. In 2020 IEEE Symposium on Security and Privacy (SP), volume, 1597-1612. 2020. URL: https://www.syssec.ruhr-uni-bochum.de/media/emma/veroeffentlichungen/2020/02/27/IJON-Oakland20.pdf.">AschermannSchumiloAbbasiHolz20</a>]</span> adds custom feedback to
 AFL.  The <code class="docutils literal notranslate"><span class="pre">IJON_SET</span></code> macro adds a ‘virtual branch’ based on the value passed, so
 that at least one input exhibiting whatever custom behaviour will be retained in
-the seed pool (HypoFuzz implements this with the <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.event" title="(in Hypothesis v6.138.3)"><code class="docutils literal notranslate"><span class="pre">hypothesis.event()</span></code></a>
-function).  The <code class="docutils literal notranslate"><span class="pre">IJON_MAX</span></code> macro is equivalent to <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.target" title="(in Hypothesis v6.138.3)"><code class="docutils literal notranslate"><span class="pre">hypothesis.target()</span></code></a>,
+the seed pool (HypoFuzz implements this with the <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.event" title="(in Hypothesis v6.138.6)"><code class="docutils literal notranslate"><span class="pre">hypothesis.event()</span></code></a>
+function).  The <code class="docutils literal notranslate"><span class="pre">IJON_MAX</span></code> macro is equivalent to <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.target" title="(in Hypothesis v6.138.6)"><code class="docutils literal notranslate"><span class="pre">hypothesis.target()</span></code></a>,
 similar to FuzzFactory above.</p>
 <p>IJON is particularly notable for winning 29 out of 32 <em>Super Mario Bros</em> levels,
 a feat more typical of dedicated reinforcement learning systems, as well as
@@ -616,7 +616,7 @@ fuzzing a Trusted Platform Module, complex format parsers, mazes, and a hash map
 to avoid getting trapped in a “optimal” but non-bug-finding state.  For example, IJON
 optimized x-distance <em>at each distinct altitude</em> to avoid dead-ends.</p>
 <p>Hypothesis tracks the <a class="extlink-wikipedia reference external" href="https://en.wikipedia.org/wiki/Pareto_front">pareto frontier</a> of metrics passed
-to <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.target" title="(in Hypothesis v6.138.3)"><code class="xref py py-func docutils literal notranslate"><span class="pre">hypothesis.target()</span></code></a> (plus some internal metrics).  For observable dimensions
+to <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.target" title="(in Hypothesis v6.138.6)"><code class="xref py py-func docutils literal notranslate"><span class="pre">hypothesis.target()</span></code></a> (plus some internal metrics).  For observable dimensions
 where there is <em>not</em> a clear “best” direction and may be thousands of dimensions,
 such as the hit-count of each branch, there are a variety of approaches.</p>
 <p>AFL and related fuzzers “bucketize” the hitcount and then track uniqueness up to a
@@ -731,7 +731,7 @@ the development of Windows 7 - running <em>after</em> static analysis and other 
 seed pool for a classic mutational fuzzer, and provide a way to ‘get unstuck’
 on conditions which are hard to satisfy by chance.
 Hypothesis supports symbolic execution via the <a class="extlink-pypi reference external" href="https://pypi.org/project/hypothesis-crosshair">hypothesis-crosshair</a>
-<a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/extensions.html#alternative-backends" title="(in Hypothesis v6.138.3)"><span class="xref std std-ref">alternative backend</span></a>, and we plan to incorporate
+<a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/extensions.html#alternative-backends" title="(in Hypothesis v6.138.6)"><span class="xref std std-ref">alternative backend</span></a>, and we plan to incorporate
 this into HypoFuzz with an ensemble-style approach.</p>
 </section>
 <section id="scaling-fuzzers-up-to-many-cores">
