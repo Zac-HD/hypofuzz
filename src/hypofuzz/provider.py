@@ -589,6 +589,24 @@ class HypofuzzProvider(PrimitiveProvider):
         self._last_observed = self.elapsed_time
 
     def after_test_case(self, observation: TestCaseObservation) -> None:
+        if self._state is None:
+            # This is possible when the user interrupts the program with ctrl+c,
+            # ie raises KeyboardInterrupt.
+            # * after_test_case finishes (setting self._state = None).
+            # * Hypothesis starts a new test case. It is inside of execute_once,
+            #   but hasn't yet called per_test_case_context_manager, which is what
+            #   calls before_test_case.
+            # * KeyboardInterrupt is raised. Because we're inside the
+            #   _execute_once_for_engine try/except, an observation gets delivered.
+            #   But because we haven't yet entered per_test_case_context_manager,
+            #   self._state is still None.
+            #
+            # I don't think a principled hypothesis-side fix for this is possible,
+            # except maybe specially handling KeyboardInterrupt + observability.
+            #
+            # For the moment, we'll ignore this case in hypofuzz.
+            return
+
         assert self._state is not None
         assert self._state.branches is not None
         assert self.corpus is not None
