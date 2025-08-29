@@ -501,7 +501,7 @@ export function GraphComponent({
 
   useEffect(() => {
     rebuildQuadtree()
-  }, [filteredLines])
+  }, [filteredLines, scaleSettingX, scaleSettingY, axisSettingX, axisSettingY])
 
   return (
     <div
