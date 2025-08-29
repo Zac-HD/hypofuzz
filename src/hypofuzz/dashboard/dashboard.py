@@ -78,6 +78,9 @@ class DocsStaticFiles(StaticFiles):
 async def serve_app(app: Any, host: str, port: str) -> None:
     config = Config()
     config.bind = [f"{host}:{port}"]
+    # disable the dashboard url print. We already print it ourselves in a better
+    # way
+    config.loglevel = "warning"
     await serve(app, config)
 
 
