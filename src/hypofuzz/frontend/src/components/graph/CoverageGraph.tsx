@@ -318,6 +318,7 @@ const GRAPH_MARGIN = {
 // Number of sample points per unit of display length for quadtree line sampling
 const QUADTREE_SAMPLE_INTERVAL = 10
 const DISTANCE_THRESHOLD = 10
+const MAX_SAMPLES_PER_LINE = 500
 
 interface SampledPoint {
   x: number
@@ -326,58 +327,87 @@ interface SampledPoint {
 }
 
 function sampleLinePoints(scales: any, line: GraphLine): SampledPoint[] {
-  // TODO: when we're zoomed in, we have many many more sampled points than when
-  // we're zoomed out (eg 800 vs 40k). this is a very bad performance bug.
   const points: SampledPoint[] = []
   const reports = line.reports
 
   if (reports.length < 2) return points
 
-  // Calculate total display length of the line
-  let totalLength = 0
-  for (let i = 1; i < reports.length; i++) {
-    const x1 = scales.viewportX(scales.xValue(reports[i - 1]))
-    const y1 = scales.viewportY(scales.yValue(reports[i - 1]))
-    const x2 = scales.viewportX(scales.xValue(reports[i]))
-    const y2 = scales.viewportY(scales.yValue(reports[i]))
+  // Determine visible viewport bounds in screen space
+  const viewWidth = scales.baseX.range()[1]
+  const viewHeight = scales.baseY.range()[0]
+  const PADDING = 2
 
-    const segmentLength = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
-    totalLength += segmentLength
+  // Precompute viewport coordinates for all reports (avoid repeated scaling)
+  const coords = reports.map((r: any) => ({
+    x: scales.viewportX(scales.xValue(r)),
+    y: scales.viewportY(scales.yValue(r)),
+  }))
+
+  // Build list of visible segments with their screen-space lengths
+  type Segment = {
+    x1: number
+    y1: number
+    x2: number
+    y2: number
+    length: number
+  }
+  const visibleSegments: Segment[] = []
+  for (let i = 1; i < coords.length; i++) {
+    const { x: x1, y: y1 } = coords[i - 1]
+    const { x: x2, y: y2 } = coords[i]
+
+    // Quick reject using segment bounding box vs viewport rectangle (with small padding)
+    const minX = Math.min(x1, x2)
+    const maxX = Math.max(x1, x2)
+    const minY = Math.min(y1, y2)
+    const maxY = Math.max(y1, y2)
+    const outside =
+      maxX < -PADDING ||
+      minX > viewWidth + PADDING ||
+      maxY < -PADDING ||
+      minY > viewHeight + PADDING
+    if (outside) continue
+
+    const length = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
+    if (length === 0) continue
+    visibleSegments.push({ x1, y1, x2, y2, length })
   }
 
-  const numSamples = Math.max(2, Math.floor(totalLength / QUADTREE_SAMPLE_INTERVAL))
+  if (visibleSegments.length === 0) return points
 
+  const totalVisibleLength = visibleSegments.reduce((acc, s) => acc + s.length, 0)
+  if (totalVisibleLength <= 0) return points
+
+  const numSamples = Math.max(
+    2,
+    Math.min(
+      MAX_SAMPLES_PER_LINE,
+      Math.floor(totalVisibleLength / QUADTREE_SAMPLE_INTERVAL),
+    ),
+  )
+
+  // Place samples uniformly along the visible length
   for (let i = 0; i < numSamples; i++) {
     const t = i / (numSamples - 1)
-    const targetDistance = t * totalLength
+    const targetDistance = t * totalVisibleLength
 
     let currentDistance = 0
-    for (let j = 1; j < reports.length; j++) {
-      const x1 = scales.viewportX(scales.xValue(reports[j - 1]))
-      const y1 = scales.viewportY(scales.yValue(reports[j - 1]))
-      const x2 = scales.viewportX(scales.xValue(reports[j]))
-      const y2 = scales.viewportY(scales.yValue(reports[j]))
-
-      const segmentLength = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
-
-      if (
-        currentDistance + segmentLength >= targetDistance ||
-        j === reports.length - 1
-      ) {
-        // interpolate within this segment
-        const segmentT =
-          segmentLength > 0 ? (targetDistance - currentDistance) / segmentLength : 0
-        const x = x1 + (x2 - x1) * segmentT
-        const y = y1 + (y2 - y1) * segmentT
-
+    for (let j = 0; j < visibleSegments.length; j++) {
+      const seg = visibleSegments[j]
+      const nextDistance = currentDistance + seg.length
+      if (targetDistance <= nextDistance || j === visibleSegments.length - 1) {
+        const segT =
+          seg.length > 0 ? (targetDistance - currentDistance) / seg.length : 0
+        const x = seg.x1 + (seg.x2 - seg.x1) * segT
+        const y = seg.y1 + (seg.y2 - seg.y1) * segT
         points.push({ x, y, line })
         break
       }
-
-      currentDistance += segmentLength
+      currentDistance = nextDistance
     }
   }
 
+  console.log("sampled points", points.length)
   return points
 }
 
