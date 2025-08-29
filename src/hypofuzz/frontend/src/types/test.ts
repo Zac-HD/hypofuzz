@@ -238,8 +238,11 @@ export class Test extends Dataclass<Test> {
       return TestStatus.SHRINKING
     }
     if (
-      latest.ninputs === 0 ||
-      latest.timestamp < timestamp - Test.WAITING_STATUS_DURATION
+      (latest.ninputs === 0 ||
+        latest.timestamp < timestamp - Test.WAITING_STATUS_DURATION) &&
+      // don't show a "waiting" state in the preview dashboard, it doesn't look good.
+      // just pretend everything is running
+      import.meta.env.VITE_USE_DASHBOARD_STATE !== "1"
     ) {
       return TestStatus.WAITING
     }

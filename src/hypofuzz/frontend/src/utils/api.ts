@@ -33,7 +33,10 @@ export async function fetchPatches<T>(nodeid: string): Promise<T | null> {
 export async function fetchAvailablePatches(): Promise<string[] | null> {
   const data = await fetchData<string[]>(`available_patches/`)
   if (import.meta.env.VITE_USE_DASHBOARD_STATE === "1") {
-    return (data as any)?.available_patches
+    const patches = (data as any)?.patches
+    return Object.keys(patches).filter(
+      nodeid => patches[nodeid].failing || patches[nodeid].covering,
+    )
   }
   return data
 }

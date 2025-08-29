@@ -65,6 +65,7 @@ function graphLines(
         reports: graphReports(test, workers_after),
         color: reportsColor(nodeid),
         isActive: false,
+        status: test.status,
       }))
   } else if (viewSetting === WorkerView.SEPARATE) {
     const timestamps: number[] = []
@@ -98,6 +99,7 @@ function graphLines(
             ),
             color: timeColor(workerReports[0].timestamp),
             isActive: false,
+            status: test.status,
           })
         }
       }
@@ -117,6 +119,7 @@ function graphLines(
           // use the same color as the linearized view
           color: reportsColor(nodeid),
           isActive: false,
+          status: test.status,
         })
       }
     }
@@ -240,7 +243,7 @@ function LabelY() {
   const [scale, setScale] = useSetting<"log" | "linear">("graph_scale_y", "linear")
   const [axis, setAxis] = useSetting<"behaviors" | "fingerprints">(
     "graph_axis_y",
-    "behaviors",
+    "fingerprints",
   )
   return (
     <div
