@@ -139,7 +139,8 @@ def _fuzz_impl(n_processes: int, pytest_args: tuple[str, ...]) -> None:
         plural = "s" * (len(misplaced) > 1)
         names = ", ".join(map(repr, misplaced))
         raise click.UsageError(
-            f"fuzzer option{plural} {names} would be passed to pytest instead"
+            f"fuzzer option{plural} {names} would be passed to pytest instead. "
+            "Did you mean to pass it before the -- ?"
         )
 
     from hypofuzz.collection import collect_tests
