@@ -1,10 +1,10 @@
 """Live web dashboard for a fuzzing run."""
 
 import math
+import socket
 from collections import defaultdict
 from pathlib import Path
 from typing import Any, Literal, Optional
-import socket
 
 import trio
 from hypercorn.config import Config
