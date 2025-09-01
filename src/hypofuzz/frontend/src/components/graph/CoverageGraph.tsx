@@ -389,8 +389,9 @@ function sampleLinePoints(scales: any, line: GraphLine): SampledPoint[] {
       const last = mergedSegments[mergedSegments.length - 1]
       const lastIsHoriz = Math.abs(last.y1 - last.y2) <= EPS_Y
       const sameY =
-        isHoriz && lastIsHoriz &&
-        Math.abs(((last.y1 + last.y2) / 2) - ((seg.y1 + seg.y2) / 2)) <= EPS_Y
+        isHoriz &&
+        lastIsHoriz &&
+        Math.abs((last.y1 + last.y2) / 2 - (seg.y1 + seg.y2) / 2) <= EPS_Y
       if (sameY) {
         // Extend horizontally; keep y constant
         const yConst = (last.y1 + last.y2) / 2
@@ -451,7 +452,8 @@ function sampleLinePoints(scales: any, line: GraphLine): SampledPoint[] {
       const seg = mergedSegments[j]
       const nextDistance = currentDistance + seg.length
       if (targetDistance <= nextDistance || j === mergedSegments.length - 1) {
-        const segT = seg.length > 0 ? (targetDistance - currentDistance) / seg.length : 0
+        const segT =
+          seg.length > 0 ? (targetDistance - currentDistance) / seg.length : 0
         const x = seg.x1 + (seg.x2 - seg.x1) * segT
         const y = seg.y1 + (seg.y2 - seg.y1) * segT
         // Only add interval samples that are within viewport bounds
