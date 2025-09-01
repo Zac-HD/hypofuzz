@@ -85,7 +85,9 @@ export function useZoom({
       if (progress < 1) {
         animationRef.current = requestAnimationFrame(animate)
       } else {
+        // reset zoom has ended
         animationRef.current = null
+        requestAnimationFrame(() => onZoomEnd())
       }
     }
 
