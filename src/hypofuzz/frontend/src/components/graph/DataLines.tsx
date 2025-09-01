@@ -47,11 +47,6 @@ export function DataLines({
             style={{
               cursor: line.url ? "pointer" : "default",
             }}
-            onClick={event => {
-              if (line.url) {
-                navigateOnClick(event as any, line.url, navigate)
-              }
-            }}
           />
         )
       })}

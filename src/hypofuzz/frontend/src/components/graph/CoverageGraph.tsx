@@ -32,7 +32,7 @@ import { useIsMobile } from "src/hooks/useIsMobile"
 import { useSetting } from "src/hooks/useSetting"
 import { Test } from "src/types/test"
 import { useTooltip } from "src/utils/tooltip"
-import { max, min, readableNodeid } from "src/utils/utils"
+import { max, min, navigateOnClick, readableNodeid } from "src/utils/utils"
 
 const GRAPH_HEIGHT = 270
 import { useScales } from "./useScales"
@@ -607,9 +607,9 @@ export function GraphComponent({
       }}
       onMouseDown={zoom.onMouseDown}
       onDoubleClick={zoom.onDoubleClick}
-      onClick={() => {
+      onClick={event => {
         if (activeLine && activeLine.url) {
-          navigate(activeLine.url)
+          navigateOnClick(event as any, activeLine.url, navigate)
         }
       }}
       onMouseMove={event => {
