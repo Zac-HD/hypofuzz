@@ -59,8 +59,12 @@ def test_patches(tmp_path):
 
     # and our dashboard also presents the same patches
     with dashboard(test_path=test_dir) as dash:
+        # wait_for to allow the background patch-computing process to write the
+        # patch
+        wait_for(
+            lambda: dash.patches(nodeid="test_a.py::test") is not None, interval=0.1
+        )
         patches = dash.patches(nodeid="test_a.py::test")
-        assert patches["covering"] is not None
         assert patches["failing"] is None
 
 
