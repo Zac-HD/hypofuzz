@@ -328,6 +328,11 @@ interface SampledPoint {
   line: GraphLine
 }
 
+type HoveredState = {
+  line: GraphLine
+  report: GraphReport
+} | null
+
 function sampleLinePoints(scales: any, line: GraphLine): SampledPoint[] {
   const points: SampledPoint[] = []
   const reports = line.reports
@@ -499,7 +504,7 @@ export function GraphComponent({
   const isMobile = useIsMobile()
   const tooltip = useTooltip()
   const [containerWidth, setContainerWidth] = useState(800)
-  const [activeNodeid, setActiveNodeid] = useState<string | null>(null)
+  const [hoveredState, setHoveredState] = useState<HoveredState>(null)
   const scalesRef = useRef<typeof scales | null>(null)
 
   // use the unfiltered reports as the domain so colors are stable across filtering.
@@ -523,7 +528,7 @@ export function GraphComponent({
   let activeLine: GraphLine | null = null
   filteredLines.forEach(line => {
     line.isActive = false
-    if (line.nodeid === activeNodeid) {
+    if (hoveredState != null && line.nodeid === hoveredState.line.nodeid) {
       line.isActive = true
       activeLine = line
     }
@@ -629,7 +634,6 @@ export function GraphComponent({
           quadtreeRef.current!.find(mouseX, mouseY, DISTANCE_THRESHOLD) || null
 
         if (closestPoint) {
-          setActiveNodeid(closestPoint.line.nodeid)
           const reports = closestPoint.line.reports
 
           // find the closest actual report on this line. We know the closest sampled point
@@ -662,13 +666,17 @@ export function GraphComponent({
           `
 
           tooltip.showTooltip(content, event.clientX, event.clientY, "coverage-graph")
+          setHoveredState({
+            line: closestPoint.line,
+            report: closestReport,
+          })
         } else {
-          setActiveNodeid(null)
+          setHoveredState(null)
           tooltip.hideTooltip("coverage-graph")
         }
       }}
       onMouseLeave={() => {
-        setActiveNodeid(null)
+        setHoveredState(null)
         tooltip.hideTooltip("coverage-graph")
       }}
     >
@@ -701,6 +709,16 @@ export function GraphComponent({
               yValue={scales.yValue}
               navigate={navigate}
             />
+            {hoveredState && (
+              <circle
+                cx={scales.viewportX(scales.xValue(hoveredState.report))}
+                cy={scales.viewportY(scales.yValue(hoveredState.report))}
+                r={5}
+                fill={hoveredState.line.color}
+                stroke="#fff"
+                strokeWidth={1.5}
+              />
+            )}
           </g>
 
           <Axis
