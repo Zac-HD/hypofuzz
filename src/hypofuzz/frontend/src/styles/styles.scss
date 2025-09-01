@@ -581,6 +581,14 @@ $mobile-breakpoint: 768px;
         align-items: center;
         gap: 4px;
         white-space: nowrap;
+        // Allow pointer events to pass through the rotated label so the graph
+        // beneath still receives hover/drag, but re-enable events on the
+        // interactive toggle buttons inside the label.
+        pointer-events: none;
+
+        .toggle {
+            pointer-events: auto;
+        }
 
         &--y {
             // translateZ(0) might help with blur:
