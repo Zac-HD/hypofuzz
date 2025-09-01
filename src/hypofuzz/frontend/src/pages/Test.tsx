@@ -71,7 +71,7 @@ function FailureCard({ failure }: { failure: Failure }) {
             {failure.observation.metadata.get("traceback")}
           </code>
         </pre>
-        <div className="failure__item__subtitle">Explicit reproduction</div>
+        <div className="failure__item__subtitle">Reproduction</div>
         <pre>
           <code className="language-python">
             {failure.observation.metadata.get("reproduction_decorator") +

@@ -320,7 +320,7 @@ const GRAPH_MARGIN = {
 
 // number of pixels per sample
 const QUADTREE_SAMPLE_INTERVAL = 10
-const DISTANCE_THRESHOLD = 18
+const DISTANCE_THRESHOLD = 22
 // sanity check to avoid bad performance in pathological cases. ideally our sampling
 // algorithm is good enough that we never hit this
 const MAX_SAMPLES_PER_LINE = 1000
@@ -589,7 +589,16 @@ export function GraphComponent({
 
   useEffect(() => {
     rebuildQuadtree()
-  }, [filteredLines, scaleSettingX, scaleSettingY, axisSettingX, axisSettingY])
+  }, [
+    filteredLines,
+    scaleSettingX,
+    scaleSettingY,
+    axisSettingX,
+    axisSettingY,
+    // rebuild when screen size changes due to eg user resizes
+    graphWidth,
+    graphHeight,
+  ])
 
   return (
     <div
