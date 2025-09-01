@@ -847,11 +847,13 @@ $mobile-breakpoint: 768px;
 
 .cursor-tooltip {
     position: absolute;
-    background-color: rgba(0, 0, 0, 0.8);
-    color: white;
+    background-color: #f8f8f8;
+    color: #333;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
     border-radius: 4px;
-    padding: 8px;
+    padding: 6px 8px;
     font-size: 12px;
+    line-height: 1.4;
     pointer-events: none;
     z-index: 10;
     display: none;

@@ -4,7 +4,7 @@ import { useLocation } from "react-router-dom"
 
 interface TooltipState {
   visible: boolean
-  content: string
+  content: React.ReactNode
   x: number
   y: number
   // the concept of a "tooltip owner" simplifies investigation if anything goes wrong. For instance,
@@ -18,7 +18,7 @@ interface TooltipState {
 }
 
 interface TooltipContextType {
-  showTooltip: (content: string, x: number, y: number, owner: string) => void
+  showTooltip: (content: React.ReactNode, x: number, y: number, owner: string) => void
   hideTooltip: (owner: string) => void
   moveTooltip: (x: number, y: number, owner: string) => void
   visible: boolean
@@ -40,8 +40,13 @@ function TooltipPortal({ state }: { state: TooltipState }) {
         pointerEvents: "none", // prevent tooltip from interfering with mouse events
         zIndex: 9999,
       }}
-      dangerouslySetInnerHTML={{ __html: state.content }}
-    />,
+    >
+      {typeof state.content === "string" ? (
+        <div dangerouslySetInnerHTML={{ __html: state.content }} />
+      ) : (
+        state.content
+      )}
+    </div>,
     document.body,
   )
 }
@@ -66,7 +71,12 @@ export function TooltipProvider({ children }: { children: React.ReactNode }) {
     }))
   }, [location.pathname])
 
-  const showTooltip = (content: string, x: number, y: number, owner: string) => {
+  const showTooltip = (
+    content: React.ReactNode,
+    x: number,
+    y: number,
+    owner: string,
+  ) => {
     setTooltipState({
       visible: true,
       content,
