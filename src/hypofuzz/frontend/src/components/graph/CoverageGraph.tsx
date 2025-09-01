@@ -493,7 +493,7 @@ export function GraphComponent({
   )
   const [axisSettingY, setAxisSettingY] = useSetting<"behaviors" | "fingerprints">(
     "graph_axis_y",
-    "behaviors",
+    "fingerprints",
   )
   const navigate = useNavigate()
   const isMobile = useIsMobile()
