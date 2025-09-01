@@ -317,7 +317,7 @@ const GRAPH_MARGIN = {
 
 // number of pixels per sample
 const QUADTREE_SAMPLE_INTERVAL = 10
-const DISTANCE_THRESHOLD = 22
+const DISTANCE_THRESHOLD = 24
 // sanity check to avoid bad performance in pathological cases. ideally our sampling
 // algorithm is good enough that we never hit this
 const MAX_SAMPLES_PER_LINE = 1000
@@ -823,7 +823,7 @@ export function CoverageGraph({
           />
           {disabled && (
             <span className="tooltip__text">
-              Switching worker display mode requires multiple workers
+              Switching display mode requires multiple workers
             </span>
           )}
         </span>
