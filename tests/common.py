@@ -152,8 +152,10 @@ def dashboard(
             )
 
         read_output()
-        stderr_text = "".join(stderr)
-        if m := re.search(r"Running on http://127.0.0.1:(\d+)", stderr_text):
+        stdout_text = "".join(stdout)
+        if m := re.search(
+            r"Now serving dashboard at http://localhost:(\d+)", stdout_text
+        ):
             port = int(m.group(1))
             break
     else:
