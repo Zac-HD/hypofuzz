@@ -32,11 +32,14 @@ import { useIsMobile } from "src/hooks/useIsMobile"
 import { useSetting } from "src/hooks/useSetting"
 import { Test } from "src/types/test"
 import { useTooltip } from "src/utils/tooltip"
-import { max, min, readableNodeid } from "src/utils/utils"
+import { max, min, navigateOnClick, readableNodeid } from "src/utils/utils"
 
-const GRAPH_HEIGHT = 270
+import { SampledPoint, sampleLinePoints } from "./quadtree"
 import { useScales } from "./useScales"
 import { useZoom } from "./useZoom"
+
+export const DISTANCE_THRESHOLD = 24
+const GRAPH_HEIGHT = 270
 
 const d3 = {
   zoomIdentity: d3_zoomIdentity,
@@ -171,6 +174,8 @@ function graphReports(test: Test, workers_after: number | null): GraphReport[] {
       linear_elapsed_time: linearElapsedTime[i],
       behaviors: report.behaviors,
       fingerprints: report.fingerprints,
+      worker_uuid: report.worker_uuid,
+      timestamp_monotonic: report.timestamp_monotonic!,
     })
   }
   return reports
@@ -315,156 +320,10 @@ const GRAPH_MARGIN = {
   left: 40,
 }
 
-// number of pixels per sample
-const QUADTREE_SAMPLE_INTERVAL = 10
-const DISTANCE_THRESHOLD = 18
-// sanity check to avoid bad performance in pathological cases. ideally our sampling
-// algorithm is good enough that we never hit this
-const MAX_SAMPLES_PER_LINE = 1000
-
-interface SampledPoint {
-  x: number
-  y: number
+type HoveredState = {
   line: GraphLine
-}
-
-function sampleLinePoints(scales: any, line: GraphLine): SampledPoint[] {
-  const points: SampledPoint[] = []
-  const reports = line.reports
-
-  if (reports.length < 2) return points
-
-  // Determine visible viewport bounds in screen space
-  const viewWidth = scales.baseX.range()[1]
-  const viewHeight = scales.baseY.range()[0]
-  const PADDING = 0
-
-  // Precompute viewport coordinates for all reports (avoid repeated scaling)
-  const coords = reports.map((r: any) => ({
-    x: scales.viewportX(scales.xValue(r)),
-    y: scales.viewportY(scales.yValue(r)),
-  }))
-
-  // Build list of visible segments (any that intersect the viewport) with their screen-space lengths
-  type Segment = {
-    x1: number
-    y1: number
-    x2: number
-    y2: number
-    length: number
-  }
-  const visibleSegments: Segment[] = []
-  for (let i = 1; i < coords.length; i++) {
-    const { x: x1, y: y1 } = coords[i - 1]
-    const { x: x2, y: y2 } = coords[i]
-
-    // Quick reject using segment bounding box vs viewport rectangle
-    const minX = Math.min(x1, x2)
-    const maxX = Math.max(x1, x2)
-    const minY = Math.min(y1, y2)
-    const maxY = Math.max(y1, y2)
-    const outside =
-      maxX < -PADDING ||
-      minX > viewWidth + PADDING ||
-      maxY < -PADDING ||
-      minY > viewHeight + PADDING
-    if (outside) continue
-
-    const length = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
-    if (length === 0) continue
-    visibleSegments.push({ x1, y1, x2, y2, length })
-  }
-
-  if (visibleSegments.length === 0) return points
-
-  // Merge consecutive horizontal segments (cheap check: constant y within small epsilon)
-  const EPS_Y = 0.0001
-  const mergedSegments: Segment[] = []
-  for (const seg of visibleSegments) {
-    const isHoriz = Math.abs(seg.y1 - seg.y2) <= EPS_Y
-    if (mergedSegments.length > 0) {
-      const last = mergedSegments[mergedSegments.length - 1]
-      const lastIsHoriz = Math.abs(last.y1 - last.y2) <= EPS_Y
-      const sameY =
-        isHoriz &&
-        lastIsHoriz &&
-        Math.abs((last.y1 + last.y2) / 2 - (seg.y1 + seg.y2) / 2) <= EPS_Y
-      if (sameY) {
-        // Extend horizontally; keep y constant
-        const yConst = (last.y1 + last.y2) / 2
-        const newX1 = Math.min(last.x1, seg.x1, last.x2, seg.x2)
-        const newX2 = Math.max(last.x1, seg.x1, last.x2, seg.x2)
-        last.x1 = newX1
-        last.x2 = newX2
-        last.y1 = yConst
-        last.y2 = yConst
-        last.length = Math.abs(newX2 - newX1)
-        continue
-      }
-    }
-    mergedSegments.push({ ...seg })
-  }
-
-  const totalVisibleLength = mergedSegments.reduce((acc, s) => acc + s.length, 0)
-  if (totalVisibleLength <= 0) return points
-
-  // Helper to dedupe closely spaced points
-  function pushIfFar(x: number, y: number) {
-    const last = points[points.length - 1]
-    if (!last) {
-      points.push({ x, y, line })
-      return
-    }
-    const dx = x - last.x
-    const dy = y - last.y
-    // the farthest apart the points can be and still totally cover all hover events
-    // is DISTANCE_THRESHOLD / 2.
-    if (Math.sqrt(dx * dx + dy * dy) >= DISTANCE_THRESHOLD / 2) {
-      points.push({ x, y, line })
-    }
-  }
-
-  // 1) Always include segment endpoints for reliable hit-testing at vertices
-  if (mergedSegments.length > 0) {
-    pushIfFar(mergedSegments[0].x1, mergedSegments[0].y1)
-    for (let i = 0; i < mergedSegments.length; i++) {
-      const seg = mergedSegments[i]
-      pushIfFar(seg.x2, seg.y2)
-    }
-  }
-
-  // 2) Add equally spaced samples along the visible length at multiples of the interval
-  const interval = QUADTREE_SAMPLE_INTERVAL
-  const maxIntervals = Math.floor(totalVisibleLength / interval)
-  const capacity = Math.max(0, MAX_SAMPLES_PER_LINE - points.length)
-  const numIntervalSamples = Math.min(capacity, maxIntervals)
-
-  // Sample at distances interval, 2*interval, ..., up to but not including the exact end
-  for (let k = 1; k <= numIntervalSamples; k++) {
-    const targetDistance = k * interval
-    if (targetDistance >= totalVisibleLength) break
-
-    let currentDistance = 0
-    for (let j = 0; j < mergedSegments.length; j++) {
-      const seg = mergedSegments[j]
-      const nextDistance = currentDistance + seg.length
-      if (targetDistance <= nextDistance || j === mergedSegments.length - 1) {
-        const segT =
-          seg.length > 0 ? (targetDistance - currentDistance) / seg.length : 0
-        const x = seg.x1 + (seg.x2 - seg.x1) * segT
-        const y = seg.y1 + (seg.y2 - seg.y1) * segT
-        // Only add interval samples that are within viewport bounds
-        if (x >= 0 && x <= viewWidth && y >= 0 && y <= viewHeight) {
-          pushIfFar(x, y)
-        }
-        break
-      }
-      currentDistance = nextDistance
-    }
-  }
-
-  return points
-}
+  report: GraphReport
+} | null
 
 export function GraphComponent({
   tests,
@@ -493,14 +352,15 @@ export function GraphComponent({
   )
   const [axisSettingY, setAxisSettingY] = useSetting<"behaviors" | "fingerprints">(
     "graph_axis_y",
-    "behaviors",
+    "fingerprints",
   )
   const navigate = useNavigate()
   const isMobile = useIsMobile()
   const tooltip = useTooltip()
   const [containerWidth, setContainerWidth] = useState(800)
-  const [activeNodeid, setActiveNodeid] = useState<string | null>(null)
+  const [hoveredState, setHoveredState] = useState<HoveredState>(null)
   const scalesRef = useRef<typeof scales | null>(null)
+  const mouseDownPosRef = useRef<{ x: number; y: number } | null>(null)
 
   // use the unfiltered reports as the domain so colors are stable across filtering.
   const reportsColor = d3
@@ -523,7 +383,13 @@ export function GraphComponent({
   let activeLine: GraphLine | null = null
   filteredLines.forEach(line => {
     line.isActive = false
-    if (line.nodeid === activeNodeid) {
+    if (
+      hoveredState != null &&
+      line.nodeid === hoveredState.line.nodeid &&
+      (viewSetting === WorkerView.TOGETHER
+        ? true
+        : line.reports[0].worker_uuid === hoveredState?.line.reports[0].worker_uuid)
+    ) {
       line.isActive = true
       activeLine = line
     }
@@ -586,7 +452,16 @@ export function GraphComponent({
 
   useEffect(() => {
     rebuildQuadtree()
-  }, [filteredLines, scaleSettingX, scaleSettingY, axisSettingX, axisSettingY])
+  }, [
+    filteredLines,
+    scaleSettingX,
+    scaleSettingY,
+    axisSettingX,
+    axisSettingY,
+    // rebuild when screen size changes due to eg user resizes
+    graphWidth,
+    graphHeight,
+  ])
 
   return (
     <div
@@ -602,11 +477,27 @@ export function GraphComponent({
         userSelect: "none",
         cursor: activeLine ? "pointer" : "default",
       }}
-      onMouseDown={zoom.onMouseDown}
+      onMouseDown={event => {
+        mouseDownPosRef.current = { x: event.clientX, y: event.clientY }
+        zoom.onMouseDown(event)
+      }}
       onDoubleClick={zoom.onDoubleClick}
-      onClick={() => {
+      onClick={event => {
+        // If the pointer moved more than a small threshold since mousedown,
+        // treat as a drag and suppress navigation.
+        const start = mouseDownPosRef.current
+        mouseDownPosRef.current = null
+        const DRAG_SUPPRESS_PX = 5
+        if (
+          start &&
+          (Math.abs(event.clientX - start.x) > DRAG_SUPPRESS_PX ||
+            Math.abs(event.clientY - start.y) > DRAG_SUPPRESS_PX)
+        ) {
+          return
+        }
+
         if (activeLine && activeLine.url) {
-          navigate(activeLine.url)
+          navigateOnClick(event as any, activeLine.url, navigate)
         }
       }}
       onMouseMove={event => {
@@ -620,7 +511,6 @@ export function GraphComponent({
           quadtreeRef.current!.find(mouseX, mouseY, DISTANCE_THRESHOLD) || null
 
         if (closestPoint) {
-          setActiveNodeid(closestPoint.line.nodeid)
           const reports = closestPoint.line.reports
 
           // find the closest actual report on this line. We know the closest sampled point
@@ -641,25 +531,50 @@ export function GraphComponent({
             }
           })
 
-          const behaviors_s = closestReport.behaviors === 1 ? "" : "s"
-          const fingerprints_s = closestReport.fingerprints === 1 ? "" : "s"
-          const inputs_s = closestReport.linear_status_counts.sum() === 1 ? "" : "s"
-          const seconds_s = closestReport.linear_elapsed_time === 1 ? "" : "s"
-
-          const content = `
-            <div style="font-weight: bold; margin-bottom: 4px;">${readableNodeid(closestReport.nodeid)}</div>
-            <div>${closestReport.behaviors.toLocaleString()} behavior${behaviors_s} / ${closestReport.fingerprints.toLocaleString()} fingerprint${fingerprints_s}</div>
-            <div>${closestReport.linear_status_counts.sum().toLocaleString()} input${inputs_s} / ${closestReport.linear_elapsed_time.toFixed(1)} second${seconds_s}</div>
-          `
+          const content = (
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <div style={{ fontWeight: 600, marginBottom: 2 }}>
+                {readableNodeid(closestReport.nodeid)}
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                  <FontAwesomeIcon icon={faCodeBranch} />
+                  <span>{closestReport.behaviors.toLocaleString()}</span>
+                </span>
+                <span>/</span>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                  <FontAwesomeIcon icon={faFingerprint} />
+                  <span>{closestReport.fingerprints.toLocaleString()}</span>
+                </span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                  <FontAwesomeIcon icon={faHashtag} />
+                  <span>
+                    {closestReport.linear_status_counts.sum().toLocaleString()}
+                  </span>
+                </span>
+                <span>/</span>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                  <FontAwesomeIcon icon={faClock} />
+                  <span>{closestReport.linear_elapsed_time.toFixed(1)}s</span>
+                </span>
+              </div>
+            </div>
+          )
 
           tooltip.showTooltip(content, event.clientX, event.clientY, "coverage-graph")
+          setHoveredState({
+            line: closestPoint.line,
+            report: closestReport,
+          })
         } else {
-          setActiveNodeid(null)
+          setHoveredState(null)
           tooltip.hideTooltip("coverage-graph")
         }
       }}
       onMouseLeave={() => {
-        setActiveNodeid(null)
+        setHoveredState(null)
         tooltip.hideTooltip("coverage-graph")
       }}
     >
@@ -692,6 +607,16 @@ export function GraphComponent({
               yValue={scales.yValue}
               navigate={navigate}
             />
+            {hoveredState && (
+              <circle
+                cx={scales.viewportX(scales.xValue(hoveredState.report))}
+                cy={scales.viewportY(scales.yValue(hoveredState.report))}
+                r={5}
+                fill={hoveredState.line.color}
+                stroke="#fff"
+                strokeWidth={1.5}
+              />
+            )}
           </g>
 
           <Axis
@@ -796,7 +721,7 @@ export function CoverageGraph({
           />
           {disabled && (
             <span className="tooltip__text">
-              Switching worker display mode requires multiple workers
+              Switching display mode requires multiple workers
             </span>
           )}
         </span>

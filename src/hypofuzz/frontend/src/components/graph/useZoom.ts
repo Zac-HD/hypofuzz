@@ -39,7 +39,6 @@ export function useZoom({
   const lastPointer = useRef({ x: 0, y: 0 })
   const animationRef = useRef<number | null>(null)
   const isZooming = useRef(false)
-  const wheelEventCount = useRef(0)
   const wheelTimeoutRef = useRef<number | null>(null)
 
   const cancelAnimation = () => {
@@ -85,7 +84,9 @@ export function useZoom({
       if (progress < 1) {
         animationRef.current = requestAnimationFrame(animate)
       } else {
+        // reset zoom has ended
         animationRef.current = null
+        requestAnimationFrame(() => onZoomEnd())
       }
     }
 
@@ -114,47 +115,36 @@ export function useZoom({
       )
       const wouldZoom = newScale !== transform.scaleX
 
-      // Prevent page scrolling if we would zoom OR if we're in an active zoom session
+      // Only treat as zooming when a zoom actually happens or we are in an active session
       if (wouldZoom || isZooming.current) {
         event.preventDefault()
         event.stopPropagation()
-      } else {
-        // increment counter to indicate wheel activity
-        wheelEventCount.current++
-      }
-      if (wouldZoom) {
-        // Mark that we're in an active zoom session
-        isZooming.current = true
 
-        const scaleRatio = newScale / transform.scaleX
-        const newX = mouseX - (mouseX - transform.x) * scaleRatio
-        // horizontal-only zoom; keep y unchanged
-        const newTransform = {
-          x: newX,
-          y: transform.y,
-          scaleX: newScale,
+        if (wouldZoom) {
+          isZooming.current = true
+
+          const scaleRatio = newScale / transform.scaleX
+          const newX = mouseX - (mouseX - transform.x) * scaleRatio
+          // horizontal-only zoom; keep y unchanged
+          const newTransform = {
+            x: newX,
+            y: transform.y,
+            scaleX: newScale,
+          }
+          const constrainedTransform = newTransform
+          setTransformState(constrainedTransform)
         }
-        const constrainedTransform = newTransform
-        setTransformState(constrainedTransform)
-      }
 
-      // Reset wheel event counter and set timeout to detect when wheel events stop
-      wheelEventCount.current = 0
-
-      // Clear any existing timeout
-      if (wheelTimeoutRef.current) {
-        clearTimeout(wheelTimeoutRef.current)
-      }
-
-      // Set a timeout to check if wheel events have stopped
-      wheelTimeoutRef.current = window.setTimeout(() => {
-        // If wheel event counter is still 0, no new wheel events came in
-        if (wheelEventCount.current === 0) {
+        // Debounce end-of-zoom notification
+        if (wheelTimeoutRef.current) {
+          clearTimeout(wheelTimeoutRef.current)
+        }
+        wheelTimeoutRef.current = window.setTimeout(() => {
           isZooming.current = false
           onZoomEnd()
-        }
-        wheelTimeoutRef.current = null
-      }, 150)
+          wheelTimeoutRef.current = null
+        }, 150)
+      }
     }
 
     container.addEventListener("wheel", handleWheel, { passive: false })
