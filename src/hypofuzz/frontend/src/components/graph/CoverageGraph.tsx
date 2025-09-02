@@ -361,6 +361,7 @@ export function GraphComponent({
   const [containerWidth, setContainerWidth] = useState(800)
   const [hoveredState, setHoveredState] = useState<HoveredState>(null)
   const scalesRef = useRef<typeof scales | null>(null)
+  const mouseDownPosRef = useRef<{ x: number; y: number } | null>(null)
 
   // use the unfiltered reports as the domain so colors are stable across filtering.
   const reportsColor = d3
@@ -471,9 +472,25 @@ export function GraphComponent({
         userSelect: "none",
         cursor: activeLine ? "pointer" : "default",
       }}
-      onMouseDown={zoom.onMouseDown}
+      onMouseDown={event => {
+        mouseDownPosRef.current = { x: event.clientX, y: event.clientY }
+        zoom.onMouseDown(event)
+      }}
       onDoubleClick={zoom.onDoubleClick}
       onClick={event => {
+        // If the pointer moved more than a small threshold since mousedown,
+        // treat as a drag and suppress navigation.
+        const start = mouseDownPosRef.current
+        mouseDownPosRef.current = null
+        const DRAG_SUPPRESS_PX = 5
+        if (
+          start &&
+          (Math.abs(event.clientX - start.x) > DRAG_SUPPRESS_PX ||
+            Math.abs(event.clientY - start.y) > DRAG_SUPPRESS_PX)
+        ) {
+          return
+        }
+
         if (activeLine && activeLine.url) {
           navigateOnClick(event as any, activeLine.url, navigate)
         }
