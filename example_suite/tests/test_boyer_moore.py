@@ -1,4 +1,5 @@
 from hypothesis import given, strategies as st
+
 from example_suite.src.example_suite.boyer_moore import boyer_moore_search
 
 

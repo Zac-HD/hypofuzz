@@ -1,4 +1,4 @@
-from typing import List, Dict, Optional
+from typing import Dict, List
 
 
 def boyer_moore_search(text: str, pattern: str) -> List[int]:
@@ -29,7 +29,7 @@ def boyer_moore_search(text: str, pattern: str) -> List[int]:
 
     while i < n:
         j = m - 1  # Position in pattern
-        k = i      # Current position in text
+        k = i  # Current position in text
 
         while j >= 0 and text[k] == pattern[j]:
             j -= 1
