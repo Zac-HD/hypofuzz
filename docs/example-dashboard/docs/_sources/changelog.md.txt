@@ -2,12 +2,18 @@
 HypoFuzz uses [calendar-based versioning](https://calver.org/), with a
 `YY-MM-patch` format.
 
+(v25-09-01)=
+## 25.09.01
+
+* Improve coverage graph usability
+* Smooth coverage curve under the "together" coverage graph view, avoiding jitter from concurrent workers
+* Fix computation of covering patches
 
 (v25-08-02)=
 ## 25.08.02
 
-* frontend UI improvements, particularly on the coverage graph
-* compatibility with newer Hypothesis versions
+* Frontend UI improvements, particularly on the coverage graph
+* Compatibility with newer Hypothesis versions
 
 (v25-08-01)=
 ## 25.08.01
