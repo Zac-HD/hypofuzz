@@ -174,6 +174,8 @@ function graphReports(test: Test, workers_after: number | null): GraphReport[] {
       linear_elapsed_time: linearElapsedTime[i],
       behaviors: report.behaviors,
       fingerprints: report.fingerprints,
+      worker_uuid: report.worker_uuid,
+      timestamp_monotonic: report.timestamp_monotonic!,
     })
   }
   return reports
