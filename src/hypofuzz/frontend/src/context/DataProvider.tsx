@@ -309,7 +309,12 @@ export function DataProvider({ children }: DataProviderProps) {
                   {
                     database_key: testData.database_key,
                     nodeid: nodeid,
-                    failures: testData.failures,
+                    failures: new Map(
+                      Object.entries(testData.failures).map(([key, value]) => [
+                        key,
+                        Failure.fromJson(value),
+                      ]),
+                    ),
                     fatal_failure: testData.fatal_failure,
                     stability: testData.stability,
                   },
@@ -413,7 +418,7 @@ export function DataProvider({ children }: DataProviderProps) {
             const progressContent = React.createElement(ProgressBar, {
               current: count_tests_loaded,
               total: count_tests,
-              message: `Note: dashboard is still starting up (${count_tests_loaded}/${count_tests} tests loaded)`,
+              message: `Dashboard is still starting up (${count_tests_loaded}/${count_tests} tests loaded)`,
             })
 
             if (!statusNotification.current) {

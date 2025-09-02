@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from "react"
+import React, { createContext, useContext, useEffect, useRef, useState } from "react"
 import { createPortal } from "react-dom"
 import { useLocation } from "react-router-dom"
 
@@ -25,17 +25,65 @@ interface TooltipContextType {
 }
 
 const TooltipContext = createContext<TooltipContextType | null>(null)
+const TOOLTIP_OFFSET = 10
+const TOOLTIP_TOP_OFFSET = 25
+const SCREEN_MARGIN = 10
 
 function TooltipPortal({ state }: { state: TooltipState }) {
-  if (!state.visible) return null
+  const tooltipRef = useRef<HTMLDivElement>(null)
+  // place offscreen initially until we compute its position
+  const [position, setPosition] = useState({ left: -9999, top: -9999 })
+
+  useEffect(() => {
+    if (!state.visible || !tooltipRef.current) {
+      return
+    }
+    // prevent tooltip from going out of bounds. flip to the left side if we're going to go
+    // off the screen on the right. etc.
+    const tooltipRect = tooltipRef.current.getBoundingClientRect()
+    const tooltipWidth = tooltipRect.width
+    const tooltipHeight = tooltipRect.height
+
+    let left = state.x + TOOLTIP_OFFSET
+    let top = state.y - TOOLTIP_TOP_OFFSET
+
+    const rightEdge = left + tooltipWidth
+    if (rightEdge > window.innerWidth - SCREEN_MARGIN) {
+      left = state.x - tooltipWidth - TOOLTIP_OFFSET
+
+      if (left < SCREEN_MARGIN) {
+        left = SCREEN_MARGIN
+      }
+    }
+
+    if (left < SCREEN_MARGIN) {
+      left = SCREEN_MARGIN
+    }
+
+    if (top < SCREEN_MARGIN) {
+      top = SCREEN_MARGIN
+    }
+
+    const bottomEdge = top + tooltipHeight
+    if (bottomEdge > window.innerHeight - SCREEN_MARGIN) {
+      top = state.y + TOOLTIP_OFFSET
+    }
+
+    setPosition({ left, top })
+  }, [state.x, state.y, state.visible])
+
+  if (!state.visible) {
+    return null
+  }
 
   return createPortal(
     <div
+      ref={tooltipRef}
       className="cursor-tooltip"
       style={{
         position: "fixed",
-        left: `${state.x + 10}px`,
-        top: `${state.y - 28}px`,
+        left: `${position.left}px`,
+        top: `${position.top}px`,
         display: "block",
         pointerEvents: "none", // prevent tooltip from interfering with mouse events
         zIndex: 9999,

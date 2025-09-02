@@ -35,6 +35,7 @@ import { useTooltip } from "src/utils/tooltip"
 import { max, min, navigateOnClick, readableNodeid } from "src/utils/utils"
 
 import { SampledPoint, sampleLinePoints } from "./quadtree"
+import { togetherReports } from "./together"
 import { useScales } from "./useScales"
 import { useZoom } from "./useZoom"
 
@@ -62,13 +63,18 @@ function graphLines(
   if (viewSetting === WorkerView.TOGETHER) {
     lines = Array.from(tests.entries())
       .sortKey(([nodeid, test]) => nodeid)
-      .map(([nodeid, test]) => ({
-        nodeid: nodeid,
-        url: `/tests/${encodeURIComponent(nodeid)}`,
-        reports: graphReports(test, workers_after),
-        color: reportsColor(nodeid),
-        isActive: false,
-      }))
+      .map(([nodeid, test]) => {
+        let reports = graphReports(test, workers_after)
+        reports = togetherReports(test.reports_by_worker, reports)
+        return {
+          nodeid: nodeid,
+          url: `/tests/${encodeURIComponent(nodeid)}`,
+          reports: reports,
+          color: reportsColor(nodeid),
+          isActive: false,
+          status: test.status,
+        }
+      })
   } else if (viewSetting === WorkerView.SEPARATE) {
     const timestamps: number[] = []
     for (const test of tests.values()) {
@@ -101,6 +107,7 @@ function graphLines(
             ),
             color: timeColor(workerReports[0].timestamp),
             isActive: false,
+            status: test.status,
           })
         }
       }
@@ -120,6 +127,7 @@ function graphLines(
           // use the same color as the linearized view
           color: reportsColor(nodeid),
           isActive: false,
+          status: test.status,
         })
       }
     }
@@ -245,7 +253,7 @@ function LabelY() {
   const [scale, setScale] = useSetting<"log" | "linear">("graph_scale_y", "linear")
   const [axis, setAxis] = useSetting<"behaviors" | "fingerprints">(
     "graph_axis_y",
-    "behaviors",
+    "fingerprints",
   )
   return (
     <div
@@ -560,6 +568,14 @@ export function GraphComponent({
                   <span>{closestReport.linear_elapsed_time.toFixed(1)}s</span>
                 </span>
               </div>
+              {/* TODO: add a "debug" or "advanced" view somewhere (settings?) and enable this there?
+                  I've found this useful for debugging, which means some advanced users may as well. */}
+              {/* <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                  <FontAwesomeIcon icon={faUser} />
+                  <span>{closestReport.worker_uuid}</span>
+                </span>
+              </div> */}
             </div>
           )
 

@@ -1,4 +1,4 @@
-import { Report, StatusCounts } from "../../types/dashboard"
+import { Report, StatusCounts, TestStatus } from "../../types/dashboard"
 
 export class GraphReport {
   constructor(
@@ -30,4 +30,5 @@ export interface GraphLine {
   reports: GraphReport[]
   color: string
   isActive: boolean
+  status: TestStatus
 }

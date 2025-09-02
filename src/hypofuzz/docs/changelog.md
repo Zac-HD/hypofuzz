@@ -2,6 +2,7 @@
 HypoFuzz uses [calendar-based versioning](https://calver.org/), with a
 `YY-MM-patch` format.
 
+
 (v25-08-02)=
 ## 25.08.02
 
