@@ -43,6 +43,7 @@ from hypothesis.internal.escalation import InterestingOrigin, current_pytest_ite
 from hypothesis.internal.observability import (
     InfoObservation,
     TestCaseObservation,
+    with_observability_callback,
 )
 from hypothesis.internal.reflection import (
     function_digest,
@@ -70,17 +71,6 @@ from hypofuzz.database import (
 )
 from hypofuzz.provider import HypofuzzProvider
 from hypofuzz.utils import process_uuid
-
-try:
-    # compatibility with older hypothesis versions. can remove the next time
-    # we bump hypothesis
-    from hypothesis.internal.observability import (
-        with_observation_callback as with_observability_callback,
-    )
-except ImportError:
-    from hypothesis.internal.observability import (  # type: ignore
-        with_observability_callback,
-    )
 
 # 1 hour
 SHRINK_TIMEOUT = 60 * 60

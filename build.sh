@@ -30,6 +30,8 @@ elif [ "$1" = "test" ]; then
     npm --prefix "$ROOT/src/hypofuzz/frontend" run test
 elif [ "$1" = "format" ]; then
     npm --prefix "$ROOT/src/hypofuzz/frontend" run format && shed
+elif [ "$1" = "deps" ]; then
+    tox -e deps
 else
     echo "Unknown build target $1. Available targets: docs, docs-clean, dashboard, dashboard-profiling, dashboard-json, dashboard-demo, test, format"
     exit 1
