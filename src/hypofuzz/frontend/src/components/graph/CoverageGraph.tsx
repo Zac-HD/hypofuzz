@@ -509,16 +509,37 @@ export function GraphComponent({
             }
           })
 
-          const behaviors_s = closestReport.behaviors === 1 ? "" : "s"
-          const fingerprints_s = closestReport.fingerprints === 1 ? "" : "s"
-          const inputs_s = closestReport.linear_status_counts.sum() === 1 ? "" : "s"
-          const seconds_s = closestReport.linear_elapsed_time === 1 ? "" : "s"
-
-          const content = `
-            <div style="font-weight: bold; margin-bottom: 4px;">${readableNodeid(closestReport.nodeid)}</div>
-            <div>${closestReport.behaviors.toLocaleString()} behavior${behaviors_s} / ${closestReport.fingerprints.toLocaleString()} fingerprint${fingerprints_s}</div>
-            <div>${closestReport.linear_status_counts.sum().toLocaleString()} input${inputs_s} / ${closestReport.linear_elapsed_time.toFixed(1)} second${seconds_s}</div>
-          `
+          const content = (
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <div style={{ fontWeight: 600, marginBottom: 2 }}>
+                {readableNodeid(closestReport.nodeid)}
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                  <FontAwesomeIcon icon={faCodeBranch} />
+                  <span>{closestReport.behaviors.toLocaleString()}</span>
+                </span>
+                <span>/</span>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                  <FontAwesomeIcon icon={faFingerprint} />
+                  <span>{closestReport.fingerprints.toLocaleString()}</span>
+                </span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                  <FontAwesomeIcon icon={faHashtag} />
+                  <span>
+                    {closestReport.linear_status_counts.sum().toLocaleString()}
+                  </span>
+                </span>
+                <span>/</span>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                  <FontAwesomeIcon icon={faClock} />
+                  <span>{closestReport.linear_elapsed_time.toFixed(1)}s</span>
+                </span>
+              </div>
+            </div>
+          )
 
           tooltip.showTooltip(content, event.clientX, event.clientY, "coverage-graph")
           setHoveredState({
