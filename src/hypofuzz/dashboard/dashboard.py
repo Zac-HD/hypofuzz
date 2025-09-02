@@ -1,6 +1,7 @@
 """Live web dashboard for a fuzzing run."""
 
 import math
+import socket
 from collections import defaultdict
 from pathlib import Path
 from typing import Any, Literal, Optional
@@ -407,7 +408,14 @@ def start_dashboard_process(
 
     start_patching_thread()
 
-    print(f"\n\tNow serving dashboard at  http://{host}:{port}/\n")
+    if port == 0:
+        # we would normally let hypercorn choose the port here via the standard
+        # port=0 mechanism, but then we wouldn't be able to print it.
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.bind((host, 0))
+            port = s.getsockname()[1]
+
+    print(f"\n\tNow serving dashboard at http://{host}:{port}/\n", flush=True)
     trio.run(run_dashboard, port, host)
 
 
