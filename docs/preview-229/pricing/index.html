@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <meta name="description" content="">
+    <meta name="description" content="An advanced fuzzing backend, and dashboard, for your Hypothesis tests.">
     <!-- Global site tag (gtag.js) - Google Analytics -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=UA-176879127-1"></script>
 
@@ -27,13 +27,22 @@
     <link rel="manifest" href="../assets/favicon/site.webmanifest" />
 
     <title>HypoFuzz</title>
+    <link rel="canonical" href="https://hypofuzz.com/pricing/">
+    <meta property="og:title" content="HypoFuzz – Pricing">
+    <meta property="og:description" content="An advanced fuzzing backend, and dashboard, for your Hypothesis tests.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://hypofuzz.com/pricing/">
+    <meta property="og:site_name" content="HypoFuzz">
 </head>
 
 <body>
     <nav class="navbar">
         <div class="navbar__container">
             <a class="navbar__brand" href="../">HypoFuzz</a>
-            <ul class="navbar__nav">
+            <button class="navbar__toggle" type="button" aria-label="Menu" aria-expanded="false" aria-controls="navbarMenu">
+                <span class="navbar__toggle__arrow"></span>
+            </button>
+            <ul class="navbar__nav" id="navbarMenu">
                 <li><a class="navbar__link" href="../docs/features.html">Features</a></li>
                 <li><a class="navbar__link" href="../docs/">Docs</a></li>
                 <li><a class="navbar__link" href="../example-dashboard/">Demo</a></li>
@@ -41,6 +50,7 @@
             </ul>
         </div>
     </nav>
+    <div class="navbar__overlay" id="navbarOverlay"></div>
 
     <div class="content">
         <div class="pricing-header">
@@ -96,7 +106,7 @@
                     </div>
                 </div>
             </div>
-            <div class="separator" style="margin-top: 2rem; margin-bottom: 2rem"></div>
+            <div class="separator" style="margin-top: 2rem;"></div>
             <!-- <div class="pricing-note">
                 <em>
                     Hypofuzz is designed for significant compute workloads, and to autoscale and run efficiently on spot instances or idle capacity.
@@ -109,31 +119,65 @@
 
     <div class="footer">
         <hr class="footer__hr">
-        <p>&copy; HypoFuzz authors, 2025</p>
+        <p class="footer__content"><span class="footer__email"><a class="footer__link" href="mailto:hello@hypofuzz.com">hello@hypofuzz.com</a></span><span class="footer__sep" aria-hidden="true"> &nbsp;&middot;&nbsp; </span><span class="footer__copyright">&copy; HypoFuzz authors, 2025</span></p>
     </div>
 
     <script>
-        const monthlyBtn = document.getElementById('monthlyBtn');
-        const annualBtn = document.getElementById('annualBtn');
-        const priceElement = document.getElementById('price');
-        const periodElement = document.getElementById('period');
-
-        function updatePrice(isAnnual) {
-            if (isAnnual) {
-                priceElement.textContent = '9';
-                periodElement.textContent = 'mo';
-                monthlyBtn.classList.remove('pricing-switch__button--active');
-                annualBtn.classList.add('pricing-switch__button--active');
-            } else {
-                priceElement.textContent = '10';
-                periodElement.textContent = 'mo';
-                monthlyBtn.classList.add('pricing-switch__button--active');
-                annualBtn.classList.remove('pricing-switch__button--active');
+        (function() {
+            var toggle = document.querySelector('.navbar__toggle');
+            var menu = document.getElementById('navbarMenu');
+            var overlay = document.getElementById('navbarOverlay');
+            if (toggle && menu) {
+                toggle.addEventListener('click', function() {
+                    if (!menu.classList.contains('navbar__nav--animate')) {
+                        menu.classList.add('navbar__nav--animate');
+                    }
+                    var isOpen = menu.classList.toggle('navbar__nav--open');
+                    toggle.classList.toggle('navbar__toggle--open', isOpen);
+                    toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+                    if (overlay) overlay.classList.toggle('navbar__overlay--visible', isOpen);
+                });
             }
-        }
-
-        monthlyBtn.addEventListener('click', () => updatePrice(false));
-        annualBtn.addEventListener('click', () => updatePrice(true));
+            if (overlay && menu) {
+                overlay.addEventListener('click', function() {
+                    menu.classList.remove('navbar__nav--open');
+                    overlay.classList.remove('navbar__overlay--visible');
+                    if (toggle) {
+                        toggle.classList.remove('navbar__toggle--open');
+                        toggle.setAttribute('aria-expanded', 'false');
+                    }
+                });
+            }
+            Array.prototype.forEach.call(menu ? menu.querySelectorAll('a') : [], function(link) {
+                link.addEventListener('click', function() {
+                    menu.classList.remove('navbar__nav--open');
+                    if (overlay) overlay.classList.remove('navbar__overlay--visible');
+                    if (toggle) {
+                        toggle.classList.remove('navbar__toggle--open');
+                        toggle.setAttribute('aria-expanded', 'false');
+                    }
+                });
+            });
+            // Reset state and disable animation on breakpoint changes
+            var mql = window.matchMedia('(max-width: 720px)');
+            function resetMobileMenu() {
+                if (menu) {
+                    menu.classList.remove('navbar__nav--open');
+                    menu.classList.remove('navbar__nav--animate');
+                }
+                if (overlay) overlay.classList.remove('navbar__overlay--visible');
+                if (toggle) {
+                    toggle.classList.remove('navbar__toggle--open');
+                    toggle.setAttribute('aria-expanded', 'false');
+                }
+            }
+            function onMqlChange() { resetMobileMenu(); }
+            if (mql && mql.addEventListener) {
+                mql.addEventListener('change', onMqlChange);
+            } else if (mql && mql.addListener) {
+                mql.addListener(onMqlChange);
+            }
+        })();
     </script>
 </body>
 
