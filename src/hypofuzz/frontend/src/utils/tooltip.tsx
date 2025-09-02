@@ -66,7 +66,11 @@ function TooltipPortal({ state }: { state: TooltipState }) {
 
     const bottomEdge = top + tooltipHeight
     if (bottomEdge > window.innerHeight - SCREEN_MARGIN) {
-      top = state.y + TOOLTIP_OFFSET
+      top = state.y - tooltipHeight - TOOLTIP_OFFSET
+
+      if (top < SCREEN_MARGIN) {
+        top = SCREEN_MARGIN
+      }
     }
 
     setPosition({ left, top })

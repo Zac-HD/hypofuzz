@@ -3,7 +3,7 @@ import { TYCHE_COLOR } from "src/tyche/Tyche"
 import { TycheSection } from "src/tyche/TycheSection"
 import { Observation } from "src/types/dashboard"
 
-export function Samples({
+export function Summary({
   observations,
 }: {
   observations: { raw: Observation[]; filtered: Observation[] }
@@ -27,9 +27,9 @@ export function Samples({
   }
 
   return (
-    <TycheSection title="Samples">
+    <TycheSection title="Summary">
       <MosaicChart
-        name="samples"
+        name="summary"
         observations={observations}
         verticalAxis={[
           ["Passed", obs => obs.status === "passed"],

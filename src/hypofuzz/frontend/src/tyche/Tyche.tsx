@@ -3,7 +3,7 @@ import { Features } from "src/tyche/Features"
 import { FilterProvider, useFilters } from "src/tyche/FilterContext"
 import { Filters } from "src/tyche/Filters"
 import { Representation } from "src/tyche/Representation"
-import { Samples } from "src/tyche/Samples"
+import { Summary } from "src/tyche/Summary"
 import { Test } from "src/types/test"
 
 export const PRESENT_STRING = "Present"
@@ -78,7 +78,7 @@ function TycheInner({ test }: { test: Test }) {
       </div>
       {observations.raw.length > 0 ? (
         <>
-          <Samples observations={observations} />
+          <Summary observations={observations} />
           <Features
             observations={observations}
             observationCategory={observationCategory}
