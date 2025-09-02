@@ -1,0 +1,64 @@
+{
+  "collection_status": [
+    {
+      "nodeid": "example_suite/tests/test_boyer_moore.py::test_boyer_moore_correctness",
+      "status": "collected"
+    },
+    {
+      "nodeid": "example_suite/tests/test_bst.py::test_finds_bst_bug",
+      "status": "collected"
+    },
+    {
+      "nodeid": "example_suite/tests/test_json.py::test_json_roundtrip_fails_on_inf",
+      "status": "collected"
+    },
+    {
+      "nodeid": "example_suite/tests/test_observability.py::test_many_observability_features",
+      "status": "collected"
+    },
+    {
+      "nodeid": "example_suite/tests/test_timsort.py::test_timsort_matches_builtin",
+      "status": "collected"
+    },
+    {
+      "nodeid": "example_suite/tests/test_yaml.py::test_yaml_roundtrip",
+      "status": "collected"
+    },
+    {
+      "nodeid": "example_suite/tests/test_no_collection.py::test_pytest_skip_is_not_collected",
+      "status": "not_collected",
+      "status_reason": "skip"
+    },
+    {
+      "nodeid": "example_suite/tests/test_no_collection.py::test_pytest_true_skipif_is_not_collect",
+      "status": "not_collected",
+      "status_reason": "skipif"
+    }
+  ],
+  "patches": {
+    "example_suite/tests/test_boyer_moore.py::test_boyer_moore_correctness": {
+      "failing": null,
+      "covering": "From HEAD Mon Sep 17 00:00:00 2001\nFrom: HypoFuzz 25.08.02 <no-reply@hypofuzz.com>\nDate: Tue, 02 Sep 2025 17:25:03\nSubject: [PATCH] add covering examples\n\n---\n--- ./example_suite/tests/test_boyer_moore.py\n+++ ./example_suite/tests/test_boyer_moore.py\n@@ -4,6 +4,7 @@\n \n \n @given(st.text(), st.text(min_size=1))\n+@example(text=\"\\x1a\\U0001c0f0\u00da\", pattern=\"T\\r\u00da\").via(\"covering example\")\n def test_boyer_moore_correctness(text, pattern):\n     \"\"\"\n     Test that our Boyer-Moore implementation finds all matches that exist in the text.\n"
+    },
+    "example_suite/tests/test_bst.py::test_finds_bst_bug": {
+      "failing": "From HEAD Mon Sep 17 00:00:00 2001\nFrom: HypoFuzz 25.08.02 <no-reply@hypofuzz.com>\nDate: Tue, 02 Sep 2025 17:25:03\nSubject: [PATCH] add failing examples\n\n---\n--- ./example_suite/tests/test_bst.py\n+++ ./example_suite/tests/test_bst.py\n@@ -49,6 +49,7 @@\n \n \n @given(st.lists(st.integers()))\n+@example(xs=[0, 0, -1, 0]).via(\"discovered failure\")\n def test_finds_bst_bug(xs):\n     tree = BST()\n     for x in xs:\n",
+      "covering": "From HEAD Mon Sep 17 00:00:00 2001\nFrom: HypoFuzz 25.08.02 <no-reply@hypofuzz.com>\nDate: Tue, 02 Sep 2025 17:25:03\nSubject: [PATCH] add covering examples\n\n---\n--- ./example_suite/tests/test_bst.py\n+++ ./example_suite/tests/test_bst.py\n@@ -49,6 +49,7 @@\n \n \n @given(st.lists(st.integers()))\n+@example(xs=[-1]).via(\"covering example\")\n def test_finds_bst_bug(xs):\n     tree = BST()\n     for x in xs:\n"
+    },
+    "example_suite/tests/test_json.py::test_json_roundtrip_fails_on_inf": {
+      "failing": "From HEAD Mon Sep 17 00:00:00 2001\nFrom: HypoFuzz 25.08.02 <no-reply@hypofuzz.com>\nDate: Tue, 02 Sep 2025 17:25:03\nSubject: [PATCH] add failing examples\n\n---\n--- ./example_suite/tests/test_json.py\n+++ ./example_suite/tests/test_json.py\n@@ -10,5 +10,6 @@\n \n \n @given(json_strategy)\n+@example(json_value=inf).via(\"discovered failure\")\n def test_json_roundtrip_fails_on_inf(json_value):\n     assert json.loads(json.dumps(json_value)) == json_value\n",
+      "covering": "From HEAD Mon Sep 17 00:00:00 2001\nFrom: HypoFuzz 25.08.02 <no-reply@hypofuzz.com>\nDate: Tue, 02 Sep 2025 17:25:03\nSubject: [PATCH] add covering examples\n\n---\n--- ./example_suite/tests/test_json.py\n+++ ./example_suite/tests/test_json.py\n@@ -10,5 +10,11 @@\n \n \n @given(json_strategy)\n+@example(\n+    json_value={\n+        \"\u00c2\\x02\\x9e\\x90\\U000defce\\x84\u00b3\": None,\n+        \"\\U0007fd3b\u00ab\u00a6`\\x9d<}\u00a3\\x87s\ud811\udcef\u00bc\\U000f173a\\x81\": [],\n+    }\n+).via(\"covering example\")\n def test_json_roundtrip_fails_on_inf(json_value):\n     assert json.loads(json.dumps(json_value)) == json_value\n"
+    },
+    "example_suite/tests/test_observability.py::test_many_observability_features": {
+      "failing": null,
+      "covering": null
+    },
+    "example_suite/tests/test_timsort.py::test_timsort_matches_builtin": {
+      "failing": null,
+      "covering": "From HEAD Mon Sep 17 00:00:00 2001\nFrom: HypoFuzz 25.08.02 <no-reply@hypofuzz.com>\nDate: Tue, 02 Sep 2025 17:25:03\nSubject: [PATCH] add covering examples\n\n---\n--- ./example_suite/tests/test_timsort.py\n+++ ./example_suite/tests/test_timsort.py\n@@ -23,6 +23,7 @@\n \n \n @given(st.lists(st.integers()))\n+@example(l=[1024, -25, -1_537_209_686, -20807, -18785, -114, 55]).via(\"covering example\")\n def test_timsort_matches_builtin(l):\n     _emit_run_events(l)\n     assert timsort(l) == sorted(l)\n"
+    },
+    "example_suite/tests/test_yaml.py::test_yaml_roundtrip": {
+      "failing": null,
+      "covering": null
+    }
+  }
+}
