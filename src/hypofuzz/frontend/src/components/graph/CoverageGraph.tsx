@@ -381,7 +381,13 @@ export function GraphComponent({
   let activeLine: GraphLine | null = null
   filteredLines.forEach(line => {
     line.isActive = false
-    if (hoveredState != null && line === hoveredState.line) {
+    if (
+      hoveredState != null &&
+      line.nodeid === hoveredState.line.nodeid &&
+      (viewSetting === WorkerView.TOGETHER
+        ? true
+        : line.reports[0].worker_uuid === hoveredState?.line.reports[0].worker_uuid)
+    ) {
       line.isActive = true
       activeLine = line
     }
