@@ -2,5 +2,5 @@
 
 from hypofuzz.detection import in_hypofuzz_run
 
-__version__ = "25.08.02"
+__version__ = "25.09.01"
 __all__: list[str] = ["in_hypofuzz_run"]
