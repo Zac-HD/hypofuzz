@@ -8,6 +8,8 @@ from contextlib import redirect_stdout
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Optional
 
+from hypothesis import HealthCheck
+
 import pytest
 from _pytest.nodes import Item
 from _pytest.skipping import evaluate_condition
@@ -129,6 +131,17 @@ class _ItemsCollector:
             if Phase.generate not in test_settings.phases:
                 self._skip_because(
                     "no_generate_phase", item.nodeid, {"phases": test_settings.phases}
+                )
+                continue
+
+            # nesting @given has undefined (for now) observability semantics,
+            # for example for PrimitiveProvider.on_observation. Skip until we
+            # can support it.
+            if HealthCheck.nested_given in test_settings.suppress_health_check:
+                self._skip_because(
+                    "nested_given",
+                    item.nodeid,
+                    {"suppress_health_check": test_settings.suppress_health_check},
                 )
                 continue
 
