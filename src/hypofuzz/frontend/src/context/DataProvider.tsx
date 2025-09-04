@@ -507,6 +507,15 @@ export function DataProvider({ children }: DataProviderProps) {
             break
           }
 
+          case DashboardEventType.SET_FATAL_FAILURE: {
+            dispatch({
+              type: DashboardEventType.SET_FATAL_FAILURE,
+              nodeid: data.nodeid,
+              fatal_failure: data.fatal_failure,
+            })
+            break
+          }
+
           default:
             throw new Error(`Unknown event type: ${data.type}`)
         }
