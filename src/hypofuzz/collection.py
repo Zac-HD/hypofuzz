@@ -8,12 +8,10 @@ from contextlib import redirect_stdout
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Optional
 
-from hypothesis import HealthCheck
-
 import pytest
 from _pytest.nodes import Item
 from _pytest.skipping import evaluate_condition
-from hypothesis import Phase, settings
+from hypothesis import HealthCheck, Phase, settings
 from hypothesis.database import BackgroundWriteDatabase
 from hypothesis.stateful import get_state_machine_test
 from packaging import version
