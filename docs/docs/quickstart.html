@@ -3,7 +3,7 @@
   <head><meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="User manual" href="manual/index.html" /><link rel="prev" title="HypoFuzz documentation" href="index.html" />
+<link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="User manual" href="manual/index.html" /><link rel="prev" title="Welcome to HypoFuzz!" href="index.html" />
         <link rel="canonical" href="https://hypofuzz.com/docs/quickstart.html" />
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2025.07.19 -->
@@ -259,10 +259,10 @@
         <article role="main" id="furo-main-content">
           <section id="quickstart">
 <h1>Quickstart<a class="headerlink" href="#quickstart" title="Link to this heading">¶</a></h1>
-<p>This page will get you set up using HypoFuzz.</p>
+<p>This quickstart will get you set up using HypoFuzz.</p>
 <section id="prerequisite-have-some-hypothesis-tests">
 <h2>Prerequisite: Have some Hypothesis tests<a class="headerlink" href="#prerequisite-have-some-hypothesis-tests" title="Link to this heading">¶</a></h2>
-<p>HypoFuzz runs <a class="extlink-pypi reference external" href="https://pypi.org/project/hypothesis">hypothesis</a> tests, so you’ll need some of those first. If you don’t have any Hypothesis tests yet, check out the <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/quickstart.html" title="(in Hypothesis v6.138.14)"><span class="xref std std-doc">Hypothesis quickstart guide</span></a>, then come back after writing some!</p>
+<p>HypoFuzz runs <a class="extlink-pypi reference external" href="https://pypi.org/project/hypothesis">hypothesis</a> tests, so you’ll need some of those first. If you don’t have any Hypothesis tests yet, check out the <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/quickstart.html" title="(in Hypothesis v6.138.14)"><span class="xref std std-doc">Hypothesis quickstart guide</span></a>, go write some Hypothesis tests, then come back!</p>
 </section>
 <section id="installation">
 <h2>Installation<a class="headerlink" href="#installation" title="Link to this heading">¶</a></h2>
@@ -279,11 +279,11 @@
 <li><p>Starts a local dashboard webserver, and</p></li>
 <li><p>Executes your Hypothesis tests using all available cores</p></li>
 </ul>
-<p>These behaviors can be isolated with the <code class="docutils literal notranslate"><span class="pre">--dashboard-only</span></code> and <code class="docutils literal notranslate"><span class="pre">--no-dashboard</span></code> commands respectively, and the number of cores used can be controlled with <code class="docutils literal notranslate"><span class="pre">-n/--num-processes</span></code>.</p>
+<p>These behaviors can be isolated with the <code class="docutils literal notranslate"><span class="pre">--dashboard-only</span></code> and <code class="docutils literal notranslate"><span class="pre">--no-dashboard</span></code> commands respectively. The number of cores used can be controlled with <code class="docutils literal notranslate"><span class="pre">-n/--num-processes</span></code>.</p>
 <p>HypoFuzz uses <a class="extlink-pypi reference external" href="https://pypi.org/project/pytest">pytest</a> to collect available tests. <code class="docutils literal notranslate"><span class="pre">hypothesis</span> <span class="pre">fuzz</span></code> should therefore be run in a directory where pytest can discover your tests.</p>
-<p>Any arguments after <code class="docutils literal notranslate"><span class="pre">hypothesis</span> <span class="pre">fuzz</span> <span class="pre">--</span></code> are passed through to pytest. See <a class="reference internal" href="manual/collection.html"><span class="doc">Test collection</span></a> for how to use this to configure which tests are collected.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
+<p>Any arguments after <code class="docutils literal notranslate"><span class="pre">hypothesis</span> <span class="pre">fuzz</span> <span class="pre">--</span></code> are passed through to pytest. See <a class="reference internal" href="manual/collection.html"><span class="doc">Test collection</span></a> for how to use this to control which tests are collected.</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
 <p>See the <a class="reference internal" href="manual/cli.html"><span class="doc">command-line interface</span></a> docs for a full command reference, and the <a class="reference internal" href="manual/operating.html"><span class="doc">operating guide</span></a> for advice on configuring HypoFuzz.</p>
 </div>
 </section>

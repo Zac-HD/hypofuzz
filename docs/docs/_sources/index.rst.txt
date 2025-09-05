@@ -1,18 +1,15 @@
-HypoFuzz documentation
-======================
+Welcome to HypoFuzz!
+====================
 
-:pypi:`Hypothesis` is free and open-source software, and always will be.
-It's proven itself invaluable for everyone - from students to high-school
-teachers, astrophysicists to data scientists, web developers to systems
-programmers, and even for hardware designers.
+HypoFuzz is an advanced fuzzing backend and dashboard for your `Hypothesis <https://github.com/HypothesisWorks/hypothesis//>`_ tests.
 
-HypoFuzz builds on that success: if you have Hypothesis tests, HypoFuzz
-gives you a fantastic way to spend CPU time - instead of engineering time -
-to find bugs early in your development cycle.
+Hundreds of thousands of developers trust Hypothesis to test their code, including :pypi:`NumPy <numpy>`, :pypi:`attrs`, `CPython <https://github.com/python/cpython>`_, :pypi:`pandas`, and :pypi:`cryptography`. HypoFuzz builds on top of the success of Hypothesis: HypoFuzz finds bugs quicker, gives greater insight into your test effectiveness, and makes more efficient use of CPU time—all using your same Hypothesis test suite.
 
-* `HypoFuzz website <https://hypofuzz.com/>`_
-* `HypoFuzz documentation <https://hypofuzz.com/docs/index.html>`_
-* `HypoFuzz source code <https://github.com/Zac-HD/hypofuzz>`_
+We recommend starting with the :doc:`quickstart <quickstart>`. For a full reference guide, check out the :doc:`user manual <manual/index>`.
+
+* `Website <https://hypofuzz.com/>`_
+* `Documentation <https://hypofuzz.com/docs/index.html>`_
+* `Source code <https://github.com/Zac-HD/hypofuzz>`_
 
 .. toctree::
     :hidden:
