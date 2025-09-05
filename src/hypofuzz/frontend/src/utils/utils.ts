@@ -177,8 +177,8 @@ export function navigateOnClick(
   url: string,
   navigate: (path: string) => void,
 ): void {
-  // support cmd for onclick
-  if (event.metaKey || event.ctrlKey) {
+  // support cmd, ctrl, and middle mouse click to open in a new tab
+  if (event.metaKey || event.ctrlKey || event.button === 1) {
     // ideally react router would have a utility to resolve a path to the
     // url that the router would navgiate to for that path. useHref does the
     // trick, but that's a hook, which restricts where it can be used.

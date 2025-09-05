@@ -32,6 +32,8 @@ elif [ "$1" = "format" ]; then
     npm --prefix "$ROOT/src/hypofuzz/frontend" run format && shed
 elif [ "$1" = "deps" ]; then
     tox -e deps
+elif [ "$1" = "deps-js" ]; then
+    npx npm-check-updates -u --packageFile src/hypofuzz/frontend/package.json && npm install --prefix src/hypofuzz/frontend
 else
     echo "Unknown build target $1. Available targets: docs, docs-clean, dashboard, dashboard-profiling, dashboard-json, dashboard-demo, test, format"
     exit 1

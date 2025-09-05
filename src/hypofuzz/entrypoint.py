@@ -152,7 +152,7 @@ def _fuzz_impl(n_processes: int, pytest_args: tuple[str, ...]) -> None:
     tests = collection.fuzz_targets
     if not tests:
         raise click.UsageError(
-            f"No property-based tests were collected. args: {pytest_args}"
+            f"No property-based tests were collected. pytest args: {pytest_args}"
         )
 
     skipped_s = "s" * (len(collection.not_collected) != 1)

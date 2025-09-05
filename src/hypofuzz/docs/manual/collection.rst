@@ -1,16 +1,12 @@
 Test collection
 ===============
 
-Before HypoFuzz starts fuzzing by assigning tests to workers, it first needs to know what tests are available. HypoFuzz does so by running a collection step.
+Before HypoFuzz starts fuzzing by assigning tests to workers, it first needs to know what tests are available. HypoFuzz does so by running a test collection step.
 
 How HypoFuzz collects tests
 ---------------------------
 
-HypoFuzz uses :pypi:`pytest` to collect test functions, with an almost identical command-line interface.
-
-If you're using ``pytest ...`` to run your tests, ``hypothesis fuzz -- ...`` will fuzz them. Everything after ``--`` is passed to a call to ``pytest --collect-only`` in HypoFuzz.
-
-Among others, this means you can use the standard pytest ``-k`` selector to configure which tests to run, with ``hypothesis fuzz -- -k ...``. See pytest's docs on :ref:`pytest:select-tests` and :ref:`pytest:test discovery` for more details.
+HypoFuzz uses :pypi:`pytest` to collect test functions. Any arguments passed after ``hypothesis fuzz -- ...`` will be passed to pytest during collection. For example, this means you can use the standard pytest ``-k`` selector to configure which tests to run, with ``hypothesis fuzz -- -k ...``. See pytest's docs on :ref:`pytest:select-tests` and :ref:`pytest:test discovery` for more details.
 
 Concretely, if your source layout looks like this:
 
@@ -27,6 +23,11 @@ and you normally run your tests with ``pytest``, then:
 * ``hypothesis fuzz`` will fuzz all your tests
 * ``hypothesis fuzz -- tests/test_a.py`` will fuzz the tests in ``test_a.py``
 * ``hypothesis fuzz -- -k selector_string`` will fuzz the tests matching ``selector_string`` (see :ref:`pytest:select-tests`).
+
+.. note::
+
+    In summary, if you're using ``pytest ...`` to run your tests, ``hypothesis fuzz -- ...`` will fuzz them.
+
 
 Pytest plugins during collection
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
