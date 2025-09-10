@@ -18,10 +18,10 @@ h2==4.3.0                 # via hypercorn
 hpack==4.1.0              # via h2
 hypercorn==0.17.3         # via hypofuzz (pyproject.toml)
 hyperframe==6.1.0         # via h2
-hypothesis[cli,watchdog]==6.138.14  # via hypofuzz (pyproject.toml)
+hypothesis[cli,watchdog]==6.138.15  # via hypofuzz (pyproject.toml)
 idna==3.10                # via anyio, requests, trio
 iniconfig==2.1.0          # via pytest
-libcst==1.8.2             # via hypofuzz (pyproject.toml)
+libcst==1.8.4             # via hypofuzz (pyproject.toml)
 markdown-it-py==3.0.0     # via rich
 mdurl==0.1.2              # via markdown-it-py
 mypy-extensions==1.1.0    # via black
@@ -33,8 +33,8 @@ pluggy==1.6.0             # via pytest, pytest-cov
 priority==2.0.0           # via hypercorn
 psutil==7.0.0             # via hypofuzz (pyproject.toml)
 pygments==2.19.2          # via pytest, rich
-pytest==8.4.1             # via -r deps/test.in, hypofuzz (pyproject.toml), pytest-cov, pytest-xdist
-pytest-cov==6.2.1         # via -r deps/test.in
+pytest==8.4.2             # via -r deps/test.in, hypofuzz (pyproject.toml), pytest-cov, pytest-xdist
+pytest-cov==7.0.0         # via -r deps/test.in
 pytest-xdist==3.8.0       # via -r deps/test.in
 pyyaml==6.0.2             # via libcst
 requests==2.32.5          # via -r deps/test.in
@@ -44,7 +44,7 @@ sortedcontainers==2.4.0   # via hypothesis, trio
 starlette==0.47.3         # via hypofuzz (pyproject.toml)
 taskgroup==0.2.2          # via hypercorn
 tomli==2.2.1              # via black, coverage, hypercorn, pytest
-trio==0.30.0              # via hypofuzz (pyproject.toml)
+trio==0.31.0              # via hypofuzz (pyproject.toml)
 typing-extensions==4.15.0  # via anyio, black, exceptiongroup, hypercorn, libcst, starlette, taskgroup
 urllib3==2.5.0            # via requests
 watchdog==6.0.0           # via hypothesis

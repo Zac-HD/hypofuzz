@@ -23,14 +23,14 @@ h2==4.3.0                 # via hypercorn
 hpack==4.1.0              # via h2
 hypercorn==0.17.3         # via hypofuzz (pyproject.toml)
 hyperframe==6.1.0         # via h2
-hypothesis[cli,watchdog]==6.138.14  # via hypofuzz (pyproject.toml)
+hypothesis[cli,watchdog]==6.138.15  # via hypofuzz (pyproject.toml)
 idna==3.10                # via anyio, requests, trio
 imagesize==1.4.1          # via sphinx
 importlib-metadata==8.7.0  # via pybtex, sphinx, sphinxcontrib-bibtex
 iniconfig==2.1.0          # via pytest
 jinja2==3.1.6             # via myst-parser, sphinx
 latexcodec==3.0.1         # via pybtex
-libcst==1.8.2             # via hypofuzz (pyproject.toml)
+libcst==1.8.4             # via hypofuzz (pyproject.toml)
 markdown-it-py==3.0.0     # via mdit-py-plugins, myst-parser, rich
 markupsafe==3.0.2         # via jinja2
 mdit-py-plugins==0.4.2    # via myst-parser
@@ -47,7 +47,7 @@ psutil==7.0.0             # via hypofuzz (pyproject.toml)
 pybtex==0.25.1            # via pybtex-docutils, sphinxcontrib-bibtex
 pybtex-docutils==1.0.3    # via sphinxcontrib-bibtex
 pygments==2.19.2          # via accessible-pygments, furo, pytest, rich, sphinx
-pytest==8.4.1             # via hypofuzz (pyproject.toml)
+pytest==8.4.2             # via hypofuzz (pyproject.toml)
 pyyaml==6.0.2             # via libcst, myst-parser, pybtex
 requests==2.32.5          # via sphinx
 rich==14.1.0              # via hypothesis
@@ -67,7 +67,7 @@ sphinxcontrib-serializinghtml==2.0.0  # via sphinx
 starlette==0.47.3         # via hypofuzz (pyproject.toml)
 taskgroup==0.2.2          # via hypercorn
 tomli==2.2.1              # via black, hypercorn, pytest, sphinx
-trio==0.30.0              # via hypofuzz (pyproject.toml)
+trio==0.31.0              # via hypofuzz (pyproject.toml)
 typing-extensions==4.15.0  # via anyio, beautifulsoup4, black, exceptiongroup, hypercorn, libcst, starlette, taskgroup
 urllib3==2.5.0            # via requests
 watchdog==6.0.0           # via hypothesis

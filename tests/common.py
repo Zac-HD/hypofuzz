@@ -298,6 +298,7 @@ def write_test_code(path: Path, db_dir, code: str) -> None:
             import pytest
             from hypothesis import given, settings, strategies as st, HealthCheck, target
             from hypothesis.database import DirectoryBasedExampleDatabase
+            from hypothesis.stateful import RuleBasedStateMachine, rule
 
             from hypofuzz import in_hypofuzz_run
 

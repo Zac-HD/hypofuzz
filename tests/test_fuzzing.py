@@ -25,6 +25,14 @@ from hypothesis import given, strategies as st
             assert isinstance(self, TestClassBased)
             assert isinstance(n, int)
     """,
+        """
+    class MyStateMachine(RuleBasedStateMachine):
+        @rule(n=st.integers())
+        def step(self, n):
+            assert isinstance(n, int)
+
+    TestMyStateMachine = MyStateMachine.TestCase
+    """,
     ],
 )
 def test_fuzz_with_no_error(tmp_path, code):
