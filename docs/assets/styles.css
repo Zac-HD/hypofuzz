@@ -302,7 +302,6 @@ html {
 }
 
 .button--cta {
-    font-weight: 500;
     background-color: hsl(var(--primary-h), var(--primary-s), 50%);
 }
 
@@ -648,6 +647,7 @@ html {
     border: 1px solid var(--secondary);
     border-radius: 8px;
     padding: 1rem;
+    margin-bottom: -1rem;
     max-width: 800px;
     text-align: center;
     line-height: 1.4;

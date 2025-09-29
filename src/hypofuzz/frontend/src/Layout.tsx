@@ -5,6 +5,7 @@ import {
   faBox,
   faCode,
   faCodeCompare,
+  faExternalLink,
   faUser,
 } from "@fortawesome/free-solid-svg-icons"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
@@ -115,6 +116,19 @@ export function Layout() {
               Docs
             </div>
           </a>
+          {import.meta.env.VITE_USE_DASHBOARD_STATE === "1" && (
+            <>
+              <div className="sidebar__separator"></div>
+              <a href={"http://hypofuzz.com/pricing"} className="sidebar__link__text">
+                <div className={`sidebar__link sidebar__link--cta`}>
+                  <span className="sidebar__link__icon">
+                    <FontAwesomeIcon icon={faExternalLink} />
+                  </span>
+                  Start using HypoFuzz
+                </div>
+              </a>
+            </>
+          )}
         </nav>
       </div>
       <div className="content">

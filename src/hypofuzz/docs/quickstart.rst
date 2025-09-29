@@ -22,16 +22,14 @@ Running HypoFuzz
 
 The main entrypoint to HypoFuzz is ``hypothesis fuzz``. Installing HypoFuzz automatically adds this ``fuzz`` sub-command to the existing :ref:`Hypothesis CLI <hypothesis:hypothesis-cli>`.
 
-The no-argument command ``hypothesis fuzz`` does two things:
+Running ``hypothesis fuzz`` does two things:
 
-* Starts a local dashboard webserver, and
-* Executes your Hypothesis tests using all available cores
+* Starts a local dashboard webserver.
+* Discovers and executes your Hypothesis tests with all available cores.
 
-These behaviors can be isolated with the ``--dashboard-only`` and ``--no-dashboard`` commands respectively. The number of cores used can be controlled with ``-n/--num-processes``.
+These behaviors can be isolated with the ``--dashboard-only`` and ``--no-dashboard`` commands, respectively. The number of cores used can be controlled with ``-n/--num-processes``.
 
-HypoFuzz uses :pypi:`pytest` to collect available tests. ``hypothesis fuzz`` should therefore be run in a directory where pytest can discover your tests.
-
-Any arguments after ``hypothesis fuzz --`` are passed through to pytest. See :doc:`/manual/collection` for how to use this to control which tests are collected.
+HypoFuzz uses :pypi:`pytest` to collect Hypothesis tests. ``hypothesis fuzz`` should therefore be run in a directory where pytest can discover your tests. To control how HypoFuzz collects tests, see :doc:`/manual/collection`.
 
 .. seealso::
 

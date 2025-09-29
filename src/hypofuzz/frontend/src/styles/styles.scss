@@ -358,12 +358,20 @@ $mobile-breakpoint: 768px;
         &--active {
             background: rgba(255, 255, 255, 0.2);
         }
+
+        &--cta {
+            background: hsl($primary-h, $primary-s, 45%);
+
+            &:hover {
+                background: hsl($primary-h, $primary-s, 40%);
+            }
+        }
     }
 
     &__separator {
         border-top: 1px solid #dee2e6;
-        margin-top: 1rem;
-        margin-bottom: 1rem;
+        margin-top: 0.8rem;
+        margin-bottom: 0.8rem;
     }
 }
 
