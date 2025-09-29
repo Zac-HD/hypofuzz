@@ -55,6 +55,7 @@ def observations(
             os_getpid=st.just(0),
             imported_at=st.just(0.0),
             data_status=statuses,
+            phase=st.just(""),
             interesting_origin=st.builds(interesting_origin, n=st.integers()),
             choice_nodes=st.lists(nodes()).map(tuple),
             choice_spans=st.just(None),

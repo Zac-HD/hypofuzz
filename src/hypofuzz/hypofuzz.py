@@ -174,7 +174,13 @@ class FuzzTarget:
     ) -> HypofuzzStateForActualGivenExecution:
         arguments: list[Any] = []
 
-        if self.pytest_item is not None and isinstance(self.pytest_item.parent, Class):
+        if (
+            self.pytest_item is not None
+            and isinstance(self.pytest_item.parent, Class)
+            # don't get tricked by the .TestCase class in stateful tests;
+            # that's already a standard @given test
+            and not hasattr(self.pytest_item.obj, "_hypothesis_state_machine_class")
+        ):
             assert self._pytest_item_instance is not None
             # if we're a class-based test, we need to provide the `self` instance
             # as the first argument.

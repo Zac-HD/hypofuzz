@@ -1,3 +1,4 @@
+import dataclasses
 import inspect
 import os
 import queue
@@ -335,7 +336,7 @@ def interesting_origin(n: Optional[int] = None) -> InterestingOrigin:
         int("not an int")
     except Exception as e:
         origin = InterestingOrigin.from_exception(e)
-        return origin._replace(lineno=n if n is not None else origin.lineno)
+        return dataclasses.replace(origin, lineno=n if n is not None else origin.lineno)
 
 
 def collect(code: str) -> CollectionResult:
