@@ -1,0 +1,1 @@
+{"version":3,"file":"jsonWorker-KJVNTzbb.js","sources":["../src/context/jsonWorker.js"],"sourcesContent":["self.onmessage = e => {\n  const data = JSON.parse(e.data)\n  self.postMessage(data)\n}\n"],"names":["e","data"],"mappings":"yBAAA,KAAK,UAAYA,GAAK,CACpB,MAAMC,EAAO,KAAK,MAAMD,EAAE,IAAI,EAC9B,KAAK,YAAYC,CAAI,CACvB"}
