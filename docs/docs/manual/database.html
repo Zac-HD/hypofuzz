@@ -1,15 +1,15 @@
 <!doctype html>
 <html class="no-js" lang="en" data-content_root="../">
-  <head><meta charset="utf-8"/>
-    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Custom coverage events" href="behavior.html" /><link rel="prev" title="Test collection" href="collection.html" />
-        <link rel="canonical" href="https://hypofuzz.com/docs/manual/database.html" />
+<link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html"><link rel="next" title="Custom coverage events" href="behavior.html"><link rel="prev" title="Test collection" href="collection.html">
+        <link rel="canonical" href="https://hypofuzz.com/docs/manual/database.html">
 
-    <!-- Generated with Sphinx 7.4.7 and Furo 2025.07.19 -->
+    <!-- Generated with Sphinx 7.4.7 and Furo 2025.09.25 -->
         <title>HypoFuzz database - HypoFuzz docs</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d111a655" />
-    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=25af2a20" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=580074bf" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=8dab3a3b" />
     <link rel="stylesheet" type="text/css" href="../_static/no-scroll.css?v=3215cb85" />
     
@@ -24,14 +24,14 @@
   }
   @media not print {
     body[data-theme="dark"] {
-      --color-code-background: #2b2b2b;
-  --color-code-foreground: #f8f8f2;
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
   
     }
     @media (prefers-color-scheme: dark) {
       body:not([data-theme="light"]) {
-        --color-code-background: #2b2b2b;
-  --color-code-foreground: #f8f8f2;
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
   
       }
     }
@@ -146,14 +146,10 @@
   </symbol>
 </svg>
 
-<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
-<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
-<label class="overlay sidebar-overlay" for="__navigation">
-  <div class="visually-hidden">Hide navigation sidebar</div>
-</label>
-<label class="overlay toc-overlay" for="__toc">
-  <div class="visually-hidden">Hide table of contents sidebar</div>
-</label>
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
 
 <a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
 
@@ -163,8 +159,7 @@
   <header class="mobile-header">
     <div class="header-left">
       <label class="nav-overlay-icon" for="__navigation">
-        <div class="visually-hidden">Toggle site navigation sidebar</div>
-        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
       </label>
     </div>
     <div class="header-center">
@@ -172,8 +167,7 @@
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
-        <button class="theme-toggle">
-          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
           <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
           <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
           <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
@@ -181,8 +175,7 @@
         </button>
       </div>
       <label class="toc-overlay-icon toc-header-icon" for="__toc">
-        <div class="visually-hidden">Toggle table of contents sidebar</div>
-        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
       </label>
     </div>
   </header>
@@ -201,7 +194,7 @@
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
   <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
-<li class="toctree-l1 current has-children"><a class="reference internal" href="index.html">User manual</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of User manual</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
+<li class="toctree-l1 current has-children"><a class="reference internal" href="index.html">User manual</a><input aria-label="Toggle navigation of User manual" checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="operating.html">Operating HypoFuzz</a></li>
 <li class="toctree-l2"><a class="reference internal" href="cli.html">Command-line interface</a></li>
 <li class="toctree-l2"><a class="reference internal" href="collection.html">Test collection</a></li>
@@ -243,8 +236,7 @@
   </a>
 </div>
 <div class="theme-toggle-container theme-toggle-content">
-            <button class="theme-toggle">
-              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
               <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
               <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
               <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
@@ -252,21 +244,20 @@
             </button>
           </div>
           <label class="toc-overlay-icon toc-content-icon" for="__toc">
-            <div class="visually-hidden">Toggle table of contents sidebar</div>
-            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
           </label>
         </div>
         <article role="main" id="furo-main-content">
           <section id="hypofuzz-database">
 <h1>HypoFuzz database<a class="headerlink" href="#hypofuzz-database" title="Link to this heading">¶</a></h1>
 <p>The HypoFuzz database stores all the persistent information necessary for fuzzing, including the covering corpus of inputs, any failures found, and progress of behaviors discovered over time.</p>
-<p>The HypoFuzz database is a standard <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/reference/api.html#database" title="(in Hypothesis v6.138.14)"><span class="xref std std-ref">Hypothesis database</span></a>.</p>
+<p>The HypoFuzz database is a standard <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/reference/api.html#database" title="(in Hypothesis v6.140.2)"><span class="xref std std-ref">Hypothesis database</span></a>.</p>
 <section id="configure-which-database-hypofuzz-uses">
 <h2>Configure which database HypoFuzz uses<a class="headerlink" href="#configure-which-database-hypofuzz-uses" title="Link to this heading">¶</a></h2>
 <p>HypoFuzz determines which database to use as follows:</p>
 <ul class="simple">
 <li><p>Run a pytest test collection step.</p></li>
-<li><p>Then, use the <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.settings.database" title="(in Hypothesis v6.138.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">.database</span></code></a> attribute of the current <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.settings" title="(in Hypothesis v6.138.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">settings</span> <span class="pre">profile</span></code></a>.</p></li>
+<li><p>Then, use the <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.settings.database" title="(in Hypothesis v6.140.2)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">.database</span></code></a> attribute of the current <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.settings" title="(in Hypothesis v6.140.2)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">settings</span> <span class="pre">profile</span></code></a>.</p></li>
 </ul>
 <p>To configure which database HypoFuzz uses, register and load a Hypothesis settings profile with the desired database. So for instance, to tell HypoFuzz to use a redis database, place the following in any module loaded during pytest’s test collection:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">hypothesis</span><span class="w"> </span><span class="kn">import</span> <span class="n">settings</span>
@@ -289,7 +280,7 @@
 </section>
 <section id="writing-your-own-database">
 <h2>Writing your own database<a class="headerlink" href="#writing-your-own-database" title="Link to this heading">¶</a></h2>
-<p>The HypoFuzz database is a standard <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/reference/api.html#database" title="(in Hypothesis v6.138.14)"><span class="xref std std-ref">hypothesis database</span></a>, which is a simple key-value store that maps bytestrings to lists of bytestrings. Writing your own database requires implementing only the <code class="docutils literal notranslate"><span class="pre">.fetch(key:</span> <span class="pre">bytes)</span></code>, <code class="docutils literal notranslate"><span class="pre">.save(key:</span> <span class="pre">bytes,</span> <span class="pre">value:</span> <span class="pre">bytes)</span></code>, and <code class="docutils literal notranslate"><span class="pre">.delete(key:</span> <span class="pre">bytes,</span> <span class="pre">value:</span> <span class="pre">bytes)</span></code> methods. See the Hypothesis <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/how-to/custom-database.html" title="(in Hypothesis v6.138.14)"><span>Write a custom Hypothesis database</span></a> how-to for more details.</p>
+<p>The HypoFuzz database is a standard <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/reference/api.html#database" title="(in Hypothesis v6.140.2)"><span class="xref std std-ref">hypothesis database</span></a>, which is a simple key-value store that maps bytestrings to lists of bytestrings. Writing your own database requires implementing only the <code class="docutils literal notranslate"><span class="pre">.fetch(key:</span> <span class="pre">bytes)</span></code>, <code class="docutils literal notranslate"><span class="pre">.save(key:</span> <span class="pre">bytes,</span> <span class="pre">value:</span> <span class="pre">bytes)</span></code>, and <code class="docutils literal notranslate"><span class="pre">.delete(key:</span> <span class="pre">bytes,</span> <span class="pre">value:</span> <span class="pre">bytes)</span></code> methods. See the Hypothesis <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/how-to/custom-database.html" title="(in Hypothesis v6.140.2)"><span>Write a custom Hypothesis database</span></a> how-to for more details.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>We’ve already sketched designs for Hypothesis databases backed by S3, DynamoDB, and other cloud storage solutions. If something in this space would be useful for you, please <a class="reference external" href="mailto:sales&#37;&#52;&#48;hypofuzz&#46;com?subject=HypoFuzz%20database%20support">get in touch</a> and we can bump it up our todo list!</p>
