@@ -2,6 +2,12 @@
 HypoFuzz uses [calendar-based versioning](https://calver.org/), with a
 `YY-MM-patch` format.
 
+(v25-09-02)=
+## 25.09.02
+
+* Fix error while running stateful tests
+* Support middle click to open links in new tab in more places
+
 (v25-09-01)=
 ## 25.09.01
 
