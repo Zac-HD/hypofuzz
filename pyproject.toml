@@ -127,7 +127,6 @@ ignore = [
     "E741",
     "FBT003",
     "PD011",
-    "PD901",
     "PIE790",  # See https://github.com/astral-sh/ruff/issues/10538
     "PT001",
     "PT003",
