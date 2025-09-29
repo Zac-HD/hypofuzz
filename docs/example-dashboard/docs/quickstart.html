@@ -265,14 +265,13 @@
 <section id="running-hypofuzz">
 <h2>Running HypoFuzz<a class="headerlink" href="#running-hypofuzz" title="Link to this heading">¶</a></h2>
 <p>The main entrypoint to HypoFuzz is <code class="docutils literal notranslate"><span class="pre">hypothesis</span> <span class="pre">fuzz</span></code>. Installing HypoFuzz automatically adds this <code class="docutils literal notranslate"><span class="pre">fuzz</span></code> sub-command to the existing <a class="reference external" href="https://hypothesis.readthedocs.io/en/latest/reference/integrations.html#hypothesis-cli" title="(in Hypothesis v6.140.2)"><span class="xref std std-ref">Hypothesis CLI</span></a>.</p>
-<p>The no-argument command <code class="docutils literal notranslate"><span class="pre">hypothesis</span> <span class="pre">fuzz</span></code> does two things:</p>
+<p>Running <code class="docutils literal notranslate"><span class="pre">hypothesis</span> <span class="pre">fuzz</span></code> does two things:</p>
 <ul class="simple">
-<li><p>Starts a local dashboard webserver, and</p></li>
-<li><p>Executes your Hypothesis tests using all available cores</p></li>
+<li><p>Starts a local dashboard webserver.</p></li>
+<li><p>Discovers and executes your Hypothesis tests with all available cores.</p></li>
 </ul>
-<p>These behaviors can be isolated with the <code class="docutils literal notranslate"><span class="pre">--dashboard-only</span></code> and <code class="docutils literal notranslate"><span class="pre">--no-dashboard</span></code> commands respectively. The number of cores used can be controlled with <code class="docutils literal notranslate"><span class="pre">-n/--num-processes</span></code>.</p>
-<p>HypoFuzz uses <a class="extlink-pypi reference external" href="https://pypi.org/project/pytest">pytest</a> to collect available tests. <code class="docutils literal notranslate"><span class="pre">hypothesis</span> <span class="pre">fuzz</span></code> should therefore be run in a directory where pytest can discover your tests.</p>
-<p>Any arguments after <code class="docutils literal notranslate"><span class="pre">hypothesis</span> <span class="pre">fuzz</span> <span class="pre">--</span></code> are passed through to pytest. See <a class="reference internal" href="manual/collection.html"><span class="doc">Test collection</span></a> for how to use this to control which tests are collected.</p>
+<p>These behaviors can be isolated with the <code class="docutils literal notranslate"><span class="pre">--dashboard-only</span></code> and <code class="docutils literal notranslate"><span class="pre">--no-dashboard</span></code> commands, respectively. The number of cores used can be controlled with <code class="docutils literal notranslate"><span class="pre">-n/--num-processes</span></code>.</p>
+<p>HypoFuzz uses <a class="extlink-pypi reference external" href="https://pypi.org/project/pytest">pytest</a> to collect Hypothesis tests. <code class="docutils literal notranslate"><span class="pre">hypothesis</span> <span class="pre">fuzz</span></code> should therefore be run in a directory where pytest can discover your tests. To control how HypoFuzz collects tests, see <a class="reference internal" href="manual/collection.html"><span class="doc">Test collection</span></a>.</p>
 <div class="admonition seealso">
 <p class="admonition-title">See also</p>
 <p>See the <a class="reference internal" href="manual/cli.html"><span class="doc">command-line interface</span></a> docs for a full command reference, and the <a class="reference internal" href="manual/operating.html"><span class="doc">operating guide</span></a> for advice on configuring HypoFuzz.</p>
