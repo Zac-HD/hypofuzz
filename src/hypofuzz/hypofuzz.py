@@ -12,7 +12,7 @@ import time
 import traceback
 from collections import defaultdict
 from collections.abc import Callable, Mapping, Sequence
-from contextlib import nullcontext
+from contextlib import nullcontext, redirect_stdout
 from functools import cache, partial
 from multiprocessing import Manager, Process
 from pathlib import Path
