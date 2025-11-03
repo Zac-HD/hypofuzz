@@ -201,13 +201,20 @@ def test_while():
     collector = Collector(f)
     with collector:
         f()
-    assert collector.branches == {
-        # I'm not sure what this (2, 14) self-reference branch is for. TODO look
-        # at the bytecode here
-        ((2, 14), (2, 14)),
-        ((2, 14), (3, 12)),
-        ((2, 14), (4, 8)),
-    }
+
+    # I'm not sure what this (2, 14) self-reference branch is for. It appears
+    # on all versions except 3.14, but it not appearing on 3.14 makes me think
+    # it's something weird we don't have to worry too much about.
+    # TODO look at the bytecode here
+    weird_branch = {((2, 14), (2, 14))} if sys.version_info[:2] < (3, 14) else set()
+    assert (
+        collector.branches
+        == {
+            ((2, 14), (3, 12)),
+            ((2, 14), (4, 8)),
+        }
+        | weird_branch
+    )
 
 
 def test_while_initial_false():
