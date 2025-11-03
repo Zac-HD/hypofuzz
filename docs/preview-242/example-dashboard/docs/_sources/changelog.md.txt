@@ -2,6 +2,11 @@
 HypoFuzz uses [calendar-based versioning](https://calver.org/), with a
 `YY-MM-patch` format.
 
+(v25-11-01)=
+## 25.11.01
+
+* Drop support for Python 3.9, [which reached end of life in October 2025](https://devguide.python.org/versions/).
+
 (v25-09-02)=
 ## 25.09.02
 
