@@ -1,6 +1,7 @@
 """Adaptive fuzzing for property-based tests using Hypothesis."""
 
 import contextlib
+import dataclasses
 import inspect
 import math
 import os
@@ -664,11 +665,15 @@ class FuzzWorker:
                     origin = InterestingOrigin.from_exception(e)
                     # hypothesis just reraises the skip exception; it doesn't
                     # think that it failed. Update the required fields
-                    observation.status = "failed"
-                    observation.status_reason = str(origin)
-                    observation.metadata.interesting_origin = origin
-                    observation.metadata.traceback = "".join(
-                        traceback.format_exception(e)
+                    observation = dataclasses.replace(
+                        observation,
+                        status="failed",
+                        status_reason=str(origin),
+                        metadata=dataclasses.replace(
+                            observation.metadata,
+                            interesting_origin=origin,
+                            traceback="".join(traceback.format_exception(e)),
+                        ),
                     )
                     target.database.failures(state=FailureState.SHRUNK).save(
                         target.database_key,

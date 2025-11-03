@@ -1,3 +1,4 @@
+import dataclasses
 import math
 import time
 from base64 import b64encode
@@ -617,15 +618,19 @@ class HypofuzzProvider(PrimitiveProvider):
         assert observation.metadata.choice_nodes is not None
 
         elapsed_time = time.perf_counter() - self._state.start_time
-        # run_start is normally relative to StateForActualGivenExecution, which we
-        # re-use per FuzzTarget. Overwrite with the current timestamp for use
-        # in sorting observations. This is not perfectly reliable in a
-        # distributed setting, but is good enough.
-        observation.run_start = self._state.start_time
-        # "arguments" duplicates part of the call repr in "representation".
-        # We don't use this for anything, and it can be substantial in size, so
-        # drop it.
-        observation.arguments = {}
+        observation = dataclasses.replace(
+            observation,
+            # run_start is normally relative to StateForActualGivenExecution, which we
+            # re-use per FuzzTarget. Overwrite with the current timestamp for use
+            # in sorting observations. This is not perfectly reliable in a
+            # distributed setting, but is good enough.
+            run_start=self._state.start_time,
+            # "arguments" duplicates part of the call repr in "representation".
+            # We don't use this for anything, and it can be substantial in size, so
+            # drop it.
+            arguments={},
+        )
+
         # TODO this is a real type error, we need to unify the Branch namedtuple
         # with the real usages of `behaviors` here
         behaviors: Set[Behavior] = self._state.branches | (  # type: ignore
