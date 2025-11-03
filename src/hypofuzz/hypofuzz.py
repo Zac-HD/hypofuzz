@@ -661,7 +661,6 @@ class FuzzWorker:
                     # failure card.
                     observation = target.provider.most_recent_observation
                     assert observation is not None
-                    assert observation.metadata.choice_nodes
                     origin = InterestingOrigin.from_exception(e)
                     # hypothesis just reraises the skip exception; it doesn't
                     # think that it failed. Update the required fields
@@ -675,6 +674,7 @@ class FuzzWorker:
                             traceback="".join(traceback.format_exception(e)),
                         ),
                     )
+                    assert observation.metadata.choice_nodes is not None
                     target.database.failures(state=FailureState.SHRUNK).save(
                         target.database_key,
                         tuple(n.value for n in observation.metadata.choice_nodes),

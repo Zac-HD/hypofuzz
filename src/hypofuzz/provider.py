@@ -782,6 +782,7 @@ class HypofuzzProvider(PrimitiveProvider):
                 self._save_observation(observation, stability=None)
 
         if queue_for_stability:
+            assert observation.metadata.choice_nodes is not None
             self._enqueue(
                 QueuePriority.STABILITY,
                 choices=tuple(n.value for n in observation.metadata.choice_nodes),
