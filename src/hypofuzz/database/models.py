@@ -27,12 +27,12 @@ class WorkerIdentity:
     hypofuzz_version: str
     pid: int
     hostname: str
-    pod_name: Optional[str]
-    pod_namespace: Optional[str]
-    node_name: Optional[str]
-    pod_ip: Optional[str]
-    container_id: Optional[str]
-    git_hash: Optional[str]
+    pod_name: str | None
+    pod_namespace: str | None
+    node_name: str | None
+    pod_ip: str | None
+    container_id: str | None
+    git_hash: str | None
 
     @staticmethod
     def from_json(data: bytes) -> Optional["WorkerIdentity"]:
@@ -63,8 +63,8 @@ class Stability(Enum):
 # only the subset of the metadata that we store from HypothesisObservation.
 @dataclass(frozen=True)
 class ObservationMetadata:
-    traceback: Optional[str]
-    reproduction_decorator: Optional[str]
+    traceback: str | None
+    reproduction_decorator: str | None
     predicates: dict[str, PredicateCounts]
     backend: dict[str, Any]
     sys_argv: list[str]
@@ -105,11 +105,11 @@ class Observation:
     run_start: float
     # stability == None means we don't know the stability, because we didn't
     # re-execute this observation
-    stability: Optional[Stability]
+    stability: Stability | None
 
     @classmethod
     def from_hypothesis(
-        cls, observation: TestCaseObservation, stability: Optional[Stability] = None
+        cls, observation: TestCaseObservation, stability: Stability | None = None
     ) -> "Observation":
         return cls(
             type=observation.type,
@@ -157,7 +157,7 @@ class Phase(Enum):
 
 
 class StatusCounts(dict):
-    def __init__(self, value: Optional[dict[Status, int]] = None) -> None:
+    def __init__(self, value: dict[Status, int] | None = None) -> None:
         if value is None:
             value = dict.fromkeys(Status, 0)
         super().__init__(value)
@@ -202,7 +202,7 @@ class Report:
     status_counts: StatusCounts
     behaviors: int
     fingerprints: int
-    since_new_behavior: Optional[int]
+    since_new_behavior: int | None
     phase: Phase
 
     def __post_init__(self) -> None:

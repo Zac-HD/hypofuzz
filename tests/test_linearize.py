@@ -1,6 +1,5 @@
 import dataclasses
 from collections import defaultdict
-from typing import Optional
 
 import pytest
 from hypothesis import HealthCheck, assume, given, settings, strategies as st
@@ -66,7 +65,7 @@ def report_inline(
 
 @st.composite
 def reports(
-    draw, *, count_workers: Optional[int] = None, overlap: bool = False
+    draw, *, count_workers: int | None = None, overlap: bool = False
 ) -> list[Report]:
     # all of this min_size=len(uuids) etc is going to lead to terrible shrinking.
     # But the alternative of while draw(st.booleans()) will generate too-small

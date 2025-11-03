@@ -1,3 +1,4 @@
+import dataclasses
 import math
 import time
 from base64 import b64encode
@@ -7,7 +8,7 @@ from dataclasses import dataclass
 from datetime import date, timedelta
 from enum import IntEnum
 from random import Random
-from typing import Any, ClassVar, Optional, TypeVar, Union, cast
+from typing import Any, ClassVar, TypeVar, cast
 
 import hypothesis
 import hypothesis.internal.observability
@@ -72,7 +73,7 @@ def fresh_choice(
 
 
 # like choices_size, but handles ChoiceTemplate
-def _choices_size(choices: tuple[Union[ChoiceT, ChoiceTemplate], ...]) -> int:
+def _choices_size(choices: tuple[ChoiceT | ChoiceTemplate, ...]) -> int:
     return sum(
         1 if isinstance(choice, ChoiceTemplate) else choices_size([choice])
         for choice in choices
@@ -109,7 +110,7 @@ class QueuePriority(IntEnum):
 @dataclass
 class State:
     choices: ChoicesT
-    priority: Optional[QueuePriority]
+    priority: QueuePriority | None
     start_time: float
     save_rolling_observation: bool
     # whether to re-execute this observation for stability, or save it with
@@ -117,13 +118,13 @@ class State:
     rolling_observation_stability: bool
 
     choice_index: int = 0
-    branches: Optional[frozenset[Branch]] = None
-    observation: Optional[Observation] = None
-    extra_queue_data: Optional[Any] = None
+    branches: frozenset[Branch] | None = None
+    observation: Observation | None = None
+    extra_queue_data: Any | None = None
 
 
 # (priority, choice sequence, extra_data)
-QueueElement = tuple[QueuePriority, ChoicesT, Optional[Any]]
+QueueElement = tuple[QueuePriority, ChoicesT, Any | None]
 
 
 def bucket_target_value(v: Any) -> Any:
@@ -163,11 +164,11 @@ class HypofuzzProvider(PrimitiveProvider):
 
     def __init__(
         self,
-        conjecturedata: Optional[ConjectureData],
+        conjecturedata: ConjectureData | None,
         /,
         # allow test-time override of the coverage collector.
-        collector: Optional[CoverageCollector] = None,
-        database_key: Optional[bytes] = None,
+        collector: CoverageCollector | None = None,
+        database_key: bytes | None = None,
     ) -> None:
         super().__init__(conjecturedata)
         self.collector = collector
@@ -195,7 +196,7 @@ class HypofuzzProvider(PrimitiveProvider):
         self.since_new_fingerprint: int = 0
 
         self.random = Random()
-        self.phase: Optional[Phase] = None
+        self.phase: Phase | None = None
         # there's a subtle bug here: we don't want to defer computation of
         # database_key until _startup, because by then the _hypothesis_internal_add_digest
         # added to the shared inner_test function may have been changed to a
@@ -205,9 +206,9 @@ class HypofuzzProvider(PrimitiveProvider):
         # Passing the database key upfront avoids from FuzzTarget avoids this. If
         # it's not passed, we're being used from Hypothesis, and it's fine to defer
         # computation.
-        self.database_key: Optional[bytes] = database_key
-        self.corpus: Optional[Corpus] = None
-        self.db: Optional[HypofuzzDatabase] = None
+        self.database_key: bytes | None = database_key
+        self.corpus: Corpus | None = None
+        self.db: HypofuzzDatabase | None = None
 
         self._choices_queue: SortedList[QueueElement] = SortedList(
             key=lambda x: (x[0], _choices_size(x[1]))
@@ -222,7 +223,7 @@ class HypofuzzProvider(PrimitiveProvider):
         self._last_saved_report_at = -math.inf
         self._last_observed = -math.inf
         # per-test-case state, reset at the beginning of each test case.
-        self._state: Optional[State] = None
+        self._state: State | None = None
         self._started = False
         # we use this to ignore the on_observation observation if we error in
         # startup
@@ -329,7 +330,7 @@ class HypofuzzProvider(PrimitiveProvider):
         priority: QueuePriority,
         choices: ChoicesT,
         *,
-        extra_data: Optional[Any] = None,
+        extra_data: Any | None = None,
     ) -> None:
         self._choices_queue.add((priority, choices, extra_data))
 
@@ -418,7 +419,7 @@ class HypofuzzProvider(PrimitiveProvider):
 
     def _test_case_choices(
         self,
-    ) -> tuple[ChoicesT, Optional[QueuePriority], Optional[Any]]:
+    ) -> tuple[ChoicesT, QueuePriority | None, Any | None]:
         # return the choices for this test case. The choices might come from
         # either _choices_queue, or a mutator.
 
@@ -467,7 +468,7 @@ class HypofuzzProvider(PrimitiveProvider):
         return (choices, None, None)
 
     def _should_save_rolling_observation(
-        self, *, priority: Optional[QueuePriority]
+        self, *, priority: QueuePriority | None
     ) -> bool:
         return (
             self.phase is Phase.GENERATE
@@ -514,7 +515,7 @@ class HypofuzzProvider(PrimitiveProvider):
         )
 
     def on_observation(
-        self, observation: Union[TestCaseObservation, InfoObservation]
+        self, observation: TestCaseObservation | InfoObservation
     ) -> None:
         assert observation.type == "test_case"
         if self._errored_in_startup:
@@ -577,7 +578,7 @@ class HypofuzzProvider(PrimitiveProvider):
             )
 
     def _save_observation(
-        self, observation: TestCaseObservation, *, stability: Optional[Stability]
+        self, observation: TestCaseObservation, *, stability: Stability | None
     ) -> None:
         assert self.db is not None
         assert self.database_key is not None
@@ -617,15 +618,19 @@ class HypofuzzProvider(PrimitiveProvider):
         assert observation.metadata.choice_nodes is not None
 
         elapsed_time = time.perf_counter() - self._state.start_time
-        # run_start is normally relative to StateForActualGivenExecution, which we
-        # re-use per FuzzTarget. Overwrite with the current timestamp for use
-        # in sorting observations. This is not perfectly reliable in a
-        # distributed setting, but is good enough.
-        observation.run_start = self._state.start_time
-        # "arguments" duplicates part of the call repr in "representation".
-        # We don't use this for anything, and it can be substantial in size, so
-        # drop it.
-        observation.arguments = {}
+        observation = dataclasses.replace(
+            observation,
+            # run_start is normally relative to StateForActualGivenExecution, which we
+            # re-use per FuzzTarget. Overwrite with the current timestamp for use
+            # in sorting observations. This is not perfectly reliable in a
+            # distributed setting, but is good enough.
+            run_start=self._state.start_time,
+            # "arguments" duplicates part of the call repr in "representation".
+            # We don't use this for anything, and it can be substantial in size, so
+            # drop it.
+            arguments={},
+        )
+
         # TODO this is a real type error, we need to unify the Branch namedtuple
         # with the real usages of `behaviors` here
         behaviors: Set[Behavior] = self._state.branches | (  # type: ignore
@@ -777,6 +782,7 @@ class HypofuzzProvider(PrimitiveProvider):
                 self._save_observation(observation, stability=None)
 
         if queue_for_stability:
+            assert observation.metadata.choice_nodes is not None
             self._enqueue(
                 QueuePriority.STABILITY,
                 choices=tuple(n.value for n in observation.metadata.choice_nodes),
@@ -829,11 +835,11 @@ class HypofuzzProvider(PrimitiveProvider):
 
     def draw_integer(
         self,
-        min_value: Optional[int] = None,
-        max_value: Optional[int] = None,
+        min_value: int | None = None,
+        max_value: int | None = None,
         *,
         # weights are for choosing an element index from a bounded range
-        weights: Optional[dict[int, float]] = None,
+        weights: dict[int, float] | None = None,
         shrink_towards: int = 0,
     ) -> int:
         choice = self._pop_choice(

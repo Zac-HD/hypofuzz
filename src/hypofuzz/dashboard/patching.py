@@ -2,7 +2,7 @@ import threading
 from collections import defaultdict
 from collections.abc import Sequence
 from queue import Empty, Queue
-from typing import TYPE_CHECKING, Any, Literal, Optional
+from typing import TYPE_CHECKING, Any, Literal
 
 from hypothesis.extra._patching import get_patch_for, make_patch as _make_patch
 from sortedcontainers import SortedList
@@ -33,7 +33,7 @@ EXAMPLES: dict[str, dict[str, SortedList[str]]] = defaultdict(
 #   "covering": patch,
 #   "failing": patch,
 # }
-PATCHES: dict[str, dict[str, Optional[str]]] = defaultdict(
+PATCHES: dict[str, dict[str, str | None]] = defaultdict(
     lambda: {"covering": None, "failing": None}
 )
 VIA = {"covering": "covering example", "failing": "discovered failure"}
@@ -44,7 +44,7 @@ COMMIT_MESSAGE = {
 
 ObservationTypeT: "TypeAlias" = Literal["covering", "failing"]
 _queue: Queue[tuple[Any, str, Observation, ObservationTypeT]] = Queue()
-_thread: Optional[threading.Thread] = None
+_thread: threading.Thread | None = None
 
 
 def add_patch(
@@ -59,7 +59,7 @@ def add_patch(
 
 def make_patch(
     function: Any, examples: Sequence[str], observation_type: ObservationTypeT
-) -> Optional[str]:
+) -> str | None:
     via = VIA[observation_type]
     triple = get_patch_for(function, examples=[(example, via) for example in examples])
     if triple is None:
@@ -102,9 +102,9 @@ def start_patching_thread() -> None:
     _thread.start()
 
 
-def failing_patch(nodeid: str) -> Optional[str]:
+def failing_patch(nodeid: str) -> str | None:
     return PATCHES[nodeid]["failing"]
 
 
-def covering_patch(nodeid: str) -> Optional[str]:
+def covering_patch(nodeid: str) -> str | None:
     return PATCHES[nodeid]["covering"]

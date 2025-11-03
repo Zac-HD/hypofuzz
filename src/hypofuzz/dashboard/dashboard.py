@@ -4,7 +4,7 @@ import math
 import socket
 from collections import defaultdict
 from pathlib import Path
-from typing import Any, Literal, Optional
+from typing import Any, Literal
 
 import trio
 from hypercorn.config import Config
@@ -62,8 +62,8 @@ TESTS: dict[str, "Test"] = {}
 TESTS_BY_KEY: dict[bytes, "Test"] = {}
 # databse_key: loaded
 LOADING_STATE: dict[bytes, bool] = {}
-COLLECTION_RESULT: Optional[CollectionResult] = None
-db: Optional[HypofuzzDatabase] = None
+COLLECTION_RESULT: CollectionResult | None = None
+db: HypofuzzDatabase | None = None
 
 
 class DocsStaticFiles(StaticFiles):
@@ -103,8 +103,8 @@ def _add_patch(
     )
 
 
-def _dashboard_event(db_event: DatabaseEvent) -> Optional[DashboardEventT]:
-    event: Optional[DashboardEventT] = None
+def _dashboard_event(db_event: DatabaseEvent) -> DashboardEventT | None:
+    event: DashboardEventT | None = None
     if db_event.type == "save":
         value = db_event.value
         assert value is not None

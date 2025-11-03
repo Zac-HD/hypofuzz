@@ -1,6 +1,6 @@
 import math
 from dataclasses import dataclass, field
-from typing import Optional, TypeVar
+from typing import TypeVar
 
 from hypothesis.internal.cache import LRUCache
 
@@ -28,7 +28,7 @@ class Test:
     rolling_observations: list[Observation]
     corpus_observations: list[Observation]
     failures: dict[str, tuple[FailureState, Observation]]
-    fatal_failure: Optional[FatalFailure]
+    fatal_failure: FatalFailure | None
     reports_by_worker: dict[str, list[ReportWithDiff]]
 
     linear_reports: list[ReportWithDiff] = field(init=False)
@@ -212,7 +212,7 @@ class Test:
                             cache[key] = (start_idx, values[: index - start_idx])
 
     @property
-    def stability(self) -> Optional[float]:
+    def stability(self) -> float | None:
         if not self.rolling_observations:
             return None
 
@@ -231,7 +231,7 @@ class Test:
         return count_stable / (count_stable + count_unstable)
 
     @property
-    def phase(self) -> Optional[Phase]:
+    def phase(self) -> Phase | None:
         return self.linear_reports[-1].phase if self.linear_reports else None
 
     @property

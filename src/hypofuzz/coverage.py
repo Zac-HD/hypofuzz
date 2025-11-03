@@ -5,7 +5,7 @@ import sys
 import types
 from functools import cache
 from pathlib import Path
-from typing import Any, NamedTuple, Optional
+from typing import Any, NamedTuple
 
 import _pytest
 import attr
@@ -23,7 +23,7 @@ import hypofuzz
 # (start_file, end_file): {start: {end: branch}}
 _BRANCH_CACHE: dict[
     tuple[str, str],
-    dict[tuple[int, Optional[int]], dict[tuple[int, Optional[int]], "Branch"]],
+    dict[tuple[int, int | None], dict[tuple[int, int | None], "Branch"]],
 ] = {}
 
 
@@ -33,7 +33,7 @@ class Location(NamedTuple):
     filename: str
     line: int
     # column might be None if we're on pre-3.12
-    column: Optional[int]
+    column: int | None
 
 
 class Branch(NamedTuple):
@@ -146,7 +146,7 @@ class CoverageCollector:
 
     def __init__(self) -> None:
         self.branches: set[Branch] = set()
-        self.last: Optional[Location] = None
+        self.last: Location | None = None
 
     def trace_pre_312(self, frame: Any, event: Any, arg: Any) -> Any:
         if event == "line":

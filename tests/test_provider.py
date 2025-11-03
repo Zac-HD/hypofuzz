@@ -1,7 +1,6 @@
 import sys
 from collections.abc import Iterable, Sequence
 from random import Random
-from typing import Optional
 
 import pytest
 from hypothesis import assume, given, settings, strategies as st
@@ -53,7 +52,7 @@ def _wrapped_test(n):
 
 def _data(
     *,
-    random: Optional[Random] = None,
+    random: Random | None = None,
     queue: Iterable[tuple[QueuePriority, ChoicesT]] = (),
 ) -> ConjectureData:
     data = ConjectureData(

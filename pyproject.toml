@@ -17,8 +17,11 @@ name = "hypofuzz"
 dynamic = ["version"]
 description = "Adaptive fuzzing for property-based tests"
 readme = "README.md"
+# custom license name. See https://spdx.github.io/spdx-spec/v2.2.2/other-licensing-information-detected/
+# and https://peps.python.org/pep-0639/ (grep "custom license")
+license = "LicenseRef-HypoFuzz"
 license-files = ["LICENSE", "CONTRIBUTING.md"]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 authors = [
     {name = "Zac Hatfield-Dodds", email = "zac@hypofuzz.com"}
 ]
@@ -40,15 +43,13 @@ classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Framework :: Hypothesis",
     "Intended Audience :: Developers",
-    "License :: Other/Proprietary License",
-    "License :: Free for non-commercial use",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Software Development :: Testing",
 ]
 
