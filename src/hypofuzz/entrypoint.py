@@ -3,7 +3,7 @@
 import os
 import sys
 from multiprocessing import Process
-from typing import NoReturn, Optional
+from typing import NoReturn
 
 import click
 import hypothesis.extra.cli
@@ -59,8 +59,8 @@ def fuzz(
     numprocesses: int,
     dashboard: bool,
     dashboard_only: bool,
-    host: Optional[str],
-    port: Optional[int],
+    host: str | None,
+    port: int | None,
     pytest_args: tuple[str, ...],
 ) -> NoReturn:
     """[hypofuzz] runs tests with an adaptive coverage-guided fuzzer.

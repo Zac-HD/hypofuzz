@@ -1,10 +1,10 @@
 from collections.abc import Iterable, Sequence
-from typing import List, TypeVar
+from typing import TypeVar
 
 T = TypeVar("T")
 
 
-def timsort(values: Sequence[T]) -> List[T]:
+def timsort(values: Sequence[T]) -> list[T]:
     """
     Sort and return a new list using a simplified Timsort-style algorithm.
 
@@ -19,7 +19,7 @@ def timsort(values: Sequence[T]) -> List[T]:
     if n <= 1:
         return list(values)
 
-    runs: List[List[T]] = []
+    runs: list[list[T]] = []
 
     i = 0
     while i < n:
@@ -44,7 +44,7 @@ def timsort(values: Sequence[T]) -> List[T]:
 
     # Simple pairwise merge until one run remains.
     while len(runs) > 1:
-        merged: List[List[T]] = []
+        merged: list[list[T]] = []
         for k in range(0, len(runs), 2):
             if k + 1 == len(runs):
                 merged.append(runs[k])
@@ -55,12 +55,12 @@ def timsort(values: Sequence[T]) -> List[T]:
     return runs[0]
 
 
-def _merge_two_sorted(left: Iterable[T], right: Iterable[T]) -> List[T]:
+def _merge_two_sorted(left: Iterable[T], right: Iterable[T]) -> list[T]:
     li = list(left)
     ri = list(right)
     i = 0
     j = 0
-    out: List[T] = []
+    out: list[T] = []
 
     while i < len(li) and j < len(ri):
         if li[i] <= ri[j]:

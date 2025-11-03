@@ -66,7 +66,7 @@ class Choices:
         return self.choices[i]
 
 
-def sort_key(nodes: Union[NodesT, ConjectureResult]) -> tuple[int, tuple[int, ...]]:
+def sort_key(nodes: NodesT | ConjectureResult) -> tuple[int, tuple[int, ...]]:
     """Sort choice nodes in shortlex order.
 
     See `hypothesis.internal.conjecture.engine.sort_key` for details on why we
@@ -81,7 +81,7 @@ def sort_key(nodes: Union[NodesT, ConjectureResult]) -> tuple[int, tuple[int, ..
 def get_shrinker(
     fn: Callable[[ConjectureData], None],
     *,
-    initial: Union[ConjectureData, ConjectureResult],
+    initial: ConjectureData | ConjectureResult,
     predicate: Callable[..., bool],
     random: Random,
     explain: bool = False,

@@ -13,7 +13,6 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 from queue import Queue
-from typing import Optional
 
 import requests
 from hypothesis.database import DirectoryBasedExampleDatabase
@@ -81,7 +80,7 @@ def _enqueue_output(stream, queue):
 
 @contextmanager
 def dashboard(
-    *, port: int = 0, test_path: Optional[Path] = None, numprocesses: int = 0
+    *, port: int = 0, test_path: Path | None = None, numprocesses: int = 0
 ) -> Generator[Dashboard, None, None]:
     """
     Launches a dashboard process with --dashboard-only (unless numprocesses is
@@ -323,7 +322,7 @@ def setup_test_code(tmp_path, code):
     return (test_dir, db_dir)
 
 
-def interesting_origin(n: Optional[int] = None) -> InterestingOrigin:
+def interesting_origin(n: int | None = None) -> InterestingOrigin:
     """
     Creates and returns an InterestingOrigin, parameterized by n, such that
     interesting_origin(n) == interesting_origin(m) iff n = m.

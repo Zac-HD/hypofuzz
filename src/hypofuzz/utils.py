@@ -1,9 +1,9 @@
 import heapq
 import math
 import threading
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from enum import Enum
-from typing import Any, Callable, Generic, Optional, TypeVar
+from typing import Any, Generic, TypeVar
 from uuid import uuid4
 
 from hypofuzz.compat import bisect_right
@@ -64,7 +64,7 @@ def lerp(a: float, b: float, t: float) -> float:
 
 
 def k_way_merge(
-    lists: Sequence[Sequence[T]], key: Optional[Callable[[T], Any]] = None
+    lists: Sequence[Sequence[T]], key: Callable[[T], Any] | None = None
 ) -> list[T]:
     # merges k sorted lists in O(nlg(k)) time, where n is the total number of
     # elements.
@@ -98,7 +98,7 @@ def k_way_merge(
 
 
 def fast_bisect_right(
-    a: Sequence[Any], x: Any, key: Optional[Callable[[Any], Any]] = None
+    a: Sequence[Any], x: Any, key: Callable[[Any], Any] | None = None
 ) -> int:
     # this case isn't really for performance, but just to make the fast case checks
     # below easier.

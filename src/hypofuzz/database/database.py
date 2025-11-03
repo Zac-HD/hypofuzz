@@ -3,16 +3,14 @@ import dataclasses
 import hashlib
 import json
 from collections import defaultdict, deque
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass, is_dataclass
 from enum import Enum
 from functools import lru_cache
 from typing import (
     Any,
-    Callable,
     Literal,
     Optional,
-    Union,
     overload,
 )
 
@@ -62,7 +60,7 @@ def _check_observation(observation: Observation) -> None:
 def corpus_observation_key(
     key: bytes,
     # `choices` required to be hashable for @lru_cache
-    choices: Union[HashableIterable[ChoiceT], bytes],
+    choices: HashableIterable[ChoiceT] | bytes,
 ) -> bytes:
     choices_bytes = choices if isinstance(choices, bytes) else choices_to_bytes(choices)
     return (
@@ -93,7 +91,7 @@ def _failure_observation_postfix(*, state: FailureState) -> bytes:
 
 @lru_cache(maxsize=512)
 def failure_observation_key(
-    key: bytes, choices: Union[HashableIterable[ChoiceT], bytes], state: FailureState
+    key: bytes, choices: HashableIterable[ChoiceT] | bytes, state: FailureState
 ) -> bytes:
     choices_bytes = choices if isinstance(choices, bytes) else choices_to_bytes(choices)
     return (
@@ -221,7 +219,7 @@ class CorpusEntry(DatabaseEntry):
 
     def fetch(
         self, key: bytes, *, as_bytes: bool = False
-    ) -> Iterable[Union[ChoicesT, bytes]]:
+    ) -> Iterable[ChoicesT | bytes]:
         for value in self.db.fetch(key + corpus_key):
             if as_bytes:
                 yield value
@@ -264,8 +262,8 @@ class CorpusObservationEntry(DatabaseEntry):
     def fetch(
         self,
         key: bytes,
-        choices: Union[HashableIterable[ChoiceT], bytes],
-    ) -> Optional[Observation]:
+        choices: HashableIterable[ChoiceT] | bytes,
+    ) -> Observation | None:
         # We expect there to be only a single entry. If there are multiple, we
         # arbitrarily pick one to return.
         try:
@@ -276,7 +274,7 @@ class CorpusObservationEntry(DatabaseEntry):
     def fetch_all(
         self,
         key: bytes,
-        choices: Union[HashableIterable[ChoiceT], bytes],
+        choices: HashableIterable[ChoiceT] | bytes,
     ) -> Iterable[Observation]:
         for value in self.db.fetch(corpus_observation_key(key, choices)):
             if observation := Observation.from_json(value):
@@ -300,7 +298,7 @@ class FailureEntry(DatabaseEntry):
         self,
         key: bytes,
         choices: ChoicesT,
-        observation: Optional[Observation],
+        observation: Observation | None,
     ) -> None:
         self.db.save(self._key(key, state=self.state), choices_to_bytes(choices))
 
@@ -375,7 +373,7 @@ class FailureObservationEntry(DatabaseEntry):
             _encode(observation),
         )
 
-    def fetch(self, key: bytes, choices: ChoicesT) -> Optional[Observation]:
+    def fetch(self, key: bytes, choices: ChoicesT) -> Observation | None:
         try:
             return next(iter(self.fetch_all(key, choices)))
         except StopIteration:
@@ -427,7 +425,7 @@ class FatalFailureEntry(DatabaseEntry):
             if failure := FatalFailure.from_json(value):
                 yield failure
 
-    def fetch(self, key: bytes) -> Optional[FatalFailure]:
+    def fetch(self, key: bytes) -> FatalFailure | None:
         try:
             return next(iter(self.fetch_all(key)))
         except StopIteration:
@@ -455,7 +453,7 @@ class WorkerIdentityEntry(DatabaseEntry):
         for worker_identity in self.fetch_all(uuid):
             self.db.delete(self._key(uuid), _encode(worker_identity))
 
-    def fetch(self, uuid: bytes) -> Optional[WorkerIdentity]:
+    def fetch(self, uuid: bytes) -> WorkerIdentity | None:
         try:
             return next(iter(self.fetch_all(uuid)))
         except StopIteration:

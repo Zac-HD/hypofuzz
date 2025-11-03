@@ -1,7 +1,4 @@
-from typing import Dict, List
-
-
-def boyer_moore_search(text: str, pattern: str) -> List[int]:
+def boyer_moore_search(text: str, pattern: str) -> list[int]:
     """
     Full Boyer-Moore string search algorithm implementation.
 
@@ -48,7 +45,7 @@ def boyer_moore_search(text: str, pattern: str) -> List[int]:
     return matches
 
 
-def _build_bad_char_table(pattern: str) -> Dict[str, int]:
+def _build_bad_char_table(pattern: str) -> dict[str, int]:
     """
     Build the bad character rule table.
 
@@ -64,7 +61,7 @@ def _build_bad_char_table(pattern: str) -> Dict[str, int]:
     return table
 
 
-def _get_bad_char_shift(table: Dict[str, int], char: str, j: int, m: int) -> int:
+def _get_bad_char_shift(table: dict[str, int], char: str, j: int, m: int) -> int:
     """
     Calculate shift using bad character rule.
 
@@ -83,7 +80,7 @@ def _get_bad_char_shift(table: Dict[str, int], char: str, j: int, m: int) -> int
         return max(1, m - j)
 
 
-def _build_border_table(pattern: str) -> List[int]:
+def _build_border_table(pattern: str) -> list[int]:
     """
     Build the border table for the good suffix rule.
 
@@ -109,7 +106,7 @@ def _build_border_table(pattern: str) -> List[int]:
     return border
 
 
-def _build_good_suffix_table(pattern: str) -> List[int]:
+def _build_good_suffix_table(pattern: str) -> list[int]:
     """
     Build the good suffix rule table.
 

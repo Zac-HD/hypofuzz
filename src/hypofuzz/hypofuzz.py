@@ -12,12 +12,12 @@ import time
 import traceback
 from collections import defaultdict
 from collections.abc import Callable, Mapping, Sequence
-from contextlib import nullcontext, redirect_stdout
+from contextlib import nullcontext
 from functools import cache, partial
 from multiprocessing import Manager, Process
 from pathlib import Path
 from random import Random
-from typing import Any, Literal, NoReturn, Optional, Union
+from typing import Any, Literal, NoReturn
 
 import hypothesis
 import pytest
@@ -108,8 +108,8 @@ class FuzzTarget:
         wrapped_test: Any,
         *,
         database: HypofuzzDatabase,
-        extra_kwargs: Optional[dict[str, object]] = None,
-        pytest_item: Optional[pytest.Function] = None,
+        extra_kwargs: dict[str, object] | None = None,
+        pytest_item: pytest.Function | None = None,
     ) -> "FuzzTarget":
         return cls(
             test_fn=wrapped_test.hypothesis.inner_test,
@@ -128,7 +128,7 @@ class FuzzTarget:
         database: HypofuzzDatabase,
         database_key: bytes,
         wrapped_test: Callable,
-        pytest_item: Optional[pytest.Function] = None,
+        pytest_item: pytest.Function | None = None,
     ) -> None:
         self.test_fn = test_fn
         self.extra_kwargs = extra_kwargs
@@ -141,7 +141,7 @@ class FuzzTarget:
             pytest_item, "nodeid", None
         ) or get_pretty_function_description(test_fn)
         self.database_key_str = convert_db_key(self.database_key, to="str")
-        self.fixtureinfo: Optional[FuncFixtureInfo] = None
+        self.fixtureinfo: FuncFixtureInfo | None = None
         if pytest_item is not None:
             manager = pytest_item._request._fixturemanager
             self.fixtureinfo = manager.getfixtureinfo(
@@ -149,7 +149,7 @@ class FuzzTarget:
             )
 
         self.random = Random()
-        self.state: Optional[HypofuzzStateForActualGivenExecution] = None
+        self.state: HypofuzzStateForActualGivenExecution | None = None
         self.provider = HypofuzzProvider(None, database_key=database_key)
         self.stop_shrinking_at = math.inf
         self.failed_fatally = False
@@ -170,7 +170,7 @@ class FuzzTarget:
         raise FailedFatally
 
     def _new_state(
-        self, *, extra_kwargs: Optional[dict[str, Any]] = None
+        self, *, extra_kwargs: dict[str, Any] | None = None
     ) -> HypofuzzStateForActualGivenExecution:
         arguments: list[Any] = []
 
@@ -301,9 +301,7 @@ class FuzzTarget:
 
         self._pytest_item_instance = None
 
-    def new_conjecture_data(
-        self, *, choices: Optional[ChoicesT] = None
-    ) -> ConjectureData:
+    def new_conjecture_data(self, *, choices: ChoicesT | None = None) -> ConjectureData:
         if choices is not None:
             return ConjectureData.for_choices(
                 choices, provider=self.provider, random=self.random
@@ -356,7 +354,7 @@ class FuzzTarget:
             observation = None
 
             def on_observation(
-                passed_observation: Union[TestCaseObservation, InfoObservation],
+                passed_observation: TestCaseObservation | InfoObservation,
             ) -> None:
                 assert passed_observation.type == "test_case"
                 assert passed_observation.property == self.nodeid
@@ -390,11 +388,11 @@ class FuzzTarget:
         self,
         data: ConjectureData,
         *,
-        observability_callback: Union[
-            Callable[[Union[InfoObservation, TestCaseObservation]], None],
-            Literal["provider"],
-            None,
-        ] = "provider",
+        observability_callback: (
+            Callable[[InfoObservation | TestCaseObservation], None]
+            | Literal["provider"]
+            | None
+        ) = "provider",
     ) -> None:
         assert self.state is not None
         # setting current_pytest_item lets us access it in HypofuzzProvider,
@@ -479,9 +477,9 @@ class FuzzWorker:
         # campaign, neither of which are feasible.
         self.dropped_targets: dict[str, FuzzTarget] = {}
 
-        self._current_target: Optional[FuzzTarget] = None
-        self.db: Optional[HypofuzzDatabase] = None
-        self.worker_identity: Optional[WorkerIdentity] = None
+        self._current_target: FuzzTarget | None = None
+        self.db: HypofuzzDatabase | None = None
+        self.worker_identity: WorkerIdentity | None = None
         self.event_dispatch: dict[bytes, list[FuzzTarget]] = defaultdict(list)
 
     def _add_target(self, nodeid: str) -> None:
@@ -779,7 +777,7 @@ class FuzzWorkerHub:
 
 
 @cache
-def _git_head(*, in_directory: Optional[Path] = None) -> Optional[str]:
+def _git_head(*, in_directory: Path | None = None) -> str | None:
     if in_directory is not None:
         assert in_directory.is_dir()
 
@@ -797,7 +795,7 @@ def _git_head(*, in_directory: Optional[Path] = None) -> Optional[str]:
 
 
 @cache
-def worker_identity(*, in_directory: Optional[Path] = None) -> WorkerIdentity:
+def worker_identity(*, in_directory: Path | None = None) -> WorkerIdentity:
     """Returns a class identifying the machine running this code.
 
     This is intended to roughly represent the "unit of fuzz worker", so it includes

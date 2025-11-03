@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from enum import IntEnum
-from typing import Any, ClassVar, Literal, Optional, TypedDict, Union
+from typing import Any, ClassVar, Literal, TypedDict, Union
 
 from hypofuzz.dashboard.test import Test
 from hypofuzz.database import (
@@ -16,8 +16,8 @@ from hypofuzz.database import (
 
 
 class DashboardObservationMetadata(TypedDict):
-    traceback: Optional[str]
-    reproduction_decorator: Optional[str]
+    traceback: str | None
+    reproduction_decorator: str | None
 
 
 class DashboardObservation(TypedDict):
@@ -32,7 +32,7 @@ class DashboardObservation(TypedDict):
     metadata: DashboardObservationMetadata
     property: str
     run_start: float
-    stability: Optional[Stability]
+    stability: Stability | None
 
 
 class DashboardFailure(TypedDict):
@@ -50,7 +50,7 @@ class DashboardReport(TypedDict):
     behaviors: int
     fingerprints: int
     timestamp: float
-    since_new_behavior: Optional[int]
+    since_new_behavior: int | None
     phase: Phase
 
 
@@ -62,9 +62,9 @@ class DashboardTest(TypedDict):
     rolling_observations: list[DashboardObservation]
     corpus_observations: list[DashboardObservation]
     failures: dict[str, DashboardFailure]
-    fatal_failure: Optional[DashboardFatalFailure]
+    fatal_failure: DashboardFatalFailure | None
     reports_by_worker: dict[str, list[DashboardReport]]
-    stability: Optional[float]
+    stability: float | None
 
 
 # keep in sync with DashboardEventType in DataProvider.tsx
@@ -94,8 +94,8 @@ class AddTestsTest(TypedDict):
     database_key: str
     nodeid: str
     failures: dict[str, DashboardFailure]
-    fatal_failure: Optional[DashboardFatalFailure]
-    stability: Optional[float]
+    fatal_failure: DashboardFatalFailure | None
+    stability: float | None
 
 
 @dataclass
@@ -151,7 +151,7 @@ class TestLoadFinishedEvent(DashboardEvent):
 class SetFatalFailureEvent(DashboardEvent):
     type = DashboardEventType.SET_FATAL_FAILURE
     nodeid: str
-    fatal_failure: Optional[DashboardFatalFailure]
+    fatal_failure: DashboardFatalFailure | None
 
 
 DashboardEventT = Union[

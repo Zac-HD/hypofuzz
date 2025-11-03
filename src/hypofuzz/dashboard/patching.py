@@ -2,7 +2,7 @@ import threading
 from collections import defaultdict
 from functools import lru_cache
 from queue import Empty, Queue
-from typing import Any, Literal, Optional
+from typing import Any, Literal
 
 from hypothesis.extra._patching import (
     get_patch_for as _get_patch_for,
@@ -28,7 +28,7 @@ PATCHES: dict[str, dict[str, list[tuple[str, str, str]]]] = defaultdict(
 get_patch_for = lru_cache(maxsize=8192)(_get_patch_for)
 
 _queue: Queue = Queue()
-_thread: Optional[threading.Thread] = None
+_thread: threading.Thread | None = None
 
 
 def add_patch(
@@ -50,12 +50,12 @@ def make_patch(triples: tuple[tuple[str, str, str]], *, msg: str) -> str:
     )
 
 
-def failing_patch(nodeid: str) -> Optional[str]:
+def failing_patch(nodeid: str) -> str | None:
     failing = PATCHES[nodeid]["failing"]
     return make_patch(tuple(failing), msg="add failing examples") if failing else None
 
 
-def covering_patch(nodeid: str) -> Optional[str]:
+def covering_patch(nodeid: str) -> str | None:
     covering = PATCHES[nodeid]["covering"]
     return (
         make_patch(tuple(covering), msg="add covering examples") if covering else None

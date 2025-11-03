@@ -1,6 +1,6 @@
 from base64 import b64decode, b64encode
 from collections.abc import Iterator
-from typing import TYPE_CHECKING, Literal, Protocol, TypeVar, Union, overload
+from typing import TYPE_CHECKING, Literal, Protocol, TypeVar, overload
 
 from hypothesis.internal.conjecture.choice import ChoiceT
 
@@ -26,9 +26,7 @@ def convert_db_key(key: str, *, to: Literal["bytes"]) -> bytes: ...
 def convert_db_key(key: bytes, *, to: Literal["str"]) -> str: ...
 
 
-def convert_db_key(
-    key: Union[str, bytes], *, to: Literal["str", "bytes"]
-) -> Union[str, bytes]:
+def convert_db_key(key: str | bytes, *, to: Literal["str", "bytes"]) -> str | bytes:
     if to == "str":
         assert isinstance(key, bytes)
         return b64encode(key).decode("ascii")

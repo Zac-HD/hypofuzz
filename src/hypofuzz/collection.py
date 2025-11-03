@@ -6,7 +6,7 @@ import traceback
 from collections.abc import Iterable
 from contextlib import redirect_stdout
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 import pytest
 from _pytest.nodes import Item
@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 pytest8 = version.parse(pytest.__version__) >= version.parse("8.0.0")
 
 
-def has_true_skipif(item: Item) -> tuple[bool, Optional[str]]:
+def has_true_skipif(item: Item) -> tuple[bool, str | None]:
     # multiple @skipif decorators are treated as an OR.
     for mark in item.iter_markers("skipif"):
         result, reason = evaluate_condition(item, mark, condition=mark.args[0])
@@ -47,7 +47,7 @@ class _ItemsCollector:
         self.not_collected: dict[str, dict[str, Any]] = {}
 
     def _skip_because(
-        self, status_reason: str, nodeid: str, kwargs: Optional[dict[str, Any]] = None
+        self, status_reason: str, nodeid: str, kwargs: dict[str, Any] | None = None
     ) -> None:
         self.not_collected[nodeid] = {
             "status_reason": status_reason,

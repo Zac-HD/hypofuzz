@@ -1,5 +1,5 @@
 import json
-from typing import Any, Optional
+from typing import Any
 
 import black
 from starlette.requests import Request
@@ -52,7 +52,7 @@ async def api_test(request: Request) -> Response:
     return HypofuzzJSONResponse(dashboard_test(TESTS[nodeid]))
 
 
-def _patches() -> dict[str, dict[str, Optional[str]]]:
+def _patches() -> dict[str, dict[str, str | None]]:
     from hypofuzz.dashboard.dashboard import COLLECTION_RESULT
 
     assert COLLECTION_RESULT is not None
