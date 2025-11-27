@@ -1,5 +1,6 @@
 import math
 from dataclasses import dataclass, field
+from itertools import pairwise
 from typing import TypeVar
 
 from hypothesis.internal.cache import LRUCache
@@ -76,7 +77,7 @@ class Test:
         for attribute in attributes:
             assert all(
                 getattr(r1, attribute) <= getattr(r2, attribute)
-                for r1, r2 in zip(reports, reports[1:])
+                for r1, r2 in pairwise(reports)
             ), (attribute, [getattr(r, attribute) for r in reports])
 
     def _check_invariants(self) -> None:
@@ -86,12 +87,12 @@ class Test:
 
         linear_status_counts = self.linear_status_counts()
         assert all(
-            v1 <= v2 for v1, v2 in zip(linear_status_counts, linear_status_counts[1:])
+            v1 <= v2 for v1, v2 in pairwise(linear_status_counts)
         ), linear_status_counts
 
         linear_elapsed_time = self.linear_elapsed_time()
         assert all(
-            v1 <= v2 for v1, v2 in zip(linear_elapsed_time, linear_elapsed_time[1:])
+            v1 <= v2 for v1, v2 in pairwise(linear_elapsed_time)
         ), linear_elapsed_time
         assert (
             len(linear_elapsed_time)
@@ -127,8 +128,8 @@ class Test:
             # Any guaranteed-monotonic attribute will work here (either
             # elapsed_time or status_counts). Use elapsed_time.
             #
-            # we expect reports to *usually* arrive in-order, which case the
-            # appropriate report to diff against is reports[-1].
+            # we expect reports to *usually* arrive in-order. If a report does
+            # arrive in order, then we have last_worker_report = reports[-1].
             reports_index = fast_bisect_right(
                 reports, report.elapsed_time, key=lambda r: r.elapsed_time
             )
