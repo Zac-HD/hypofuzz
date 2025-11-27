@@ -219,8 +219,6 @@ def _dashboard_event(db_event: DatabaseEvent) -> DashboardEventT | None:
 
 
 async def handle_event(receive_channel: MemoryReceiveChannel[ListenerEventT]) -> None:
-    global LOADING_STATE
-
     async for listener_event in receive_channel:
         db_event = DatabaseEvent.from_event(listener_event)
         # In the single-command ``hypothesis fuzz`` case, this is a
@@ -334,8 +332,6 @@ def _load_initial_state(fuzz_target: FuzzTarget) -> None:
 
 
 async def load_initial_state(fuzz_target: FuzzTarget) -> None:
-    global LOADING_STATE
-
     await trio.to_thread.run_sync(_load_initial_state, fuzz_target)
 
     assert fuzz_target.nodeid in TESTS
