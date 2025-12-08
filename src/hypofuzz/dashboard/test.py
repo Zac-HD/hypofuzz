@@ -80,10 +80,16 @@ class Test:
                 for r1, r2 in pairwise(reports)
             ), (attribute, [getattr(r, attribute) for r in reports])
 
+    def _linear_sort_key(self, r: ReportWithDiff) -> tuple[float, str]:
+        return (r.timestamp_monotonic, r.worker_uuid)
+
     def _check_invariants(self) -> None:
         # this function is pretty expensive. Only call it at important junctures,
         # or in tests
-        self._assert_reports_ordered(self.linear_reports, ["timestamp_monotonic"])
+        assert all(
+            self._linear_sort_key(r1) <= self._linear_sort_key(r2)
+            for r1, r2 in pairwise(self.linear_reports)
+        ), [self._linear_sort_key(r) for r in self.linear_reports]
 
         linear_status_counts = self.linear_status_counts()
         assert all(
@@ -171,46 +177,58 @@ class Test:
             # insert in-order, maintaining the sorted invariant
             index = fast_bisect_right(
                 self.linear_reports,
-                linear_report.timestamp_monotonic,
-                key=lambda r: r.timestamp_monotonic,
+                self._linear_sort_key(linear_report),
+                key=self._linear_sort_key,
             )
             self.linear_reports.insert(index, linear_report)
+
+            # If we inserted not at the end of linear_reports, invalidate the cumsum
+            # caches. The cache extension logic assumes reports are appended at the
+            # end, so inserting in the middle would cause incorrect cumsum values.
             if index != len(self.linear_reports) - 1:
-                # if we didn't just append this report to the end, we need to:
-                # * recompute the diff for the next report from this worker (if
-                #   there is one)
-                # * invalidate cumsum caches for the indices after `index`
-                next_worker_report = None
-                for i_offset, report_candidate in enumerate(
-                    self.linear_reports[index + 1 :]
-                ):
-                    if linear_report.worker_uuid == report_candidate.worker_uuid:
-                        next_worker_report = report_candidate
-                        break
+                self._status_counts_cumsum = LRUCache(16)
+                self._elapsed_time_cumsum = LRUCache(16)
 
-                # note that there need not be another report from this worker
-                # after this report, if this was the first report to arrive from
-                # the worker, and it arrived out of order wrt timestamp_monotonic
-                # for the existing linear_reports.
-                if next_worker_report is not None:
-                    assert (
-                        self.linear_reports[index + 1 + i_offset] == next_worker_report
+            # If we inserted not at the end of the worker's reports (by elapsed_time),
+            # we need to recompute the diffs for all subsequent reports from this worker.
+            # We check reports_by_worker, not linear_reports, because the worker's
+            # reports might have the same sort key in linear_reports but different
+            # elapsed_times.
+            worker_reports = self.reports_by_worker[report.worker_uuid]
+            if reports_index + 1 < len(worker_reports):
+                last_report = linear_report
+                for j in range(reports_index + 1, len(worker_reports)):
+                    old_report = worker_reports[j]
+                    new_report = ReportWithDiff.from_reports(
+                        old_report,
+                        last_worker_report=last_report,
                     )
-                    next_worker_report = ReportWithDiff.from_reports(
-                        next_worker_report,
-                        last_worker_report=linear_report,
-                    )
-                    self.linear_reports[index + 1 + i_offset] = next_worker_report
 
-                # now invalidate the cumsum caches for any indices after `index`
-                caches: list[LRUCache] = [
-                    self._status_counts_cumsum,
-                    self._elapsed_time_cumsum,
-                ]
-                for cache in caches:
-                    for key, (start_idx, values) in cache.cache.items():
-                        if index >= start_idx:
-                            cache[key] = (start_idx, values[: index - start_idx])
+                    # Update in reports_by_worker
+                    worker_reports[j] = new_report
+
+                    # Update in linear_reports (if it exists there - REPLAY reports
+                    # might not be in linear_reports). We must remove and re-insert
+                    # rather than updating in place, because the sort key may have
+                    # changed.
+                    for i, lr in enumerate(self.linear_reports):
+                        if lr is old_report:
+                            self.linear_reports.pop(i)
+                            new_index = fast_bisect_right(
+                                self.linear_reports,
+                                self._linear_sort_key(new_report),
+                                key=self._linear_sort_key,
+                            )
+                            self.linear_reports.insert(new_index, new_report)
+                            break
+
+                    last_report = new_report
+
+                # Invalidate the cumsum caches. When reports are inserted out of
+                # order and moved around, the positions shift in complex ways, so
+                # we clear the entire cache rather than trying to partially invalidate.
+                self._status_counts_cumsum = LRUCache(16)
+                self._elapsed_time_cumsum = LRUCache(16)
 
     @property
     def stability(self) -> float | None:
