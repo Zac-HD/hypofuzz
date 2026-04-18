@@ -228,7 +228,15 @@ class Test:
             for observation in self.rolling_observations
         )
 
-        return count_stable / (count_stable + count_unstable)
+        # Every observation has UNKNOWN stability (the remaining Stability
+        # variant), so there is no signal to compute a ratio from. Returning
+        # a 0/0 ZeroDivisionError here used to tear down the dashboard
+        # websocket every time the UI polled (#245).
+        total = count_stable + count_unstable
+        if total == 0:
+            return None
+
+        return count_stable / total
 
     @property
     def phase(self) -> Phase | None:
