@@ -1,0 +1,39 @@
+[
+  {
+    "mode": "baseline",
+    "final_behaviors": 9,
+    "final_fingerprints": 3,
+    "final_iters": 35256,
+    "final_elapsed": 60.001,
+    "solver_stats": null,
+    "deep_branches_hit": {
+      "s[0]=M": 18.831
+    }
+  },
+  {
+    "mode": "solver",
+    "final_behaviors": 19,
+    "final_fingerprints": 6,
+    "final_iters": 15204,
+    "final_elapsed": 60.0,
+    "solver_stats": {
+      "invocations": 4,
+      "iters_run": 6491,
+      "seeds_proposed": 14,
+      "unique_seeds_proposed": 28,
+      "time_in_solver": 32.016,
+      "new_behaviors_attributed": 0,
+      "new_fingerprints_attributed": 0,
+      "errors": 0,
+      "_listener_events": 65,
+      "_listener_forwarded": 64,
+      "_queue_depth_end": 0
+    },
+    "deep_branches_hit": {
+      "s[0]=M": 1.512,
+      "s[:2]=MA": 1.522,
+      "s[:3]=MAG": 1.741,
+      "DEEP:s startswith MAGE": 1.858
+    }
+  }
+]
