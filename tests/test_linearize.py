@@ -107,6 +107,12 @@ def reports(
                 st.floats(0, 1_000_000),
                 min_size=len(ninputs),
                 max_size=len(ninputs),
+                # strictly increasing: reports from the same worker always advance
+                # elapsed_time by a nonzero amount. Ties in the strategy would
+                # generate unrealistic reports with equal elapsed_time but
+                # different status_counts, which the linearization logic (and
+                # reality) is not designed to handle.
+                unique=True,
             ).map(sorted)
         )
         for ninput, timestamp, elapsed_time in zip(ninputs, timestamps, elapsed_times):
@@ -330,3 +336,186 @@ def test_desynced_timestamp():
 
     assert test.linear_elapsed_time() == [1.0, 2.0, 3.0, 7.0]
     test._check_invariants()
+
+
+# ---------------------------------------------------------------------------
+# Regression tests for #244: AssertionError from stale or unsynced linearization
+# state when reports arrive across workers with overlapping elapsed_times.
+# ---------------------------------------------------------------------------
+
+
+def _counts(
+    *, interesting: int = 0, valid: int = 0, invalid: int = 0, overrun: int = 0
+) -> StatusCounts:
+    return StatusCounts(
+        {
+            Status.INTERESTING: interesting,
+            Status.VALID: valid,
+            Status.INVALID: invalid,
+            Status.OVERRUN: overrun,
+        }
+    )
+
+
+def test_cache_invalidated_on_middle_insert_from_new_worker():
+    # Previously, the cumsum cache was only invalidated if the new report was
+    # inserted in the middle of linear_reports AND there was already a later
+    # report from the same worker. A new worker's first report landing in the
+    # middle fell through the crack and left the cache stale.
+    test = _test_for_reports(
+        [], database_key=b"inline-database_key", nodeid="inline-nodeid"
+    )
+
+    test.add_report(
+        report_inline(elapsed_time=1.0, timestamp=101, worker_uuid="worker_1")
+    )
+    test.add_report(
+        report_inline(elapsed_time=5.0, timestamp=105, worker_uuid="worker_1")
+    )
+    # populate the cache
+    assert test.linear_elapsed_time() == [1.0, 5.0]
+
+    # worker_2's first-ever report lands between the two worker_1 entries
+    test.add_report(
+        report_inline(elapsed_time=1.0, timestamp=102, worker_uuid="worker_2")
+    )
+    assert test.linear_elapsed_time() == [1.0, 2.0, 6.0]
+    test._check_invariants()
+
+
+def test_all_subsequent_worker_reports_are_recomputed():
+    # Previously only the immediately-next report from the worker was rebuilt
+    # against the out-of-order insert, leaving the tail with stale diffs.
+    test = _test_for_reports(
+        [], database_key=b"inline-database_key", nodeid="inline-nodeid"
+    )
+    for elapsed, ts, valid in [(1.0, 100, 10), (3.0, 102, 30), (4.0, 103, 40)]:
+        test.add_report(
+            report_inline(
+                elapsed_time=elapsed, timestamp=ts, status_counts=_counts(valid=valid)
+            )
+        )
+
+    # insert out-of-order between the first and second existing reports
+    test.add_report(
+        report_inline(
+            elapsed_time=2.0, timestamp=101, status_counts=_counts(valid=20)
+        )
+    )
+
+    reports = test.reports_by_worker["inline-worker_uuid"]
+    assert [r.status_counts_diff for r in reports] == [
+        _counts(valid=10),
+        _counts(valid=10),
+        _counts(valid=10),
+        _counts(valid=10),
+    ]
+    test._check_invariants()
+
+
+def test_recompute_uses_reports_by_worker_not_linear_reports():
+    # linear_reports is sorted by timestamp_monotonic; reports_by_worker is
+    # sorted by elapsed_time. When finding the next report from a worker to
+    # recompute, the search must use reports_by_worker - the two orderings
+    # diverge when timestamps and elapsed_times aren't aligned across workers.
+    test = _test_for_reports(
+        [], database_key=b"inline-database_key", nodeid="inline-nodeid"
+    )
+
+    # worker_1: elapsed=1 @ timestamp 200, elapsed=3 @ timestamp 201
+    # worker_2: elapsed=2 @ timestamp 100 (sits BEFORE worker_1 in linear_reports)
+    test.add_report(
+        report_inline(
+            elapsed_time=1.0, timestamp=200, worker_uuid="worker_1",
+            status_counts=_counts(valid=10),
+        )
+    )
+    test.add_report(
+        report_inline(
+            elapsed_time=3.0, timestamp=201, worker_uuid="worker_1",
+            status_counts=_counts(valid=30),
+        )
+    )
+    test.add_report(
+        report_inline(
+            elapsed_time=2.0, timestamp=100, worker_uuid="worker_2",
+            status_counts=_counts(valid=20),
+        )
+    )
+
+    # Now insert a worker_1 report at elapsed=2 (between its existing two).
+    # The "next" worker_1 report (elapsed=3) comes AFTER worker_2's report in
+    # linear_reports; the old search in linear_reports could incorrectly treat
+    # worker_2's report as the next one from worker_1 and fail to recompute.
+    test.add_report(
+        report_inline(
+            elapsed_time=2.0, timestamp=200.5, worker_uuid="worker_1",
+            status_counts=_counts(valid=15),
+        )
+    )
+
+    worker_1_reports = test.reports_by_worker["worker_1"]
+    assert [r.status_counts_diff for r in worker_1_reports] == [
+        _counts(valid=10),  # 10 - 0
+        _counts(valid=5),   # 15 - 10
+        _counts(valid=15),  # 30 - 15
+    ]
+    test._check_invariants()
+
+
+def test_deterministic_tiebreaker_for_equal_timestamp_monotonic():
+    # Two workers submitting reports that land at the same timestamp_monotonic
+    # must sort deterministically, so add_report is commutative.
+    test_a = _test_for_reports(
+        [], database_key=b"inline-database_key", nodeid="inline-nodeid"
+    )
+    test_b = _test_for_reports(
+        [], database_key=b"inline-database_key", nodeid="inline-nodeid"
+    )
+    reports = [
+        report_inline(elapsed_time=1.0, timestamp=100, worker_uuid="worker_a"),
+        report_inline(elapsed_time=1.0, timestamp=100, worker_uuid="worker_b"),
+    ]
+    test_a.add_report(reports[0])
+    test_a.add_report(reports[1])
+    test_b.add_report(reports[1])
+    test_b.add_report(reports[0])
+
+    assert [r.worker_uuid for r in test_a.linear_reports] == [
+        r.worker_uuid for r in test_b.linear_reports
+    ]
+    test_a._check_invariants()
+    test_b._check_invariants()
+
+
+@given(st.data())
+@settings(suppress_health_check=[HealthCheck.too_slow], report_multiple_bugs=False)
+def test_add_report_is_permutation_invariant(data):
+    # The heart of #244: no matter what order a set of reports arrives in,
+    # the linearization should produce the same result. Excluding REPLAY is
+    # deliberate - its inclusion in linear_reports depends on the running
+    # max behaviors/fingerprints and so is intentionally order-dependent.
+    reports_ = data.draw(reports())
+    assume(len(reports_) > 1)
+    reports_ = [r for r in reports_ if r.phase is not Phase.REPLAY]
+    assume(len(reports_) > 1)
+
+    permutation = data.draw(st.permutations(reports_))
+
+    test1 = _test_for_reports(
+        [], database_key=reports_[0].database_key, nodeid=reports_[0].nodeid
+    )
+    for report in reports_:
+        test1.add_report(report)
+
+    test2 = _test_for_reports(
+        [], database_key=reports_[0].database_key, nodeid=reports_[0].nodeid
+    )
+    for report in permutation:
+        test2.add_report(report)
+
+    assert test1.linear_status_counts() == test2.linear_status_counts()
+    assert test1.linear_elapsed_time() == pytest.approx(test2.linear_elapsed_time())
+    assert_reports_almost_equal(test1.linear_reports, test2.linear_reports)
+    test1._check_invariants()
+    test2._check_invariants()
