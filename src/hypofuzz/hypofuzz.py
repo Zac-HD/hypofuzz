@@ -607,7 +607,12 @@ class FuzzWorker:
         self.db.worker_identities.save(self.worker_identity)
 
         while True:
-            self._update_targets(self.shared_state["hub_state"]["nodeids"])
+            hub_state = self.shared_state["hub_state"]
+            if hub_state.get("shutdown", False):
+                # hub has signalled that we should exit, before it tears down
+                # the Manager (issue #246).
+                break
+            self._update_targets(hub_state["nodeids"])
 
             # it's possible to go through an interim period where we have no nodeids,
             # but the hub still has nodeids to assign. We don't want the worker to
@@ -699,6 +704,10 @@ class FuzzWorker:
 
 
 class FuzzWorkerHub:
+    # how often the hub wakes up to rebalance work across workers and to
+    # check whether every worker has run out of things to fuzz.
+    _rebalance_interval: float = 60.0
+
     def __init__(
         self,
         *,
@@ -711,14 +720,14 @@ class FuzzWorkerHub:
         self.n_processes = n_processes
 
         self.shared_states: list[Mapping] = []
+        self.processes: list[Process] = []
 
     def start(self) -> None:
-        processes: list[Process] = []
-
         with Manager() as manager:
             for _ in range(self.n_processes):
                 shared_state = manager.dict()
                 shared_state["hub_state"] = manager.dict()
+                shared_state["hub_state"]["shutdown"] = False
                 shared_state["worker_state"] = manager.dict()
                 shared_state["worker_state"]["nodeids"] = manager.dict()
                 shared_state["worker_state"]["current_lifetime"] = 0.0
@@ -732,30 +741,54 @@ class FuzzWorkerHub:
                         "shared_state": shared_state,
                     },
                 )
-                processes.append(process)
+                self.processes.append(process)
                 self.shared_states.append(shared_state)
 
             # rebalance once at the start to put the initial node assignments
             # in the shared state
             self._rebalance()
-            for process in processes:
+            for process in self.processes:
                 process.start()
 
-            while True:
-                # rebalance automatically on an interval.
-                # We may want to check some condition more frequently than this,
-                # like "a process has no more nodes" (due to e.g. finding a
-                # failure). So we rebalance either once every n seconds, or whenever
-                # some worker needs a rebalancing.
-                time.sleep(60)
-                # if none of our workers have anything to do, we should exit as well
-                if all(
-                    not state["worker_state"]["valid_nodeids"]
-                    for state in self.shared_states
-                ):
-                    break
+            try:
+                while True:
+                    # rebalance automatically on an interval.
+                    # We may want to check some condition more frequently than this,
+                    # like "a process has no more nodes" (due to e.g. finding a
+                    # failure). So we rebalance either once every n seconds, or whenever
+                    # some worker needs a rebalancing.
+                    time.sleep(self._rebalance_interval)
+                    # if none of our workers have anything to do, we should exit as well
+                    if all(
+                        not state["worker_state"]["valid_nodeids"]
+                        for state in self.shared_states
+                    ):
+                        break
 
-                self._rebalance()
+                    self._rebalance()
+            finally:
+                # Tell workers to exit, and wait for them to stop touching the
+                # shared state before we leave this `with Manager()` block.
+                # Otherwise they crash with BrokenPipeError / FileNotFoundError
+                # when the Manager tears down its IPC sockets (issue #246).
+                self._shutdown_workers()
+
+    def _shutdown_workers(self) -> None:
+        for state in self.shared_states:
+            try:
+                state["hub_state"]["shutdown"] = True
+            except Exception:
+                # the Manager may already be unreachable (e.g. if we got here
+                # via an unexpected exception); fall through to terminate.
+                pass
+        for process in self.processes:
+            process.join(timeout=5)
+            if process.is_alive():
+                process.terminate()
+                process.join(timeout=2)
+            if process.is_alive():
+                process.kill()
+                process.join()
 
     def _rebalance(self) -> None:
         # rebalance the assignment of nodeids to workers, according to the
