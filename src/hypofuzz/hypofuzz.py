@@ -606,13 +606,11 @@ class FuzzWorker:
         self.db.worker_uuids.save(process_uuid.encode("ascii"))
         self.db.worker_identities.save(self.worker_identity)
 
-        while True:
-            hub_state = self.shared_state["hub_state"]
-            if hub_state.get("shutdown", False):
-                # hub has signalled that we should exit, before it tears down
-                # the Manager (issue #246).
-                break
-            self._update_targets(hub_state["nodeids"])
+        # `shutdown` is set by the hub when it's about to tear down the Manager;
+        # without breaking out here workers crash on the next shared_state access
+        # (issue #246).
+        while not self.shared_state["hub_state"].get("shutdown", False):
+            self._update_targets(self.shared_state["hub_state"]["nodeids"])
 
             # it's possible to go through an interim period where we have no nodeids,
             # but the hub still has nodeids to assign. We don't want the worker to
@@ -750,22 +748,20 @@ class FuzzWorkerHub:
             for process in self.processes:
                 process.start()
 
+            # rebalance automatically on an interval.
+            # We may want to check some condition more frequently than this,
+            # like "a process has no more nodes" (due to e.g. finding a
+            # failure). So we rebalance either once every n seconds, or whenever
+            # some worker needs a rebalancing.
+            # Exit once no worker has anything left to do.
             try:
-                while True:
-                    # rebalance automatically on an interval.
-                    # We may want to check some condition more frequently than this,
-                    # like "a process has no more nodes" (due to e.g. finding a
-                    # failure). So we rebalance either once every n seconds, or whenever
-                    # some worker needs a rebalancing.
-                    time.sleep(self._rebalance_interval)
-                    # if none of our workers have anything to do, we should exit as well
-                    if all(
-                        not state["worker_state"]["valid_nodeids"]
-                        for state in self.shared_states
-                    ):
-                        break
-
+                time.sleep(self._rebalance_interval)
+                while any(
+                    state["worker_state"]["valid_nodeids"]
+                    for state in self.shared_states
+                ):
                     self._rebalance()
+                    time.sleep(self._rebalance_interval)
             finally:
                 # Tell workers to exit, and wait for them to stop touching the
                 # shared state before we leave this `with Manager()` block.
@@ -781,14 +777,23 @@ class FuzzWorkerHub:
                 # the Manager may already be unreachable (e.g. if we got here
                 # via an unexpected exception); fall through to terminate.
                 pass
-        for process in self.processes:
-            process.join(timeout=5)
-            if process.is_alive():
-                process.terminate()
-                process.join(timeout=2)
-            if process.is_alive():
-                process.kill()
-                process.join()
+
+        def _join_all(processes: list[Process], timeout: float) -> list[Process]:
+            # join() all processes within a single shared deadline, so one slow
+            # worker doesn't make us wait N * timeout in the worst case.
+            deadline = time.monotonic() + timeout
+            for process in processes:
+                process.join(timeout=max(0.0, deadline - time.monotonic()))
+            return [p for p in processes if p.is_alive()]
+
+        still_alive = _join_all(self.processes, timeout=5)
+        for process in still_alive:
+            process.terminate()
+        still_alive = _join_all(still_alive, timeout=2)
+        for process in still_alive:
+            process.kill()
+        for process in still_alive:
+            process.join()
 
     def _rebalance(self) -> None:
         # rebalance the assignment of nodeids to workers, according to the
