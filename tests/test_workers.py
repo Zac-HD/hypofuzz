@@ -5,7 +5,7 @@ from common import setup_test_code, wait_for
 from hypothesis.database import DirectoryBasedExampleDatabase
 
 from hypofuzz.database import HypofuzzDatabase
-from hypofuzz.hypofuzz import _start_worker
+from hypofuzz.hypofuzz import FuzzWorkerHub, _start_worker
 
 test_code = """
 @given(st.integers())
@@ -56,6 +56,34 @@ def test_workers(tmp_path):
 
         process.kill()
         process.join()
+
+
+def test_hub_shuts_down_workers_cleanly(tmp_path):
+    # Regression test for #246: when the hub finishes a full exploration pass
+    # (here, triggered by an always-failing test), it must signal workers to
+    # exit before tearing down the Manager. Otherwise workers crash with
+    # BrokenPipeError / FileNotFoundError on their next shared_state access.
+    code = """
+@given(st.integers())
+def test_always_fails(n):
+    assert False
+"""
+    test_dir, _db_dir = setup_test_code(tmp_path, code)
+
+    hub = FuzzWorkerHub(
+        nodeids=["test_a.py::test_always_fails"],
+        pytest_args=[str(test_dir)],
+        n_processes=1,
+    )
+    hub._rebalance_interval = 0.5
+    hub.start()
+
+    assert hub.processes
+    for process in hub.processes:
+        assert process.exitcode == 0, (
+            f"worker exited with code {process.exitcode} (likely crashed on "
+            f"shared_state access after Manager shutdown)"
+        )
 
 
 def test_worker_writes_worker_identity(tmp_path):
