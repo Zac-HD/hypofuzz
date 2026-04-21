@@ -92,9 +92,9 @@ class Test:
         # this function is pretty expensive. Only call it at important junctures,
         # or in tests
         linear_keys = [self._linear_sort_key(r) for r in self.linear_reports]
-        assert all(k1 <= k2 for k1, k2 in zip(linear_keys, linear_keys[1:])), (
-            linear_keys
-        )
+        assert all(
+            k1 <= k2 for k1, k2 in zip(linear_keys, linear_keys[1:])
+        ), linear_keys
 
         linear_status_counts = self.linear_status_counts()
         assert all(
@@ -205,9 +205,7 @@ class Test:
         predecessor = linear_report
         for j in range(reports_index + 1, len(worker_reports)):
             stale = worker_reports[j]
-            fresh = ReportWithDiff.from_reports(
-                stale, last_worker_report=predecessor
-            )
+            fresh = ReportWithDiff.from_reports(stale, last_worker_report=predecessor)
             worker_reports[j] = fresh
 
             # timestamp_monotonic can only have increased, so the report may

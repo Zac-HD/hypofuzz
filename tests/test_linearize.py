@@ -398,9 +398,7 @@ def test_all_subsequent_worker_reports_are_recomputed():
 
     # insert out-of-order between the first and second existing reports
     test.add_report(
-        report_inline(
-            elapsed_time=2.0, timestamp=101, status_counts=_counts(valid=20)
-        )
+        report_inline(elapsed_time=2.0, timestamp=101, status_counts=_counts(valid=20))
     )
 
     reports = test.reports_by_worker["inline-worker_uuid"]
@@ -426,19 +424,25 @@ def test_recompute_uses_reports_by_worker_not_linear_reports():
     # worker_2: elapsed=2 @ timestamp 100 (sits BEFORE worker_1 in linear_reports)
     test.add_report(
         report_inline(
-            elapsed_time=1.0, timestamp=200, worker_uuid="worker_1",
+            elapsed_time=1.0,
+            timestamp=200,
+            worker_uuid="worker_1",
             status_counts=_counts(valid=10),
         )
     )
     test.add_report(
         report_inline(
-            elapsed_time=3.0, timestamp=201, worker_uuid="worker_1",
+            elapsed_time=3.0,
+            timestamp=201,
+            worker_uuid="worker_1",
             status_counts=_counts(valid=30),
         )
     )
     test.add_report(
         report_inline(
-            elapsed_time=2.0, timestamp=100, worker_uuid="worker_2",
+            elapsed_time=2.0,
+            timestamp=100,
+            worker_uuid="worker_2",
             status_counts=_counts(valid=20),
         )
     )
@@ -449,7 +453,9 @@ def test_recompute_uses_reports_by_worker_not_linear_reports():
     # worker_2's report as the next one from worker_1 and fail to recompute.
     test.add_report(
         report_inline(
-            elapsed_time=2.0, timestamp=200.5, worker_uuid="worker_1",
+            elapsed_time=2.0,
+            timestamp=200.5,
+            worker_uuid="worker_1",
             status_counts=_counts(valid=15),
         )
     )
@@ -457,7 +463,7 @@ def test_recompute_uses_reports_by_worker_not_linear_reports():
     worker_1_reports = test.reports_by_worker["worker_1"]
     assert [r.status_counts_diff for r in worker_1_reports] == [
         _counts(valid=10),  # 10 - 0
-        _counts(valid=5),   # 15 - 10
+        _counts(valid=5),  # 15 - 10
         _counts(valid=15),  # 30 - 15
     ]
     test._check_invariants()
