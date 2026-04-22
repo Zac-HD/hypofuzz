@@ -70,6 +70,15 @@ class Test:
         return convert_db_key(self.database_key, to="bytes")
 
     @staticmethod
+    def _linear_sort_key(r: ReportWithDiff) -> tuple[float, str]:
+        # Ordering linear_reports solely by timestamp_monotonic is not a total
+        # order: two reports from different workers can easily collide. Without
+        # a tiebreaker the position of such reports depended on insertion order,
+        # which made add_report non-commutative and allowed the linearization to
+        # desync from itself after out-of-order inserts.
+        return (r.timestamp_monotonic, r.worker_uuid)
+
+    @staticmethod
     def _assert_reports_ordered(
         reports: list[ReportWithDiff], attributes: list[str]
     ) -> None:
@@ -82,7 +91,10 @@ class Test:
     def _check_invariants(self) -> None:
         # this function is pretty expensive. Only call it at important junctures,
         # or in tests
-        self._assert_reports_ordered(self.linear_reports, ["timestamp_monotonic"])
+        linear_keys = [self._linear_sort_key(r) for r in self.linear_reports]
+        assert all(
+            k1 <= k2 for k1, k2 in zip(linear_keys, linear_keys[1:])
+        ), linear_keys
 
         linear_status_counts = self.linear_status_counts()
         assert all(
@@ -109,7 +121,8 @@ class Test:
                 {r.database_key for r in reports},
             )
             assert {r.worker_uuid for r in reports} == {worker_uuid}
-            self._assert_reports_ordered(self.linear_reports, ["timestamp_monotonic"])
+            # within a single worker, reports are sorted by elapsed_time
+            self._assert_reports_ordered(reports, ["elapsed_time", "status_counts"])
 
         # this is not always true due to floating point error accumulation.
         # total_elapsed_time = 0.0
@@ -163,53 +176,60 @@ class Test:
         # to convey the time spent searching for bugs. But we should be careful
         # when measuring cost to compute a separate "overhead" statistic which
         # takes every input and elapsed_time into account regardless of phase.
-        if linear_report.phase is not Phase.REPLAY or (
+        included_in_linear = linear_report.phase is not Phase.REPLAY or (
             linear_report.behaviors >= self.behaviors
             and linear_report.fingerprints >= self.fingerprints
-        ):
+        )
+        if included_in_linear:
             # insert in-order, maintaining the sorted invariant
             index = fast_bisect_right(
                 self.linear_reports,
-                linear_report.timestamp_monotonic,
-                key=lambda r: r.timestamp_monotonic,
+                self._linear_sort_key(linear_report),
+                key=self._linear_sort_key,
             )
             self.linear_reports.insert(index, linear_report)
-            if index != len(self.linear_reports) - 1:
-                # if we didn't just append this report to the end, we need to:
-                # * recompute the diff for the next report from this worker (if
-                #   there is one)
-                # * invalidate cumsum caches for the indices after `index`
-                next_worker_report = None
-                for i_offset, report_candidate in enumerate(
-                    self.linear_reports[index + 1 :]
-                ):
-                    if linear_report.worker_uuid == report_candidate.worker_uuid:
-                        next_worker_report = report_candidate
-                        break
+            appended_at_end = index == len(self.linear_reports) - 1
+        else:
+            appended_at_end = False
 
-                # note that there need not be another report from this worker
-                # after this report, if this was the first report to arrive from
-                # the worker, and it arrived out of order wrt timestamp_monotonic
-                # for the existing linear_reports.
-                if next_worker_report is not None:
-                    assert (
-                        self.linear_reports[index + 1 + i_offset] == next_worker_report
-                    )
-                    next_worker_report = ReportWithDiff.from_reports(
-                        next_worker_report,
-                        last_worker_report=linear_report,
-                    )
-                    self.linear_reports[index + 1 + i_offset] = next_worker_report
+        # If this report is not the last one for its worker, the subsequent
+        # reports' diffs were computed against the wrong predecessor. Recompute
+        # them in order, updating both reports_by_worker and linear_reports.
+        #
+        # We iterate reports_by_worker (sorted by elapsed_time) rather than
+        # linear_reports (sorted by timestamp_monotonic); the two orderings can
+        # diverge, and elapsed_time is what ReportWithDiff.from_reports uses
+        # to compute diffs.
+        worker_reports = self.reports_by_worker[report.worker_uuid]
+        any_recomputed = reports_index + 1 < len(worker_reports)
+        predecessor = linear_report
+        for j in range(reports_index + 1, len(worker_reports)):
+            stale = worker_reports[j]
+            fresh = ReportWithDiff.from_reports(stale, last_worker_report=predecessor)
+            worker_reports[j] = fresh
 
-                # now invalidate the cumsum caches for any indices after `index`
-                caches: list[LRUCache] = [
-                    self._status_counts_cumsum,
-                    self._elapsed_time_cumsum,
-                ]
-                for cache in caches:
-                    for key, (start_idx, values) in cache.cache.items():
-                        if index >= start_idx:
-                            cache[key] = (start_idx, values[: index - start_idx])
+            # timestamp_monotonic can only have increased, so the report may
+            # need to move later in linear_reports. Pop-and-reinsert rather
+            # than updating in place to preserve the sort invariant. Some
+            # reports (filtered-out REPLAYs) are not in linear_reports, so
+            # skip those silently.
+            for i, lr in enumerate(self.linear_reports):
+                if lr is stale:
+                    del self.linear_reports[i]
+                    new_index = fast_bisect_right(
+                        self.linear_reports,
+                        self._linear_sort_key(fresh),
+                        key=self._linear_sort_key,
+                    )
+                    self.linear_reports.insert(new_index, fresh)
+                    break
+            predecessor = fresh
+
+        # The cumsum caches assume linear_reports only grows at the end. Any
+        # middle insert or recompute of existing reports invalidates them.
+        if not appended_at_end or any_recomputed:
+            self._status_counts_cumsum = LRUCache(16)
+            self._elapsed_time_cumsum = LRUCache(16)
 
     @property
     def stability(self) -> float | None:
