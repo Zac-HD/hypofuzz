@@ -10,7 +10,6 @@ from typing import Any, NamedTuple
 import _pytest
 import attr
 import attrs
-import coverage
 import hypothesis
 import pluggy
 import pytest
@@ -65,19 +64,6 @@ class Branch(NamedTuple):
     # __repr__ = __str__ triggers a mypy bug (?)
     def __repr__(self) -> str:
         return self.__str__()
-
-
-def get_coverage_instance(**kwargs: Any) -> coverage.Coverage:
-    # See https://coverage.readthedocs.io/en/latest/api_coverage.html
-    c = coverage.Coverage(
-        data_file=None,  # write nothing to disk
-        cover_pylib=True,  # measure stdlib and package code too
-        branch=True,  # branch coverage
-        config_file=False,  # ignore any config files
-        **kwargs,
-    )
-    c._init()
-    return c
 
 
 is_hypothesis_file = belongs_to(hypothesis)
@@ -177,10 +163,10 @@ class CoverageCollector:
         assert source_offset % 2 == 0
         assert dest_offset % 2 == 0
         positions = list(code.co_positions())  # type: ignore # new in 3.11
-        (s_start_line, _s_end_line, s_start_column, _s_end_column) = positions[
+        s_start_line, _s_end_line, s_start_column, _s_end_column = positions[
             source_offset // 2
         ]
-        (d_start_line, _d_end_line, d_start_column, _d_end_column) = positions[
+        d_start_line, _d_end_line, d_start_column, _d_end_column = positions[
             dest_offset // 2
         ]
         # if anything is None, skip this branch. This can happen for various reasons.

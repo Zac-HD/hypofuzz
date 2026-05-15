@@ -95,14 +95,14 @@ def draw_value(choice_type, constraints):
 
 @st.composite
 def choices(draw):
-    (choice_type, constraints) = draw(choice_types_constraints())
+    choice_type, constraints = draw(choice_types_constraints())
     return draw_value(choice_type, constraints)
 
 
 @st.composite
 def nodes(draw, *, was_forced=None, choice_types=None):
     if choice_types is None:
-        (choice_type, constraints) = draw(choice_types_constraints())
+        choice_type, constraints = draw(choice_types_constraints())
     else:
         choice_type = draw(st.sampled_from(choice_types))
         constraints = draw(constraints_strategy(choice_type))

@@ -93,8 +93,6 @@ class FailedFatally(Exception):
     Control-flow exception for FuzzTarget.failed_fatally
     """
 
-    pass
-
 
 # TODO move to target.py or core/target.py? (+ core/worker.py and core/hub.py)
 class FuzzTarget:
@@ -199,7 +197,7 @@ class FuzzTarget:
         except Exception as e:
             self._fail_fatally(e)
 
-        return HypofuzzStateForActualGivenExecution(  # type: ignore
+        return HypofuzzStateForActualGivenExecution(
             stuff,
             self.test_fn,
             settings(

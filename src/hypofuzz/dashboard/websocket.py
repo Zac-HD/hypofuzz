@@ -239,22 +239,22 @@ async def websocket_route(websocket: WebSocket) -> None:
         # requesting a test page that doesn't exist
         return
 
-    websocket: HypofuzzWebsocket = (
+    hypofuzz_websocket: HypofuzzWebsocket = (
         TestWebsocket(websocket, nodeid)
         if nodeid is not None
         else OverviewWebsocket(websocket)
     )
-    await websocket.accept()
-    websockets.add(websocket)
+    await hypofuzz_websocket.accept()
+    websockets.add(hypofuzz_websocket)
 
-    await websocket.on_connect()
-    await websocket.send_tests(TESTS)
+    await hypofuzz_websocket.on_connect()
+    await hypofuzz_websocket.send_tests(TESTS)
 
     try:
         while True:
-            await websocket.receive_json()
+            await hypofuzz_websocket.receive_json()
     except WebSocketDisconnect:
-        websockets.remove(websocket)
+        websockets.remove(hypofuzz_websocket)
 
 
 websocket_routes = [WebSocketRoute("/ws", websocket_route)]

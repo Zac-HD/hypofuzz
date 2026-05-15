@@ -88,7 +88,7 @@ class _ItemsCollector:
                 )
                 self._skip_because("skip", item.nodeid, {"reason": reason})
                 continue
-            (true_skipif, skipif_reason) = has_true_skipif(item)
+            true_skipif, skipif_reason = has_true_skipif(item)
             if true_skipif:
                 self._skip_because("skipif", item.nodeid, {"reason": skipif_reason})
                 continue
@@ -135,7 +135,14 @@ class _ItemsCollector:
             # nesting @given has undefined (for now) observability semantics,
             # for example for PrimitiveProvider.on_observation. Skip until we
             # can support it.
-            if HealthCheck.nested_given in test_settings.suppress_health_check:
+            #
+            # If every health check is suppressed (e.g. via
+            # `suppress_health_check=list(HealthCheck)`), treat it as a blanket
+            # opt-out rather than a signal of nested @given.
+            suppressed = set(test_settings.suppress_health_check)
+            if HealthCheck.nested_given in suppressed and suppressed != set(
+                HealthCheck
+            ):
                 self._skip_because(
                     "nested_given",
                     item.nodeid,

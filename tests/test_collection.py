@@ -284,3 +284,23 @@ def test_skips_derandomize():
         pass
     """
     assert not collect_names(code)
+
+
+def test_skips_suppressed_nested_given():
+    code = """
+    @given(st.integers())
+    @settings(suppress_health_check=[HealthCheck.nested_given])
+    def test_a(n):
+        pass
+    """
+    assert not collect_names(code)
+
+
+def test_collects_blanket_suppressed_health_checks():
+    code = """
+    @given(st.integers())
+    @settings(suppress_health_check=list(HealthCheck))
+    def test_a(n):
+        pass
+    """
+    assert collect_names(code) == {"test_a"}

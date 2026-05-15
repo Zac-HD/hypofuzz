@@ -58,14 +58,12 @@ def test_fuzz_one_process_explain_mode():
         fp.database_key, failures[0]
     )
     assert "CustomError" in observation.metadata.traceback
-    expected = textwrap.dedent(
-        """
+    expected = textwrap.dedent("""
     test_fails(
         x=1,
         y=0,  # or any other generated value
     )
-    """
-    ).strip()
+    """).strip()
     assert observation.representation == expected
 
 

@@ -290,9 +290,7 @@ def test(x):
 
 
 def write_test_code(path: Path, db_dir, code: str) -> None:
-    code = (
-        inspect.cleandoc(
-            f"""
+    code = inspect.cleandoc(f"""
             from unittest import TestCase
 
             import pytest
@@ -304,11 +302,7 @@ def write_test_code(path: Path, db_dir, code: str) -> None:
 
             settings.register_profile("testing", settings(database=DirectoryBasedExampleDatabase("{db_dir}")))
             settings.load_profile("testing")
-            """
-        )
-        + "\n\n"
-        + inspect.cleandoc(code)
-    )
+            """) + "\n\n" + inspect.cleandoc(code)
     path.write_text(code)
 
 
@@ -339,18 +333,12 @@ def interesting_origin(n: int | None = None) -> InterestingOrigin:
 
 
 def collect(code: str) -> CollectionResult:
-    code = (
-        inspect.cleandoc(
-            """
+    code = inspect.cleandoc("""
             import pytest
             from hypothesis import given, strategies as st, settings, HealthCheck, Phase
             from hypothesis.stateful import RuleBasedStateMachine, Bundle, initialize, rule
             from hypothesis.database import InMemoryExampleDatabase
-            """
-        )
-        + "\n"
-        + inspect.cleandoc(code)
-    )
+            """) + "\n" + inspect.cleandoc(code)
     p = Path(tempfile.mkstemp(prefix="test_", suffix=".py")[1])
     p.write_text(code)
     result = collect_tests([str(p)])
