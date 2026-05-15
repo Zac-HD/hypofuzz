@@ -425,7 +425,7 @@ class HypofuzzProvider(PrimitiveProvider):
 
         assert self.corpus is not None
         while self._choices_queue:
-            (priority, choices, extra_queue_data) = self._choices_queue.pop(0)
+            priority, choices, extra_queue_data = self._choices_queue.pop(0)
 
             # we checked if we had this choice sequence when we put it into the
             # replay_queue on on_event, but we check again here, since we might have
@@ -484,7 +484,7 @@ class HypofuzzProvider(PrimitiveProvider):
         if not self._started:
             self._startup()
 
-        (choices, priority, extra_queue_data) = self._test_case_choices()
+        choices, priority, extra_queue_data = self._test_case_choices()
         # We're aiming for a rolling buffer of the last n observations, downsampling
         # to one per second if we're executing more than one test case per second.
         # Decide whether to save the observation before running, so that runtime

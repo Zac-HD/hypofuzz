@@ -284,7 +284,7 @@ class Test:
     ) -> list[T]:
         cumsum: list[T]
         if since in cache:
-            (start_idx, cumsum) = cache[since]
+            start_idx, cumsum = cache[since]
             if len(cumsum) < len(self.linear_reports[start_idx:]):
                 # extend cumsum with any new reports
                 running = cumsum[-1] if cumsum else initial

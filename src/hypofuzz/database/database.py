@@ -526,7 +526,7 @@ class DatabaseEvent:
         # placate mypy
         full_key: Any
         value: Any
-        (event_type, (full_key, value)) = event
+        event_type, (full_key, value) = event
         # unfortunately a key which is exactly equal to the database key length
         # is valid, and we can't adjust that, because that's the database key
         # hypothesis uses for failures.

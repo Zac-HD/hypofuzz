@@ -88,7 +88,7 @@ class _ItemsCollector:
                 )
                 self._skip_because("skip", item.nodeid, {"reason": reason})
                 continue
-            (true_skipif, skipif_reason) = has_true_skipif(item)
+            true_skipif, skipif_reason = has_true_skipif(item)
             if true_skipif:
                 self._skip_because("skipif", item.nodeid, {"reason": skipif_reason})
                 continue

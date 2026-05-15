@@ -76,7 +76,7 @@ class DocsStaticFiles(StaticFiles):
         return await super().get_response(path, scope)
 
 
-async def serve_app(app: Any, host: str, port: str) -> None:
+async def serve_app(app: Any, host: str, port: int) -> None:
     config = Config()
     config.bind = [f"{host}:{port}"]
     # disable the dashboard url print. We already print it ourselves in a better

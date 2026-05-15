@@ -163,10 +163,10 @@ class CoverageCollector:
         assert source_offset % 2 == 0
         assert dest_offset % 2 == 0
         positions = list(code.co_positions())  # type: ignore # new in 3.11
-        (s_start_line, _s_end_line, s_start_column, _s_end_column) = positions[
+        s_start_line, _s_end_line, s_start_column, _s_end_column = positions[
             source_offset // 2
         ]
-        (d_start_line, _d_end_line, d_start_column, _d_end_column) = positions[
+        d_start_line, _d_end_line, d_start_column, _d_end_column = positions[
             dest_offset // 2
         ]
         # if anything is None, skip this branch. This can happen for various reasons.
