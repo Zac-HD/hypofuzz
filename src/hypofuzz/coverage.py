@@ -10,7 +10,6 @@ from typing import Any, NamedTuple
 import _pytest
 import attr
 import attrs
-import coverage
 import hypothesis
 import pluggy
 import pytest
@@ -65,19 +64,6 @@ class Branch(NamedTuple):
     # __repr__ = __str__ triggers a mypy bug (?)
     def __repr__(self) -> str:
         return self.__str__()
-
-
-def get_coverage_instance(**kwargs: Any) -> coverage.Coverage:
-    # See https://coverage.readthedocs.io/en/latest/api_coverage.html
-    c = coverage.Coverage(
-        data_file=None,  # write nothing to disk
-        cover_pylib=True,  # measure stdlib and package code too
-        branch=True,  # branch coverage
-        config_file=False,  # ignore any config files
-        **kwargs,
-    )
-    c._init()
-    return c
 
 
 is_hypothesis_file = belongs_to(hypothesis)

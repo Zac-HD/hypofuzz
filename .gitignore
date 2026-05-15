@@ -5,6 +5,7 @@ __latexindent_temp.tex
 pycrunch-recordings/
 .cursor
 .vscode
+.claude/settings.local.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

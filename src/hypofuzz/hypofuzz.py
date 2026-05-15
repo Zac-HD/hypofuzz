@@ -197,7 +197,7 @@ class FuzzTarget:
         except Exception as e:
             self._fail_fatally(e)
 
-        return HypofuzzStateForActualGivenExecution(  # type: ignore
+        return HypofuzzStateForActualGivenExecution(
             stuff,
             self.test_fn,
             settings(

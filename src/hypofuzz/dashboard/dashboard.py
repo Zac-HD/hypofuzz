@@ -377,7 +377,7 @@ async def run_dashboard(port: int, host: str) -> None:
         for fuzz_target in COLLECTION_RESULT.fuzz_targets:
             nursery.start_soon(load_initial_state, fuzz_target)
 
-        nursery.start_soon(serve_app, app, host, port)  # type: ignore
+        nursery.start_soon(serve_app, app, host, port)
         nursery.start_soon(handle_event, receive_channel)
 
 
