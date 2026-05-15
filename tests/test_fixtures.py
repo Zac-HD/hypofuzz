@@ -189,9 +189,7 @@ def test_fixture_override(tmp_path):
     test_dir, db_dir = setup_test_code(tmp_path, test_code)
 
     conftest_path = test_dir / "conftest.py"
-    conftest_path.write_text(
-        inspect.cleandoc(
-            """
+    conftest_path.write_text(inspect.cleandoc("""
         import pytest
 
         @pytest.fixture(scope="module")
@@ -201,8 +199,6 @@ def test_fixture_override(tmp_path):
         @pytest.fixture
         def dependent(base):
             return base
-    """
-        )
-    )
+    """))
 
     _assert_fixtures(test_dir, db_dir)
